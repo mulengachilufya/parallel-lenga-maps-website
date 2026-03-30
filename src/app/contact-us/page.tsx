@@ -2,7 +2,18 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Phone, Linkedin, Facebook, MapPin, Send, CheckCircle, MessageCircle } from 'lucide-react'
+import { Mail, Phone, MapPin, Send, CheckCircle, MessageCircle } from 'lucide-react'
+
+const LinkedinIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+  </svg>
+)
+const FacebookIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+  </svg>
+)
 import Footer from '@/components/Footer'
 
 export default function ContactPage() {
@@ -42,14 +53,14 @@ export default function ContactPage() {
       color: '#b45309',
     },
     {
-      icon: <Linkedin size={20} />,
+      icon: <LinkedinIcon />,
       label: 'LinkedIn',
       value: 'Lenga Maps',
       href: 'https://linkedin.com',
       color: '#0a66c2',
     },
     {
-      icon: <Facebook size={20} />,
+      icon: <FacebookIcon />,
       label: 'Facebook',
       value: 'Lenga Maps',
       href: 'https://facebook.com',
