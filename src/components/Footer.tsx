@@ -1,7 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { Mail, Phone, Linkedin, Facebook, MapPin } from 'lucide-react'
+import { Mail, Phone, MapPin } from 'lucide-react'
+
+const LinkedinIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+  </svg>
+)
+const FacebookIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+  </svg>
+)
 
 export default function Footer() {
   return (
@@ -32,7 +43,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-primary transition-colors"
                 aria-label="LinkedIn"
               >
-                <Linkedin size={16} />
+                <LinkedinIcon />
               </a>
               <a
                 href="https://facebook.com"
@@ -41,7 +52,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-primary transition-colors"
                 aria-label="Facebook"
               >
-                <Facebook size={16} />
+                <FacebookIcon />
               </a>
             </div>
           </div>
