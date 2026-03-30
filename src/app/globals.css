@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --primary: #1E5F8E;
+  --accent: #F5B800;
+  --navy: #0D2B45;
+  --background: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: #0D2B45;
+  background: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E5F8E;
+  border-radius: 3px;
+}
+
+/* 3D flip card */
+.flip-card {
+  perspective: 1200px;
+}
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Loading animation */
+@keyframes globeSpin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes borderLight {
+  0%, 100% { stroke-opacity: 0.3; }
+  50% { stroke-opacity: 1; }
+}
+
+.country-path {
+  transition: fill 0.3s ease, stroke 0.3s ease;
+  cursor: pointer;
+}
+.country-path:hover {
+  fill: #1E5F8E;
+  stroke: #F5B800;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 6px rgba(245, 184, 0, 0.5));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, #1E5F8E 0%, #0D2B45 100%);
+  }
+  .gradient-accent {
+    background: linear-gradient(135deg, #F5B800 0%, #e6a800 100%);
+  }
+}
