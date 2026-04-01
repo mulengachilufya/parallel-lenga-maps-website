@@ -241,7 +241,7 @@ export default function AboutPage() {
           </motion.div>
 
           <div className="flex justify-center">
-            {team.map((member, i) => (
+            {team.map((member) => (
               <motion.div
                 key={member.name}
                 initial={{ opacity: 0, scale: 0.9 }}

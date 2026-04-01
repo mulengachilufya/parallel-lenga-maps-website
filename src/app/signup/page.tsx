@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -14,6 +14,15 @@ const plans = [
 ]
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-dark" />}>
+      <SignupContent />
+    </Suspense>
+  )
+}
+
+function SignupContent() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultPlan = searchParams.get('plan') || 'basic'

@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Map } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 const navLinks = [
-  { href: '/', label: 'Home' },
   { href: '/about-us', label: 'About Us' },
   { href: '/services', label: 'Services' },
+  { href: '/pricing', label: 'Our Work' },
   { href: '/pricing', label: 'Download GIS Data' },
-  { href: '/contact-us', label: 'Contact Us' },
 ]
 
 export default function Navbar() {
@@ -25,54 +25,40 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const isHome = pathname === '/'
-
   return (
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled || !isHome
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100'
-          : 'bg-transparent'
+        scrolled
+          ? 'bg-dark/95 backdrop-blur-md shadow-lg border-b border-white/5'
+          : 'bg-dark/35 backdrop-blur-[4px]'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative w-9 h-9">
-              <svg viewBox="0 0 40 40" className="w-full h-full">
-                <circle cx="20" cy="20" r="18" fill="#1E5F8E" />
-                <ellipse cx="20" cy="20" rx="8" ry="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-                <line x1="2" y1="20" x2="38" y2="20" stroke="#F5B800" strokeWidth="1.5" />
-                <line x1="5" y1="12" x2="35" y2="12" stroke="#F5B800" strokeWidth="1" opacity="0.7" />
-                <line x1="5" y1="28" x2="35" y2="28" stroke="#F5B800" strokeWidth="1" opacity="0.7" />
-                <circle cx="20" cy="20" r="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-              </svg>
-            </div>
-            <div>
-              <span className={`font-bold text-lg tracking-wide transition-colors ${
-                scrolled || !isHome ? 'text-navy' : 'text-white'
-              }`}>
-                LENGA <span className="text-accent">MAPS</span>
-              </span>
-            </div>
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/logo.png"
+              alt="Lenga Maps"
+              width={52}
+              height={52}
+              className="object-contain"
+            />
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-10">
             {navLinks.map((link) => (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`text-[0.95rem] font-medium tracking-[0.01em] transition-colors duration-200 ${
                   pathname === link.href
-                    ? 'bg-primary text-white'
-                    : scrolled || !isHome
-                    ? 'text-navy hover:text-primary hover:bg-primary/10'
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                    ? 'text-gold'
+                    : 'text-white/90 hover:text-gold'
                 }`}
               >
                 {link.label}
@@ -80,32 +66,26 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* CTA */}
+          {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
             <Link
               href="/login"
-              className={`text-sm font-medium px-4 py-2 rounded-lg transition-all ${
-                scrolled || !isHome
-                  ? 'text-navy hover:text-primary'
-                  : 'text-white hover:text-accent'
-              }`}
+              className="text-white/90 text-[0.95rem] font-medium hover:text-gold transition-colors"
             >
               Login
             </Link>
             <Link
-              href="/signup"
-              className="bg-accent text-navy text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-yellow-500 transition-all shadow-sm hover:shadow-md"
+              href="/contact-us"
+              className="bg-gold text-[#1a1200] text-[0.95rem] font-bold px-7 py-3 hover:bg-gold-light transition-all hover:-translate-y-px"
             >
-              Get Started
+              Contact Us
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className={`lg:hidden p-2 rounded-lg transition-colors ${
-              scrolled || !isHome ? 'text-navy' : 'text-white'
-            }`}
+            className="lg:hidden p-2 text-white"
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -119,28 +99,36 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-t border-gray-100 shadow-lg"
+            className="lg:hidden bg-dark border-t border-white/10"
           >
-            <div className="px-4 py-4 space-y-1">
+            <div className="px-5 py-4 space-y-1">
               {navLinks.map((link) => (
                 <Link
-                  key={link.href}
+                  key={link.label}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`block px-4 py-3 text-[0.95rem] font-medium transition-colors ${
                     pathname === link.href
-                      ? 'bg-primary text-white'
-                      : 'text-navy hover:bg-primary/10 hover:text-primary'
+                      ? 'text-gold'
+                      : 'text-white/80 hover:text-gold'
                   }`}
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-2 flex gap-2">
-                <Link href="/login" className="flex-1 text-center py-2.5 border border-primary text-primary rounded-lg text-sm font-medium" onClick={() => setMenuOpen(false)}>
+              <div className="pt-3 flex gap-2">
+                <Link
+                  href="/login"
+                  className="flex-1 text-center py-3 border border-white/30 text-white text-sm font-medium"
+                  onClick={() => setMenuOpen(false)}
+                >
                   Login
                 </Link>
-                <Link href="/signup" className="flex-1 text-center py-2.5 bg-accent text-navy rounded-lg text-sm font-semibold" onClick={() => setMenuOpen(false)}>
+                <Link
+                  href="/signup"
+                  className="flex-1 text-center py-3 bg-gold text-[#1a1200] text-sm font-bold"
+                  onClick={() => setMenuOpen(false)}
+                >
                   Get Started
                 </Link>
               </div>

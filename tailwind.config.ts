@@ -14,6 +14,11 @@ const config: Config = {
         navy: "#0D2B45",
         "primary-dark": "#174d75",
         "primary-light": "#2a7ab5",
+        gold: "#C9A227",
+        "gold-light": "#dab52e",
+        dark: "#0f1923",
+        "dark-light": "#0b1520",
+        "dark-deep": "#070e16",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
