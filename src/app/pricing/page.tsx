@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Lock, Download, ArrowRight, Smartphone, CreditCard, Star } from 'lucide-react'
+import { Check, Lock, Download, ArrowRight, CreditCard, Star } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS } from '@/lib/supabase'
 

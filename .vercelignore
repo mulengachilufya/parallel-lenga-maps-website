@@ -1,0 +1,9 @@
+node_modules
+.next
+srtm_tiles
+boundaries
+output
+*.tif
+*.shp
+*.dbf
+*.shx

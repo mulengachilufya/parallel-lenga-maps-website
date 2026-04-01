@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const accessibleDatasets = DATASETS.filter(
     (d) => user.plan === 'pro' || d.tier === 'basic'
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lockedDatasets = DATASETS.filter(
     (d) => user.plan !== 'pro' && d.tier === 'pro'
   )
