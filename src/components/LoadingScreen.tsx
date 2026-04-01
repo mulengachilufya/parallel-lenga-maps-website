@@ -37,7 +37,7 @@ export default function LoadingScreen() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
           transition={{ duration: 0.4 }}
-          className="fixed inset-0 z-[9999] bg-navy flex flex-col items-center justify-center"
+          className="fixed inset-0 z-[9999] bg-dark flex flex-col items-center justify-center"
         >
           {/* Globe */}
           <motion.div
