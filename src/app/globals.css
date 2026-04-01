@@ -9,6 +9,10 @@
   --accent: #F5B800;
   --navy: #0D2B45;
   --background: #FFFFFF;
+  --gold: #C9A227;
+  --dark: #0f1923;
+  --dark-light: #0b1520;
+  --dark-deep: #070e16;
 }
 
 * {
@@ -22,8 +26,8 @@ html {
 }
 
 body {
-  color: #0D2B45;
-  background: #ffffff;
+  color: #ffffff;
+  background: #0f1923;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -33,10 +37,10 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #0f1923;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E5F8E;
+  background: #C9A227;
   border-radius: 3px;
 }
 

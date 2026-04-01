@@ -441,10 +441,9 @@ def clip_raster_windowed(src_path: Path, geom, out_path: Path) -> Optional[dict]
         out_meta.update({
             "height": crop_h, "width": crop_w, "transform": clip_tf,
             "nodata": np.nan, "compress": "lzw", "dtype": "float32",
-            "tiled": False,
+            "tiled": True, "blockxsize": 512, "blockysize": 512,
+            "BIGTIFF": "IF_SAFER",
         })
-        out_meta.pop("blockxsize", None)
-        out_meta.pop("blockysize", None)
 
         try:
             with rasterio.open(out_path, "w", **out_meta) as dst:
@@ -490,7 +489,11 @@ def compute_derivative_windowed(
         H, W   = src.height, src.width
         tf     = src.transform
         meta   = src.meta.copy()
-        meta.update({"compress": "lzw", "dtype": "float32", "nodata": np.nan})
+        meta.update({
+            "compress": "lzw", "dtype": "float32", "nodata": np.nan,
+            "tiled": True, "blockxsize": 512, "blockysize": 512,
+            "BIGTIFF": "IF_SAFER",
+        })
 
         # Pixel size in metres at centre latitude
         centre_lat = tf.f + (H / 2) * tf.e
@@ -574,27 +577,30 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
         log(f"SKIP: No elevation tiles for {country_name}", indent=2)
         return False
 
-    # ── 3. Merge: write tiles one-by-one to a temp mosaic on disk ────────────
-    tmp_mosaic = OUTPUT_DIR / f"_{iso}_mosaic_tmp.tif"
-    tmp_mosaic.unlink(missing_ok=True)
-    log(f"Merging {len(tif_paths)} tile(s) to disk (windowed)...", indent=2)
-    try:
-        merge_tiles_windowed(tif_paths, tmp_mosaic, minx, miny, maxx, maxy)
-    except Exception as exc:
-        log(f"ERROR: Merge failed — {exc}", indent=2)
-        return False
-
-    # ── 4. Clip mosaic to country polygon (row chunks, ~300 MB/chunk) ────────
-    log("Clipping to country boundary (windowed)...", indent=2)
-    try:
-        clip_raster_windowed(tmp_mosaic, geom, dem_out)
-    except Exception as exc:
-        log(f"ERROR: Clip failed — {exc}", indent=2)
-        return False
-    finally:
+    if not dem_out.exists():
+        # ── 3. Merge: write tiles one-by-one to a temp mosaic on disk ─────────
+        tmp_mosaic = OUTPUT_DIR / f"_{iso}_mosaic_tmp.tif"
         tmp_mosaic.unlink(missing_ok=True)
+        log(f"Merging {len(tif_paths)} tile(s) to disk (windowed)...", indent=2)
+        try:
+            merge_tiles_windowed(tif_paths, tmp_mosaic, minx, miny, maxx, maxy)
+        except Exception as exc:
+            log(f"ERROR: Merge failed — {exc}", indent=2)
+            return False
 
-    log(f"Saved DEM: {dem_out.name}", indent=2)
+        # ── 4. Clip mosaic to country polygon (row chunks, ~300 MB/chunk) ──────
+        log("Clipping to country boundary (windowed)...", indent=2)
+        try:
+            clip_raster_windowed(tmp_mosaic, geom, dem_out)
+        except Exception as exc:
+            log(f"ERROR: Clip failed — {exc}", indent=2)
+            return False
+        finally:
+            tmp_mosaic.unlink(missing_ok=True)
+
+        log(f"Saved DEM: {dem_out.name}", indent=2)
+    else:
+        log(f"DEM already exists, skipping merge+clip: {dem_out.name}", indent=2)
 
     # ── 5. Slope ─────────────────────────────────────────────────────────────
     log("Computing slope (windowed)...", indent=2)
