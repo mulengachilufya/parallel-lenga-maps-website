@@ -32,6 +32,7 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple, Optional
+from zipfile import ZipFile, ZIP_DEFLATED
 
 import io
 import requests
@@ -131,6 +132,28 @@ def tiles_for_bbox(minx: float, miny: float, maxx: float, maxy: float) -> List[T
     return tiles
 
 
+def _wait_for_connection(max_wait: int = 300):
+    """
+    Block until s3.amazonaws.com is reachable.
+    Checks every 10 seconds, gives up after max_wait seconds.
+    Returns True if connected, False if timed out.
+    """
+    import time
+    test_url = f"{SRTM_BASE_URL}/N00/N00E006.hgt.gz"
+    waited = 0
+    while waited < max_wait:
+        try:
+            r = requests.head(test_url, timeout=5)
+            return True
+        except Exception:
+            if waited == 0:
+                log("Network down — waiting for connection to resume...", indent=2)
+            time.sleep(10)
+            waited += 10
+    log(f"WARNING: Network still down after {max_wait}s, continuing anyway.", indent=2)
+    return False
+
+
 def download_tile(lat: int, lon: int, retries: int = 3) -> Optional[Path]:
     """
     Download a gzipped HGT tile from AWS S3, decompress, and cache locally.
@@ -175,8 +198,13 @@ def download_tile(lat: int, lon: int, retries: int = 3) -> Optional[Path]:
         except Exception as exc:
             if gz_path.exists():
                 gz_path.unlink()
-            if attempt < retries:
-                time.sleep(2 ** attempt)  # backoff: 2s, 4s
+            # If DNS/connection failure, wait for network before retrying
+            is_network_err = ("NameResolution" in str(exc) or "getaddrinfo" in str(exc)
+                              or "timed out" in str(exc).lower())
+            if is_network_err and attempt <= retries:
+                _wait_for_connection()
+            elif attempt < retries:
+                time.sleep(2 ** attempt)
             else:
                 log(f"WARNING: Could not download {stem}.hgt.gz after {retries} attempts — {exc}", indent=2)
                 return None
@@ -543,9 +571,26 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
       download tiles → HGT→TIF → merge (tile-by-tile) → clip (row chunks)
       → DEM → slope (row chunks) → hillshade (row chunks)
     """
-    dem_out   = OUTPUT_DIR / f"{iso}_DEM.tif"
-    slope_out = OUTPUT_DIR / f"{iso}_slope.tif"
-    hs_out    = OUTPUT_DIR / f"{iso}_hillshade.tif"
+    # Sanitize country name for use in filenames (replace spaces, accents, etc.)
+    safe_name = country_name.replace(" ", "_").replace("'", "").replace(".", "")
+    safe_name = safe_name.replace("&", "and").replace("/", "-")
+    # Remove any remaining non-ASCII chars
+    safe_name = safe_name.encode("ascii", "ignore").decode("ascii")
+
+    dem_out   = OUTPUT_DIR / f"{safe_name}_DEM.tif"
+    slope_out = OUTPUT_DIR / f"{safe_name}_slope.tif"
+    hs_out    = OUTPUT_DIR / f"{safe_name}_hillshade.tif"
+
+    # Also check old ISO-based names for resume compatibility
+    old_dem   = OUTPUT_DIR / f"{iso}_DEM.tif"
+    old_slope = OUTPUT_DIR / f"{iso}_slope.tif"
+    old_hs    = OUTPUT_DIR / f"{iso}_hillshade.tif"
+
+    # Rename old files to new naming convention if they exist
+    for old, new in [(old_dem, dem_out), (old_slope, slope_out), (old_hs, hs_out)]:
+        if old.exists() and not new.exists() and old != new:
+            old.rename(new)
+            log(f"Renamed {old.name} -> {new.name}", indent=2)
 
     if resume and dem_out.exists() and slope_out.exists() and hs_out.exists():
         log(f"SKIP (already done): {country_name} ({iso})", indent=1)
@@ -579,7 +624,7 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
 
     if not dem_out.exists():
         # ── 3. Merge: write tiles one-by-one to a temp mosaic on disk ─────────
-        tmp_mosaic = OUTPUT_DIR / f"_{iso}_mosaic_tmp.tif"
+        tmp_mosaic = OUTPUT_DIR / f"_{safe_name}_mosaic_tmp.tif"
         tmp_mosaic.unlink(missing_ok=True)
         log(f"Merging {len(tif_paths)} tile(s) to disk (windowed)...", indent=2)
         try:
@@ -602,10 +647,21 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
     else:
         log(f"DEM already exists, skipping merge+clip: {dem_out.name}", indent=2)
 
+    # ── Add country metadata to all outputs ───────────────────────────────────
+    def _tag_with_metadata(tif_path: Path, dtype: str):
+        """Add country name and dataset info to GeoTIFF description."""
+        try:
+            with rasterio.open(tif_path, "r+") as dst:
+                desc = f"{country_name} ({iso}) — SRTM 1 Arc-Second {dtype}"
+                dst.update_tags(ns="IMAGE_STRUCTURE", DESCRIPTION=desc)
+        except Exception:
+            pass  # non-critical
+
     # ── 5. Slope ─────────────────────────────────────────────────────────────
     log("Computing slope (windowed)...", indent=2)
     try:
         compute_derivative_windowed(dem_out, slope_out, mode="slope")
+        _tag_with_metadata(slope_out, "Slope (degrees)")
     except Exception as exc:
         log(f"ERROR: Slope failed — {exc}", indent=2)
         return False
@@ -615,10 +671,25 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
     log("Computing hillshade (windowed)...", indent=2)
     try:
         compute_derivative_windowed(dem_out, hs_out, mode="hillshade")
+        _tag_with_metadata(hs_out, "Hillshade (8-bit)")
     except Exception as exc:
         log(f"ERROR: Hillshade failed — {exc}", indent=2)
         return False
     log(f"Saved hillshade: {hs_out.name}", indent=2)
+
+    # Tag DEM too
+    _tag_with_metadata(dem_out, "DEM (metres)")
+
+    # ── 7. Bundle into ZIP ────────────────────────────────────────────────────
+    zip_out = OUTPUT_DIR / f"{safe_name}_DEM.zip"
+    try:
+        with ZipFile(zip_out, "w", ZIP_DEFLATED) as zf:
+            zf.write(dem_out, arcname=dem_out.name)
+            zf.write(slope_out, arcname=slope_out.name)
+            zf.write(hs_out, arcname=hs_out.name)
+        log(f"Bundled ZIP: {zip_out.name}", indent=2)
+    except Exception as exc:
+        log(f"WARNING: ZIP bundling failed — {exc}", indent=2)
 
     log(f"COMPLETE: {country_name} ({iso})", indent=1)
     return True
