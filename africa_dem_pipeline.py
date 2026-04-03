@@ -5,10 +5,9 @@ Africa DEM Processing Pipeline
 Downloads SRTM 1 Arc-Second (30m) tiles for all 54 African countries and
 produces per-country GeoTIFFs for:
   - DEM (elevation)
-  - Slope  (degrees, Horn's method)
-  - Hillshade (8-bit, ESRI standard illumination model)
+  - Slope (degrees, Horn's method)
 
-Output files: output/DEMs/{ISO}_DEM.tif | {ISO}_slope.tif | {ISO}_hillshade.tif
+Output files: output/DEMs/{Country}_DEM.tif + .zip | {Country}_slope.tif + .zip
 
 Tile source: AWS Open Data terrain tiles (SRTM-derived, no auth required)
   https://s3.amazonaws.com/elevation-tiles-prod/skadi/{DIR}/{TILE}.hgt.gz
@@ -353,7 +352,7 @@ def compute_hillshade_array(
 # Windowed helpers — never load more than BLOCK_ROWS rows into RAM at once
 # ─────────────────────────────────────────────────────────────────────────────
 
-BLOCK_ROWS = 1000  # ~300 MB per chunk at 1 arc-sec, safe for any machine
+BLOCK_ROWS = 4000  # ~1.2 GB per chunk — fewer I/O passes, much faster
 
 
 def _tile_meta(tif_paths: List[Path], minx, miny, maxx, maxy):
@@ -569,7 +568,7 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
     """
     Full pipeline for one country — fully windowed, max RAM ~300 MB at any step.
       download tiles → HGT→TIF → merge (tile-by-tile) → clip (row chunks)
-      → DEM → slope (row chunks) → hillshade (row chunks)
+      → DEM → slope (row chunks) → ZIP each separately
     """
     # Sanitize country name for use in filenames (replace spaces, accents, etc.)
     safe_name = country_name.replace(" ", "_").replace("'", "").replace(".", "")
@@ -579,20 +578,25 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
 
     dem_out   = OUTPUT_DIR / f"{safe_name}_DEM.tif"
     slope_out = OUTPUT_DIR / f"{safe_name}_slope.tif"
-    hs_out    = OUTPUT_DIR / f"{safe_name}_hillshade.tif"
+    dem_zip   = OUTPUT_DIR / f"{safe_name}_DEM.zip"
+    slope_zip = OUTPUT_DIR / f"{safe_name}_slope.zip"
 
     # Also check old ISO-based names for resume compatibility
     old_dem   = OUTPUT_DIR / f"{iso}_DEM.tif"
     old_slope = OUTPUT_DIR / f"{iso}_slope.tif"
-    old_hs    = OUTPUT_DIR / f"{iso}_hillshade.tif"
 
     # Rename old files to new naming convention if they exist
-    for old, new in [(old_dem, dem_out), (old_slope, slope_out), (old_hs, hs_out)]:
+    for old, new in [(old_dem, dem_out), (old_slope, slope_out)]:
         if old.exists() and not new.exists() and old != new:
             old.rename(new)
             log(f"Renamed {old.name} -> {new.name}", indent=2)
 
-    if resume and dem_out.exists() and slope_out.exists() and hs_out.exists():
+    # Clean up any leftover hillshade files from earlier runs
+    for hs_old in [OUTPUT_DIR / f"{safe_name}_hillshade.tif", OUTPUT_DIR / f"{iso}_hillshade.tif"]:
+        if hs_old.exists():
+            hs_old.unlink()
+
+    if resume and dem_out.exists() and slope_out.exists() and dem_zip.exists() and slope_zip.exists():
         log(f"SKIP (already done): {country_name} ({iso})", indent=1)
         return True
 
@@ -604,17 +608,26 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
     log(f"Bounding box: [{minx:.2f}, {miny:.2f}, {maxx:.2f}, {maxy:.2f}]"
         f" -> {len(tile_coords)} candidate tile(s)", indent=2)
 
-    # ── 2. Download & convert tiles ──────────────────────────────────────────
-    tif_paths: List[Path] = []
-    missing = 0
-    for lat, lon in tile_coords:
+    # ── 2. Download & convert tiles (parallel — 8 threads) ────────────────────
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _fetch_tile(coords):
+        lat, lon = coords
         hgt = download_tile(lat, lon)
         if hgt is None:
-            missing += 1
-            continue
-        tif = hgt_to_tiff(hgt)
-        if tif and tif.exists():
-            tif_paths.append(tif)
+            return None
+        return hgt_to_tiff(hgt)
+
+    tif_paths: List[Path] = []
+    missing = 0
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = {pool.submit(_fetch_tile, c): c for c in tile_coords}
+        for fut in as_completed(futures):
+            result = fut.result()
+            if result is None:
+                missing += 1
+            elif result.exists():
+                tif_paths.append(result)
 
     log(f"Tiles: {len(tif_paths)} with data  |  {missing} ocean/missing", indent=2)
 
@@ -658,38 +671,31 @@ def process_country(iso: str, geom, country_name: str, resume: bool) -> bool:
             pass  # non-critical
 
     # ── 5. Slope ─────────────────────────────────────────────────────────────
-    log("Computing slope (windowed)...", indent=2)
-    try:
-        compute_derivative_windowed(dem_out, slope_out, mode="slope")
-        _tag_with_metadata(slope_out, "Slope (degrees)")
-    except Exception as exc:
-        log(f"ERROR: Slope failed — {exc}", indent=2)
-        return False
-    log(f"Saved slope: {slope_out.name}", indent=2)
+    if not slope_out.exists():
+        log("Computing slope (windowed)...", indent=2)
+        try:
+            compute_derivative_windowed(dem_out, slope_out, mode="slope")
+        except Exception as exc:
+            log(f"ERROR: Slope failed — {exc}", indent=2)
+            return False
+        log(f"Saved slope: {slope_out.name}", indent=2)
+    else:
+        log(f"Slope already exists: {slope_out.name}", indent=2)
 
-    # ── 6. Hillshade ─────────────────────────────────────────────────────────
-    log("Computing hillshade (windowed)...", indent=2)
-    try:
-        compute_derivative_windowed(dem_out, hs_out, mode="hillshade")
-        _tag_with_metadata(hs_out, "Hillshade (8-bit)")
-    except Exception as exc:
-        log(f"ERROR: Hillshade failed — {exc}", indent=2)
-        return False
-    log(f"Saved hillshade: {hs_out.name}", indent=2)
-
-    # Tag DEM too
+    # ── 6. Tag metadata ──────────────────────────────────────────────────────
     _tag_with_metadata(dem_out, "DEM (metres)")
+    _tag_with_metadata(slope_out, "Slope (degrees)")
 
-    # ── 7. Bundle into ZIP ────────────────────────────────────────────────────
-    zip_out = OUTPUT_DIR / f"{safe_name}_DEM.zip"
-    try:
-        with ZipFile(zip_out, "w", ZIP_DEFLATED) as zf:
-            zf.write(dem_out, arcname=dem_out.name)
-            zf.write(slope_out, arcname=slope_out.name)
-            zf.write(hs_out, arcname=hs_out.name)
-        log(f"Bundled ZIP: {zip_out.name}", indent=2)
-    except Exception as exc:
-        log(f"WARNING: ZIP bundling failed — {exc}", indent=2)
+    # ── 7. ZIP each file separately (DEFLATE — lossless, no quality loss) ────
+    for tif, zpath in [(dem_out, dem_zip), (slope_out, slope_zip)]:
+        if not zpath.exists():
+            try:
+                with ZipFile(zpath, "w", ZIP_DEFLATED, compresslevel=1) as zf:
+                    zf.write(tif, arcname=tif.name)
+                sz = zpath.stat().st_size / 1e6
+                log(f"Zipped: {zpath.name} ({sz:.0f} MB)", indent=2)
+            except Exception as exc:
+                log(f"WARNING: ZIP failed for {zpath.name} — {exc}", indent=2)
 
     log(f"COMPLETE: {country_name} ({iso})", indent=1)
     return True
