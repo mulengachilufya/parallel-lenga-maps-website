@@ -2,7 +2,7 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "installCommand": "npm install",
-  "regions": ["jnb1"],
+  "regions": ["cpt1"],
   "headers": [
     {
       "source": "/api/(.*)",
