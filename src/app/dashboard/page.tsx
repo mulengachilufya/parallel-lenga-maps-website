@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, Lock, LogOut, User, Package, ChevronRight, Star, AlertCircle } from 'lucide-react'
+import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle } from 'lucide-react'
 import { supabase, DATASETS } from '@/lib/supabase'
+import AdminBoundariesList from '@/components/AdminBoundariesList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -19,7 +20,6 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [downloading, setDownloading] = useState<number | null>(null)
 
   useEffect(() => {
     const getUser = async () => {
@@ -41,27 +41,6 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
-  }
-
-  const handleDownload = async (datasetId: number, datasetName: string, isPro: boolean) => {
-    if (isPro && user?.plan !== 'pro') return
-
-    setDownloading(datasetId)
-    // Simulate download — in production, fetch from Cloudflare R2
-    await new Promise((r) => setTimeout(r, 1500))
-    setDownloading(null)
-
-    // Create a placeholder download
-    const blob = new Blob(
-      [`# ${datasetName}\nDataset placeholder — actual files are stored in Cloudflare R2.\nPlan: ${user?.plan}\nDownloaded: ${new Date().toISOString()}`],
-      { type: 'text/plain' }
-    )
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${datasetName.toLowerCase().replace(/\s+/g, '_')}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   if (loading) {
@@ -216,72 +195,15 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Available Datasets */}
+        {/* Admin Boundaries Section */}
         <div className="mb-8">
-          <h2 className="text-lg font-black text-navy mb-4">Your Datasets</h2>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {DATASETS.map((dataset, i) => {
-              const isLocked = user.plan !== 'pro' && dataset.tier === 'pro'
-              return (
-                <motion.div
-                  key={dataset.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`flex items-center justify-between p-4 border-b border-gray-100 last:border-0 transition-colors ${
-                    isLocked ? 'opacity-50 bg-gray-50/50' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span className="text-2xl flex-shrink-0">{dataset.icon}</span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-navy text-sm">{dataset.name}</span>
-                        {isLocked && (
-                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">
-                            <Lock size={10} /> Pro
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{dataset.category} · {dataset.format}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <span className="hidden sm:block text-xs text-gray-400">{dataset.resolution}</span>
-                    {isLocked ? (
-                      <Link
-                        href="/pricing"
-                        className="flex items-center gap-1 text-xs font-semibold text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
-                      >
-                        <Lock size={12} />
-                        Unlock
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => handleDownload(dataset.id, dataset.name, dataset.tier === 'pro')}
-                        disabled={downloading === dataset.id}
-                        className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-70"
-                      >
-                        {downloading === dataset.id ? (
-                          <>
-                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                            <span className="hidden sm:inline">Preparing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download size={12} />
-                            <span className="hidden sm:inline">Download</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )
-            })}
+          <h2 className="text-lg font-black text-navy mb-4">📍 Administrative Boundaries</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <AdminBoundariesList userPlan={user.plan} />
           </div>
         </div>
+
+        {/* Original datasets removed — now using AdminBoundariesList above */}
 
         {/* Support */}
         <motion.div
