@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       ascending: true,
     })
 
-    const { data, error, count: rowCount } = await query
+    const { data, error } = await query
 
     if (error) {
       console.error('Database error:', error)
