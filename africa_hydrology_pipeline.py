@@ -98,8 +98,16 @@ def upsert_row(country: str, layer_type: str, key: str, size_mb: float,
     if dry_run:
         print(f"  [dry-run] would upsert: {row}")
         return
-    supabase.table("hydrology_layers").upsert(row, on_conflict="r2_key").execute()
-    print(f"  ✓ upserted DB row for {country} / {layer_type}")
+    resp = _requests.post(
+        f"{SUPABASE_URL}/rest/v1/hydrology_layers",
+        headers=SUPABASE_HEADERS,
+        json=row,
+        timeout=30,
+    )
+    if not resp.ok:
+        print(f"  ⚠ DB upsert failed ({resp.status_code}): {resp.text[:200]}")
+    else:
+        print(f"  ✓ upserted DB row for {country} / {layer_type}")
 
 
 def process_zip(outer: zipfile.ZipFile, args):
