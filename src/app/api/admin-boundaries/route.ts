@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
 
 export interface AdminBoundary {
@@ -24,12 +24,11 @@ export interface AdminBoundary {
  *   - includeUrl: include presigned download URL (true/false, default: true)
  */
 export async function GET(request: NextRequest) {
-  const supabase = createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Use service role key to bypass RLS — boundary data is public
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   try {
     const searchParams = request.nextUrl.searchParams
@@ -45,7 +44,7 @@ export async function GET(request: NextRequest) {
       query = query.ilike('country', `%${country}%`)
     }
 
-    if (adminLevel !== null) {
+    if (adminLevel !== null && adminLevel !== '') {
       query = query.eq('admin_level', parseInt(adminLevel))
     }
 
@@ -54,15 +53,17 @@ export async function GET(request: NextRequest) {
       ascending: true,
     })
 
-    const { data, error } = await query
+    const { data, error, count: rowCount } = await query
 
     if (error) {
       console.error('Database error:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch admin boundaries' },
+        { error: 'Failed to fetch admin boundaries', details: error.message },
         { status: 500 }
       )
     }
+
+    console.log(`Admin boundaries query: ${data?.length ?? 0} rows returned`)
 
     // Add presigned download URLs if requested
     let boundaries: AdminBoundary[] = data || []

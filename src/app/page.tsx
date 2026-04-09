@@ -40,28 +40,28 @@ const industries = [
     description: 'Land cover, vegetation indices, rainfall patterns, and climate change impact layers.',
     icon: <Mountain size={28} />,
     color: '#16a34a',
-    image: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&q=80',
+    image: '/images/branding/forest.jpg',
   },
   {
     title: 'Water & Hydrology',
     description: 'River networks, watershed boundaries, wetland mapping, and seasonal flood extent.',
     icon: <Droplets size={28} />,
     color: '#0891b2',
-    image: 'https://images.unsplash.com/photo-1504198453344-8b75b3bd3a18?w=600&q=80',
+    image: '/images/branding/river-aerial.jpg',
   },
   {
     title: 'Boundary Mapping',
     description: 'Administrative boundaries at national, provincial, and district levels — clean and accurate.',
     icon: <Layers size={28} />,
     color: '#1E5F8E',
-    image: 'https://images.unsplash.com/photo-1575916048090-2a62952b7eb8?w=600&q=80',
+    image: '/images/branding/world-map.jpg',
   },
   {
     title: 'Mining & Exploration',
     description: 'Geological maps, fault lines, mineral occurrence zones, and lithology data.',
     icon: <Pickaxe size={28} />,
     color: '#b45309',
-    image: 'https://images.unsplash.com/photo-1594818898109-44704c3ea292?w=600&q=80',
+    image: '/images/branding/soil.jpg',
   },
 ]
 
@@ -276,7 +276,7 @@ export default function HomePage() {
               className="flex flex-wrap gap-4"
             >
               <Link
-                href="/pricing"
+                href="/dashboard"
                 className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
               >
                 <Download size={18} />
@@ -581,8 +581,8 @@ export default function HomePage() {
               className="flex-1 min-w-0 overflow-hidden"
             >
               <Image
-                src="https://images.unsplash.com/photo-1535941339077-2dd1c7963098?w=800&q=80"
-                alt="Strategic Partnership"
+                src="/images/branding/satellite.jpg"
+                alt="Satellite remote sensing"
                 width={600}
                 height={460}
                 className="w-full h-[460px] object-cover brightness-90 saturate-[1.05]"

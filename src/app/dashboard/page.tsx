@@ -24,15 +24,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
+      if (session) {
+        setUser({
+          email: session.user.email || '',
+          name: session.user.user_metadata?.full_name || 'User',
+          plan: (session.user.user_metadata?.plan || 'basic') as UserPlan,
+        })
       }
-      setUser({
-        email: session.user.email || '',
-        name: session.user.user_metadata?.full_name || 'User',
-        plan: (session.user.user_metadata?.plan || 'basic') as UserPlan,
-      })
       setLoading(false)
     }
     getUser()
@@ -54,14 +52,12 @@ export default function DashboardPage() {
     )
   }
 
-  if (!user) return null
-
   const accessibleDatasets = DATASETS.filter(
-    (d) => user.plan === 'pro' || d.tier === 'basic'
+    (d) => (user?.plan === 'pro') || d.tier === 'basic'
   )
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lockedDatasets = DATASETS.filter(
-    (d) => user.plan !== 'pro' && d.tier === 'pro'
+    (d) => user?.plan !== 'pro' && d.tier === 'pro'
   )
 
   return (
@@ -80,17 +76,28 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
-              <User size={14} className="text-gray-500" />
-              <span className="text-sm text-gray-700">{user.email}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 transition-colors"
-            >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
+            {user ? (
+              <>
+                <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
+                  <User size={14} className="text-gray-500" />
+                  <span className="text-sm text-gray-700">{user.email}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 transition-colors"
+                >
+                  <LogOut size={16} />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-medium text-primary hover:text-accent transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -103,74 +110,78 @@ export default function DashboardPage() {
           className="mb-8"
         >
           <h1 className="text-2xl font-black text-navy">
-            Welcome back, {user.name.split(' ')[0]} 👋
+            {user ? `Welcome back, ${user.name.split(' ')[0]} 👋` : 'Download GIS Data'}
           </h1>
-          <p className="text-gray-500 mt-1">Manage your GIS data downloads.</p>
+          <p className="text-gray-500 mt-1">
+            {user ? 'Manage your GIS data downloads.' : 'Browse and download administrative boundary datasets for Africa.'}
+          </p>
         </motion.div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className={`rounded-2xl p-6 text-white ${
-              user.plan === 'pro' ? 'bg-accent' : 'gradient-primary'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
-              {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
-            </div>
-            <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
-            <p className="text-sm opacity-80">
-              {user.plan === 'pro' ? 'K75/month — Full access' : 'K25/month — Core access'}
-            </p>
-            {user.plan !== 'pro' && (
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
-              >
-                Upgrade to Pro <ChevronRight size={12} />
-              </Link>
-            )}
-          </motion.div>
+        {/* Stats Cards - only show for logged in users */}
+        {user && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`rounded-2xl p-6 text-white ${
+                user.plan === 'pro' ? 'bg-accent' : 'gradient-primary'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
+                {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
+              </div>
+              <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
+              <p className="text-sm opacity-80">
+                {user.plan === 'pro' ? 'K75/month — Full access' : 'K25/month — Core access'}
+              </p>
+              {user.plan !== 'pro' && (
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
+                >
+                  Upgrade to Pro <ChevronRight size={12} />
+                </Link>
+              )}
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Package size={18} className="text-primary" />
-              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Datasets Available</span>
-            </div>
-            <div className="text-3xl font-black text-navy">{accessibleDatasets.length}</div>
-            <p className="text-sm text-gray-400 mt-1">of {DATASETS.length} total datasets</p>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Package size={18} className="text-primary" />
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Datasets Available</span>
+              </div>
+              <div className="text-3xl font-black text-navy">{accessibleDatasets.length}</div>
+              <p className="text-sm text-gray-400 mt-1">of {DATASETS.length} total datasets</p>
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Download size={18} className="text-green-600" />
-              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
-            </div>
-            <div className="text-3xl font-black text-navy">
-              {user.plan === 'pro' ? '54' : '3'}
-            </div>
-            <p className="text-sm text-gray-400 mt-1">
-              {user.plan === 'pro' ? 'All of Africa' : 'Choose any 3'}
-            </p>
-          </motion.div>
-        </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Download size={18} className="text-green-600" />
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
+              </div>
+              <div className="text-3xl font-black text-navy">
+                {user.plan === 'pro' ? '54' : '3'}
+              </div>
+              <p className="text-sm text-gray-400 mt-1">
+                {user.plan === 'pro' ? 'All of Africa' : 'Choose any 3'}
+              </p>
+            </motion.div>
+          </div>
+        )}
 
         {/* Upgrade Banner (Basic only) */}
-        {user.plan !== 'pro' && (
+        {user && user.plan !== 'pro' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -199,7 +210,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h2 className="text-lg font-black text-navy mb-4">📍 Administrative Boundaries</h2>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <AdminBoundariesList userPlan={user.plan} />
+            <AdminBoundariesList userPlan={user?.plan || 'basic'} />
           </div>
         </div>
 

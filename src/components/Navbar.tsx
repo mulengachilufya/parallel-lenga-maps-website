@@ -10,8 +10,8 @@ import { Menu, X } from 'lucide-react'
 const navLinks = [
   { href: '/about-us', label: 'About Us' },
   { href: '/services', label: 'Services' },
-  { href: '/pricing', label: 'Our Work' },
-  { href: '/pricing', label: 'Download GIS Data' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/dashboard', label: 'Download GIS Data' },
 ]
 
 export default function Navbar() {
@@ -24,6 +24,9 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Hide navbar on dashboard — it has its own header
+  if (pathname?.startsWith('/dashboard')) return null
 
   return (
     <motion.nav
@@ -41,7 +44,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <Image
-              src="/logo.png"
+              src="/images/branding/logo.png"
               alt="Lenga Maps"
               width={52}
               height={52}

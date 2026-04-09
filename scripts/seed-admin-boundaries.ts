@@ -1,7 +1,13 @@
-import { createClient } from '@supabase/supabase-js'
-import * as path from 'path'
-import * as fs from 'fs'
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+// @ts-ignore
+const dotenv = require('dotenv')
+dotenv.config({ path: '.env.local' })
+
+// @ts-ignore
+const { createClient } = require('@supabase/supabase-js')
+// @ts-ignore
+const path = require('path')
+// @ts-ignore
+const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
 
 // Cloudflare R2 client (S3-compatible)
 const r2 = new S3Client({
