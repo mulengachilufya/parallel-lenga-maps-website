@@ -522,7 +522,7 @@ def compute_derivative_windowed(
         tf     = src.transform
         meta   = src.meta.copy()
         meta.update({
-            "compress": "deflate", "predictor": 2, "zlevel": 6,
+            "compress": "lzw",
             "dtype": "float32", "nodata": np.nan,
             "tiled": True, "blockxsize": 512, "blockysize": 512,
             "BIGTIFF": "IF_SAFER",

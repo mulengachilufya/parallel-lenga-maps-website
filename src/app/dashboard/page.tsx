@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle } from 'lucide-react'
 import { supabase, DATASETS } from '@/lib/supabase'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
+import HydrologyList from '@/components/HydrologyList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -214,7 +215,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Original datasets removed — now using AdminBoundariesList above */}
+        {/* River Networks & Lakes Section */}
+        <div className="mb-8">
+          <h2 className="text-lg font-black text-navy mb-4">🌊 River Networks &amp; Lakes</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <HydrologyList userPlan={user?.plan || 'basic'} />
+          </div>
+        </div>
 
         {/* Support */}
         <motion.div

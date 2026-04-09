@@ -35,7 +35,7 @@ def recompress_file(src_path: Path, is_dem: bool):
             })
         else:
             meta.update({
-                "compress": "deflate", "predictor": 2, "zlevel": 6,
+                "compress": "lzw",
                 "dtype": "float32", "nodata": np.nan,
                 "tiled": True, "blockxsize": 512, "blockysize": 512,
                 "BIGTIFF": "IF_SAFER",
