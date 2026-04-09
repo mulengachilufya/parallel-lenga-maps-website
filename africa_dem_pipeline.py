@@ -379,7 +379,8 @@ def _tile_meta(tif_paths: List[Path], minx, miny, maxx, maxy):
     base_meta.update({
         "driver": "GTiff", "height": out_h, "width": out_w,
         "transform": out_tf, "crs": CRS.from_epsg(4326),
-        "compress": "lzw", "nodata": np.nan, "dtype": "float32", "count": 1,
+        "compress": "deflate", "predictor": 2, "zlevel": 6,
+        "nodata": -9999, "dtype": "int16", "count": 1,
         "tiled": True, "blockxsize": 512, "blockysize": 512,
         "BIGTIFF": bigtiff,
     })
@@ -414,6 +415,8 @@ def merge_tiles_windowed(tif_paths: List[Path], out_path: Path,
                                 data[data == nd] = np.nan
                         except (TypeError, ValueError):
                             pass
+                    # Convert to Int16: NaN → -9999, clamp to int range
+                    data = np.where(np.isnan(data), -9999, np.clip(data, -9999, 32767)).astype(np.int16)
 
                     # Window of this tile in the output coordinate system
                     win = rasterio.windows.from_bounds(
@@ -467,7 +470,8 @@ def clip_raster_windowed(src_path: Path, geom, out_path: Path) -> Optional[dict]
         out_meta = src.meta.copy()
         out_meta.update({
             "height": crop_h, "width": crop_w, "transform": clip_tf,
-            "nodata": np.nan, "compress": "lzw", "dtype": "float32",
+            "nodata": -9999, "compress": "deflate", "predictor": 2, "zlevel": 6,
+            "dtype": "int16",
             "tiled": True, "blockxsize": 512, "blockysize": 512,
             "BIGTIFF": "IF_SAFER",
         })
@@ -489,7 +493,8 @@ def clip_raster_windowed(src_path: Path, geom, out_path: Path) -> Optional[dict]
                         transform=win_tf,
                         fill=0, default_value=1, dtype="uint8",
                     )
-                    chunk[mask_chunk == 0] = np.nan
+                    chunk[mask_chunk == 0] = -9999
+                    chunk = chunk.astype(np.int16)
                     dst.write(chunk[np.newaxis],
                               window=rasterio.windows.Window(0, rs, crop_w, n))
         except Exception as exc:
@@ -517,7 +522,8 @@ def compute_derivative_windowed(
         tf     = src.transform
         meta   = src.meta.copy()
         meta.update({
-            "compress": "lzw", "dtype": "float32", "nodata": np.nan,
+            "compress": "deflate", "predictor": 2, "zlevel": 6,
+            "dtype": "float32", "nodata": np.nan,
             "tiled": True, "blockxsize": 512, "blockysize": 512,
             "BIGTIFF": "IF_SAFER",
         })
