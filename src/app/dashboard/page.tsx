@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle } from 'lucide-react'
@@ -67,12 +68,13 @@ export default function DashboardPage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <svg viewBox="0 0 40 40" className="w-8 h-8">
-              <circle cx="20" cy="20" r="18" fill="#1E5F8E" />
-              <ellipse cx="20" cy="20" rx="8" ry="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-              <line x1="2" y1="20" x2="38" y2="20" stroke="#F5B800" strokeWidth="1.5" />
-              <circle cx="20" cy="20" r="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-            </svg>
+            <Image
+              src="/images/branding/logo.png"
+              alt="Lenga Maps"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
             <span className="font-bold text-navy">LENGA <span className="text-accent">MAPS</span></span>
           </Link>
 
