@@ -23,7 +23,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="flex-[1.5] min-w-[200px] flex flex-col gap-4">
             <Image
-              src="/logo.png"
+              src="/images/branding/logo.png"
               alt="Lenga Maps"
               width={48}
               height={48}
