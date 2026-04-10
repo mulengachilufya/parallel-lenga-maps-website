@@ -85,7 +85,7 @@ export default function LoadingScreen() {
             transition={{ delay: 1.2, duration: 0.5 }}
             className="mt-3 text-gray-400 text-sm tracking-widest uppercase"
           >
-            Unmasking the Earth
+            Unmasking Africa with Data and Intelligence
           </motion.p>
 
           {/* Progress bar */}
