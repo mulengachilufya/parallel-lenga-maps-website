@@ -252,10 +252,10 @@ export default function HomePage() {
               transition={{ delay: 0.4 }}
               className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
             >
-              Unmasking the{' '}
-              <span className="text-gold">Earth,</span>
+              Unmasking{' '}
+              <span className="text-gold">Africa</span> with
               <br />
-              One <span className="text-gold">Map</span> at a Time.
+              <span className="text-gold">Data</span> and Intelligence.
             </motion.h1>
 
             <motion.p

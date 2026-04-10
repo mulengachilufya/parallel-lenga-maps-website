@@ -163,7 +163,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 gradient-primary opacity-80" />
         <div className="absolute inset-0 flex flex-col justify-end p-16">
           <blockquote className="text-white text-2xl font-bold leading-snug mb-4">
-            &ldquo;Unmasking the Earth,<br />one map at a time.&rdquo;
+            &ldquo;Unmasking Africa with<br />Data and Intelligence.&rdquo;
           </blockquote>
           <p className="text-blue-200 text-sm">Access 12+ professional GIS datasets covering all of Africa.</p>
         </div>

@@ -30,7 +30,7 @@ export default function Footer() {
               className="object-contain"
             />
             <p className="text-[0.95rem] leading-[1.7] text-white/45">
-              Unmasking the Earth,<br />One Map at a Time.
+              Unmasking Africa with<br />Data and Intelligence.
             </p>
           </div>
 

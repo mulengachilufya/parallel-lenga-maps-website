@@ -222,7 +222,7 @@ export default function AboutPage() {
               student or engineer in Africa can find what they need — and actually download it.
             </p>
             <p className="font-semibold text-navy text-xl">
-              &ldquo;Unmasking the Earth, one map at a time.&rdquo;
+              &ldquo;Unmasking Africa with Data and Intelligence.&rdquo;
             </p>
           </motion.div>
         </div>
