@@ -9,7 +9,7 @@ import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import { supabase, DATASETS } from '@/lib/supabase'
 
-const heroImage = 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1920&q=80'
+const heroImage = '/images/branding/river-aerial.jpg'
 
 const services = [
   {
@@ -61,7 +61,7 @@ const industries = [
     description: 'Geological maps, fault lines, mineral occurrence zones, and lithology data.',
     icon: <Pickaxe size={28} />,
     color: '#b45309',
-    image: '/images/branding/soil.jpg',
+    image: 'https://images.unsplash.com/photo-1518467166778-b88f373ffec7?w=600&q=80',
   },
 ]
 
