@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, Download, Lock } from 'lucide-react'
+import { ArrowRight, Download, Lock, Clock } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS } from '@/lib/supabase'
 
@@ -22,19 +22,10 @@ const DATASET_TIPS: Record<number, string> = {
   12: 'Vital for conservation planning, wildlife corridor mapping, and environmental compliance reporting.',
 }
 
-const DATASET_ROUTES: Record<number, string> = {
+// Only datasets with actual download data on the dashboard
+const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard#admin-boundaries',
-  2: '/dashboard#dem',
   3: '/dashboard#hydrology',
-  4: '/dashboard#landcover',
-  5: '/dashboard#rainfall',
-  6: '/dashboard#geology',
-  7: '/dashboard#vegetation',
-  8: '/dashboard#population',
-  9: '/dashboard#roads',
-  10: '/dashboard#wetlands',
-  11: '/dashboard#soils',
-  12: '/dashboard#protected-areas',
 }
 
 export default function DatasetsPage() {
@@ -108,18 +99,11 @@ export default function DatasetsPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {DATASETS.map((dataset, i) => (
-              <motion.div
-                key={dataset.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: Math.min(i * 0.06, 0.5) }}
-              >
-                <Link
-                  href={DATASET_ROUTES[dataset.id] || '/dashboard'}
-                  className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full"
-                >
+            {DATASETS.map((dataset, i) => {
+              const isLive = dataset.id in LIVE_DATASETS
+
+              const cardContent = (
+                <>
                   {/* Color bar */}
                   <div
                     className="h-1.5 w-full"
@@ -136,12 +120,17 @@ export default function DatasetsPage() {
                         {dataset.icon}
                       </div>
                       <div className="flex items-center gap-2">
+                        {!isLive && (
+                          <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-full">
+                            <Clock size={10} /> Coming Soon
+                          </span>
+                        )}
                         {dataset.tier === 'pro' && (
                           <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary font-semibold px-2 py-1 rounded-full">
                             <Lock size={10} /> Pro
                           </span>
                         )}
-                        {dataset.tier === 'basic' && (
+                        {dataset.tier === 'basic' && isLive && (
                           <span className="text-xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-full">
                             Free
                           </span>
@@ -158,7 +147,7 @@ export default function DatasetsPage() {
                     </span>
 
                     {/* Name */}
-                    <h3 className="text-lg font-bold text-navy mt-1 mb-2 group-hover:text-primary transition-colors">
+                    <h3 className={`text-lg font-bold mt-1 mb-2 ${isLive ? 'text-navy group-hover:text-primary transition-colors' : 'text-navy'}`}>
                       {dataset.name}
                     </h3>
 
@@ -192,15 +181,45 @@ export default function DatasetsPage() {
                     </div>
 
                     {/* CTA */}
-                    <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
-                      <Download size={14} />
-                      Browse & Download Files
-                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
+                    {isLive ? (
+                      <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                        <Download size={14} />
+                        Browse & Download Files
+                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
+                        <Clock size={14} />
+                        Available soon
+                      </div>
+                    )}
                   </div>
-                </Link>
-              </motion.div>
-            ))}
+                </>
+              )
+
+              return (
+                <motion.div
+                  key={dataset.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: Math.min(i * 0.06, 0.5) }}
+                >
+                  {isLive ? (
+                    <Link
+                      href={LIVE_DATASETS[dataset.id]}
+                      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full"
+                    >
+                      {cardContent}
+                    </Link>
+                  ) : (
+                    <div className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
+                      {cardContent}
+                    </div>
+                  )}
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
