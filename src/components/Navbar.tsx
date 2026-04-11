@@ -11,7 +11,7 @@ const navLinks = [
   { href: '/about-us', label: 'About Us' },
   { href: '/services', label: 'Services' },
   { href: '/pricing', label: 'Pricing' },
-  { href: '/dashboard', label: 'Download GIS Data' },
+  { href: '/datasets', label: 'Download GIS Data' },
 ]
 
 export default function Navbar() {
