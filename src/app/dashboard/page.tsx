@@ -9,6 +9,7 @@ import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle } from
 import { supabase, DATASETS } from '@/lib/supabase'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
+import DEMList from '@/components/DEMList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -214,6 +215,14 @@ export default function DashboardPage() {
           <h2 className="text-lg font-black text-navy mb-4">📍 Administrative Boundaries</h2>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <AdminBoundariesList userPlan={user?.plan || 'basic'} />
+          </div>
+        </div>
+
+        {/* Digital Elevation Model Section */}
+        <div id="dems" className="mb-8">
+          <h2 className="text-lg font-black text-navy mb-4">⛰️ Digital Elevation Models</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <DEMList userPlan={user?.plan || 'basic'} />
           </div>
         </div>
 

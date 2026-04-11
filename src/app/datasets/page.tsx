@@ -25,6 +25,7 @@ const DATASET_TIPS: Record<number, string> = {
 // Only datasets with actual download data on the dashboard
 const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard#admin-boundaries',
+  2: '/dashboard#dems',
   3: '/dashboard#hydrology',
 }
 
