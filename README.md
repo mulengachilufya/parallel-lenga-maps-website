@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lenga Maps Platform
+
+Africa's most centralized GIS data subscription platform. Browse, preview, and download professional-grade geospatial datasets covering all 54 African nations.
+
+**Live:** [parallel-lenga-maps-website-coral.vercel.app](https://parallel-lenga-maps-website-coral.vercel.app)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS, Framer Motion |
+| Auth & Database | Supabase (PostgreSQL + Auth + RLS) |
+| File Storage | Cloudflare R2 (S3-compatible) |
+| Hosting | Vercel |
+
+## Features
+
+- **12 GIS Datasets** — Admin boundaries, DEM, hydrology, land cover, rainfall, geology, vegetation, population, roads, wetlands, soils, protected areas
+- **54 Countries** — Full Africa coverage with country-level file downloads
+- **Presigned Downloads** — Secure, time-limited download URLs via Cloudflare R2
+- **Dataset Explorer** — Browse datasets with descriptions, tips, and metadata
+- **Accordion Boundaries** — Country-grouped admin boundary browser with expandable levels
+- **Public Access** — Browse and download without authentication
+- **Responsive** — Mobile-first design with dark theme
+
+## Datasets
+
+| Dataset | Source | Format |
+|---------|--------|--------|
+| Administrative Boundaries | GADM / OSM | Shapefile, GeoJSON, KML |
+| Digital Elevation Model | SRTM / ALOS | GeoTIFF, ASCII Grid |
+| River Networks & Watersheds | HydroSHEDS / FAO | Shapefile, GeoJSON |
+| Land Use / Land Cover | ESA WorldCover | GeoTIFF |
+| Rainfall & Climate | CHIRPS / WorldClim | NetCDF, GeoTIFF |
+| Geology & Lithology | USGS / CGS | Shapefile, GeoJSON |
+| Vegetation & NDVI | MODIS / Landsat | GeoTIFF, HDF |
+| Population & Settlements | WorldPop / GPW | GeoTIFF, Shapefile |
+| Roads & Infrastructure | OSM / GRIP | Shapefile, GeoJSON |
+| Wetlands & Floodplains | GlobWetland / JRC | GeoTIFF, Shapefile |
+| Soil Classification | ISRIC SoilGrids | GeoTIFF, NetCDF |
+| Protected Areas & Wildlife | WDPA / IUCN | Shapefile, GeoJSON |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+
+- npm or yarn
+- Supabase project (with admin_boundaries and hydrology tables)
+- Cloudflare R2 bucket (with geodata files)
+
+### Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+CLOUDFLARE_R2_ACCOUNT_ID=your_r2_account_id
+CLOUDFLARE_R2_ACCESS_KEY_ID=your_r2_access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=your_r2_secret_key
+CLOUDFLARE_R2_BUCKET_NAME=your_bucket_name
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Run Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+git clone https://github.com/mulengachilufya/parallel-lenga-maps-website.git
+cd parallel-lenga-maps-website
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Screenshots
 
-To learn more about Next.js, take a look at the following resources:
+<!-- Add screenshots here -->
+| Page | Preview |
+|------|---------|
+| Homepage | *screenshot* |
+| Datasets Overview | *screenshot* |
+| Download Portal | *screenshot* |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── api/              # API routes (boundaries, hydrology, files)
+│   ├── dashboard/        # Download portal
+│   ├── datasets/         # Dataset overview page
+│   ├── login/            # Auth pages
+│   └── page.tsx          # Homepage
+├── components/           # Reusable UI components
+└── lib/                  # Supabase client, dataset config
+```
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
