@@ -276,7 +276,7 @@ export default function HomePage() {
               className="flex flex-wrap gap-4"
             >
               <Link
-                href="/dashboard"
+                href="/datasets"
                 className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
               >
                 <Download size={18} />
