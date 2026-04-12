@@ -10,6 +10,8 @@ import { supabase, DATASETS } from '@/lib/supabase'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
 import DEMList from '@/components/DEMList'
+import RiversList from '@/components/RiversList'
+import WatershedsList from '@/components/WatershedsList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -231,6 +233,28 @@ export default function DashboardPage() {
           <h2 className="text-lg font-black text-navy mb-4">🌊 River Networks &amp; Lakes</h2>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <HydrologyList userPlan={user?.plan || 'basic'} />
+          </div>
+        </div>
+
+        {/* HydroRIVERS Section */}
+        <div id="rivers" className="mb-8">
+          <h2 className="text-lg font-black text-navy mb-1">🌊 HydroRIVERS — River Networks</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            WWF / HydroSHEDS v10 &middot; CC BY 4.0 &middot; GeoPackage per country
+          </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <RiversList userPlan={user?.plan || 'basic'} />
+          </div>
+        </div>
+
+        {/* HydroBASINS Section */}
+        <div id="watersheds" className="mb-8">
+          <h2 className="text-lg font-black text-navy mb-1">🗺️ HydroBASINS — Watershed Boundaries</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            WWF / HydroSHEDS Level 6 v1c &middot; CC BY 4.0 &middot; GeoPackage per country
+          </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <WatershedsList userPlan={user?.plan || 'basic'} />
           </div>
         </div>
 

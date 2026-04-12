@@ -9,7 +9,7 @@ const fs = require('fs')
 // @ts-ignore
 const path = require('path')
 // @ts-ignore
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, PutObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand } = require('@aws-sdk/client-s3')
 
 const r2 = new S3Client({
   region: 'auto',
@@ -44,19 +44,76 @@ interface DEMRecord {
   resolution: string
 }
 
+const MULTIPART_THRESHOLD = 500 * 1024 * 1024 // 500MB
+const PART_SIZE = 100 * 1024 * 1024 // 100MB chunks
+
 /**
- * Upload a file to R2 and return the key
+ * Upload a file to R2 — uses multipart for files over 500MB
  */
 async function uploadToR2(filePath: string, r2Key: string) {
-  const body = fs.readFileSync(filePath)
-  await r2.send(
-    new PutObjectCommand({
+  const fileSize = fs.statSync(filePath).size
+
+  if (fileSize < MULTIPART_THRESHOLD) {
+    const body = fs.readFileSync(filePath)
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: r2Key,
+        Body: body,
+        ContentType: 'application/zip',
+      })
+    )
+    return
+  }
+
+  // Multipart upload for large files
+  const { UploadId } = await r2.send(
+    new CreateMultipartUploadCommand({
       Bucket: BUCKET,
       Key: r2Key,
-      Body: body,
       ContentType: 'application/zip',
     })
   )
+
+  const parts: any[] = []
+  const fd = fs.openSync(filePath, 'r')
+  let offset = 0
+  let partNumber = 1
+
+  try {
+    while (offset < fileSize) {
+      const chunkSize = Math.min(PART_SIZE, fileSize - offset)
+      const buffer = Buffer.alloc(chunkSize)
+      fs.readSync(fd, buffer, 0, chunkSize, offset)
+
+      const { ETag } = await r2.send(
+        new UploadPartCommand({
+          Bucket: BUCKET,
+          Key: r2Key,
+          UploadId,
+          PartNumber: partNumber,
+          Body: buffer,
+        })
+      )
+
+      parts.push({ ETag, PartNumber: partNumber })
+      process.stdout.write(`    part ${partNumber} (${(offset / 1024 / 1024).toFixed(0)}/${(fileSize / 1024 / 1024).toFixed(0)} MB)\r`)
+      offset += chunkSize
+      partNumber++
+    }
+  } finally {
+    fs.closeSync(fd)
+  }
+
+  await r2.send(
+    new CompleteMultipartUploadCommand({
+      Bucket: BUCKET,
+      Key: r2Key,
+      UploadId,
+      MultipartUpload: { Parts: parts },
+    })
+  )
+  console.log() // newline after progress
 }
 
 async function seedDEMs() {
@@ -111,43 +168,11 @@ async function seedDEMs() {
 
   console.log(`\nUploaded ${records.length} files to R2`)
 
-  // Clear existing records
-  console.log('Clearing existing dem_layers table...')
-  const { error: deleteError } = await supabase
-    .from('dem_layers')
-    .delete()
-    .neq('id', 0)
-
-  if (deleteError) {
-    console.error('Error clearing table:', deleteError.message)
-    console.log('\nYou may need to create the dem_layers table first. SQL:')
-    console.log(`
-CREATE TABLE dem_layers (
-  id BIGSERIAL PRIMARY KEY,
-  country TEXT NOT NULL,
-  layer_type TEXT NOT NULL CHECK (layer_type IN ('dem', 'slope')),
-  r2_key TEXT NOT NULL UNIQUE,
-  file_size_mb REAL NOT NULL DEFAULT 0,
-  file_format TEXT NOT NULL DEFAULT 'GeoTIFF (ZIP)',
-  source TEXT NOT NULL DEFAULT 'SRTM 30m',
-  resolution TEXT NOT NULL DEFAULT '30m',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_dem_layers_country ON dem_layers(country);
-CREATE INDEX idx_dem_layers_type ON dem_layers(layer_type);
-
-ALTER TABLE dem_layers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read access" ON dem_layers FOR SELECT USING (true);
-    `)
-    return
-  }
-
-  // Insert records
-  console.log(`Inserting ${records.length} records into Supabase...`)
+  // Upsert records (safe to re-run)
+  console.log(`Upserting ${records.length} records into Supabase...`)
   const { error: insertError, data } = await supabase
     .from('dem_layers')
-    .insert(records)
+    .upsert(records, { onConflict: 'r2_key' })
     .select()
 
   if (insertError) {

@@ -1,5 +1,5 @@
 'use client'
-
+// v2
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -20,6 +20,8 @@ const DATASET_TIPS: Record<number, string> = {
   10: 'Critical for biodiversity conservation, flood modelling, and environmental compliance studies.',
   11: 'Supports precision agriculture, land suitability analysis, and erosion risk mapping. Multi-layer soil properties.',
   12: 'Vital for conservation planning, wildlife corridor mapping, and environmental compliance reporting.',
+  13: 'Filter by Strahler order to isolate major rivers. Strahler ≥ 4 gives named, navigable rivers. Pairs perfectly with HydroBASINS for full watershed analysis.',
+  14: 'Level 6 basins average 2,000–10,000 km² — ideal for catchment-scale hydrology, transboundary water management, and flood modelling at the regional level.',
 }
 
 // Only datasets with actual download data on the dashboard
@@ -27,6 +29,8 @@ const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard#admin-boundaries',
   2: '/dashboard#dems',
   3: '/dashboard#hydrology',
+  13: '/dashboard#rivers',
+  14: '/dashboard#watersheds',
 }
 
 export default function DatasetsPage() {
