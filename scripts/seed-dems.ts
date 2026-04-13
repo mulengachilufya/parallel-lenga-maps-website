@@ -34,16 +34,6 @@ const supabase = createClient(supabaseUrl, serviceRoleKey)
 
 const DEM_DIR = path.resolve(__dirname, '..', 'output', 'DEMs')
 
-interface DEMRecord {
-  country: string
-  layer_type: 'dem' | 'slope'
-  r2_key: string
-  file_size_mb: number
-  file_format: string
-  source: string
-  resolution: string
-}
-
 const MULTIPART_THRESHOLD = 500 * 1024 * 1024 // 500MB
 const PART_SIZE = 100 * 1024 * 1024 // 100MB chunks
 
@@ -117,82 +107,62 @@ async function uploadToR2(filePath: string, r2Key: string) {
 }
 
 async function seedDEMs() {
-  console.log('Starting DEM seed...\n')
+  console.log('Starting DEM seed (elevation only, smallest first)...\n')
 
-  const files = fs.readdirSync(DEM_DIR).filter((f: string) => f.endsWith('.zip'))
-  console.log(`Found ${files.length} ZIP files in output/DEMs/\n`)
+  // Only DEM ZIPs — no slope files
+  const allFiles = fs.readdirSync(DEM_DIR).filter((f: string) => f.endsWith('.zip') && f.includes('_DEM.'))
 
-  if (files.length === 0) {
-    console.log('No ZIP files found. Run the DEM pipeline first.')
+  // Sort by file size ascending (smallest first)
+  const sorted = allFiles
+    .map((f: string) => ({ name: f, size: fs.statSync(path.join(DEM_DIR, f)).size }))
+    .sort((a: any, b: any) => a.size - b.size)
+
+  console.log(`Found ${sorted.length} DEM ZIP files (sorted smallest → largest)\n`)
+
+  if (sorted.length === 0) {
+    console.log('No DEM ZIP files found.')
     return
   }
 
-  const records: DEMRecord[] = []
+  let uploaded = 0
 
-  for (const file of files) {
-    // Pattern: Country_Name_DEM.zip or Country_Name_slope.zip
-    const isDEM = file.includes('_DEM.')
-    const isSlope = file.includes('_slope.')
-    if (!isDEM && !isSlope) continue
-
-    const country = file
-      .replace('_DEM.zip', '')
-      .replace('_slope.zip', '')
-      .replace(/_/g, ' ')
-
-    const layerType: 'dem' | 'slope' = isDEM ? 'dem' : 'slope'
-    const r2Key = `datasets/${country.toLowerCase().replace(/ /g, '-')}/dems/${file}`
+  for (const { name: file, size } of sorted) {
+    const country = file.replace('_DEM.zip', '').replace(/_/g, ' ')
+    const r2Key = `datasets/DEMs/${country}/${file}`
     const filePath = path.join(DEM_DIR, file)
-    const stats = fs.statSync(filePath)
-    const sizeMB = stats.size / (1024 * 1024)
+    const sizeMB = size / (1024 * 1024)
 
-    // Upload to R2
-    console.log(`  Uploading ${file} (${sizeMB.toFixed(1)} MB)...`)
+    console.log(`  [${uploaded + 1}/${sorted.length}] ${file} (${sizeMB.toFixed(1)} MB)...`)
+
     try {
       await uploadToR2(filePath, r2Key)
     } catch (err: any) {
-      console.error(`  ERROR uploading ${file}: ${err.message}`)
+      console.error(`  ERROR: ${err.message}`)
       continue
     }
 
-    records.push({
-      country,
-      layer_type: layerType,
-      r2_key: r2Key,
-      file_size_mb: sizeMB,
-      file_format: 'GeoTIFF (ZIP)',
-      source: 'SRTM 30m',
-      resolution: '30m',
-    })
+    // Upsert to Supabase immediately after each upload
+    const { error } = await supabase
+      .from('dem_layers')
+      .upsert({
+        country,
+        layer_type: 'dem',
+        r2_key: r2Key,
+        file_size_mb: sizeMB,
+        file_format: 'GeoTIFF (ZIP)',
+        source: 'SRTM 30m',
+        resolution: '30m',
+      }, { onConflict: 'r2_key' })
+
+    if (error) {
+      console.error(`  DB error for ${country}: ${error.message}`)
+    } else {
+      uploaded++
+      console.log(`  ✓ ${country} — uploaded & synced to Supabase (${uploaded}/${sorted.length})`)
+    }
   }
 
-  console.log(`\nUploaded ${records.length} files to R2`)
-
-  // Upsert records (safe to re-run)
-  console.log(`Upserting ${records.length} records into Supabase...`)
-  const { error: insertError, data } = await supabase
-    .from('dem_layers')
-    .upsert(records, { onConflict: 'r2_key' })
-    .select()
-
-  if (insertError) {
-    console.error('Insert error:', insertError.message)
-    return
-  }
-
-  console.log(`\nSeeded ${data?.length || records.length} DEM layers!`)
-
-  // Summary
-  const byCountry: Record<string, number> = {}
-  records.forEach((r) => {
-    byCountry[r.country] = (byCountry[r.country] || 0) + 1
-  })
-
-  console.log('\nSummary:')
-  console.log(`  ${Object.keys(byCountry).length} countries`)
-  console.log(`  ${records.filter(r => r.layer_type === 'dem').length} DEM files`)
-  console.log(`  ${records.filter(r => r.layer_type === 'slope').length} slope files`)
-  console.log('\nDone!')
+  console.log(`\nDone! ${uploaded}/${sorted.length} DEM files uploaded and synced.`)
 }
 
 seedDEMs()

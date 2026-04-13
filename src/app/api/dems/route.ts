@@ -5,7 +5,7 @@ import { getDownloadUrl } from '@/lib/r2'
 export interface DEMLayer {
   id: number
   country: string
-  layer_type: 'dem' | 'slope'
+  layer_type: 'dem'
   r2_key: string
   file_size_mb: number
   file_format: string
@@ -17,10 +17,9 @@ export interface DEMLayer {
 
 /**
  * GET /api/dems
- * List DEM/slope layers with optional filtering
+ * List DEM layers with optional filtering
  * Query params:
  *   - country:   filter by country name (case-insensitive substring)
- *   - layerType: filter by layer type ("dem" | "slope")
  *   - includeUrl: include presigned download URL (default: true)
  */
 export async function GET(request: NextRequest) {
@@ -32,17 +31,13 @@ export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams
     const country   = params.get('country')
-    const layerType = params.get('layerType')
     const includeUrl = params.get('includeUrl') !== 'false'
 
-    let query = supabase.from('dem_layers').select('*')
+    let query = supabase.from('dem_layers').select('*').eq('layer_type', 'dem')
 
-    if (country)   query = query.ilike('country', `%${country}%`)
-    if (layerType) query = query.eq('layer_type', layerType)
+    if (country) query = query.ilike('country', `%${country}%`)
 
-    query = query
-      .order('country',    { ascending: true })
-      .order('layer_type', { ascending: true })
+    query = query.order('country', { ascending: true })
 
     const { data, error } = await query
 
