@@ -12,6 +12,7 @@ import HydrologyList from '@/components/HydrologyList'
 import DEMList from '@/components/DEMList'
 import RiversList from '@/components/RiversList'
 import WatershedsList from '@/components/WatershedsList'
+import RainfallClimateList from '@/components/RainfallClimateList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -233,6 +234,17 @@ export default function DashboardPage() {
           <h2 className="text-lg font-black text-navy mb-4">🌊 River Networks &amp; Lakes</h2>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <HydrologyList userPlan={user?.plan || 'basic'} />
+          </div>
+        </div>
+
+        {/* Rainfall & Climate Section */}
+        <div id="rainfall-climate" className="mb-8">
+          <h2 className="text-lg font-black text-navy mb-1">🌧️ Rainfall, Temperature &amp; Drought</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            CHIRPS v2.0 &amp; WorldClim v2.1 &middot; EPSG:4326 &middot; GeoTIFF (ZIP) &middot; 0.05° (~5 km)
+          </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <RainfallClimateList userPlan={user?.plan || 'basic'} />
           </div>
         </div>
 
