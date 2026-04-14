@@ -92,6 +92,7 @@ const LIVE_DATASETS: Record<number, string> = {
   16: '/dashboard?section=temperature',
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',
+  6: '/dashboard?section=aquifer',
 }
 
 export default function DatasetsPage() {

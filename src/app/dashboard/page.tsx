@@ -13,6 +13,7 @@ import DEMList from '@/components/DEMList'
 import RiversList from '@/components/RiversList'
 import WatershedsList from '@/components/WatershedsList'
 import RainfallClimateList from '@/components/RainfallClimateList'
+import AquiferList from '@/components/AquiferList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -74,6 +75,12 @@ const SECTIONS: Record<string, {
     subtitle: 'WWF / HydroSHEDS Level 6 v1c · CC BY 4.0 · GeoPackage per country',
     tier: 'basic',
     component: (plan) => <WatershedsList userPlan={plan} />,
+  },
+  'aquifer': {
+    title: '💧 Africa Aquifer Dataset',
+    subtitle: 'WHYMAP + BGS/NERC + IGRAC · EPSG:4326 · GeoPackage per country',
+    tier: 'pro',
+    component: (plan) => <AquiferList userPlan={plan} />,
   },
 }
 

@@ -106,10 +106,14 @@ SOURCES: dict[str, dict] = {
     "whymap": {
         "name":        "WHYMAP / BGR-UNESCO (Groundwater Resources of the World)",
         "institution": "BGR & UNESCO",
+        # Direct download links frequently change — landing page is stable.
+        # The pipeline tries the URL first; on failure, it prints the landing
+        # page URL with manual download instructions.
         "url": (
-            "https://produktcenter.bgr.de/terraCatalog/LinkedData/Download.do"
-            "?fileIdentifier=eba9c99d-6929-4d88-87c8-c8413d3c2688"
+            "https://www.bgr.bund.de/EN/Themen/Wasser/Projekte/laufend/Beratung/"
+            "Whymap/whymap_node_en.html"
         ),
+        "landing_page": "https://www.whymap.org",
         "description": (
             "Major groundwater system polygons (1:25,000,000 scale). "
             "Provides the primary polygon geometry and system classification."
@@ -123,9 +127,8 @@ SOURCES: dict[str, dict] = {
     "bgs": {
         "name":        "BGS / NERC Hydrogeology of Africa",
         "institution": "British Geological Survey (BGS / NERC)",
-        "url": (
-            "https://nora.nerc.ac.uk/id/eprint/531328/1/Hydrogeology_Africa_GIS.zip"
-        ),
+        "url": "https://data.bgs.ac.uk/id/dataHolding/13480426",
+        "landing_page": "https://www.bgs.ac.uk/datasets/hydrogeology-of-africa/",
         "description": (
             "Aquifer type, productivity class, rock permeability, and lithology "
             "polygons specifically mapped for the African continent. "
@@ -145,10 +148,11 @@ SOURCES: dict[str, dict] = {
             "?service=WFS"
             "&version=2.0.0"
             "&request=GetFeature"
-            "&typeName=tba:transboundary_aquifers"
+            "&typeName=tba:tba"
             "&outputFormat=shape-zip"
             "&srsName=EPSG:4326"
         ),
+        "landing_page": "https://ggis.un-igrac.org/view/tba",
         "description": (
             "Transboundary aquifer system polygons — IGRAC GGIS 2021 edition. "
             "Provides authoritative names and country-code attributes for "
@@ -331,22 +335,34 @@ def download_source(key: str) -> bytes:
     print(f"  URL: {url}")
 
     try:
-        resp = requests.get(url, timeout=300, stream=True)
+        resp = requests.get(url, timeout=300, allow_redirects=True)
         resp.raise_for_status()
         data = resp.content
+
+        # Guard against getting an HTML page instead of a zip file
+        content_type = resp.headers.get("Content-Type", "")
+        if b"PK" not in data[:4] and "html" in content_type.lower():
+            raise requests.RequestException(
+                f"Server returned an HTML page instead of a zip file "
+                f"(Content-Type: {content_type}). The direct download URL "
+                f"may have changed — manual download required."
+            )
     except requests.RequestException as exc:
+        landing = src.get("landing_page", url)
         border = "=" * 70
         sys.exit(
             f"\n{border}\n"
             f"DOWNLOAD FAILED — pipeline cannot continue.\n\n"
-            f"Source  : {src['name']}\n"
-            f"URL     : {url}\n"
-            f"Error   : {exc}\n\n"
+            f"Source      : {src['name']}\n"
+            f"Tried URL   : {url}\n"
+            f"Error       : {exc}\n\n"
             f"What to do:\n"
-            f"  1. Visit the source URL (or institution website) and download\n"
-            f"     the data manually.\n"
-            f"  2. Save the file to: {cache_path}\n"
-            f"  3. Re-run this pipeline — it will detect the cached file.\n\n"
+            f"  1. Visit the institution landing page:\n"
+            f"     {landing}\n"
+            f"  2. Download the shapefile/GIS data (usually a .zip file).\n"
+            f"  3. Save the file to:\n"
+            f"     {cache_path}\n"
+            f"  4. Re-run this pipeline — it will detect the cached file.\n\n"
             f"Institution : {src['institution']}\n"
             f"Licence     : {src['licence']}\n"
             f"{border}\n"
