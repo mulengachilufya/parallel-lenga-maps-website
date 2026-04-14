@@ -29,6 +29,7 @@ const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard#admin-boundaries',
   2: '/dashboard#dems',
   3: '/dashboard#hydrology',
+  5: '/dashboard#rainfall-climate',
   13: '/dashboard#rivers',
   14: '/dashboard#watersheds',
 }

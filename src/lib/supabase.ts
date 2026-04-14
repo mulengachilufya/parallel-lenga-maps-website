@@ -67,7 +67,7 @@ export const DATASETS = [
     category: 'Environment & Climate',
     description: 'Monthly and annual rainfall, temperature, and drought index rasters',
     source: 'CHIRPS / WorldClim',
-    format: 'NetCDF, GeoTIFF',
+    format: 'GeoTIFF (ZIP)',
     resolution: '0.05° (~5km)',
     icon: '🌧️',
     tier: 'basic',
