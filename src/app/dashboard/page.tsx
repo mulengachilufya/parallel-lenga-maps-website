@@ -38,6 +38,15 @@ export default function DashboardPage() {
         })
       }
       setLoading(false)
+
+      // Scroll to hash anchor after content renders
+      if (window.location.hash) {
+        setTimeout(() => {
+          const id = window.location.hash.slice(1)
+          const el = document.getElementById(id)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 300)
+      }
     }
     getUser()
   }, [router])
