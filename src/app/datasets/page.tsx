@@ -1,11 +1,12 @@
 'use client'
-// v2
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, Download, Lock, Clock } from 'lucide-react'
+import { ArrowRight, Download, Lock, Clock, ExternalLink, Layers } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS } from '@/lib/supabase'
+import type { DatasetSource } from '@/lib/supabase'
 
 const DATASET_TIPS: Record<number, string> = {
   1: 'Ideal for base maps, census planning, and jurisdiction analysis. Use in QGIS or ArcGIS for boundary overlays.',
@@ -15,7 +16,7 @@ const DATASET_TIPS: Record<number, string> = {
   5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
   15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
   16: 'Monthly mean temperature climatology for habitat modelling, crop suitability, and climate change impact assessments.',
-  6: 'Key for mineral exploration, infrastructure planning, and geological hazard mapping. Overlay with satellite imagery.',
+  6: 'Use the source_conflict field to filter features where institutions disagree — ideal for groundwater risk assessments requiring high confidence. Pairs with HydroBASINS for full aquifer-to-catchment analysis.',
   7: 'Monitor vegetation health, deforestation, and seasonal growth patterns. Time-series NDVI for trend analysis.',
   8: 'Essential for urban planning, service delivery optimization, and demographic studies. High-resolution gridded data.',
   9: 'Use for accessibility analysis, logistics planning, and infrastructure gap assessment across African nations.',
@@ -24,6 +25,61 @@ const DATASET_TIPS: Record<number, string> = {
   12: 'Vital for conservation planning, wildlife corridor mapping, and environmental compliance reporting.',
   13: 'Filter by Strahler order to isolate major rivers. Strahler ≥ 4 gives named, navigable rivers. Pairs perfectly with HydroBASINS for full watershed analysis.',
   14: 'Level 6 basins average 2,000–10,000 km² — ideal for catchment-scale hydrology, transboundary water management, and flood modelling at the regional level.',
+}
+
+function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color: string }) {
+  return (
+    <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex items-center gap-2 px-4 py-3"
+        style={{ backgroundColor: `${color}10` }}
+      >
+        <Layers size={14} style={{ color }} />
+        <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>
+          Data Sources
+        </span>
+        <span className="ml-auto text-xs text-gray-400 font-medium">
+          Harmonised multi-source product
+        </span>
+      </div>
+
+      {/* Source cards */}
+      <div className="divide-y divide-gray-50">
+        {sources.map((src, idx) => (
+          <div key={idx} className="px-4 py-3 bg-white">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <span className="text-xs font-semibold text-navy leading-tight">
+                {src.institution}
+              </span>
+              <a
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors shrink-0"
+                onClick={e => e.stopPropagation()}
+              >
+                <ExternalLink size={10} />
+                Source
+              </a>
+            </div>
+            <p className="text-[10px] text-gray-400 font-medium mb-1">{src.name}</p>
+            <p className="text-[11px] text-gray-500 leading-relaxed">{src.contribution}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer note */}
+      <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+        <p className="text-[10px] text-gray-500 leading-relaxed">
+          <span className="font-semibold text-navy">Note: </span>
+          Geometric duplicates removed and logged. Source conflicts are flagged in the
+          attribute table (<code className="bg-gray-200 px-1 rounded text-[9px]">source_conflict</code> field)
+          and never silently resolved. This is a premium curated layer — not a single raw download.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 // Only datasets with actual download data on the dashboard
@@ -173,6 +229,11 @@ export default function DatasetsPage() {
                         {DATASET_TIPS[dataset.id]}
                       </p>
                     </div>
+
+                    {/* Data Sources panel — rendered for multi-source datasets only */}
+                    {dataset.sources && dataset.sources.length > 0 && (
+                      <DataSourcesPanel sources={dataset.sources} color={dataset.color} />
+                    )}
 
                     {/* Meta info */}
                     <div className="grid grid-cols-3 gap-2 text-xs mb-4">

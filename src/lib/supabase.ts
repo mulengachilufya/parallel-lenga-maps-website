@@ -12,7 +12,28 @@ export type UserProfile = {
   created_at: string
 }
 
-export const DATASETS = [
+export type DatasetSource = {
+  name: string
+  institution: string
+  url: string
+  contribution: string
+}
+
+export type Dataset = {
+  id: number
+  name: string
+  category: string
+  description: string
+  source: string
+  format: string
+  resolution: string
+  icon: string
+  tier: 'basic' | 'pro'
+  color: string
+  sources?: DatasetSource[]
+}
+
+export const DATASETS: Dataset[] = [
   {
     id: 1,
     name: 'Administrative Boundaries',
@@ -99,15 +120,43 @@ export const DATASETS = [
   },
   {
     id: 6,
-    name: 'Geology & Lithology',
-    category: 'Mining & Exploration',
-    description: 'Bedrock geology, mineral occurrence zones, and fault line mapping',
-    source: 'USGS / CGS',
-    format: 'Shapefile, GeoJSON',
-    resolution: '1:1,000,000',
-    icon: '🪨',
+    name: 'Africa Aquifer Dataset',
+    category: 'Groundwater & Hydrogeology',
+    description: 'Harmonised multi-source aquifer dataset for all 54 African nations — aquifer type, productivity, permeability, and transboundary system boundaries conflated from three world-class institutions. Not available in this form anywhere else.',
+    source: 'WHYMAP/BGR-UNESCO + BGS/NERC + IGRAC GGIS',
+    format: 'GeoPackage',
+    resolution: '1:1,000,000 – 1:5,000,000',
+    icon: '💧',
     tier: 'pro',
-    color: '#b45309',
+    color: '#0369a1',
+    sources: [
+      {
+        name: 'Groundwater Resources of the World (WHYMAP)',
+        institution: 'BGR & UNESCO',
+        url: 'https://www.bgr.bund.de/whymap',
+        contribution:
+          'Primary polygon geometry and hydrogeological system classification. ' +
+          'Provides the backbone major aquifer system boundaries at 1:25,000,000 scale, ' +
+          'covering all major groundwater basins across the African continent.',
+      },
+      {
+        name: 'Hydrogeology of Africa',
+        institution: 'British Geological Survey (BGS / NERC)',
+        url: 'https://www.bgs.ac.uk/datasets/hydrogeology-of-africa/',
+        contribution:
+          'Aquifer type, productivity class, rock permeability, and lithology polygons ' +
+          'specifically mapped for Africa. The primary source for productivity (high / medium / low) ' +
+          'and permeability ratings in this dataset, based on MacDonald et al. (2012).',
+      },
+      {
+        name: 'Transboundary Aquifers of the World (GGIS)',
+        institution: 'IGRAC — International Groundwater Resources Assessment Centre',
+        url: 'https://ggis.un-igrac.org/',
+        contribution:
+          'Authoritative names, country codes, and boundary polygons for transboundary aquifer ' +
+          'systems that cross international borders. 2021 edition, produced for the 9th World Water Forum.',
+      },
+    ],
   },
   {
     id: 7,
