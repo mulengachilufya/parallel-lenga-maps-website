@@ -12,7 +12,9 @@ const DATASET_TIPS: Record<number, string> = {
   2: 'Essential for slope analysis, viewshed modelling, and 3D terrain visualization. Works with hillshade and contour tools.',
   3: 'Use for watershed delineation, flood risk mapping, and water resource management. Pairs well with DEM data.',
   4: 'Great for change detection, urban sprawl monitoring, and environmental impact assessments. Multi-temporal analysis ready.',
-  5: 'Supports drought monitoring, agricultural planning, and climate vulnerability assessments. Time-series compatible.',
+  5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
+  15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
+  16: 'Monthly mean temperature climatology for habitat modelling, crop suitability, and climate change impact assessments.',
   6: 'Key for mineral exploration, infrastructure planning, and geological hazard mapping. Overlay with satellite imagery.',
   7: 'Monitor vegetation health, deforestation, and seasonal growth patterns. Time-series NDVI for trend analysis.',
   8: 'Essential for urban planning, service delivery optimization, and demographic studies. High-resolution gridded data.',
@@ -29,7 +31,9 @@ const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard?section=admin-boundaries',
   2: '/dashboard?section=dems',
   3: '/dashboard?section=hydrology',
-  5: '/dashboard?section=rainfall-climate',
+  5: '/dashboard?section=drought-index',
+  15: '/dashboard?section=rainfall',
+  16: '/dashboard?section=temperature',
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',
 }
@@ -59,7 +63,7 @@ export default function DatasetsPage() {
               GIS Data Bank
             </span>
             <h1 className="text-4xl lg:text-5xl font-black text-white mb-6">
-              12 Professional <span className="text-accent">GIS Datasets</span> for Africa
+              {DATASETS.length} Professional <span className="text-accent">GIS Datasets</span> for Africa
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
               From administrative boundaries to soil classification — every dataset is curated from
@@ -76,7 +80,7 @@ export default function DatasetsPage() {
           >
             {[
               { val: '54', label: 'Countries' },
-              { val: '12+', label: 'Datasets' },
+              { val: `${DATASETS.length}`, label: 'Datasets' },
               { val: '5+', label: 'Formats' },
               { val: '6', label: 'Free Datasets' },
             ].map((s) => (

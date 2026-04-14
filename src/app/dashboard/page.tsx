@@ -45,11 +45,23 @@ const SECTIONS: Record<string, {
     tier: 'basic',
     component: (plan) => <HydrologyList userPlan={plan} />,
   },
-  'rainfall-climate': {
-    title: '🌧️ Rainfall, Temperature & Drought',
-    subtitle: 'CHIRPS v2.0 & WorldClim v2.1 · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
+  'drought-index': {
+    title: '🔥 Drought Index (SPI-12)',
+    subtitle: 'CHIRPS-derived SPI · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
     tier: 'basic',
-    component: (plan) => <RainfallClimateList userPlan={plan} />,
+    component: (plan) => <RainfallClimateList userPlan={plan} layerType="drought_index" />,
+  },
+  'rainfall': {
+    title: '🌧️ Rainfall Data',
+    subtitle: 'CHIRPS v2.0 · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
+    tier: 'basic',
+    component: (plan) => <RainfallClimateList userPlan={plan} layerType="rainfall" />,
+  },
+  'temperature': {
+    title: '🌡️ Temperature Data',
+    subtitle: 'WorldClim v2.1 · EPSG:4326 · GeoTIFF (ZIP) · 2.5 arc-min (~5 km)',
+    tier: 'basic',
+    component: (plan) => <RainfallClimateList userPlan={plan} layerType="temperature" />,
   },
   'rivers': {
     title: '🌊 HydroRIVERS — River Networks',
