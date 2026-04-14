@@ -26,12 +26,12 @@ const DATASET_TIPS: Record<number, string> = {
 
 // Only datasets with actual download data on the dashboard
 const LIVE_DATASETS: Record<number, string> = {
-  1: '/dashboard#admin-boundaries',
-  2: '/dashboard#dems',
-  3: '/dashboard#hydrology',
-  5: '/dashboard#rainfall-climate',
-  13: '/dashboard#rivers',
-  14: '/dashboard#watersheds',
+  1: '/dashboard?section=admin-boundaries',
+  2: '/dashboard?section=dems',
+  3: '/dashboard?section=hydrology',
+  5: '/dashboard?section=rainfall-climate',
+  13: '/dashboard?section=rivers',
+  14: '/dashboard?section=watersheds',
 }
 
 export default function DatasetsPage() {
