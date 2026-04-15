@@ -112,7 +112,7 @@ export default function ServicesPage() {
           >
             <h2 className="text-3xl lg:text-4xl font-black text-navy">What We Offer</h2>
             <p className="mt-4 text-gray-500 max-w-xl mx-auto">
-              6 core service areas, 12 datasets, and growing. All available via our subscription plans.
+              6 core service areas, 15+ datasets, and growing. All available via our subscription plans.
             </p>
           </motion.div>
 
@@ -124,26 +124,54 @@ export default function ServicesPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all group"
+                className="flip-card h-64"
               >
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 text-white group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: service.color }}
-                >
-                  {service.icon}
-                </div>
-                <h3 className="text-xl font-black text-navy mb-3">{service.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-4">{service.description}</p>
-                <div className="flex flex-wrap gap-2">
-                  {service.features.map((feature) => (
-                    <span
-                      key={feature}
-                      className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{ backgroundColor: `${service.color}15`, color: service.color }}
+                <div className="flip-card-inner h-full rounded-2xl">
+                  {/* Front */}
+                  <div className="flip-card-front rounded-2xl bg-white border border-gray-100 shadow-md p-6 flex flex-col justify-between">
+                    <div>
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 text-white"
+                        style={{ backgroundColor: service.color }}
+                      >
+                        {service.icon}
+                      </div>
+                      <h3 className="text-lg font-black text-navy mb-2">{service.title}</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">{service.description}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-3">Hover to see details →</p>
+                  </div>
+                  {/* Back */}
+                  <div
+                    className="flip-card-back rounded-2xl p-6 flex flex-col justify-between text-white"
+                    style={{ background: `linear-gradient(135deg, ${service.color} 0%, #0D2B45 100%)` }}
+                  >
+                    <div>
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-white"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                      >
+                        {service.icon}
+                      </div>
+                      <h3 className="font-bold text-lg mb-4">{service.title}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {service.features.map((feature) => (
+                          <span
+                            key={feature}
+                            className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/20 text-white"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      className="mt-4 w-full py-2 bg-accent text-navy font-semibold rounded-lg text-sm hover:bg-yellow-400 transition-colors text-center block"
                     >
-                      {feature}
-                    </span>
-                  ))}
+                      View Datasets
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
             ))}

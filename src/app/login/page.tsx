@@ -165,7 +165,7 @@ export default function LoginPage() {
           <blockquote className="text-white text-2xl font-bold leading-snug mb-4">
             &ldquo;Unmasking Africa with<br />Data and Intelligence.&rdquo;
           </blockquote>
-          <p className="text-blue-200 text-sm">Access 12+ professional GIS datasets covering all of Africa.</p>
+          <p className="text-blue-200 text-sm">Access 15+ professional GIS datasets covering all of Africa.</p>
         </div>
       </div>
     </div>

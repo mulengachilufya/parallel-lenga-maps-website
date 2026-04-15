@@ -38,7 +38,7 @@ const plans = [
     highlight: true,
     features: [
       'All 54 African countries',
-      'Full dataset catalogue (12+ datasets)',
+      'Full dataset catalogue (15+ datasets)',
       'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
       'Highest available resolution',
       'Priority email & WhatsApp support',
@@ -186,7 +186,7 @@ export default function PricingPage() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl font-black text-navy">What&apos;s Included</h2>
-            <p className="mt-3 text-gray-500">All 12 datasets — see which plan unlocks each one.</p>
+            <p className="mt-3 text-gray-500">All 15+ datasets — see which plan unlocks each one.</p>
           </motion.div>
 
           <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">

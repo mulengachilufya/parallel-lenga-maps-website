@@ -323,7 +323,7 @@ export default function HomePage() {
           <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto mb-16">
             {[
               { val: '54', label: 'Countries' },
-              { val: '12+', label: 'Datasets' },
+              { val: '15+', label: 'Datasets' },
               { val: '100%', label: 'Africa' },
             ].map((s, i) => (
               <motion.div
@@ -385,7 +385,7 @@ export default function HomePage() {
 
               <div className="space-y-4">
                 {[
-                  'Access to 12+ curated GIS datasets',
+                  'Access to 15+ curated GIS datasets',
                   '7-day free trial on Basic plan',
                   'Professional-grade data from global institutions',
                   'Shapefile, GeoTIFF, and GeoJSON formats',

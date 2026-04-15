@@ -123,7 +123,7 @@ function SignupContent() {
           <div className="flex gap-6 text-white">
             {[
               { val: '54', label: 'Countries' },
-              { val: '12+', label: 'Datasets' },
+              { val: '15+', label: 'Datasets' },
               { val: '100%', label: 'African' },
             ].map((s) => (
               <div key={s.label}>
