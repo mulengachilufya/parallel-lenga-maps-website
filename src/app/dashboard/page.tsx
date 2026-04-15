@@ -77,8 +77,8 @@ const SECTIONS: Record<string, {
     component: (plan) => <WatershedsList userPlan={plan} />,
   },
   'aquifer': {
-    title: '💧 Africa Aquifer Dataset',
-    subtitle: 'WHYMAP + IGRAC · EPSG:4326 · GeoPackage per country',
+    title: '💧 Groundwater Aquifers',
+    subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
     tier: 'pro',
     component: (plan) => <AquiferList userPlan={plan} />,
   },

@@ -16,7 +16,7 @@ const DATASET_TIPS: Record<number, string> = {
   5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
   15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
   16: 'Monthly mean temperature climatology for habitat modelling, crop suitability, and climate change impact assessments.',
-  6: 'Use the source_conflict field to filter features where institutions disagree — ideal for groundwater risk assessments requiring high confidence. Pairs with HydroBASINS for full aquifer-to-catchment analysis.',
+  6: 'Essential for water resource management, transboundary groundwater agreements, and borehole planning. Pairs perfectly with HydroBASINS for full aquifer-to-catchment analysis in QGIS.',
   7: 'Monitor vegetation health, deforestation, and seasonal growth patterns. Time-series NDVI for trend analysis.',
   8: 'Essential for urban planning, service delivery optimization, and demographic studies. High-resolution gridded data.',
   9: 'Use for accessibility analysis, logistics planning, and infrastructure gap assessment across African nations.',
@@ -28,6 +28,7 @@ const DATASET_TIPS: Record<number, string> = {
 }
 
 function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color: string }) {
+  const isMultiSource = sources.length > 1
   return (
     <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
       {/* Header */}
@@ -37,10 +38,10 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
       >
         <Layers size={14} style={{ color }} />
         <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>
-          Data Sources
+          {isMultiSource ? 'Data Sources' : 'Data Source'}
         </span>
         <span className="ml-auto text-xs text-gray-400 font-medium">
-          Harmonised multi-source product
+          {isMultiSource ? 'Harmonised multi-source product' : 'Authoritative open-data source'}
         </span>
       </div>
 
@@ -73,9 +74,18 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
       <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
         <p className="text-[10px] text-gray-500 leading-relaxed">
           <span className="font-semibold text-navy">Note: </span>
-          Geometric duplicates removed and logged. Source conflicts are flagged in the
-          attribute table (<code className="bg-gray-200 px-1 rounded text-[9px]">source_conflict</code> field)
-          and never silently resolved. This is a premium curated layer — not a single raw download.
+          {isMultiSource ? (
+            <>
+              Geometric duplicates removed and logged. Source conflicts are flagged in the
+              attribute table (<code className="bg-gray-200 px-1 rounded text-[9px]">source_conflict</code> field)
+              and never silently resolved. This is a premium curated layer — not a single raw download.
+            </>
+          ) : (
+            <>
+              Geometries validated and fixed where invalid (all fixes logged). Clipped to Africa
+              continental boundary and exported as per-country GeoPackage files for immediate GIS use.
+            </>
+          )}
         </p>
       </div>
     </div>

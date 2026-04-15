@@ -120,9 +120,9 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 6,
-    name: 'Africa Aquifer Dataset',
+    name: 'Groundwater Aquifers',
     category: 'Groundwater & Hydrogeology',
-    description: 'Harmonised multi-source aquifer dataset for all 54 African nations — major groundwater system polygons and transboundary aquifer boundaries conflated from two world-class institutions. Not available in this form anywhere else.',
+    description: 'Transboundary aquifer system polygons across Africa — authoritative names, country codes, and boundary geometries for aquifers crossing international borders. Sourced from IGRAC GGIS.',
     source: 'WHYMAP/BGR-UNESCO + IGRAC GGIS',
     format: 'GeoPackage',
     resolution: '1:1,000,000 – 1:5,000,000',
@@ -131,21 +131,13 @@ export const DATASETS: Dataset[] = [
     color: '#0369a1',
     sources: [
       {
-        name: 'Groundwater Resources of the World (WHYMAP)',
-        institution: 'BGR & UNESCO',
-        url: 'https://www.bgr.bund.de/whymap',
-        contribution:
-          'Primary polygon geometry and hydrogeological system classification. ' +
-          'Provides the backbone major aquifer system boundaries at 1:25,000,000 scale, ' +
-          'covering all major groundwater basins across the African continent.',
-      },
-      {
         name: 'Transboundary Aquifers of the World (GGIS)',
         institution: 'IGRAC — International Groundwater Resources Assessment Centre',
         url: 'https://ggis.un-igrac.org/',
         contribution:
           'Authoritative names, country codes, and boundary polygons for transboundary aquifer ' +
-          'systems that cross international borders. 2021 edition, produced for the 9th World Water Forum.',
+          'systems crossing international borders across Africa. 2025 edition, published by the ' +
+          'United Nations-affiliated IGRAC centre under CC BY 4.0.',
       },
     ],
   },
