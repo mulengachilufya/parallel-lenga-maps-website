@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import LoadingScreen from "@/components/LoadingScreen";
 
 export const metadata: Metadata = {
-  title: "Lenga Maps — Unmasking Africa with Data and Intelligence",
+  title: "Lenga Maps - Unmasking Africa with Data and Intelligence",
   description:
     "Africa's most centralized Environmental GIS Database. Download high-quality geospatial data for all 54 African countries.",
   keywords: ["GIS", "Africa", "maps", "geospatial", "environmental data", "Zambia"],

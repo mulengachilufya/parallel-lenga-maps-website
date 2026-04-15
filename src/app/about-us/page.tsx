@@ -25,7 +25,7 @@ const values = [
   {
     icon: <Map size={24} />,
     title: 'Standards-Compliant',
-    description: 'All datasets follow OGC standards — compatible with QGIS, ArcGIS, GRASS GIS and more.',
+    description: 'All datasets follow OGC standards - compatible with QGIS, ArcGIS, GRASS GIS and more.',
   },
 ]
 
@@ -124,7 +124,7 @@ export default function AboutPage() {
                 </div>
                 <h2 className="text-2xl font-black text-navy mb-3">Africa&apos;s Most Centralized GIS Database</h2>
                 <p className="text-gray-600 leading-relaxed text-lg">
-                  Building Africa&apos;s largest and most centralized Environmental GIS Database —
+                  Building Africa&apos;s largest and most centralized Environmental GIS Database -
                   one that is accurate, accessible, affordable, and always current.
                 </p>
               </div>
@@ -192,18 +192,18 @@ export default function AboutPage() {
           >
             <p>
               Lenga Maps was born out of frustration. As GIS professionals working across Southern Africa,
-              we spent countless hours hunting for reliable spatial data — bouncing between government portals,
+              we spent countless hours hunting for reliable spatial data - bouncing between government portals,
               obscure academic databases, and outdated shapefiles that didn&apos;t match the reality on the ground.
             </p>
             <p>
               We knew Africa&apos;s data existed. Satellites had been imaging the continent for decades.
               Research institutions had been collecting field data for generations. The problem wasn&apos;t
-              the data — it was the fragmentation. It was scattered across a dozen different platforms,
+              the data - it was the fragmentation. It was scattered across a dozen different platforms,
               in incompatible formats, behind paywalls designed for Western budgets.
             </p>
             <p>
               So we built Lenga Maps: a single, curated, affordable platform where any researcher, planner,
-              student or engineer in Africa can find what they need — and actually download it.
+              student or engineer in Africa can find what they need - and actually download it.
             </p>
             <p className="font-semibold text-navy text-xl">
               &ldquo;Unmasking Africa with Data and Intelligence.&rdquo;

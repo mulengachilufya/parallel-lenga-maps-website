@@ -154,7 +154,7 @@ export default function AdminBoundariesList({
               transition={{ delay: Math.min(i * 0.015, 0.4) }}
               className="border border-gray-200 rounded-xl overflow-hidden bg-white"
             >
-              {/* Country header — clickable */}
+              {/* Country header - clickable */}
               <button
                 onClick={() => toggleCountry(group.country)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"

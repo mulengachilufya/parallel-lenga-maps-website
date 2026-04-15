@@ -174,7 +174,7 @@ export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps
 
           <div className="mt-4 text-sm text-gray-500">
             Showing {layers.length} layer{layers.length !== 1 ? 's' : ''}
-            {' '}— {layers.filter(l => l.layer_type === 'rivers').length} river files,{' '}
+            {' '}- {layers.filter(l => l.layer_type === 'rivers').length} river files,{' '}
             {layers.filter(l => l.layer_type === 'lakes').length} lake files
           </div>
         </div>

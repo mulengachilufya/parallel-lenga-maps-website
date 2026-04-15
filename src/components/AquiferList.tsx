@@ -75,7 +75,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
   if (layers.length === 0) {
     return (
       <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-center text-sm text-gray-500">
-        Aquifer data is being processed — check back soon.
+        Aquifer data is being processed - check back soon.
       </div>
     )
   }
@@ -109,7 +109,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
           <p className="text-xs text-amber-800">
             <span className="font-semibold">{totalConflicts.toLocaleString()}</span> features have source
             conflicts flagged in the <code className="bg-amber-100 px-1 rounded">source_conflict</code> field.
-            These are not errors — they indicate where institutions disagree. Check{' '}
+            These are not errors - they indicate where institutions disagree. Check{' '}
             <code className="bg-amber-100 px-1 rounded">conflict_notes</code> for details.
           </p>
         </div>
@@ -167,7 +167,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
                   )}
                 </div>
                 <div className="flex gap-3 text-[11px] text-gray-400">
-                  <span>{layer.feature_count?.toLocaleString() || '—'} features</span>
+                  <span>{layer.feature_count?.toLocaleString() || '-'} features</span>
                 </div>
               </div>
 
@@ -203,7 +203,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
         <span>·</span>
         <span>{totalFeatures.toLocaleString()} total features</span>
         <span>·</span>
-        <span>IGRAC GGIS — CC BY 4.0</span>
+        <span>IGRAC GGIS - CC BY 4.0</span>
       </div>
     </div>
   )

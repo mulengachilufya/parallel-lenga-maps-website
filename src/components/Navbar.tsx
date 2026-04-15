@@ -25,7 +25,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Hide navbar on dashboard — it has its own header
+  // Hide navbar on dashboard - it has its own header
   if (pathname?.startsWith('/dashboard')) return null
 
   return (

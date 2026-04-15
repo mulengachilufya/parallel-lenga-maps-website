@@ -17,7 +17,7 @@ const services = [
   {
     icon: <Map size={28} />,
     title: 'Administrative Boundaries',
-    description: 'Country, province, and district boundaries for all 54 African nations — accurate, clean, and regularly updated.',
+    description: 'Country, province, and district boundaries for all 54 African nations - accurate, clean, and regularly updated.',
     color: '#0891b2',
     features: ['54 Countries', 'Provincial Level', 'District Level', 'Gazetted'],
   },
@@ -70,7 +70,7 @@ export default function ServicesPage() {
                 <span className="text-accent">Delivered Instantly</span>
               </h1>
               <p className="text-blue-200 text-xl leading-relaxed mb-8">
-                From satellite-derived land cover to hydrological networks — we curate, clean, and package
+                From satellite-derived land cover to hydrological networks - we curate, clean, and package
                 Africa&apos;s most essential geospatial datasets.
               </p>
               <Link

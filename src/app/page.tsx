@@ -20,7 +20,7 @@ const services = [
   {
     icon: <Database size={28} />,
     title: 'GIS Data Bank',
-    description: 'Download professional-grade datasets — boundaries, elevation, rivers, land cover, and more.',
+    description: 'Download professional-grade datasets - boundaries, elevation, rivers, land cover, and more.',
   },
   {
     icon: <Layers size={28} />,
@@ -51,7 +51,7 @@ const industries = [
   },
   {
     title: 'Boundary Mapping',
-    description: 'Administrative boundaries at national, provincial, and district levels — clean and accurate.',
+    description: 'Administrative boundaries at national, provincial, and district levels - clean and accurate.',
     icon: <Layers size={28} />,
     color: '#1E5F8E',
     image: '/images/branding/world-map.jpg',
@@ -315,7 +315,7 @@ export default function HomePage() {
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
               Download professional-grade geospatial datasets covering all 54 African nations.
-              Boundaries, elevation, rivers, land cover, geology, and more — sourced from global institutions.
+              Boundaries, elevation, rivers, land cover, geology, and more - sourced from global institutions.
             </p>
           </motion.div>
 
@@ -430,12 +430,12 @@ export default function HomePage() {
               <div className="w-9 h-0.5 bg-gold" />
             </div>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
-              We Don&apos;t Just Map the World —
+              We Don&apos;t Just Map the World -
               <br />
               <span className="text-gold">We Help Solve It.</span>
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From GIS consulting to data engineering — Lenga Maps provides the geospatial foundation
+              From GIS consulting to data engineering - Lenga Maps provides the geospatial foundation
               for projects across Africa and beyond.
             </p>
           </motion.div>
@@ -608,14 +608,14 @@ export default function HomePage() {
               </span>
             </div>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-7">
-              We Don&apos;t Just Map the World —
+              We Don&apos;t Just Map the World -
               <br />
               We Help Solve It.
             </h2>
             <p className="text-[1.08rem] text-white/60 leading-[1.8] mb-12">
               Lenga Maps is a geospatial intelligence startup that uses GIS software and programming
               to solve the world&apos;s most complex environmental problems. But we don&apos;t just end at
-              developing GIS projects — we&apos;re also building Africa&apos;s largest and most centralized
+              developing GIS projects - we&apos;re also building Africa&apos;s largest and most centralized
               GIS data bank. Ours is to be a top player in emerging markets and a world class
               consulting firm, all things geospatial technology.
             </p>

@@ -24,7 +24,7 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    // Placeholder — integrate with email service in production
+    // Placeholder - integrate with email service in production
     await new Promise((r) => setTimeout(r, 1500))
     setSent(true)
     setLoading(false)

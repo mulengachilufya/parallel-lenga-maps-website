@@ -61,13 +61,13 @@ const paymentMethods = [
   {
     name: 'Airtel Money',
     logo: '📲',
-    description: 'Seamless payments via Airtel Money — no bank account needed.',
+    description: 'Seamless payments via Airtel Money - no bank account needed.',
     color: '#E40000',
   },
   {
     name: 'Bank Card / Visa',
     logo: '💳',
-    description: 'Secure card payments via Flutterwave — Visa, Mastercard accepted.',
+    description: 'Secure card payments via Flutterwave - Visa, Mastercard accepted.',
     color: '#1E5F8E',
   },
 ]
@@ -186,7 +186,7 @@ export default function PricingPage() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl font-black text-navy">What&apos;s Included</h2>
-            <p className="mt-3 text-gray-500">All 12 datasets — see which plan unlocks each one.</p>
+            <p className="mt-3 text-gray-500">All 12 datasets - see which plan unlocks each one.</p>
           </motion.div>
 
           <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
@@ -250,7 +250,7 @@ export default function PricingPage() {
             </span>
             <h2 className="text-3xl font-black text-navy">Pay Your Way</h2>
             <p className="mt-3 text-gray-500 max-w-lg mx-auto">
-              We accept mobile money, card payments, and bank transfers — because finance shouldn&apos;t be a barrier to good data.
+              We accept mobile money, card payments, and bank transfers - because finance shouldn&apos;t be a barrier to good data.
             </p>
           </motion.div>
 
@@ -277,7 +277,7 @@ export default function PricingPage() {
               <span className="font-semibold text-navy">Powered by Flutterwave</span>
             </div>
             <p className="text-gray-500 text-sm">
-              All card and mobile money transactions are secured by Flutterwave — Africa&apos;s leading payment platform.
+              All card and mobile money transactions are secured by Flutterwave - Africa&apos;s leading payment platform.
             </p>
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function PricingPage() {
             },
             {
               q: 'Do you offer institutional or NGO pricing?',
-              a: 'Yes — government agencies, NGOs, and academic institutions may be eligible for discounted rates. Contact us at lengamaps@gmail.com.',
+              a: 'Yes - government agencies, NGOs, and academic institutions may be eligible for discounted rates. Contact us at lengamaps@gmail.com.',
             },
             {
               q: 'Is there a free trial?',

@@ -21,7 +21,7 @@ export function createServerSupabase() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // setAll can fail in Server Components — safe to ignore
+            // setAll can fail in Server Components - safe to ignore
           }
         },
       },

@@ -24,7 +24,7 @@ export interface AdminBoundary {
  *   - includeUrl: include presigned download URL (true/false, default: true)
  */
 export async function GET(request: NextRequest) {
-  // Use service role key to bypass RLS — boundary data is public
+  // Use service role key to bypass RLS - boundary data is public
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

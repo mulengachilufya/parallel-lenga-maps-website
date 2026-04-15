@@ -65,13 +65,13 @@ const SECTIONS: Record<string, {
     component: (plan) => <RainfallClimateList userPlan={plan} layerType="temperature" />,
   },
   'rivers': {
-    title: '🌊 HydroRIVERS — River Networks',
+    title: '🌊 HydroRIVERS - River Networks',
     subtitle: 'WWF / HydroSHEDS v10 · CC BY 4.0 · GeoPackage per country',
     tier: 'basic',
     component: (plan) => <RiversList userPlan={plan} />,
   },
   'watersheds': {
-    title: '🗺️ HydroBASINS — Watershed Boundaries',
+    title: '🗺️ HydroBASINS - Watershed Boundaries',
     subtitle: 'WWF / HydroSHEDS Level 6 v1c · CC BY 4.0 · GeoPackage per country',
     tier: 'basic',
     component: (plan) => <WatershedsList userPlan={plan} />,
@@ -90,7 +90,7 @@ function DashboardContent() {
   const [user, setUser] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Which section to show — null means show the overview (all sections listed as cards)
+  // Which section to show - null means show the overview (all sections listed as cards)
   const section = searchParams.get('section')
 
   useEffect(() => {
@@ -178,7 +178,7 @@ function DashboardContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ════════════════════════════════════════════════════════════════
-            SINGLE SECTION VIEW — when ?section=rainfall-climate etc.
+            SINGLE SECTION VIEW - when ?section=rainfall-climate etc.
             Only that one dataset is shown. Nothing else.
            ════════════════════════════════════════════════════════════════ */}
         {sectionData ? (
@@ -210,7 +210,7 @@ function DashboardContent() {
         ) : (
           <>
             {/* ════════════════════════════════════════════════════════════
-                OVERVIEW — shows welcome, stats, and clickable cards
+                OVERVIEW - shows welcome, stats, and clickable cards
                 for each dataset section. No raw data exposed here.
                ════════════════════════════════════════════════════════════ */}
 
@@ -245,7 +245,7 @@ function DashboardContent() {
                   </div>
                   <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
                   <p className="text-sm opacity-80">
-                    {user.plan === 'pro' ? 'K75/month — Full access' : 'K25/month — Core access'}
+                    {user.plan === 'pro' ? 'K75/month - Full access' : 'K25/month - Core access'}
                   </p>
                   {user.plan !== 'pro' && (
                     <Link
@@ -317,7 +317,7 @@ function DashboardContent() {
               </motion.div>
             )}
 
-            {/* Dataset cards — each links to its own isolated view */}
+            {/* Dataset cards - each links to its own isolated view */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(SECTIONS).map(([key, sec], i) => {
                 const isProLocked = sec.tier === 'pro' && userPlan !== 'pro'
