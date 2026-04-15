@@ -49,7 +49,7 @@ export default function Footer() {
               href="tel:+260965699359"
               className="text-[0.95rem] text-white/65 hover:text-white transition-colors"
             >
-              +260 779 187 025
+              +260 965 699 359
             </a>
           </div>
 

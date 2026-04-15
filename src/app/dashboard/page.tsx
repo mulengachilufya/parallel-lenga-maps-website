@@ -304,7 +304,7 @@ function DashboardContent() {
                   <div>
                     <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for full access</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Unlock all 54 countries, 12 datasets, and unlimited downloads for just K75/month.
+                      Unlock all 54 countries, 15+ datasets, and unlimited downloads for just K75/month.
                     </p>
                   </div>
                 </div>
