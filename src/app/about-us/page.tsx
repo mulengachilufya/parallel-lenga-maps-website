@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Globe, Target, Handshake, Database, Map } from 'lucide-react'
+import { ArrowRight, Globe, Target, Handshake, Users, Database, Map } from 'lucide-react'
 import Footer from '@/components/Footer'
 
 const values = [

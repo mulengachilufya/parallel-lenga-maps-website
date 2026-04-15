@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+
 import { getDownloadUrl } from '@/lib/r2'
 
 /**
@@ -25,14 +24,22 @@ export async function GET(
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const authClient = createRouteHandlerClient({ cookies })
-  const { data: { session } } = await authClient.auth.getSession()
+  const authClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const authHeader = request.headers.get('Authorization')
+  const token = authHeader?.replace('Bearer ', '')
+  const { data: { user } } = token
+    ? await authClient.auth.getUser(token)
+    : { data: { user: null } }
+  const session = user ? { user } : null
 
   if (!session) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   }
 
-  const userPlan: string = session.user.user_metadata?.plan ?? 'basic'
+  const userPlan: string = user?.user_metadata?.plan ?? 'basic'
 
   // ── Fetch file metadata ───────────────────────────────────────────────────
   const supabase = createClient(
@@ -78,7 +85,7 @@ export async function GET(
 
   // ── Log download ──────────────────────────────────────────────────────────
   await supabase.from('hydro_downloads').insert({
-    user_id: session.user.id,
+    user_id: user?.id,
     file_id: fileRow.id,
     tier:    userPlan,
   })
