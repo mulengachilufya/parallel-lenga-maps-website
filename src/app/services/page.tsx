@@ -89,11 +89,10 @@ export default function ServicesPage() {
               className="relative rounded-2xl overflow-hidden h-[350px]"
             >
               <Image
-                src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=800&q=80"
-                alt="Aerial Africa"
+                src="/images/branding/satellite-orbit.jpg"
+                alt="Satellite in orbit over Earth"
                 fill
                 className="object-cover"
-                unoptimized
               />
               <div className="absolute inset-0 bg-navy/30" />
             </motion.div>
