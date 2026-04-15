@@ -350,7 +350,7 @@ def download_source(key: str) -> bytes:
     return data
 
 
-def load_gdf_from_zip(data: bytes, source_key: str) -> gpd.GeoDataFrame:
+def load_gdf_from_zip(data: bytes, source_key: str) -> gpd.GeoDataFrame | None:
     """
     Extract a shapefile from zip bytes and load into a GeoDataFrame.
     Handles nested directory structures. Picks the largest .shp if multiple
@@ -365,10 +365,12 @@ def load_gdf_from_zip(data: bytes, source_key: str) -> gpd.GeoDataFrame:
         shp_files = sorted(tmp_dir.rglob("*.shp"), key=lambda p: p.stat().st_size, reverse=True)
 
         if not shp_files:
-            raise ValueError(
-                f"No .shp file found in {source_key} zip. "
-                f"Files extracted: {[str(f.relative_to(tmp_dir)) for f in tmp_dir.rglob('*')]}"
-            )
+            # Graceful skip — the zip may be a raster-only edition (e.g. WHYMAP TIFF).
+            # The pipeline will continue with whatever sources DO have vector data.
+            files = [str(f.relative_to(tmp_dir)) for f in tmp_dir.rglob('*') if f.is_file()]
+            print(f"    ⚠️  No .shp file in {source_key} zip — skipping this source.")
+            print(f"       Zip contents: {files}")
+            return None  # type: ignore[return-value]
 
         shp_path = shp_files[0]
         print(f"    Reading shapefile: {shp_path.name}")
@@ -639,8 +641,8 @@ def parse_igrac(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def conflate_sources(
-    whymap: gpd.GeoDataFrame,
-    igrac: gpd.GeoDataFrame,
+    whymap: gpd.GeoDataFrame | None,
+    igrac: gpd.GeoDataFrame | None,
 ) -> gpd.GeoDataFrame:
     """
     Spatially merge 2 source layers using a spatial-join strategy:
@@ -658,7 +660,23 @@ def conflate_sources(
     right-side attribute columns are NULL — never filled with guessed values.
 
     Conflict detection runs AFTER conflation (see `detect_conflicts`).
+
+    Single-source mode: if either input is None, the conflation falls back to
+    using the single available source — every row is built from that source
+    alone with its provenance correctly recorded.
     """
+    # ── Single-source fallback ──────────────────────────────────────────────
+    if whymap is None and igrac is None:
+        raise RuntimeError("Cannot conflate — both sources are missing.")
+    if whymap is None:
+        print("    WHYMAP unavailable — using IGRAC as sole polygon source.")
+        rows = [_build_row(r) for _, r in igrac.reset_index(drop=True).iterrows()]
+        return gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
+    if igrac is None:
+        print("    IGRAC unavailable — using WHYMAP as sole polygon source.")
+        rows = [_build_row(r) for _, r in whymap.reset_index(drop=True).iterrows()]
+        return gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
+
     w = whymap.reset_index(drop=True)
     i = igrac.reset_index(drop=True)
 
@@ -1233,23 +1251,30 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
 
     print("\n  WHYMAP / BGR-UNESCO:")
     whymap_raw = load_gdf_from_zip(source_bytes["whymap"], "whymap")
-    whymap_raw = reproject_to_wgs84(whymap_raw)
+    if whymap_raw is not None:
+        whymap_raw = reproject_to_wgs84(whymap_raw)
 
     print("\n  IGRAC GGIS — Transboundary Aquifers:")
     igrac_raw = load_gdf_from_zip(source_bytes["igrac"], "igrac")
-    igrac_raw = reproject_to_wgs84(igrac_raw)
+    if igrac_raw is not None:
+        igrac_raw = reproject_to_wgs84(igrac_raw)
+
+    if whymap_raw is None and igrac_raw is None:
+        sys.exit("\nFATAL: No usable vector data in any source zip. Pipeline cannot continue.")
 
     # ── [3/8] Validate and fix geometries ─────────────────────────────────────
     print(f"\n{'='*60}")
     print("[3/8] Validating and fixing geometries")
     print(f"{'='*60}")
-    print("\n  WHYMAP:")
-    whymap_raw, fixes = validate_and_fix_geometries(whymap_raw, "WHYMAP/BGR-UNESCO")
-    geom_fix_log.extend(fixes)
+    if whymap_raw is not None:
+        print("\n  WHYMAP:")
+        whymap_raw, fixes = validate_and_fix_geometries(whymap_raw, "WHYMAP/BGR-UNESCO")
+        geom_fix_log.extend(fixes)
 
-    print("\n  IGRAC:")
-    igrac_raw, fixes = validate_and_fix_geometries(igrac_raw, "IGRAC GGIS")
-    geom_fix_log.extend(fixes)
+    if igrac_raw is not None:
+        print("\n  IGRAC:")
+        igrac_raw, fixes = validate_and_fix_geometries(igrac_raw, "IGRAC GGIS")
+        geom_fix_log.extend(fixes)
 
     if geom_fix_log:
         write_geometry_fix_log(geom_fix_log)
@@ -1260,10 +1285,14 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
     print(f"\n{'='*60}")
     print("[4/8] Parsing source-specific attributes")
     print(f"{'='*60}")
-    print("\n  WHYMAP:")
-    whymap_parsed = parse_whymap(whymap_raw)
-    print("  IGRAC:")
-    igrac_parsed = parse_igrac(igrac_raw)
+    whymap_parsed = None
+    igrac_parsed = None
+    if whymap_raw is not None:
+        print("\n  WHYMAP:")
+        whymap_parsed = parse_whymap(whymap_raw)
+    if igrac_raw is not None:
+        print("  IGRAC:")
+        igrac_parsed = parse_igrac(igrac_raw)
 
     # ── [5/8] Load Africa boundary ─────────────────────────────────────────────
     print(f"\n{'='*60}")
