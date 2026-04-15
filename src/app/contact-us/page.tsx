@@ -25,12 +25,20 @@ export default function ContactPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY,
+          name: form.name,
+          email: form.email,
+          subject: form.subject ? `[Lenga Maps] ${form.subject}` : `[Lenga Maps] New message from ${form.name}`,
+          message: form.message,
+          botcheck: '',
+        }),
       })
-      if (!res.ok) throw new Error('Send failed')
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message)
       setSent(true)
     } catch {
       alert('Failed to send. Please WhatsApp or email us directly.')
