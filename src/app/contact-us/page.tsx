@@ -41,7 +41,7 @@ export default function ContactPage() {
     {
       icon: <Phone size={20} />,
       label: 'Phone / WhatsApp',
-      value: '+260 779 187 025',
+      value: '+260 965 699 359',
       href: 'https://wa.me/260965699359',
       color: '#16a34a',
     },
