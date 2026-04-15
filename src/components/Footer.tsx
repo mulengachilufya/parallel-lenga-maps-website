@@ -46,7 +46,7 @@ export default function Footer() {
               lengamaps@gmail.com
             </a>
             <a
-              href="tel:+260779187025"
+              href="tel:+260965699359"
               className="text-[0.95rem] text-white/65 hover:text-white transition-colors"
             >
               +260 779 187 025

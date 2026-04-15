@@ -379,7 +379,7 @@ function DashboardContent() {
               Email Support
             </a>
             <a
-              href="https://wa.me/260779187025"
+              href="https://wa.me/260965699359"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs bg-accent text-navy font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors"

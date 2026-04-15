@@ -42,7 +42,7 @@ export default function ContactPage() {
       icon: <Phone size={20} />,
       label: 'Phone / WhatsApp',
       value: '+260 779 187 025',
-      href: 'https://wa.me/260779187025',
+      href: 'https://wa.me/260965699359',
       color: '#16a34a',
     },
     {
@@ -246,7 +246,7 @@ export default function ContactPage() {
 
               {/* WhatsApp CTA */}
               <a
-                href="https://wa.me/260779187025"
+                href="https://wa.me/260965699359"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 w-full bg-green-500 text-white font-bold py-4 rounded-2xl hover:bg-green-600 transition-all shadow-md hover:shadow-lg"
