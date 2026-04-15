@@ -8,9 +8,7 @@ dataset to Cloudflare R2. Replaces the geology/lithology dataset (id=6).
 Sources (strictly aquifer data — no DEMs or terrain):
   1. WHYMAP / BGR-UNESCO  — major groundwater system polygons
                             (Groundwater Resources of the World, 1:25M)
-  2. BGS / NERC           — Hydrogeology of Africa
-                            (aquifer type, productivity, rock permeability)
-  3. IGRAC GGIS           — Transboundary Aquifers of the World 2021
+  2. IGRAC GGIS           — Transboundary Aquifers of the World 2021
 
 R2 structure:
   aquifer/{Country}/{Country}_aquifer.gpkg
@@ -18,7 +16,7 @@ R2 structure:
 Pipeline guarantees
 -------------------
 - All sources reprojected to WGS84 (EPSG:4326) before any processing
-- Overlapping polygon attributes retained from ALL sources in separate columns;
+- Overlapping polygon attributes retained from both sources in separate columns;
   attributes are never silently overwritten
 - True geometric duplicates (same geometry hash + same key attrs) removed and
   every deletion logged to a timestamped CSV for full auditability
@@ -124,22 +122,6 @@ SOURCES: dict[str, dict] = {
             "1:25,000,000. Hannover / Paris."
         ),
     },
-    "bgs": {
-        "name":        "BGS / NERC Hydrogeology of Africa",
-        "institution": "British Geological Survey (BGS / NERC)",
-        "url": "https://data.bgs.ac.uk/id/dataHolding/13480426",
-        "landing_page": "https://www.bgs.ac.uk/datasets/hydrogeology-of-africa/",
-        "description": (
-            "Aquifer type, productivity class, rock permeability, and lithology "
-            "polygons specifically mapped for the African continent. "
-            "Primary source for productivity and permeability attributes."
-        ),
-        "licence":  "Open Government Licence v3.0",
-        "citation": (
-            "MacDonald, A.M. et al. (2012): Quantitative maps of groundwater resources "
-            "in Africa. Environmental Research Letters, 7(2), 024009."
-        ),
-    },
     "igrac": {
         "name":        "IGRAC GGIS — Transboundary Aquifers of the World",
         "institution": "IGRAC (International Groundwater Resources Assessment Centre)",
@@ -221,7 +203,6 @@ SCHEMA_COLUMNS: list[str] = [
     # Source provenance (which institutions contributed to this feature)
     "source_1",            # Primary source name
     "source_2",            # Secondary source (if any)
-    "source_3",            # Tertiary source (if any)
     # Conflict flags
     "source_conflict",     # Boolean: True if sources disagree on type/productivity
     "conflict_notes",      # Human-readable explanation of the disagreement
@@ -231,11 +212,6 @@ SCHEMA_COLUMNS: list[str] = [
     "whymap_system_name",  # Aquifer system name from WHYMAP
     "whymap_type_raw",     # Raw TYPE/CLASS value from WHYMAP shapefile
     "whymap_area_km2",     # Polygon area reported by WHYMAP (km²)
-    # ── BGS / NERC passthrough ───────────────────────────────────────────────
-    "bgs_aq_type_raw",     # Raw aquifer type from BGS
-    "bgs_productivity_raw",# Raw productivity class from BGS
-    "bgs_permeability",    # Permeability rating from BGS
-    "bgs_rock_type",       # Lithology / rock type from BGS
     # ── IGRAC GGIS passthrough ───────────────────────────────────────────────
     "igrac_aquifer_name",  # Aquifer name from IGRAC
     "igrac_country_codes", # Country code(s) from IGRAC
@@ -262,7 +238,7 @@ AQUIFER_TYPE_NORM: dict[str, str] = {
     "partially confined":                 "semi-confined",
     "artesian":                           "confined",
     "sub-artesian":                       "semi-confined",
-    # Rock-type based (BGS style)
+    # Rock-type based
     "fractured rock":                     "unconfined",
     "fractured basement":                 "unconfined",
     "karst":                              "unconfined",
@@ -270,7 +246,7 @@ AQUIFER_TYPE_NORM: dict[str, str] = {
     "porous":                             "unconfined",
     "intergranular":                      "unconfined",
     "alluvial":                           "unconfined",
-    # BGS productivity-type hybrid descriptions
+    # Productivity-type hybrid descriptions
     "high productivity aquifer":          "unconfined",
     "moderate productivity aquifer":      "semi-confined",
     "low productivity aquifer":           "unconfined",
@@ -619,46 +595,6 @@ def parse_whymap(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return out
 
 
-def parse_bgs(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """
-    Extract and normalise BGS Hydrogeology of Africa attributes.
-
-    Based on MacDonald et al. (2012) — published shapefile column names:
-      AQ_TYPE / AQUIFER_TY — aquifer type
-      PRODUCTIV / PROD     — productivity class
-      PERMEA / PERMEAB     — permeability
-      LITHOLOGY / LITH     — rock/lithology type
-    """
-    out = gpd.GeoDataFrame(geometry=gdf.geometry.copy(), crs=gdf.crs)
-
-    out["bgs_aq_type_raw"] = gdf.apply(
-        lambda r: _first_val(r, ["AQ_TYPE", "AQUIFER_TY", "AQUIFERTYP", "aq_type", "TYPE", "HYDROTYPE"]),
-        axis=1,
-    )
-    out["bgs_productivity_raw"] = gdf.apply(
-        lambda r: _first_val(r, ["PRODUCTIV", "PROD", "PRODUCTIVITY", "YIELD", "productiv"]),
-        axis=1,
-    )
-    out["bgs_permeability"] = gdf.apply(
-        lambda r: _first_val(r, ["PERMEA", "PERMEAB", "PERMEABILITY", "PERM", "permea"]),
-        axis=1,
-    )
-    out["bgs_rock_type"] = gdf.apply(
-        lambda r: _first_val(r, ["LITHOLOGY", "LITH", "ROCK_TYPE", "GEOLOGY", "GEOL", "lithology"]),
-        axis=1,
-    )
-
-    out["_bgs_type_norm"] = out["bgs_aq_type_raw"].apply(
-        lambda v: _norm(v, AQUIFER_TYPE_NORM)
-    )
-    out["_bgs_productivity_norm"] = out["bgs_productivity_raw"].apply(
-        lambda v: _norm(v, PRODUCTIVITY_NORM)
-    )
-
-    print(f"    BGS parsed: {len(out):,} features")
-    return out
-
-
 def parse_igrac(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Extract and normalise IGRAC GGIS transboundary aquifer attributes.
@@ -704,19 +640,18 @@ def parse_igrac(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 def conflate_sources(
     whymap: gpd.GeoDataFrame,
-    bgs: gpd.GeoDataFrame,
     igrac: gpd.GeoDataFrame,
 ) -> gpd.GeoDataFrame:
     """
-    Spatially merge three source layers using a spatial-join strategy:
+    Spatially merge 2 source layers using a spatial-join strategy:
 
     Strategy
     --------
     WHYMAP is used as the primary geometry source (broadest continental coverage,
-    authoritative system-level boundaries). BGS and IGRAC attributes are attached
-    to WHYMAP polygons via spatial join (left join, `intersects` predicate, first
-    match kept). BGS and IGRAC features that have NO overlap with any WHYMAP
-    polygon are appended as standalone rows — their data must not be discarded.
+    authoritative system-level boundaries). IGRAC attributes are attached to
+    WHYMAP polygons via spatial join (left join, `intersects` predicate, first
+    match kept). IGRAC features that have NO overlap with any WHYMAP polygon
+    are appended as standalone rows — their data must not be discarded.
 
     Attribute provenance is fully tracked. Where a join produces no right-side
     match (i.e. the left feature has no overlapping right-side polygon), the
@@ -725,39 +660,21 @@ def conflate_sources(
     Conflict detection runs AFTER conflation (see `detect_conflicts`).
     """
     w = whymap.reset_index(drop=True)
-    b = bgs.reset_index(drop=True)
     i = igrac.reset_index(drop=True)
 
-    # ── Step 1: attach BGS attributes to WHYMAP polygons ──────────────────────
-    print("    Step 1/4: Spatial join WHYMAP ← BGS (intersects, keep first match) ...")
-    wb = gpd.sjoin(w, b, how="left", predicate="intersects")
-    before = len(wb)
-    wb = wb[~wb.index.duplicated(keep="first")]
-    wb = wb.drop(columns=["index_right"], errors="ignore")
-    print(f"    WHYMAP features: {len(w):,} → after BGS join: {len(wb):,} "
-          f"(deduplicated {before - len(wb):,} multi-match rows)")
+    # ── Step 1: attach IGRAC attributes to WHYMAP polygons ────────────────────
+    print("    Step 1/2: Spatial join WHYMAP ← IGRAC (intersects, keep first match) ...")
+    wi = gpd.sjoin(w, i, how="left", predicate="intersects")
+    before = len(wi)
+    wi = wi[~wi.index.duplicated(keep="first")]
+    wi = wi.drop(columns=["index_right"], errors="ignore")
+    print(f"    WHYMAP features: {len(w):,} → after IGRAC join: {len(wi):,} "
+          f"(deduplicated {before - len(wi):,} multi-match rows)")
 
-    # ── Step 2: attach IGRAC attributes to the WHYMAP+BGS layer ───────────────
-    print("    Step 2/4: Spatial join WHYMAP+BGS ← IGRAC (intersects, keep first match) ...")
-    wbi = gpd.sjoin(wb, i, how="left", predicate="intersects")
-    before = len(wbi)
-    wbi = wbi[~wbi.index.duplicated(keep="first")]
-    wbi = wbi.drop(columns=["index_right"], errors="ignore")
-    print(f"    After IGRAC join: {len(wbi):,} "
-          f"(deduplicated {before - len(wbi):,} multi-match rows)")
-
-    # ── Step 3: BGS features not covered by any WHYMAP polygon ────────────────
-    print("    Step 3/4: Identifying BGS-only features (no WHYMAP overlap) ...")
+    # ── Step 2: IGRAC features not covered by any WHYMAP polygon ──────────────
+    print("    Step 2/2: Identifying IGRAC-only features (no WHYMAP overlap) ...")
     try:
         whymap_union = w.union_all() if hasattr(w, "union_all") else w.unary_union
-        b_only = b[~b.geometry.intersects(whymap_union)].copy()
-    except Exception:
-        b_only = gpd.GeoDataFrame(columns=b.columns, crs=b.crs)
-    print(f"    BGS-only features: {len(b_only):,}")
-
-    # ── Step 4: IGRAC features not covered by any WHYMAP polygon ──────────────
-    print("    Step 4/4: Identifying IGRAC-only features (no WHYMAP overlap) ...")
-    try:
         i_only = i[~i.geometry.intersects(whymap_union)].copy()
     except Exception:
         i_only = gpd.GeoDataFrame(columns=i.columns, crs=i.crs)
@@ -765,10 +682,7 @@ def conflate_sources(
 
     # ── Assemble rows ──────────────────────────────────────────────────────────
     rows = []
-    for _, row in wbi.iterrows():
-        rows.append(_build_row(row))
-
-    for _, row in b_only.iterrows():
+    for _, row in wi.iterrows():
         rows.append(_build_row(row))
 
     for _, row in i_only.iterrows():
@@ -777,8 +691,7 @@ def conflate_sources(
     merged = gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
 
     print(f"\n    Conflation summary:")
-    print(f"      WHYMAP-based rows : {len(wbi):,}")
-    print(f"      BGS-only additions: {len(b_only):,}")
+    print(f"      WHYMAP-based rows : {len(wi):,}")
     print(f"      IGRAC-only        : {len(i_only):,}")
     print(f"      Total             : {len(merged):,}")
 
@@ -799,19 +712,16 @@ def _build_row(row: pd.Series) -> dict:
     """
     # ── Source provenance ────────────────────────────────────────────────────
     has_whymap = _has_real_data(row, ["whymap_system_name", "whymap_type_raw"])
-    has_bgs    = _has_real_data(row, ["bgs_aq_type_raw", "bgs_productivity_raw", "bgs_permeability"])
     has_igrac  = _has_real_data(row, ["igrac_aquifer_name", "igrac_tba_id", "igrac_type_raw"])
 
     sources = []
     if has_whymap:
         sources.append("WHYMAP/BGR-UNESCO")
-    if has_bgs:
-        sources.append("BGS/NERC")
     if has_igrac:
         sources.append("IGRAC GGIS")
 
     # ── Best aquifer name ─────────────────────────────────────────────────────
-    # Priority: IGRAC (most precisely named for transboundary) > WHYMAP > BGS
+    # Priority: IGRAC (most precisely named for transboundary) > WHYMAP
     aquifer_name = None
     for val in [
         row.get("igrac_aquifer_name"),
@@ -824,13 +734,11 @@ def _build_row(row: pd.Series) -> dict:
     # ── Aquifer type: collected from all sources (conflict detection runs later)
     # Store all normalised values now; best-effort consensus is attempted.
     whymap_type = row.get("_whymap_type_norm", "unknown") or "unknown"
-    bgs_type    = row.get("_bgs_type_norm", "unknown") or "unknown"
     igrac_type  = row.get("_igrac_type_norm", "unknown") or "unknown"
 
     known_types = {
         src: t for src, t in [
             ("WHYMAP/BGR-UNESCO", whymap_type),
-            ("BGS/NERC", bgs_type),
             ("IGRAC GGIS", igrac_type),
         ]
         if t != "unknown" and src in sources
@@ -845,9 +753,8 @@ def _build_row(row: pd.Series) -> dict:
         # Conflict — do not resolve; flag in separate pass
         aquifer_type = "unknown"
 
-    # ── Productivity: BGS is the primary source; WHYMAP/IGRAC don't rate this
-    bgs_prod = row.get("_bgs_productivity_norm", "unknown") or "unknown"
-    productivity = bgs_prod if bgs_prod != "unknown" else "unknown"
+    # ── Productivity: neither WHYMAP nor IGRAC provide this field
+    productivity = "unknown"
 
     # ── Passthrough values (raw, not inferred) ────────────────────────────────
     def safe(val):
@@ -874,7 +781,6 @@ def _build_row(row: pd.Series) -> dict:
         # Source provenance
         "source_1":            sources[0] if len(sources) > 0 else None,
         "source_2":            sources[1] if len(sources) > 1 else None,
-        "source_3":            sources[2] if len(sources) > 2 else None,
         # Conflict fields (populated by detect_conflicts())
         "source_conflict":     False,
         "conflict_notes":      None,
@@ -890,11 +796,6 @@ def _build_row(row: pd.Series) -> dict:
         "whymap_system_name":  safe(row.get("whymap_system_name")),
         "whymap_type_raw":     safe(row.get("whymap_type_raw")),
         "whymap_area_km2":     safe_float(row.get("whymap_area_km2")),
-        # BGS passthrough
-        "bgs_aq_type_raw":     safe(row.get("bgs_aq_type_raw")),
-        "bgs_productivity_raw":safe(row.get("bgs_productivity_raw")),
-        "bgs_permeability":    safe(row.get("bgs_permeability")),
-        "bgs_rock_type":       safe(row.get("bgs_rock_type")),
         # IGRAC passthrough
         "igrac_aquifer_name":  safe(row.get("igrac_aquifer_name")),
         "igrac_country_codes": safe(row.get("igrac_country_codes")),
@@ -902,9 +803,7 @@ def _build_row(row: pd.Series) -> dict:
         "igrac_type_raw":      safe(row.get("igrac_type_raw")),
         # Internal — for conflict detection (dropped before final export)
         "_whymap_type_norm":   whymap_type,
-        "_bgs_type_norm":      bgs_type,
         "_igrac_type_norm":    igrac_type,
-        "_bgs_productivity_norm": bgs_prod,
         "_sources_list":       sources,
     }
 
@@ -938,8 +837,6 @@ def detect_conflicts(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         type_vals: dict[str, str] = {}
         if "WHYMAP/BGR-UNESCO" in sources and row.get("_whymap_type_norm", "unknown") != "unknown":
             type_vals["WHYMAP/BGR-UNESCO"] = row["_whymap_type_norm"]
-        if "BGS/NERC" in sources and row.get("_bgs_type_norm", "unknown") != "unknown":
-            type_vals["BGS/NERC"] = row["_bgs_type_norm"]
         if "IGRAC GGIS" in sources and row.get("_igrac_type_norm", "unknown") != "unknown":
             type_vals["IGRAC GGIS"] = row["_igrac_type_norm"]
 
@@ -956,11 +853,10 @@ def detect_conflicts(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
             resolved_type = "unknown"
 
         # ── Productivity conflict check ────────────────────────────────────────
-        # Only BGS currently provides this; if future sources add it, this will
-        # catch disagreements automatically.
+        # Neither WHYMAP nor IGRAC publishes productivity ratings, so this will
+        # stay empty for now. The structure is preserved so that if a future
+        # source adds productivity data, disagreements will be caught automatically.
         prod_vals: dict[str, str] = {}
-        if "BGS/NERC" in sources and row.get("_bgs_productivity_norm", "unknown") != "unknown":
-            prod_vals["BGS/NERC"] = row["_bgs_productivity_norm"]
 
         unique_prods = set(prod_vals.values())
         if len(unique_prods) > 1:
@@ -1155,7 +1051,7 @@ def enforce_schema(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf = gdf.drop(columns=drop_cols, errors="ignore")
 
     # Drop leftover join artefact columns
-    artefact_cols = ["index_right", "index_left", "index_bgs", "index_igrac"]
+    artefact_cols = ["index_right", "index_left", "index_igrac"]
     gdf = gdf.drop(columns=[c for c in artefact_cols if c in gdf.columns], errors="ignore")
 
     # Add any missing required columns as NULL
@@ -1225,7 +1121,7 @@ def upsert_supabase(
         "r2_key":         key,
         "file_size_mb":   round(size_mb, 4),
         "file_format":    "GeoPackage",
-        "source":         "WHYMAP/BGR-UNESCO + BGS/NERC + IGRAC GGIS (harmonised by Lenga Maps)",
+        "source":         "WHYMAP/BGR-UNESCO + IGRAC GGIS (harmonised by Lenga Maps)",
         "feature_count":  feature_count,
         "conflict_count": conflict_count,
     }
@@ -1292,8 +1188,7 @@ def main() -> None:
         epilog="""
 Sources:
   1. WHYMAP / BGR-UNESCO  — major groundwater system polygons
-  2. BGS / NERC           — Hydrogeology of Africa (type, productivity, permeability)
-  3. IGRAC GGIS           — Transboundary Aquifers of the World 2021
+  2. IGRAC GGIS           — Transboundary Aquifers of the World 2021
 
 The pipeline will EXIT if any source cannot be downloaded. Partial processing
 is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloading.
@@ -1322,7 +1217,7 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
     print(f"\n{'='*60}")
     print("[1/8] Downloading source datasets")
     print(f"{'='*60}")
-    print("  The pipeline requires ALL three sources. If any download fails,")
+    print("  The pipeline requires BOTH sources. If any download fails,")
     print("  it will exit with instructions for manual download.\n")
 
     source_bytes: dict[str, bytes] = {}
@@ -1340,10 +1235,6 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
     whymap_raw = load_gdf_from_zip(source_bytes["whymap"], "whymap")
     whymap_raw = reproject_to_wgs84(whymap_raw)
 
-    print("\n  BGS / NERC Hydrogeology of Africa:")
-    bgs_raw = load_gdf_from_zip(source_bytes["bgs"], "bgs")
-    bgs_raw = reproject_to_wgs84(bgs_raw)
-
     print("\n  IGRAC GGIS — Transboundary Aquifers:")
     igrac_raw = load_gdf_from_zip(source_bytes["igrac"], "igrac")
     igrac_raw = reproject_to_wgs84(igrac_raw)
@@ -1354,10 +1245,6 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
     print(f"{'='*60}")
     print("\n  WHYMAP:")
     whymap_raw, fixes = validate_and_fix_geometries(whymap_raw, "WHYMAP/BGR-UNESCO")
-    geom_fix_log.extend(fixes)
-
-    print("\n  BGS:")
-    bgs_raw, fixes = validate_and_fix_geometries(bgs_raw, "BGS/NERC")
     geom_fix_log.extend(fixes)
 
     print("\n  IGRAC:")
@@ -1375,8 +1262,6 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
     print(f"{'='*60}")
     print("\n  WHYMAP:")
     whymap_parsed = parse_whymap(whymap_raw)
-    print("  BGS:")
-    bgs_parsed = parse_bgs(bgs_raw)
     print("  IGRAC:")
     igrac_parsed = parse_igrac(igrac_raw)
 
@@ -1388,9 +1273,9 @@ is never allowed. Cache source zips in data/aquifer_cache/ to avoid re-downloadi
 
     # ── [6/8] Spatially conflate ───────────────────────────────────────────────
     print(f"\n{'='*60}")
-    print("[6/8] Spatially conflating three sources")
+    print("[6/8] Spatially conflating two sources")
     print(f"{'='*60}")
-    merged = conflate_sources(whymap_parsed, bgs_parsed, igrac_parsed)
+    merged = conflate_sources(whymap_parsed, igrac_parsed)
 
     # ── Run conflict detection ─────────────────────────────────────────────────
     print("\n  Running conflict detection ...")
