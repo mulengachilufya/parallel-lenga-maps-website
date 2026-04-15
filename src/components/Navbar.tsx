@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/services', label: 'Services' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/datasets', label: 'Download GIS Data' },
+  { href: '/contact-us', label: 'Contact Us' },
 ]
 
 export default function Navbar() {
@@ -25,7 +26,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Hide navbar on dashboard — it has its own header
+  // Hide navbar on dashboard - it has its own header
   if (pathname?.startsWith('/dashboard')) return null
 
   return (

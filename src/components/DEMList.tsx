@@ -83,7 +83,7 @@ export default function DEMList({ userPlan = 'basic' }: DEMListProps) {
         </div>
       )}
 
-      {/* Country list — one row per country */}
+      {/* Country list - one row per country */}
       {!loading && filtered.length > 0 && (
         <div className="space-y-2">
           {filtered.map((layer, i) => (

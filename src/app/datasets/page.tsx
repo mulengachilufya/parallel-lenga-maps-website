@@ -24,7 +24,7 @@ const DATASET_TIPS: Record<number, string> = {
   11: 'Supports precision agriculture, land suitability analysis, and erosion risk mapping. Multi-layer soil properties.',
   12: 'Vital for conservation planning, wildlife corridor mapping, and environmental compliance reporting.',
   13: 'Filter by Strahler order to isolate major rivers. Strahler ≥ 4 gives named, navigable rivers. Pairs perfectly with HydroBASINS for full watershed analysis.',
-  14: 'Level 6 basins average 2,000–10,000 km² — ideal for catchment-scale hydrology, transboundary water management, and flood modelling at the regional level.',
+  14: 'Level 6 basins average 2,000–10,000 km² - ideal for catchment-scale hydrology, transboundary water management, and flood modelling at the regional level.',
 }
 
 function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color: string }) {
@@ -78,7 +78,7 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
             <>
               Geometric duplicates removed and logged. Source conflicts are flagged in the
               attribute table (<code className="bg-gray-200 px-1 rounded text-[9px]">source_conflict</code> field)
-              and never silently resolved. This is a premium curated layer — not a single raw download.
+              and never silently resolved. This is a premium curated layer - not a single raw download.
             </>
           ) : (
             <>
@@ -133,7 +133,7 @@ export default function DatasetsPage() {
               {DATASETS.length} Professional <span className="text-accent">GIS Datasets</span> for Africa
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
-              From administrative boundaries to soil classification — every dataset is curated from
+              From administrative boundaries to soil classification - every dataset is curated from
               world-class sources, formatted for professional GIS workflows, and covering all 54 African nations.
             </p>
           </motion.div>
@@ -241,7 +241,7 @@ export default function DatasetsPage() {
                       </p>
                     </div>
 
-                    {/* Data Sources panel — rendered for multi-source datasets only */}
+                    {/* Data Sources panel - rendered for multi-source datasets only */}
                     {dataset.sources && dataset.sources.length > 0 && (
                       <DataSourcesPanel sources={dataset.sources} color={dataset.color} />
                     )}

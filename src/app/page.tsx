@@ -7,6 +7,7 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Download, Database, Globe2, Layers, Droplets, Mountain, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
+import HomeContactForm from '@/components/HomeContactForm'
 import { supabase, DATASETS } from '@/lib/supabase'
 
 const heroImage = '/images/branding/river-aerial.jpg'
@@ -20,7 +21,7 @@ const services = [
   {
     icon: <Database size={28} />,
     title: 'GIS Data Bank',
-    description: 'Download professional-grade datasets — boundaries, elevation, rivers, land cover, and more.',
+    description: 'Download professional-grade datasets - boundaries, elevation, rivers, land cover, and more.',
   },
   {
     icon: <Layers size={28} />,
@@ -51,7 +52,7 @@ const industries = [
   },
   {
     title: 'Boundary Mapping',
-    description: 'Administrative boundaries at national, provincial, and district levels — clean and accurate.',
+    description: 'Administrative boundaries at national, provincial, and district levels - clean and accurate.',
     icon: <Layers size={28} />,
     color: '#1E5F8E',
     image: '/images/branding/world-map.jpg',
@@ -315,7 +316,7 @@ export default function HomePage() {
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
               Download professional-grade geospatial datasets covering all 54 African nations.
-              Boundaries, elevation, rivers, land cover, geology, and more — sourced from global institutions.
+              Boundaries, elevation, rivers, land cover, geology, and more - sourced from global institutions.
             </p>
           </motion.div>
 
@@ -430,12 +431,12 @@ export default function HomePage() {
               <div className="w-9 h-0.5 bg-gold" />
             </div>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
-              We Don&apos;t Just Map the World —
+              We Don&apos;t Just Map the World -
               <br />
               <span className="text-gold">We Help Solve It.</span>
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From GIS consulting to data engineering — Lenga Maps provides the geospatial foundation
+              From GIS consulting to data engineering - Lenga Maps provides the geospatial foundation
               for projects across Africa and beyond.
             </p>
           </motion.div>
@@ -608,14 +609,14 @@ export default function HomePage() {
               </span>
             </div>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-7">
-              We Don&apos;t Just Map the World —
+              We Don&apos;t Just Map the World -
               <br />
               We Help Solve It.
             </h2>
             <p className="text-[1.08rem] text-white/60 leading-[1.8] mb-12">
               Lenga Maps is a geospatial intelligence startup that uses GIS software and programming
               to solve the world&apos;s most complex environmental problems. But we don&apos;t just end at
-              developing GIS projects — we&apos;re also building Africa&apos;s largest and most centralized
+              developing GIS projects - we&apos;re also building Africa&apos;s largest and most centralized
               GIS data bank. Ours is to be a top player in emerging markets and a world class
               consulting firm, all things geospatial technology.
             </p>
@@ -641,6 +642,67 @@ export default function HomePage() {
               </Link>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ── CONTACT ── */}
+      <section className="py-20 lg:py-28 bg-dark-light border-t border-white/[0.06]">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <div className="flex items-center justify-center gap-3.5 mb-4">
+              <div className="w-9 h-0.5 bg-gold" />
+              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">Get In Touch</span>
+              <div className="w-9 h-0.5 bg-gold" />
+            </div>
+            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
+              Send Us a Message
+            </h2>
+            <p className="text-white/50 text-[1rem] max-w-lg mx-auto">
+              We respond personally to every inquiry within 24 hours.
+            </p>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-start max-w-5xl mx-auto">
+            {/* Form */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <HomeContactForm />
+            </motion.div>
+
+            {/* Contact info */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-5"
+            >
+              {[
+                { label: 'Email', value: 'lengamaps@gmail.com', href: 'mailto:lengamaps@gmail.com', color: '#1E5F8E' },
+                { label: 'WhatsApp', value: '+260 965 699 359', href: 'https://wa.me/260965699359', color: '#16a34a' },
+                { label: 'Location', value: 'Lusaka, Zambia', href: null, color: '#b45309' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 rounded-xl">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                  <div>
+                    <p className="text-[0.72rem] text-white/40 uppercase tracking-wider mb-0.5">{item.label}</p>
+                    {item.href ? (
+                      <a href={item.href} className="text-white font-semibold hover:text-gold transition-colors">{item.value}</a>
+                    ) : (
+                      <p className="text-white font-semibold">{item.value}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </section>
 

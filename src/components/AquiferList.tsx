@@ -75,7 +75,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
   if (layers.length === 0) {
     return (
       <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-center text-sm text-gray-500">
-        Aquifer data is being processed — check back soon.
+        Aquifer data is being processed - check back soon.
       </div>
     )
   }
@@ -83,14 +83,13 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
   // ── Stats ──────────────────────────────────────────────────────────────────
   const totalFeatures  = layers.reduce((s, l) => s + (l.feature_count || 0), 0)
   const totalConflicts = layers.reduce((s, l) => s + (l.conflict_count || 0), 0)
-  const totalSizeMb    = layers.reduce((s, l) => s + (l.file_size_mb || 0), 0)
 
   return (
     <div>
       {/* GIS metadata banner */}
-      <div className="bg-sky-50 rounded-xl p-4 mb-5 text-xs text-gray-600 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="bg-sky-50 rounded-xl p-4 mb-5 text-xs text-gray-600 grid grid-cols-3 gap-3">
         <div>
-          <span className="block text-gray-400 mb-0.5">Sources</span>
+          <span className="block text-gray-400 mb-0.5">Source</span>
           <span className="font-semibold text-navy">IGRAC GGIS</span>
         </div>
         <div>
@@ -101,10 +100,6 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
           <span className="block text-gray-400 mb-0.5">CRS</span>
           <span className="font-semibold text-navy">EPSG:4326</span>
         </div>
-        <div>
-          <span className="block text-gray-400 mb-0.5">Total Size</span>
-          <span className="font-semibold text-navy">{totalSizeMb.toFixed(1)} MB</span>
-        </div>
       </div>
 
       {/* Conflict info */}
@@ -114,7 +109,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
           <p className="text-xs text-amber-800">
             <span className="font-semibold">{totalConflicts.toLocaleString()}</span> features have source
             conflicts flagged in the <code className="bg-amber-100 px-1 rounded">source_conflict</code> field.
-            These are not errors — they indicate where institutions disagree. Check{' '}
+            These are not errors - they indicate where institutions disagree. Check{' '}
             <code className="bg-amber-100 px-1 rounded">conflict_notes</code> for details.
           </p>
         </div>
@@ -172,8 +167,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
                   )}
                 </div>
                 <div className="flex gap-3 text-[11px] text-gray-400">
-                  <span>{layer.feature_count?.toLocaleString() || '—'} features</span>
-                  <span>{layer.file_size_mb?.toFixed(2)} MB</span>
+                  <span>{layer.feature_count?.toLocaleString() || '-'} features</span>
                 </div>
               </div>
 
@@ -209,9 +203,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
         <span>·</span>
         <span>{totalFeatures.toLocaleString()} total features</span>
         <span>·</span>
-        <span>{totalSizeMb.toFixed(1)} MB total</span>
-        <span>·</span>
-        <span>IGRAC GGIS — CC BY 4.0</span>
+        <span>IGRAC GGIS - CC BY 4.0</span>
       </div>
     </div>
   )

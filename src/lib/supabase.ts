@@ -122,7 +122,7 @@ export const DATASETS: Dataset[] = [
     id: 6,
     name: 'Groundwater Aquifers',
     category: 'Groundwater & Hydrogeology',
-    description: 'Transboundary aquifer system polygons across Africa — authoritative names, country codes, and boundary geometries for aquifers crossing international borders. Sourced from IGRAC GGIS.',
+    description: 'Transboundary aquifer system polygons across Africa - authoritative names, country codes, and boundary geometries for aquifers crossing international borders. Sourced from IGRAC GGIS.',
     source: 'WHYMAP/BGR-UNESCO + IGRAC GGIS',
     format: 'GeoPackage',
     resolution: '1:1,000,000 – 1:5,000,000',
@@ -132,7 +132,7 @@ export const DATASETS: Dataset[] = [
     sources: [
       {
         name: 'Transboundary Aquifers of the World (GGIS)',
-        institution: 'IGRAC — International Groundwater Resources Assessment Centre',
+        institution: 'IGRAC - International Groundwater Resources Assessment Centre',
         url: 'https://ggis.un-igrac.org/',
         contribution:
           'Authoritative names, country codes, and boundary polygons for transboundary aquifer ' +
@@ -215,7 +215,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 13,
-    name: 'HydroRIVERS — River Networks',
+    name: 'HydroRIVERS - River Networks',
     category: 'Water & Hydrology',
     description: 'Full African river network at 15 arc-second resolution with Strahler order, discharge, and length. Per-country GeoPackage files clipped from HydroRIVERS v10.',
     source: 'WWF / HydroSHEDS',
@@ -227,7 +227,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 14,
-    name: 'HydroBASINS — Watershed Boundaries',
+    name: 'HydroBASINS - Watershed Boundaries',
     category: 'Water & Hydrology',
     description: 'Level 6 watershed polygon delineations for all African countries averaging 2,000–10,000 km² per basin. Per-country GeoPackage files from HydroBASINS v1c.',
     source: 'WWF / HydroSHEDS',
