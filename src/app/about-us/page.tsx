@@ -94,18 +94,11 @@ export default function AboutPage() {
             >
               <div className="relative rounded-2xl overflow-hidden h-[400px]">
                 <Image
-                  src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800&q=80"
-                  alt="African landscape"
+                  src="/images/africa-topography.webp"
+                  alt="Topographic map of Africa"
                   fill
                   className="object-cover"
-                  unoptimized
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy/60 to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6">
-                  <p className="text-white/80 text-sm italic">
-                    &ldquo;The Earth holds the answers. We make them readable.&rdquo;
-                  </p>
-                </div>
               </div>
             </motion.div>
 
