@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Globe, Target, Handshake, Users, Database, Map } from 'lucide-react'
+import { ArrowRight, Globe, Target, Handshake, Database, Map } from 'lucide-react'
 import Footer from '@/components/Footer'
 
 const values = [
@@ -26,15 +26,6 @@ const values = [
     icon: <Map size={24} />,
     title: 'Standards-Compliant',
     description: 'All datasets follow OGC standards — compatible with QGIS, ArcGIS, GRASS GIS and more.',
-  },
-]
-
-const team = [
-  {
-    name: 'Muleng Chilufy',
-    role: 'Founder & Lead GIS Engineer',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&q=80',
-    bio: 'Environmental GIS specialist with expertise in remote sensing and spatial data infrastructure across Southern Africa.',
   },
 ]
 
@@ -218,45 +209,6 @@ export default function AboutPage() {
               &ldquo;Unmasking Africa with Data and Intelligence.&rdquo;
             </p>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── TEAM ── */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <h2 className="text-3xl font-black text-navy">The Team</h2>
-          </motion.div>
-
-          <div className="flex justify-center">
-            {team.map((member) => (
-              <motion.div
-                key={member.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 max-w-sm text-center"
-              >
-                <div className="relative w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-4 border-primary/20">
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-                <h3 className="font-bold text-navy text-lg">{member.name}</h3>
-                <p className="text-primary text-sm font-medium mb-3">{member.role}</p>
-                <p className="text-gray-500 text-sm leading-relaxed">{member.bio}</p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
