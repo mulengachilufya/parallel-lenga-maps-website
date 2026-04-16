@@ -5,11 +5,28 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export type AccountType = 'student' | 'professional'
+export type PlanTier = 'basic' | 'pro'
+
 export type UserProfile = {
   id: string
   email: string
-  plan: 'basic' | 'pro'
+  account_type: AccountType
+  plan: PlanTier
   created_at: string
+}
+
+/**
+ * Pricing matrix in Zambian Kwacha (ZMW) per month.
+ * Students get subsidised rates; professionals pay full commercial rates.
+ */
+export const PLAN_PRICING: Record<AccountType, Record<PlanTier, number>> = {
+  student: { basic: 25, pro: 75 },
+  professional: { basic: 50, pro: 100 },
+}
+
+export function formatPrice(accountType: AccountType, plan: PlanTier): string {
+  return `K${PLAN_PRICING[accountType][plan]}`
 }
 
 export type DatasetSource = {

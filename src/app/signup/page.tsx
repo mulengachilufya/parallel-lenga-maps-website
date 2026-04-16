@@ -5,12 +5,17 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase } from 'lucide-react'
+import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
 
-const plans = [
-  { id: 'basic', name: 'Basic', price: 'K25/month', description: '3 countries, core datasets, 7-day free trial' },
-  { id: 'pro', name: 'Pro', price: 'K75/month', description: 'All 54 countries, full catalogue, unlimited downloads' },
+const plans: { id: PlanTier; name: string; description: string }[] = [
+  { id: 'basic', name: 'Basic', description: '3 countries, core datasets, 7-day free trial' },
+  { id: 'pro', name: 'Pro', description: 'All 54 countries, full catalogue, unlimited downloads' },
+]
+
+const accountTypeOptions: { id: AccountType; label: string; icon: React.ReactNode }[] = [
+  { id: 'student', label: 'Student', icon: <GraduationCap size={16} /> },
+  { id: 'professional', label: 'GIS Professional', icon: <Briefcase size={16} /> },
 ]
 
 export default function SignupPage() {
@@ -25,13 +30,15 @@ function SignupContent() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter()
   const searchParams = useSearchParams()
-  const defaultPlan = searchParams.get('plan') || 'basic'
+  const defaultPlan = (searchParams.get('plan') || 'basic') as PlanTier
+  const defaultAccountType = (searchParams.get('type') || 'student') as AccountType
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [selectedPlan, setSelectedPlan] = useState(defaultPlan)
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultPlan)
+  const [accountType, setAccountType] = useState<AccountType>(defaultAccountType)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -60,6 +67,7 @@ function SignupContent() {
           data: {
             full_name: name,
             plan: selectedPlan,
+            account_type: accountType,
           },
         },
       })
@@ -166,35 +174,60 @@ function SignupContent() {
             </motion.div>
           )}
 
+          {/* Account Type Selector */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-navy mb-3">I am a…</label>
+            <div className="grid grid-cols-2 gap-3">
+              {accountTypeOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setAccountType(opt.id)}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-bold ${
+                    accountType === opt.id
+                      ? 'border-primary bg-primary/5 text-navy'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {opt.icon}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Plan Selector */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-navy mb-3">Choose Your Plan</label>
             <div className="grid grid-cols-2 gap-3">
-              {plans.map((plan) => (
-                <button
-                  key={plan.id}
-                  type="button"
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
-                    selectedPlan === plan.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-navy text-sm">{plan.name}</span>
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedPlan === plan.id ? 'border-primary' : 'border-gray-300'
-                    }`}>
-                      {selectedPlan === plan.id && (
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      )}
+              {plans.map((plan) => {
+                const price = PLAN_PRICING[accountType][plan.id]
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan.id)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      selectedPlan === plan.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-navy text-sm">{plan.name}</span>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        selectedPlan === plan.id ? 'border-primary' : 'border-gray-300'
+                      }`}>
+                        {selectedPlan === plan.id && (
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-primary font-semibold text-xs">{plan.price}</div>
-                  <div className="text-gray-400 text-xs mt-0.5">{plan.description}</div>
-                </button>
-              ))}
+                    <div className="text-primary font-semibold text-xs">K{price}/month</div>
+                    <div className="text-gray-400 text-xs mt-0.5">{plan.description}</div>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

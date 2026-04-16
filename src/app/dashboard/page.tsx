@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft } from 'lucide-react'
-import { supabase, DATASETS } from '@/lib/supabase'
+import { supabase, DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
 import DEMList from '@/components/DEMList'
@@ -21,6 +21,7 @@ interface UserData {
   email: string
   name: string
   plan: UserPlan
+  accountType: AccountType
 }
 
 // ── Section registry ────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ function DashboardContent() {
           email: session.user.email || '',
           name: session.user.user_metadata?.full_name || 'User',
           plan: (session.user.user_metadata?.plan || 'basic') as UserPlan,
+          accountType: (session.user.user_metadata?.account_type || 'student') as AccountType,
         })
       }
       setLoading(false)
@@ -245,7 +247,10 @@ function DashboardContent() {
                   </div>
                   <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
                   <p className="text-sm opacity-80">
-                    {user.plan === 'pro' ? 'K75/month - Full access' : 'K25/month - Core access'}
+                    K{PLAN_PRICING[user.accountType][user.plan]}/month - {user.plan === 'pro' ? 'Full access' : 'Core access'}
+                  </p>
+                  <p className="text-xs opacity-60 mt-0.5 capitalize">
+                    {user.accountType} rate
                   </p>
                   {user.plan !== 'pro' && (
                     <Link
@@ -304,7 +309,7 @@ function DashboardContent() {
                   <div>
                     <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for full access</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Unlock all 54 countries, 15+ datasets, and unlimited downloads for just K75/month.
+                      Unlock all 54 countries, 15+ datasets, and unlimited downloads from just K{PLAN_PRICING[user.accountType].pro}/month.
                     </p>
                   </div>
                 </div>
