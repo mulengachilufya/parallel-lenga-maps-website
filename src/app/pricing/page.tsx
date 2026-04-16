@@ -3,17 +3,27 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Lock, Download, ArrowRight, CreditCard, Star } from 'lucide-react'
+import { Check, Lock, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { DATASETS } from '@/lib/supabase'
+import { DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
 
-const plans = [
+type PlanDef = {
+  id: 'basic' | 'pro'
+  name: string
+  tagline: string
+  description: string
+  color: string
+  highlight: boolean
+  features: string[]
+  cta: string
+}
+
+const basePlans: PlanDef[] = [
   {
+    id: 'basic',
     name: 'Basic',
-    price: 'K25',
-    period: '/month',
     tagline: '7-day free trial',
-    description: 'Perfect for researchers and students exploring African spatial data.',
+    description: 'Core African spatial data for your everyday mapping needs.',
     color: '#1E5F8E',
     highlight: false,
     features: [
@@ -26,12 +36,10 @@ const plans = [
       'Download up to 10 files/month',
     ],
     cta: 'Start Free Trial',
-    href: '/signup?plan=basic',
   },
   {
+    id: 'pro',
     name: 'Pro',
-    price: 'K75',
-    period: '/month',
     tagline: 'Most Popular',
     description: 'Full access to all 54 countries and every dataset in our catalogue.',
     color: '#F5B800',
@@ -47,7 +55,21 @@ const plans = [
       'New datasets as they launch',
     ],
     cta: 'Get Pro Access',
-    href: '/signup?plan=pro',
+  },
+]
+
+const accountTypes: { id: AccountType; label: string; blurb: string; icon: React.ReactNode }[] = [
+  {
+    id: 'student',
+    label: 'Student',
+    blurb: 'Subsidised rates for researchers and students',
+    icon: <GraduationCap size={18} />,
+  },
+  {
+    id: 'professional',
+    label: 'GIS Professional',
+    blurb: 'Commercial rates for firms, consultants, and agencies',
+    icon: <Briefcase size={18} />,
   },
 ]
 
@@ -74,6 +96,7 @@ const paymentMethods = [
 
 export default function PricingPage() {
   const [hoveredDataset, setHoveredDataset] = useState<number | null>(null)
+  const [accountType, setAccountType] = useState<AccountType>('student')
 
   return (
     <>
@@ -102,76 +125,102 @@ export default function PricingPage() {
       {/* ── PRICING CARDS ── */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Account type tabs */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex bg-white rounded-2xl p-1.5 shadow-md border border-gray-200">
+              {accountTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setAccountType(type.id)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                    accountType === type.id
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-gray-500 hover:text-navy'
+                  }`}
+                >
+                  {type.icon}
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-center text-gray-500 text-sm mb-10 -mt-4">
+            {accountTypes.find((t) => t.id === accountType)?.blurb}
+          </p>
+
           <div className="grid md:grid-cols-2 gap-8 items-start">
-            {plans.map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.15 }}
-                className={`relative rounded-2xl overflow-hidden ${
-                  plan.highlight
-                    ? 'shadow-2xl ring-2 ring-accent'
-                    : 'shadow-lg border border-gray-200'
-                } bg-white`}
-              >
-                {plan.highlight && (
-                  <div className="bg-accent text-navy text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
-                    <Star size={12} fill="currentColor" />
-                    Most Popular
-                    <Star size={12} fill="currentColor" />
-                  </div>
-                )}
-
-                <div className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-black text-navy">{plan.name}</h2>
-                      <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
+            {basePlans.map((plan, i) => {
+              const price = PLAN_PRICING[accountType][plan.id]
+              return (
+                <motion.div
+                  key={`${accountType}-${plan.id}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.15 }}
+                  className={`relative rounded-2xl overflow-hidden ${
+                    plan.highlight
+                      ? 'shadow-2xl ring-2 ring-accent'
+                      : 'shadow-lg border border-gray-200'
+                  } bg-white`}
+                >
+                  {plan.highlight && (
+                    <div className="bg-accent text-navy text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
+                      <Star size={12} fill="currentColor" />
+                      Most Popular
+                      <Star size={12} fill="currentColor" />
                     </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-black" style={{ color: plan.color }}>
-                        {plan.price}
-                        <span className="text-base font-normal text-gray-400">{plan.period}</span>
-                      </div>
-                      <div className="text-xs text-green-600 font-semibold mt-1">{plan.tagline}</div>
-                    </div>
-                  </div>
-
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <div
-                          className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ backgroundColor: `${plan.color}20` }}
-                        >
-                          <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
-                        </div>
-                        <span className="text-gray-700 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href={plan.href}
-                    className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                      plan.highlight
-                        ? 'bg-accent text-navy hover:bg-yellow-400'
-                        : 'bg-primary text-white hover:bg-primary-dark'
-                    }`}
-                  >
-                    {plan.cta}
-                    <ArrowRight size={16} />
-                  </Link>
-
-                  {plan.name === 'Basic' && (
-                    <p className="text-center text-xs text-gray-400 mt-3">
-                      No credit card required for trial
-                    </p>
                   )}
-                </div>
-              </motion.div>
-            ))}
+
+                  <div className="p-8">
+                    <div className="flex items-start justify-between mb-6">
+                      <div>
+                        <h2 className="text-2xl font-black text-navy">{plan.name}</h2>
+                        <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-3xl font-black" style={{ color: plan.color }}>
+                          K{price}
+                          <span className="text-base font-normal text-gray-400">/month</span>
+                        </div>
+                        <div className="text-xs text-green-600 font-semibold mt-1">{plan.tagline}</div>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-3 mb-8">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-3">
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: `${plan.color}20` }}
+                          >
+                            <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
+                          </div>
+                          <span className="text-gray-700 text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link
+                      href={`/signup?plan=${plan.id}&type=${accountType}`}
+                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                        plan.highlight
+                          ? 'bg-accent text-navy hover:bg-yellow-400'
+                          : 'bg-primary text-white hover:bg-primary-dark'
+                      }`}
+                    >
+                      {plan.cta}
+                      <ArrowRight size={16} />
+                    </Link>
+
+                    {plan.id === 'basic' && (
+                      <p className="text-center text-xs text-gray-400 mt-3">
+                        No credit card required for trial
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
