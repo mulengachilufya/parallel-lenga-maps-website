@@ -244,7 +244,7 @@ function SignupContent() {
                     <span className="text-xs text-blue-300">/month</span>
                   </div>
                 </div>
-                <p className="text-xs text-blue-300">All datasets · 5 team seats · commercial rights</p>
+                <p className="text-xs text-blue-300">All datasets · 3 team seats · commercial rights</p>
               </div>
             ) : (
               /* Student / Professional — 3 plan options */

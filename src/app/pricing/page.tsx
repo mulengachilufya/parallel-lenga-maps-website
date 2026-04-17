@@ -102,7 +102,7 @@ const businessPlan = {
   color: '#7c3aed',
   features: [
     'Everything in Max',
-    'Up to 5 team seats',
+    'Up to 3 team seats',
     'Commercial redistribution rights',
     'Custom data extracts on request',
     'Dedicated account manager',
