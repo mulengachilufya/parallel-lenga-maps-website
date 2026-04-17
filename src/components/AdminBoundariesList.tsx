@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Download, MapPin, Search } from 'lucide-react'
 import type { AdminBoundary } from '@/app/api/admin-boundaries/route'
+import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 const ADMIN_LEVEL_LABELS: Record<number, string> = {
   0: 'Country Outline',
@@ -34,6 +35,7 @@ export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userPlan = 'basic',
 }: AdminBoundariesListProps) {
+  const { guardDownload } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,16 +67,13 @@ export default function AdminBoundariesList({
     fetchBoundaries()
   }, [])
 
-  const handleDownload = async (boundary: AdminBoundary) => {
+  const handleDownload = (boundary: AdminBoundary) => {
     if (!boundary.download_url) return
-    try {
+    guardDownload('basic', () => {
       setDownloading(boundary.id)
-      window.open(boundary.download_url, '_blank')
-    } catch (err) {
-      console.error('Download failed:', err)
-    } finally {
+      window.open(boundary.download_url!, '_blank')
       setTimeout(() => setDownloading(null), 1000)
-    }
+    })
   }
 
   // Group boundaries by country

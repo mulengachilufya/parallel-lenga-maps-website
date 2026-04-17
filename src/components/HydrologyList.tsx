@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { HydrologyLayer } from '@/app/api/hydrology/route'
+import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 const LAYER_LABELS: Record<string, string> = {
   rivers: 'Rivers',
@@ -19,6 +20,7 @@ interface HydrologyListProps {
 }
 
 export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps) {
+  const { guardDownload } = useDownloadGate()
   const [layers, setLayers]         = useState<HydrologyLayer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
@@ -54,9 +56,11 @@ export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps
 
   const handleDownload = (layer: HydrologyLayer) => {
     if (!layer.download_url) return
-    setDownloading(layer.id)
-    window.open(layer.download_url, '_blank')
-    setTimeout(() => setDownloading(null), 1000)
+    guardDownload('basic', () => {
+      setDownloading(layer.id)
+      window.open(layer.download_url!, '_blank')
+      setTimeout(() => setDownloading(null), 1000)
+    })
   }
 
   const uniqueCountries = Array.from(new Set(layers.map(l => l.country))).sort()

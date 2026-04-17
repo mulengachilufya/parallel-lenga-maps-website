@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase, DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
+import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
 import RiversList from '@/components/RiversList'
@@ -394,15 +395,17 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-gray-500 text-sm">Loading dashboard...</p>
+    <DownloadGateProvider>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-gray-500 text-sm">Loading dashboard...</p>
+          </div>
         </div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
+      }>
+        <DashboardContent />
+      </Suspense>
+    </DownloadGateProvider>
   )
 }

@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Search, Droplets, AlertTriangle, CheckCircle } from 'lucide-react'
 import type { AquiferLayer } from '@/app/api/aquifer/route'
+import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface AquiferListProps {
   userPlan?: 'basic' | 'pro'
 }
 
 export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
+  const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -33,19 +35,18 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
     fetchLayers()
   }, [])
 
-  const handleDownload = async (layer: AquiferLayer) => {
+  const handleDownload = (layer: AquiferLayer) => {
     if (!layer.download_url) return
-    setDownloading(layer.id)
-    try {
+    guardDownload('pro', () => {
+      setDownloading(layer.id)
       const link = document.createElement('a')
-      link.href = layer.download_url
+      link.href = layer.download_url!
       link.download = layer.r2_key.split('/').pop() || 'aquifer.gpkg'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-    } finally {
       setTimeout(() => setDownloading(null), 2000)
-    }
+    })
   }
 
   const filtered = layers.filter(

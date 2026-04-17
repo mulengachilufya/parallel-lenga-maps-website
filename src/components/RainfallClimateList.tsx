@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Search, CloudRain, Thermometer, AlertTriangle } from 'lucide-react'
 import type { RainfallClimateLayer } from '@/app/api/rainfall-climate/route'
+import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 // ─── Per-type styling ───────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ interface RainfallClimateListProps {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function RainfallClimateList({ userPlan = 'basic', layerType }: RainfallClimateListProps) {
+  const { guardDownload } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState<string | null>(null)
@@ -96,9 +98,11 @@ export default function RainfallClimateList({ userPlan = 'basic', layerType }: R
 
   const handleDownload = (layer: RainfallClimateLayer) => {
     if (!layer.download_url) return
-    setDownloading(layer.id)
-    window.open(layer.download_url, '_blank')
-    setTimeout(() => setDownloading(null), 1000)
+    guardDownload('basic', () => {
+      setDownloading(layer.id)
+      window.open(layer.download_url!, '_blank')
+      setTimeout(() => setDownloading(null), 1000)
+    })
   }
 
   const filtered = searchQuery

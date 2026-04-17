@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Lock, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
+import { Check, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { DATASETS, PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
+import { PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
 
 type FeatureItem = string | { main: string; subs: string[] }
 
@@ -165,7 +165,6 @@ const paymentMethods = [
 ]
 
 export default function PricingPage() {
-  const [hoveredDataset, setHoveredDataset] = useState<number | null>(null)
   const [accountType, setAccountType] = useState<AccountType>('student')
 
   const isBusiness = accountType === 'business'
@@ -394,71 +393,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ── DATASET TABLE ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-black text-navy">What&apos;s Included</h2>
-            <p className="mt-3 text-gray-500">All 15+ datasets - see which plan unlocks each one.</p>
-          </motion.div>
-
-          <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] bg-navy text-white text-sm font-semibold">
-              <div className="p-4">Dataset</div>
-              <div className="p-4 text-center w-20">Basic</div>
-              <div className="p-4 text-center w-20">Pro</div>
-              <div className="p-4 text-center w-20">Max</div>
-            </div>
-
-            {DATASETS.map((dataset, i) => (
-              <motion.div
-                key={dataset.id}
-                initial={{ opacity: 0, x: -10 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.04 }}
-                onMouseEnter={() => setHoveredDataset(dataset.id)}
-                onMouseLeave={() => setHoveredDataset(null)}
-                className={`grid grid-cols-[1fr_auto_auto_auto] border-b border-gray-100 last:border-0 transition-colors ${
-                  hoveredDataset === dataset.id ? 'bg-primary/5' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
-                }`}
-              >
-                <div className="p-4 flex items-center gap-3">
-                  <span className="text-xl">{dataset.icon}</span>
-                  <div>
-                    <div className="font-semibold text-navy text-sm">{dataset.name}</div>
-                    <div className="text-gray-400 text-xs">{dataset.category}</div>
-                  </div>
-                </div>
-                <div className="p-4 flex items-center justify-center w-20">
-                  {dataset.tier === 'basic' ? (
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <Check size={12} className="text-green-600" strokeWidth={3} />
-                    </div>
-                  ) : (
-                    <Lock size={14} className="text-gray-300" />
-                  )}
-                </div>
-                <div className="p-4 flex items-center justify-center w-20">
-                  <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Check size={12} className="text-amber-600" strokeWidth={3} />
-                  </div>
-                </div>
-                <div className="p-4 flex items-center justify-center w-20">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Check size={12} className="text-purple-600" strokeWidth={3} />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── PAYMENT METHODS ── */}
       <section className="py-20 bg-gray-50">
