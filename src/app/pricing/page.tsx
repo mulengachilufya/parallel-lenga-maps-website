@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Lock, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase } from 'lucide-react'
+import { Check, Lock, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
+import { DATASETS, PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
 
 type PlanDef = {
-  id: 'basic' | 'pro'
+  id: 'basic' | 'pro' | 'max'
   name: string
   tagline: string
   description: string
@@ -56,20 +56,72 @@ const basePlans: PlanDef[] = [
     ],
     cta: 'Get Pro Access',
   },
+  {
+    id: 'max',
+    name: 'Max',
+    tagline: 'Maximum Power',
+    description: 'Everything in Pro plus commercial licensing and advanced bulk exports.',
+    color: '#7c3aed',
+    highlight: false,
+    features: [
+      'Everything in Pro',
+      'Commercial use licence included',
+      'Bulk & batch download tools',
+      'Priority data request queue',
+      'Dedicated WhatsApp support line',
+      'Early access to new datasets',
+      'API access + higher rate limits',
+    ],
+    cta: 'Get Max Access',
+  },
 ]
 
-const accountTypes: { id: AccountType; label: string; blurb: string; icon: React.ReactNode }[] = [
+const businessPlan = {
+  name: 'Business / Company',
+  tagline: 'For Teams & Enterprises',
+  description:
+    'Complete GIS data access for commercial operations, development firms, and enterprise teams.',
+  color: '#7c3aed',
+  features: [
+    'Everything in Max',
+    'Up to 5 team seats',
+    'Commercial redistribution rights',
+    'Custom data extracts on request',
+    'Dedicated account manager',
+    'Invoice & PO billing available',
+    'SLA-backed data delivery',
+  ],
+  price: 60,
+  cta: 'Contact Us to Subscribe',
+}
+
+const accountTypes: {
+  id: AccountType
+  label: string
+  blurb: string
+  icon: React.ReactNode
+  color: string
+}[] = [
   {
     id: 'student',
     label: 'Student',
     blurb: 'Subsidised rates for researchers and students',
-    icon: <GraduationCap size={18} />,
+    icon: <GraduationCap size={22} />,
+    color: '#15803d',
   },
   {
     id: 'professional',
     label: 'GIS Professional',
-    blurb: 'Commercial rates for firms, consultants, and agencies',
-    icon: <Briefcase size={18} />,
+    blurb: 'Commercial rates for consultants, firms, and agencies',
+    icon: <Briefcase size={22} />,
+    color: '#1E5F8E',
+  },
+  {
+    id: 'business',
+    label: 'Business / Company',
+    blurb: 'Enterprise pricing for teams and organisations',
+    icon: <Building2 size={22} />,
+    color: '#7c3aed',
   },
 ]
 
@@ -98,6 +150,9 @@ export default function PricingPage() {
   const [hoveredDataset, setHoveredDataset] = useState<number | null>(null)
   const [accountType, setAccountType] = useState<AccountType>('student')
 
+  const isBusiness = accountType === 'business'
+  const activeType = accountTypes.find((t) => t.id === accountType)!
+
   return (
     <>
       {/* ── HERO ── */}
@@ -116,7 +171,7 @@ export default function PricingPage() {
             </h1>
             <p className="text-blue-200 text-xl max-w-2xl mx-auto">
               Affordable plans built for African researchers, government agencies, and enterprises.
-              Priced in Zambian Kwacha.
+              Priced in Zambian Kwacha — USD shown for non-Zambians.
             </p>
           </motion.div>
         </div>
@@ -124,104 +179,193 @@ export default function PricingPage() {
 
       {/* ── PRICING CARDS ── */}
       <section className="py-20 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Account type tabs */}
           <div className="flex justify-center mb-10">
-            <div className="inline-flex bg-white rounded-2xl p-1.5 shadow-md border border-gray-200">
-              {accountTypes.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => setAccountType(type.id)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
-                    accountType === type.id
-                      ? 'bg-primary text-white shadow-md'
-                      : 'text-gray-500 hover:text-navy'
-                  }`}
-                >
-                  {type.icon}
-                  {type.label}
-                </button>
-              ))}
+            <div className="inline-flex flex-wrap justify-center gap-2 bg-white rounded-2xl p-2 shadow-md border border-gray-200">
+              {accountTypes.map((type) => {
+                const isActive = accountType === type.id
+                return (
+                  <button
+                    key={type.id}
+                    onClick={() => setAccountType(type.id)}
+                    style={isActive ? { backgroundColor: type.color, color: 'white' } : {}}
+                    className={`flex items-center gap-2.5 px-7 py-4 rounded-xl text-base font-bold transition-all ${
+                      isActive
+                        ? 'shadow-lg scale-105'
+                        : 'text-gray-500 hover:text-navy hover:bg-gray-50'
+                    }`}
+                  >
+                    <span style={isActive ? { color: 'white' } : { color: type.color }}>
+                      {type.icon}
+                    </span>
+                    {type.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
           <p className="text-center text-gray-500 text-sm mb-10 -mt-4">
-            {accountTypes.find((t) => t.id === accountType)?.blurb}
+            {activeType.blurb}
           </p>
 
-          <div className="grid md:grid-cols-2 gap-8 items-start">
-            {basePlans.map((plan, i) => {
-              const price = PLAN_PRICING[accountType][plan.id]
-              return (
-                <motion.div
-                  key={`${accountType}-${plan.id}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.15 }}
-                  className={`relative rounded-2xl overflow-hidden ${
-                    plan.highlight
-                      ? 'shadow-2xl ring-2 ring-accent'
-                      : 'shadow-lg border border-gray-200'
-                  } bg-white`}
-                >
-                  {plan.highlight && (
-                    <div className="bg-accent text-navy text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
-                      <Star size={12} fill="currentColor" />
-                      Most Popular
-                      <Star size={12} fill="currentColor" />
+          {/* Business — single card */}
+          {isBusiness ? (
+            <div className="flex justify-center">
+              <motion.div
+                key="business"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative rounded-2xl overflow-hidden shadow-2xl ring-2 ring-purple-500 bg-white max-w-md w-full"
+              >
+                <div className="bg-purple-600 text-white text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
+                  <Building2 size={12} />
+                  Enterprise &amp; Business
+                  <Building2 size={12} />
+                </div>
+                <div className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1 pr-4">
+                      <h2 className="text-2xl font-black text-navy">{businessPlan.name}</h2>
+                      <p className="text-gray-500 text-sm mt-1">{businessPlan.description}</p>
                     </div>
-                  )}
-
-                  <div className="p-8">
-                    <div className="flex items-start justify-between mb-6">
-                      <div>
-                        <h2 className="text-2xl font-black text-navy">{plan.name}</h2>
-                        <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
+                    <div className="text-right shrink-0">
+                      <div className="text-3xl font-black text-purple-600">
+                        ${businessPlan.price}
+                        <span className="text-base font-normal text-gray-400">/month</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-black" style={{ color: plan.color }}>
-                          K{price}
-                          <span className="text-base font-normal text-gray-400">/month</span>
-                        </div>
-                        <div className="text-xs text-green-600 font-semibold mt-1">{plan.tagline}</div>
+                      <div className="text-xs text-purple-500 font-semibold mt-1">
+                        {businessPlan.tagline}
                       </div>
                     </div>
-
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3">
-                          <div
-                            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                            style={{ backgroundColor: `${plan.color}20` }}
-                          >
-                            <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
-                          </div>
-                          <span className="text-gray-700 text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Link
-                      href={`/signup?plan=${plan.id}&type=${accountType}`}
-                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                        plan.highlight
-                          ? 'bg-accent text-navy hover:bg-yellow-400'
-                          : 'bg-primary text-white hover:bg-primary-dark'
-                      }`}
-                    >
-                      {plan.cta}
-                      <ArrowRight size={16} />
-                    </Link>
-
-                    {plan.id === 'basic' && (
-                      <p className="text-center text-xs text-gray-400 mt-3">
-                        No credit card required for trial
-                      </p>
-                    )}
                   </div>
-                </motion.div>
-              )
-            })}
-          </div>
+                  <ul className="space-y-3 mb-8">
+                    {businessPlan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check size={12} className="text-purple-600" strokeWidth={3} />
+                        </div>
+                        <span className="text-gray-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/contact-us?subject=business-plan"
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-700 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    {businessPlan.cta}
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          ) : (
+            /* Student / Professional — 3-column grid */
+            <div className="grid md:grid-cols-3 gap-6 items-start">
+              {basePlans.map((plan, i) => {
+                const priceData = PLAN_PRICING[accountType]?.[plan.id] as PlanPrice | undefined
+                return (
+                  <motion.div
+                    key={`${accountType}-${plan.id}`}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.12 }}
+                    className={`relative rounded-2xl overflow-hidden ${
+                      plan.highlight
+                        ? 'shadow-2xl ring-2 ring-accent'
+                        : 'shadow-lg border border-gray-200'
+                    } bg-white`}
+                  >
+                    {plan.highlight && (
+                      <div className="bg-accent text-navy text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
+                        <Star size={12} fill="currentColor" />
+                        Most Popular
+                        <Star size={12} fill="currentColor" />
+                      </div>
+                    )}
+
+                    <div className="p-7">
+                      <div className="mb-5">
+                        <h2 className="text-2xl font-black text-navy">{plan.name}</h2>
+                        <p className="text-gray-500 text-sm mt-1 leading-snug">{plan.description}</p>
+                      </div>
+
+                      {/* Price display */}
+                      <div className="mb-6 pb-5 border-b border-gray-100">
+                        {priceData?.zmw && (
+                          <div className="text-3xl font-black" style={{ color: plan.color }}>
+                            K{priceData.zmw}
+                            <span className="text-base font-normal text-gray-400">/mo</span>
+                          </div>
+                        )}
+                        {priceData && (
+                          <div
+                            className={
+                              priceData.zmw
+                                ? 'text-sm font-semibold text-gray-500 mt-0.5'
+                                : 'text-3xl font-black'
+                            }
+                            style={!priceData.zmw ? { color: plan.color } : {}}
+                          >
+                            ${priceData.usd}
+                            <span
+                              className={
+                                priceData.zmw
+                                  ? 'text-xs font-normal text-gray-400'
+                                  : 'text-base font-normal text-gray-400'
+                              }
+                            >
+                              /mo
+                            </span>
+                          </div>
+                        )}
+                        {priceData?.zmw && (
+                          <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                            ZMW (Zambians) · USD (non-Zambians)
+                          </p>
+                        )}
+                        <div className="text-xs text-green-600 font-semibold mt-1.5">{plan.tagline}</div>
+                      </div>
+
+                      <ul className="space-y-2.5 mb-7">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-3">
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                              style={{ backgroundColor: `${plan.color}20` }}
+                            >
+                              <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
+                            </div>
+                            <span className="text-gray-700 text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Link
+                        href={`/signup?plan=${plan.id}&type=${accountType}`}
+                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                          plan.highlight
+                            ? 'bg-accent text-navy hover:bg-yellow-400'
+                            : plan.id === 'max'
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            : 'bg-primary text-white hover:bg-navy'
+                        }`}
+                      >
+                        {plan.cta}
+                        <ArrowRight size={16} />
+                      </Link>
+
+                      {plan.id === 'basic' && (
+                        <p className="text-center text-xs text-gray-400 mt-3">
+                          No credit card required for trial
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -239,10 +383,11 @@ export default function PricingPage() {
           </motion.div>
 
           <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="grid grid-cols-[1fr_auto_auto] bg-navy text-white text-sm font-semibold">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] bg-navy text-white text-sm font-semibold">
               <div className="p-4">Dataset</div>
-              <div className="p-4 text-center w-24">Basic</div>
-              <div className="p-4 text-center w-24">Pro</div>
+              <div className="p-4 text-center w-20">Basic</div>
+              <div className="p-4 text-center w-20">Pro</div>
+              <div className="p-4 text-center w-20">Max</div>
             </div>
 
             {DATASETS.map((dataset, i) => (
@@ -254,7 +399,7 @@ export default function PricingPage() {
                 transition={{ delay: i * 0.04 }}
                 onMouseEnter={() => setHoveredDataset(dataset.id)}
                 onMouseLeave={() => setHoveredDataset(null)}
-                className={`grid grid-cols-[1fr_auto_auto] border-b border-gray-100 last:border-0 transition-colors ${
+                className={`grid grid-cols-[1fr_auto_auto_auto] border-b border-gray-100 last:border-0 transition-colors ${
                   hoveredDataset === dataset.id ? 'bg-primary/5' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}
               >
@@ -265,7 +410,7 @@ export default function PricingPage() {
                     <div className="text-gray-400 text-xs">{dataset.category}</div>
                   </div>
                 </div>
-                <div className="p-4 flex items-center justify-center w-24">
+                <div className="p-4 flex items-center justify-center w-20">
                   {dataset.tier === 'basic' ? (
                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                       <Check size={12} className="text-green-600" strokeWidth={3} />
@@ -274,9 +419,14 @@ export default function PricingPage() {
                     <Lock size={14} className="text-gray-300" />
                   )}
                 </div>
-                <div className="p-4 flex items-center justify-center w-24">
+                <div className="p-4 flex items-center justify-center w-20">
                   <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center">
                     <Check size={12} className="text-amber-600" strokeWidth={3} />
+                  </div>
+                </div>
+                <div className="p-4 flex items-center justify-center w-20">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Check size={12} className="text-purple-600" strokeWidth={3} />
                   </div>
                 </div>
               </motion.div>
@@ -351,7 +501,7 @@ export default function PricingPage() {
             },
             {
               q: 'Can I use the data commercially?',
-              a: 'Yes. Pro plan subscribers receive a commercial use licence. Basic plan data may be used for research, personal, and non-commercial applications.',
+              a: 'Yes. Max and Pro plan subscribers receive a commercial use licence. Basic plan data may be used for research, personal, and non-commercial applications.',
             },
             {
               q: 'How current is the data?',

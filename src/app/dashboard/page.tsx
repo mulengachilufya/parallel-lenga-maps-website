@@ -247,7 +247,7 @@ function DashboardContent() {
                   </div>
                   <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
                   <p className="text-sm opacity-80">
-                    K{PLAN_PRICING[user.accountType][user.plan]}/month - {user.plan === 'pro' ? 'Full access' : 'Core access'}
+                    {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {user.plan === 'pro' ? 'Full access' : 'Core access'}
                   </p>
                   <p className="text-xs opacity-60 mt-0.5 capitalize">
                     {user.accountType} rate
@@ -309,7 +309,7 @@ function DashboardContent() {
                   <div>
                     <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for full access</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Unlock all 54 countries, 15+ datasets, and unlimited downloads from just K{PLAN_PRICING[user.accountType].pro}/month.
+                      Unlock all 54 countries, 15+ datasets, and unlimited downloads from just K{PLAN_PRICING[user.accountType]?.pro?.zmw ?? PLAN_PRICING[user.accountType]?.pro?.usd}/month.
                     </p>
                   </div>
                 </div>

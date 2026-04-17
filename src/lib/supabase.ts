@@ -5,8 +5,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-export type AccountType = 'student' | 'professional'
-export type PlanTier = 'basic' | 'pro'
+export type AccountType = 'student' | 'professional' | 'business'
+export type PlanTier = 'basic' | 'pro' | 'max'
 
 export type UserProfile = {
   id: string
@@ -16,17 +16,32 @@ export type UserProfile = {
   created_at: string
 }
 
-/**
- * Pricing matrix in Zambian Kwacha (ZMW) per month.
- * Students get subsidised rates; professionals pay full commercial rates.
- */
-export const PLAN_PRICING: Record<AccountType, Record<PlanTier, number>> = {
-  student: { basic: 25, pro: 75 },
-  professional: { basic: 50, pro: 100 },
+export interface PlanPrice {
+  zmw?: number
+  usd: number
+}
+
+export const PLAN_PRICING: Record<AccountType, Partial<Record<PlanTier, PlanPrice>>> = {
+  student: {
+    basic: { zmw: 25,  usd: 1  },
+    pro:   { zmw: 75,  usd: 4  },
+    max:   { zmw: 200, usd: 10 },
+  },
+  professional: {
+    basic: { zmw: 50,  usd: 3  },
+    pro:   { zmw: 100, usd: 7  },
+    max:   { zmw: 300, usd: 15 },
+  },
+  business: {
+    basic: { usd: 60 },
+  },
 }
 
 export function formatPrice(accountType: AccountType, plan: PlanTier): string {
-  return `K${PLAN_PRICING[accountType][plan]}`
+  const price = PLAN_PRICING[accountType]?.[plan]
+  if (!price) return '—'
+  if (price.zmw) return `K${price.zmw}`
+  return `$${price.usd}`
 }
 
 export type DatasetSource = {

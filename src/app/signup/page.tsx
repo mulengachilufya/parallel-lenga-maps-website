@@ -201,7 +201,8 @@ function SignupContent() {
             <label className="block text-sm font-semibold text-navy mb-3">Choose Your Plan</label>
             <div className="grid grid-cols-2 gap-3">
               {plans.map((plan) => {
-                const price = PLAN_PRICING[accountType][plan.id]
+                const priceObj = PLAN_PRICING[accountType]?.[plan.id]
+                const price = priceObj ? (priceObj.zmw ?? priceObj.usd) : null
                 return (
                   <button
                     key={plan.id}
@@ -223,7 +224,7 @@ function SignupContent() {
                         )}
                       </div>
                     </div>
-                    <div className="text-primary font-semibold text-xs">K{price}/month</div>
+                    <div className="text-primary font-semibold text-xs">{price != null ? `K${price}/month` : '—'}</div>
                     <div className="text-gray-400 text-xs mt-0.5">{plan.description}</div>
                   </button>
                 )
