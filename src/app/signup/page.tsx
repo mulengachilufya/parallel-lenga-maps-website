@@ -5,18 +5,38 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase, Building2 } from 'lucide-react'
 import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
 
-const plans: { id: PlanTier; name: string; description: string }[] = [
-  { id: 'basic', name: 'Basic', description: '3 countries, core datasets, 7-day free trial' },
-  { id: 'pro', name: 'Pro', description: 'All 54 countries, full catalogue, unlimited downloads' },
-]
+// ── Plan definitions ──────────────────────────────────────────────────────────
+
+const PLAN_DESCS: Record<PlanTier, string> = {
+  basic: '3 countries · 4 core datasets · 10 files/month',
+  pro:   'All 54 countries · 9 datasets · 25 files/month',
+  max:   'All 54 countries · 15+ datasets · unlimited downloads',
+}
+
+const PLAN_COLORS: Record<PlanTier, string> = {
+  basic: '#1E5F8E',
+  pro:   '#F5B800',
+  max:   '#7c3aed',
+}
+
+const ACCOUNT_COLORS: Record<AccountType, string> = {
+  student:      '#15803d',
+  professional: '#1E5F8E',
+  business:     '#7c3aed',
+}
 
 const accountTypeOptions: { id: AccountType; label: string; icon: React.ReactNode }[] = [
-  { id: 'student', label: 'Student', icon: <GraduationCap size={16} /> },
-  { id: 'professional', label: 'GIS Professional', icon: <Briefcase size={16} /> },
+  { id: 'student',      label: 'Student',          icon: <GraduationCap size={16} /> },
+  { id: 'professional', label: 'GIS Professional',  icon: <Briefcase size={16} /> },
+  { id: 'business',     label: 'Business / Company', icon: <Building2 size={16} /> },
 ]
+
+const standardPlans: PlanTier[] = ['basic', 'pro', 'max']
+
+// ── Page wrapper ──────────────────────────────────────────────────────────────
 
 export default function SignupPage() {
   return (
@@ -26,23 +46,29 @@ export default function SignupPage() {
   )
 }
 
+// ── Main form ─────────────────────────────────────────────────────────────────
+
 function SignupContent() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter()
   const searchParams = useSearchParams()
-  const defaultPlan = (searchParams.get('plan') || 'basic') as PlanTier
+  const defaultPlan        = (searchParams.get('plan') || 'basic') as PlanTier
   const defaultAccountType = (searchParams.get('type') || 'student') as AccountType
 
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [name,            setName]            = useState('')
+  const [email,           setEmail]           = useState('')
+  const [password,        setPassword]        = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultPlan)
-  const [accountType, setAccountType] = useState<AccountType>(defaultAccountType)
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [selectedPlan,    setSelectedPlan]    = useState<PlanTier>(defaultPlan)
+  const [accountType,     setAccountType]     = useState<AccountType>(defaultAccountType)
+  const [showPassword,    setShowPassword]    = useState(false)
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState('')
+  const [success,         setSuccess]         = useState(false)
+
+  const isBusiness    = accountType === 'business'
+  const acctColor     = ACCOUNT_COLORS[accountType]
+  const effectivePlan = isBusiness ? 'basic' : selectedPlan
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,15 +84,14 @@ function SignupContent() {
     }
 
     setLoading(true)
-
     try {
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: name,
-            plan: selectedPlan,
+            full_name:    name,
+            plan:         effectivePlan,
             account_type: accountType,
           },
         },
@@ -77,7 +102,6 @@ function SignupContent() {
         setLoading(false)
         return
       }
-
       setSuccess(true)
     } catch {
       setError('An unexpected error occurred. Please try again.')
@@ -85,6 +109,7 @@ function SignupContent() {
     }
   }
 
+  // ── Success screen ──────────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -103,7 +128,7 @@ function SignupContent() {
           </p>
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-primary-dark transition-all"
+            className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-navy transition-all"
           >
             Go to Login
           </Link>
@@ -112,13 +137,14 @@ function SignupContent() {
     )
   }
 
+  // ── Form ────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex">
-      {/* Left: Image */}
+      {/* Left: image */}
       <div className="hidden lg:block flex-1 relative">
         <Image
           src="https://images.unsplash.com/photo-1575916048090-2a62952b7eb8?w=800&q=80"
-          alt="Zambian landscape"
+          alt="African landscape"
           fill
           className="object-cover"
           unoptimized
@@ -130,9 +156,9 @@ function SignupContent() {
           </blockquote>
           <div className="flex gap-6 text-white">
             {[
-              { val: '54', label: 'Countries' },
-              { val: '15+', label: 'Datasets' },
-              { val: '100%', label: 'African' },
+              { val: '54',   label: 'Countries' },
+              { val: '15+',  label: 'Datasets'  },
+              { val: '100%', label: 'African'   },
             ].map((s) => (
               <div key={s.label}>
                 <div className="text-accent font-black text-2xl">{s.val}</div>
@@ -143,8 +169,8 @@ function SignupContent() {
         </div>
       </div>
 
-      {/* Right: Form */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 overflow-y-auto">
+      {/* Right: form */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 overflow-y-auto bg-dark">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -157,11 +183,11 @@ function SignupContent() {
               <line x1="2" y1="20" x2="38" y2="20" stroke="#F5B800" strokeWidth="1.5" />
               <circle cx="20" cy="20" r="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
             </svg>
-            <span className="font-bold text-navy text-lg">LENGA <span className="text-accent">MAPS</span></span>
+            <span className="font-bold text-white text-lg">LENGA <span className="text-accent">MAPS</span></span>
           </Link>
 
-          <h1 className="text-3xl font-black text-navy mb-2">Create your account</h1>
-          <p className="text-gray-500 mb-8">Start your 7-day free trial. No credit card required.</p>
+          <h1 className="text-3xl font-black text-white mb-1">Create your account</h1>
+          <p className="text-blue-300 mb-8">Get instant access to African GIS data.</p>
 
           {error && (
             <motion.div
@@ -174,67 +200,109 @@ function SignupContent() {
             </motion.div>
           )}
 
-          {/* Account Type Selector */}
+          {/* ── Account type ─────────────────────────────────────────────── */}
           <div className="mb-5">
-            <label className="block text-sm font-semibold text-navy mb-3">I am a…</label>
-            <div className="grid grid-cols-2 gap-3">
-              {accountTypeOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setAccountType(opt.id)}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all text-sm font-bold ${
-                    accountType === opt.id
-                      ? 'border-primary bg-primary/5 text-navy'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
-                >
-                  {opt.icon}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Plan Selector */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-navy mb-3">Choose Your Plan</label>
-            <div className="grid grid-cols-2 gap-3">
-              {plans.map((plan) => {
-                const priceObj = PLAN_PRICING[accountType]?.[plan.id]
-                const price = priceObj ? (priceObj.zmw ?? priceObj.usd) : null
+            <label className="block text-sm font-semibold text-blue-200 mb-3">I am a…</label>
+            <div className="grid grid-cols-3 gap-2">
+              {accountTypeOptions.map((opt) => {
+                const isActive = accountType === opt.id
+                const color    = ACCOUNT_COLORS[opt.id]
                 return (
                   <button
-                    key={plan.id}
+                    key={opt.id}
                     type="button"
-                    onClick={() => setSelectedPlan(plan.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedPlan === plan.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-gray-200 hover:border-gray-300'
+                    onClick={() => setAccountType(opt.id)}
+                    style={isActive ? { borderColor: color, backgroundColor: `${color}18`, color: 'white' } : {}}
+                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all text-xs font-bold ${
+                      isActive
+                        ? 'shadow-md'
+                        : 'border-white/20 text-blue-300 hover:border-white/40'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-navy text-sm">{plan.name}</span>
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        selectedPlan === plan.id ? 'border-primary' : 'border-gray-300'
-                      }`}>
-                        {selectedPlan === plan.id && (
-                          <div className="w-2 h-2 rounded-full bg-primary" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-primary font-semibold text-xs">{price != null ? `K${price}/month` : '—'}</div>
-                    <div className="text-gray-400 text-xs mt-0.5">{plan.description}</div>
+                    <span style={isActive ? { color: 'white' } : { color }}>{opt.icon}</span>
+                    {opt.label}
                   </button>
                 )
               })}
             </div>
           </div>
 
+          {/* ── Plan selector ─────────────────────────────────────────────── */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-blue-200 mb-3">Choose Your Plan</label>
+
+            {isBusiness ? (
+              /* Business — single fixed plan */
+              <div
+                className="p-4 rounded-xl border-2"
+                style={{ borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.12)' }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-black text-white">Business</span>
+                  <div className="text-right">
+                    <span className="font-black text-lg text-purple-400">$60</span>
+                    <span className="text-xs text-blue-300">/month</span>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-300">All datasets · 5 team seats · commercial rights</p>
+              </div>
+            ) : (
+              /* Student / Professional — 3 plan options */
+              <div className="space-y-2">
+                {standardPlans.map((planId) => {
+                  const isActive  = selectedPlan === planId
+                  const priceData = PLAN_PRICING[accountType]?.[planId]
+                  const color     = PLAN_COLORS[planId]
+                  return (
+                    <button
+                      key={planId}
+                      type="button"
+                      onClick={() => setSelectedPlan(planId)}
+                      style={isActive ? { borderColor: color, backgroundColor: `${color}14` } : {}}
+                      className={`w-full p-3.5 rounded-xl border-2 text-left transition-all ${
+                        isActive ? 'shadow-md' : 'border-white/20 hover:border-white/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-white text-sm">{planId.charAt(0).toUpperCase() + planId.slice(1)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* ZMW price */}
+                          {priceData?.zmw && (
+                            <span className="font-black text-sm" style={{ color }}>
+                              K{priceData.zmw}<span className="text-xs font-normal text-blue-300">/mo</span>
+                            </span>
+                          )}
+                          {/* USD badge */}
+                          {priceData?.usd && (
+                            <span className="inline-flex items-center gap-0.5 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                              ${priceData.usd}/mo
+                            </span>
+                          )}
+                          {/* radio dot */}
+                          <div
+                            className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                            style={{ borderColor: isActive ? color : 'rgba(255,255,255,0.3)' }}
+                          >
+                            {isActive && (
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-blue-300">{PLAN_DESCS[planId]}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Form fields ──────────────────────────────────────────────── */}
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-navy mb-2">Full Name</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Full Name</label>
               <div className="relative">
                 <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -243,13 +311,13 @@ function SignupContent() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="Your full name"
-                  className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-navy placeholder-gray-400 bg-gray-50 transition"
+                  className="w-full pl-11 pr-4 py-3.5 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-white placeholder-gray-500 bg-white/5 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-navy mb-2">Email Address</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Email Address</label>
               <div className="relative">
                 <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -258,13 +326,13 @@ function SignupContent() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-navy placeholder-gray-400 bg-gray-50 transition"
+                  className="w-full pl-11 pr-4 py-3.5 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-white placeholder-gray-500 bg-white/5 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-navy mb-2">Password</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Password</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -273,12 +341,12 @@ function SignupContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Min. 8 characters"
-                  className="w-full pl-11 pr-12 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-navy placeholder-gray-400 bg-gray-50 transition"
+                  className="w-full pl-11 pr-12 py-3.5 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-white placeholder-gray-500 bg-white/5 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -286,7 +354,7 @@ function SignupContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-navy mb-2">Confirm Password</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Confirm Password</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -295,7 +363,7 @@ function SignupContent() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   placeholder="Repeat password"
-                  className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-navy placeholder-gray-400 bg-gray-50 transition"
+                  className="w-full pl-11 pr-4 py-3.5 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-white placeholder-gray-500 bg-white/5 transition"
                 />
               </div>
             </div>
@@ -303,28 +371,29 @@ function SignupContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-primary-dark transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+              style={{ backgroundColor: acctColor }}
+              className="w-full text-white font-bold py-3.5 rounded-xl transition-all shadow-md hover:opacity-90 hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account...
+                  Creating account…
                 </>
               ) : (
                 'Create Account'
               )}
             </button>
 
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-blue-300/70 text-center">
               By creating an account you agree to our{' '}
-              <Link href="/terms" className="text-primary hover:underline">Terms</Link> and{' '}
-              <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+              <Link href="/terms"   className="text-blue-300 hover:underline">Terms</Link> and{' '}
+              <Link href="/privacy" className="text-blue-300 hover:underline">Privacy Policy</Link>.
             </p>
           </form>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-blue-300 text-sm mt-6">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary font-semibold hover:text-primary-dark">
+            <Link href="/login" className="text-accent font-semibold hover:underline">
               Sign in
             </Link>
           </p>
