@@ -146,17 +146,6 @@ export const DATASETS: Dataset[] = [
     icon: '💧',
     tier: 'pro',
     color: '#0369a1',
-    sources: [
-      {
-        name: 'Transboundary Aquifers of the World (GGIS)',
-        institution: 'IGRAC - International Groundwater Resources Assessment Centre',
-        url: 'https://ggis.un-igrac.org/',
-        contribution:
-          'Authoritative names, country codes, and boundary polygons for transboundary aquifer ' +
-          'systems crossing international borders across Africa. 2025 edition, published by the ' +
-          'United Nations-affiliated IGRAC centre under CC BY 4.0.',
-      },
-    ],
   },
   {
     id: 7,
