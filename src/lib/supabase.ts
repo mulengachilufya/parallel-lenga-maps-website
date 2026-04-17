@@ -78,18 +78,7 @@ export const DATASETS: Dataset[] = [
     tier: 'basic',
     color: '#1E5F8E',
   },
-  {
-    id: 2,
-    name: 'Digital Elevation Model',
-    category: 'Terrain & Topography',
-    description: 'High-resolution DEM data covering African terrain with contours and hillshade',
-    source: 'SRTM / ALOS PALSAR',
-    format: 'GeoTIFF, ASCII Grid',
-    resolution: '30m / 12.5m',
-    icon: '⛰️',
-    tier: 'basic',
-    color: '#2a7ab5',
-  },
+
   {
     id: 3,
     name: 'River Networks & Watersheds',

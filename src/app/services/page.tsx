@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Download, Map, Database, Layers, Droplets, Mountain, Pickaxe, Globe, Users } from 'lucide-react'
+import { ArrowRight, Download, Map, Database, Layers, Droplets, Pickaxe, Globe, Users } from 'lucide-react'
 import Footer from '@/components/Footer'
 
 const services = [
@@ -20,13 +20,6 @@ const services = [
     description: 'Country, province, and district boundaries for all 54 African nations - accurate, clean, and regularly updated.',
     color: '#0891b2',
     features: ['54 Countries', 'Provincial Level', 'District Level', 'Gazetted'],
-  },
-  {
-    icon: <Mountain size={28} />,
-    title: 'Terrain & Elevation',
-    description: 'SRTM-derived Digital Elevation Models, slope, aspect, and hillshade for terrain analysis.',
-    color: '#7c3aed',
-    features: ['30m DEM', 'Slope/Aspect', 'Hillshade', 'Contours'],
   },
   {
     icon: <Droplets size={28} />,

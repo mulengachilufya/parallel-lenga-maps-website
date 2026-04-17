@@ -10,8 +10,7 @@ import type { DatasetSource } from '@/lib/supabase'
 
 const DATASET_TIPS: Record<number, string> = {
   1: 'Ideal for base maps, census planning, and jurisdiction analysis. Use in QGIS or ArcGIS for boundary overlays.',
-  2: 'Essential for slope analysis, viewshed modelling, and 3D terrain visualization. Works with hillshade and contour tools.',
-  3: 'Use for watershed delineation, flood risk mapping, and water resource management. Pairs well with DEM data.',
+  3: 'Use for watershed delineation, flood risk mapping, and water resource management. Pairs well with rainfall and aquifer data.',
   4: 'Great for change detection, urban sprawl monitoring, and environmental impact assessments. Multi-temporal analysis ready.',
   5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
   15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
@@ -95,7 +94,6 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
 // Only datasets with actual download data on the dashboard
 const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard?section=admin-boundaries',
-  2: '/dashboard?section=dems',
   3: '/dashboard?section=hydrology',
   5: '/dashboard?section=drought-index',
   15: '/dashboard?section=rainfall',

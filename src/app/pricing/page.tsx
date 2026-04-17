@@ -7,6 +7,8 @@ import { Check, Lock, Download, ArrowRight, CreditCard, Star, GraduationCap, Bri
 import Footer from '@/components/Footer'
 import { DATASETS, PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
 
+type FeatureItem = string | { main: string; subs: string[] }
+
 type PlanDef = {
   id: 'basic' | 'pro' | 'max'
   name: string
@@ -14,7 +16,7 @@ type PlanDef = {
   description: string
   color: string
   highlight: boolean
-  features: string[]
+  features: FeatureItem[]
   cta: string
 }
 
@@ -28,11 +30,18 @@ const basePlans: PlanDef[] = [
     highlight: false,
     features: [
       '3 countries of your choice',
-      '5 core datasets included',
+      {
+        main: '4 core datasets included',
+        subs: [
+          'Administrative Boundaries',
+          'River Networks & Watersheds',
+          'Rainfall Data',
+          'Temperature Data',
+        ],
+      },
       'Shapefile & GeoJSON formats',
       'Standard resolution data',
       'Email support',
-      '7-day free trial',
       'Download up to 10 files/month',
     ],
     cta: 'Start Free Trial',
@@ -41,17 +50,23 @@ const basePlans: PlanDef[] = [
     id: 'pro',
     name: 'Pro',
     tagline: 'Most Popular',
-    description: 'Full access to all 54 countries and every dataset in our catalogue.',
+    description: 'Access to 9 key datasets across all 54 countries.',
     color: '#F5B800',
     highlight: true,
     features: [
       'All 54 African countries',
-      'Full dataset catalogue (15+ datasets)',
+      {
+        main: '9 datasets included',
+        subs: [
+          'Admin Boundaries, Rivers & Watersheds, LULC',
+          'Rainfall, Temperature, Drought Index (SPI-12)',
+          'Groundwater Aquifers, Vegetation & NDVI, Population',
+        ],
+      },
       'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
       'Highest available resolution',
       'Priority email & WhatsApp support',
-      'Unlimited downloads',
-      'API access (coming soon)',
+      '25 file downloads/month',
       'New datasets as they launch',
     ],
     cta: 'Get Pro Access',
@@ -60,17 +75,20 @@ const basePlans: PlanDef[] = [
     id: 'max',
     name: 'Max',
     tagline: 'Maximum Power',
-    description: 'Everything in Pro plus commercial licensing and advanced bulk exports.',
+    description: 'All datasets, all countries, unlimited downloads.',
     color: '#7c3aed',
     highlight: false,
     features: [
-      'Everything in Pro',
+      'All 54 African countries',
+      'All 15+ datasets included',
+      'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
+      'Highest available resolution',
       'Commercial use licence included',
       'Bulk & batch download tools',
+      'Unlimited file downloads',
       'Priority data request queue',
       'Dedicated WhatsApp support line',
       'Early access to new datasets',
-      'API access + higher rate limits',
     ],
     cta: 'Get Max Access',
   },
@@ -298,47 +316,54 @@ export default function PricingPage() {
                             <span className="text-base font-normal text-gray-400">/mo</span>
                           </div>
                         )}
-                        {priceData && (
-                          <div
-                            className={
-                              priceData.zmw
-                                ? 'text-sm font-semibold text-gray-500 mt-0.5'
-                                : 'text-3xl font-black'
-                            }
-                            style={!priceData.zmw ? { color: plan.color } : {}}
-                          >
+                        {!priceData?.zmw && priceData && (
+                          <div className="text-3xl font-black" style={{ color: plan.color }}>
                             ${priceData.usd}
-                            <span
-                              className={
-                                priceData.zmw
-                                  ? 'text-xs font-normal text-gray-400'
-                                  : 'text-base font-normal text-gray-400'
-                              }
-                            >
-                              /mo
-                            </span>
+                            <span className="text-base font-normal text-gray-400">/mo</span>
                           </div>
                         )}
-                        {priceData?.zmw && (
-                          <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
-                            ZMW (Zambians) · USD (non-Zambians)
-                          </p>
+                        {priceData?.zmw && priceData.usd && (
+                          <div className="mt-2 bg-red-600 text-white rounded-lg px-3 py-2 inline-block">
+                            <div className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-0.5">
+                              Outside Zambia
+                            </div>
+                            <div className="text-xl font-black leading-none">
+                              ${priceData.usd}
+                              <span className="text-xs font-normal opacity-75">/mo</span>
+                            </div>
+                          </div>
                         )}
-                        <div className="text-xs text-green-600 font-semibold mt-1.5">{plan.tagline}</div>
+                        <div className="text-xs text-green-600 font-semibold mt-2">{plan.tagline}</div>
                       </div>
 
                       <ul className="space-y-2.5 mb-7">
-                        {plan.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-3">
-                            <div
-                              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                              style={{ backgroundColor: `${plan.color}20` }}
-                            >
-                              <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
-                            </div>
-                            <span className="text-gray-700 text-sm">{feature}</span>
-                          </li>
-                        ))}
+                        {plan.features.map((feature, fi) => {
+                          const isObj = typeof feature === 'object'
+                          const label = isObj ? feature.main : feature
+                          return (
+                            <li key={fi} className="flex items-start gap-3">
+                              <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                                style={{ backgroundColor: `${plan.color}20` }}
+                              >
+                                <Check size={12} style={{ color: plan.color }} strokeWidth={3} />
+                              </div>
+                              <div>
+                                <span className="text-gray-700 text-sm">{label}</span>
+                                {isObj && feature.subs.length > 0 && (
+                                  <ul className="mt-1.5 space-y-0.5">
+                                    {feature.subs.map((sub, si) => (
+                                      <li key={si} className="flex items-center gap-1.5 text-gray-500 text-xs">
+                                        <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" />
+                                        {sub}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </li>
+                          )
+                        })}
                       </ul>
 
                       <Link

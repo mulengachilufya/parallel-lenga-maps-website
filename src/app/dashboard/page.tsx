@@ -9,7 +9,6 @@ import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, Arrow
 import { supabase, DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
-import DEMList from '@/components/DEMList'
 import RiversList from '@/components/RiversList'
 import WatershedsList from '@/components/WatershedsList'
 import RainfallClimateList from '@/components/RainfallClimateList'
@@ -36,11 +35,6 @@ const SECTIONS: Record<string, {
     title: '📍 Administrative Boundaries',
     tier: 'basic',
     component: (plan) => <AdminBoundariesList userPlan={plan} />,
-  },
-  'dems': {
-    title: '⛰️ Digital Elevation Models',
-    tier: 'basic',
-    component: (plan) => <DEMList userPlan={plan} />,
   },
   'hydrology': {
     title: '🌊 River Networks & Lakes',
