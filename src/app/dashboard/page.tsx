@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X } from 'lucide-react'
 import { supabase, DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
@@ -92,6 +92,12 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteMessage, setDeleteMessage] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteSuccess, setDeleteSuccess] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   // Which section to show - null means show the overview (all sections listed as cards)
   const section = searchParams.get('section')
@@ -120,6 +126,25 @@ function DashboardContent() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const handleDeleteRequest = async () => {
+    setDeleteError('')
+    if (!deleteReason) { setDeleteError('Please select a reason.'); return }
+    setDeleteLoading(true)
+    try {
+      const res = await fetch('/api/account/delete-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: deleteReason, message: deleteMessage }),
+      })
+      if (!res.ok) { const d = await res.json(); setDeleteError(d.error || 'Failed to send request.'); return }
+      setDeleteSuccess(true)
+    } catch {
+      setDeleteError('Something went wrong. Please try again.')
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   if (loading) {
@@ -400,6 +425,135 @@ function DashboardContent() {
             </a>
           </div>
         </motion.div>
+
+        {/* Delete account */}
+        {user && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors inline-flex items-center gap-1"
+            >
+              <Trash2 size={12} /> Request account deletion
+            </button>
+          </div>
+        )}
+
+        {/* ── Delete Account Modal ─────────────────────────────────────── */}
+        {showDeleteModal && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+            onClick={() => { if (!deleteLoading) setShowDeleteModal(false) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="h-1.5 w-full bg-red-500" />
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
+                    <Trash2 size={20} className="text-red-500" />
+                  </div>
+                  {!deleteLoading && (
+                    <button onClick={() => setShowDeleteModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                      <X size={17} />
+                    </button>
+                  )}
+                </div>
+
+                {deleteSuccess ? (
+                  <div className="text-center py-4">
+                    <div className="text-4xl mb-3">💌</div>
+                    <h2 className="text-xl font-black text-navy mb-2">Request received</h2>
+                    <p className="text-gray-500 text-sm mb-1">
+                      We&apos;ve received your deletion request and will be in touch within <strong>24–48 hours</strong>.
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      We&apos;re sorry to see you go, {user.name.split(' ')[0]}. Thank you for being part of Lenga Maps.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteModal(false)}
+                      className="mt-5 text-sm text-primary font-semibold hover:underline"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-black text-navy mb-1">Before you go…</h2>
+                    <p className="text-gray-500 text-sm mb-5">
+                      We&apos;ll process your deletion request within 24–48 hours. If you&apos;re on a paid plan, please contact us about a refund.
+                    </p>
+
+                    {deleteError && (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl mb-4 text-sm">
+                        <AlertCircle size={15} /> {deleteError}
+                      </div>
+                    )}
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-navy mb-2">Why are you leaving?</label>
+                      <div className="space-y-2">
+                        {[
+                          { id: 'too_expensive',    label: 'Price is too expensive' },
+                          { id: 'not_using',        label: "Not using it enough" },
+                          { id: 'missing_features', label: 'Missing features I need' },
+                          { id: 'switching_tools',  label: 'Switching to another tool' },
+                          { id: 'project_ended',    label: 'My project has ended' },
+                          { id: 'other',            label: 'Other' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setDeleteReason(opt.id)}
+                            className={`w-full text-left px-3.5 py-2.5 rounded-xl border-2 text-sm transition-all ${
+                              deleteReason === opt.id
+                                ? 'border-red-400 bg-red-50 text-red-700 font-semibold'
+                                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-5">
+                      <label className="block text-sm font-semibold text-navy mb-2">
+                        Anything else you&apos;d like us to know? <span className="text-gray-400 font-normal">(optional)</span>
+                      </label>
+                      <textarea
+                        value={deleteMessage}
+                        onChange={(e) => setDeleteMessage(e.target.value)}
+                        rows={3}
+                        placeholder="Your feedback helps us improve…"
+                        className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleDeleteRequest}
+                      disabled={deleteLoading || !deleteReason}
+                      className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
+                    >
+                      {deleteLoading ? (
+                        <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending request…</>
+                      ) : (
+                        'Submit deletion request'
+                      )}
+                    </button>
+                    <p className="text-center text-xs text-gray-400 mt-3">
+                      Your account stays active until we process this request.
+                    </p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   )
