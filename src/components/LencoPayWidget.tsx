@@ -36,7 +36,7 @@ interface Props {
 }
 
 export default function LencoPayWidget({
-  userId,
+  userId: _userId,
   email,
   firstName,
   plan,
