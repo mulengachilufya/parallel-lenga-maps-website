@@ -136,7 +136,16 @@ function DashboardContent() {
       const res = await fetch('/api/account/delete-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: deleteReason, message: deleteMessage }),
+        body: JSON.stringify({
+          reason:      deleteReason,
+          message:     deleteMessage,
+          userName:    user?.name,
+          userEmail:   user?.email,
+          userId:      (await supabase.auth.getSession()).data.session?.user.id,
+          plan:        user?.plan,
+          accountType: user?.accountType,
+          isPaid:      false,
+        }),
       })
       if (!res.ok) { const d = await res.json(); setDeleteError(d.error || 'Failed to send request.'); return }
       setDeleteSuccess(true)

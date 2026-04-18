@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
 
 const REASONS: Record<string, string> = {
   too_expensive:    'Price is too expensive',
@@ -12,42 +11,25 @@ const REASONS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 })
-    }
-
-    const { reason, message } = await request.json()
+    const { reason, message, userName, userEmail, userId, plan, accountType, isPaid } = await request.json()
 
     if (!reason || !REASONS[reason]) {
       return NextResponse.json({ error: 'Please select a reason.' }, { status: 400 })
     }
 
     const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
-    const userEmail = session.user.email
-    const userName  = session.user.user_metadata?.full_name || 'Unknown'
-    const userId    = session.user.id
-
-    // Fetch plan from profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan, account_type, is_paid')
-      .eq('id', userId)
-      .single()
-
     const reasonLabel = REASONS[reason]
+
     const emailBody = `
 A user has requested account deletion.
 
 ── User Details ──────────────────────────
-Name:         ${userName}
-Email:        ${userEmail}
-User ID:      ${userId}
-Plan:         ${profile?.plan ?? 'unknown'}
-Account Type: ${profile?.account_type ?? 'unknown'}
-Is Paid:      ${profile?.is_paid ? 'Yes' : 'No'}
+Name:         ${userName || 'Unknown'}
+Email:        ${userEmail || 'Unknown'}
+User ID:      ${userId || 'Unknown'}
+Plan:         ${plan || 'unknown'}
+Account Type: ${accountType || 'unknown'}
+Is Paid:      ${isPaid ? 'Yes' : 'No'}
 
 ── Reason for Leaving ────────────────────
 ${reasonLabel}
