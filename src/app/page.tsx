@@ -509,57 +509,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── ABOUT ─────────────────────────────────────────── */}
-      <section className="py-20 lg:py-28 bg-dark border-t border-white/[0.06]">
-        <div className="max-w-[900px] mx-auto px-5 sm:px-6 lg:px-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex items-center gap-3.5 mb-8">
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                About Us
-              </span>
-            </div>
-            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-7">
-              We Don&apos;t Just Map the World -
-              <br />
-              We Help Solve It.
-            </h2>
-            <p className="text-[1.08rem] text-white/60 leading-[1.8] mb-12">
-              Lenga Maps is a geospatial intelligence startup that uses GIS software and programming
-              to solve the world&apos;s most complex environmental problems. But we don&apos;t just end at
-              developing GIS projects - we&apos;re also building Africa&apos;s largest and most centralized
-              GIS data bank. Ours is to be a top player in emerging markets and a world class
-              consulting firm, all things geospatial technology.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="#"
-                className="text-center text-gold text-[0.92rem] font-bold px-6 py-3.5 border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
-              >
-                Download Capability Statement
-              </Link>
-              <Link
-                href="/contact-us"
-                className="text-center text-gold text-[0.92rem] font-bold px-6 py-3.5 border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
-              >
-                Request a Quote
-              </Link>
-              <Link
-                href="/contact-us"
-                className="text-center text-gold text-[0.92rem] font-bold px-6 py-3.5 border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
-              >
-                Schedule a Free Call
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* ── CONTACT ── */}
       <section className="py-20 lg:py-28 bg-dark-light border-t border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
