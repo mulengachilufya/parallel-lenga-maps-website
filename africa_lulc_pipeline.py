@@ -660,8 +660,12 @@ def process_country(
     minx, miny, maxx, maxy = geom.bounds
     log(f"  bbox [{minx:.2f}, {miny:.2f}, {maxx:.2f}, {maxy:.2f}]", indent=1)
 
-    # ── Tile discovery ───────────────────────────────────────────────────────
-    tile_coords = tiles_for_bbox(minx, miny, maxx, maxy)
+    # ── Tile discovery — use buffered bbox so edge tiles aren't missed ────────
+    # The mosaic is built with a 0.15° buffer to prevent clipping artefacts at
+    # country edges.  Tile discovery must use the same buffered extent so that
+    # any tile the buffer reaches into is also downloaded.
+    buf = 0.15
+    tile_coords = tiles_for_bbox(minx - buf, miny - buf, maxx + buf, maxy + buf)
     log(f"  tiles to check: {len(tile_coords)}", indent=1)
 
     # ── Tile download ────────────────────────────────────────────────────────
@@ -682,9 +686,8 @@ def process_country(
 
     log(f"  tiles with data: {len(tile_paths)}", indent=1)
 
-    # ── Mosaic tiles (bounded to country bbox + small buffer) ────────────────
+    # ── Mosaic tiles (bounded to country bbox + buffer) ──────────────────────
     # Using MemoryFile to avoid writing temporary mosaic files to disk.
-    buf = 0.15   # degrees — prevents edge artefacts after clip
     try:
         datasets = [rasterio.open(p) for p in tile_paths]
         try:
@@ -724,7 +727,8 @@ def process_country(
                     mem_ds,
                     [mapping(geom)],
                     crop=True,
-                    nodata=ESA_NODATA,
+                    all_touched=True,   # include every pixel that touches the
+                    nodata=ESA_NODATA,  # boundary — prevents cut-off edges
                 )
                 clipped_meta = mem_ds.meta.copy()
     except Exception as exc:

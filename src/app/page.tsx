@@ -35,36 +35,6 @@ const services = [
   },
 ]
 
-const industries = [
-  {
-    title: 'Environment & Climate',
-    description: 'Land cover, vegetation indices, rainfall patterns, and climate change impact layers.',
-    icon: <Mountain size={28} />,
-    color: '#16a34a',
-    image: '/images/branding/forest.jpg',
-  },
-  {
-    title: 'Water & Hydrology',
-    description: 'River networks, watershed boundaries, wetland mapping, and seasonal flood extent.',
-    icon: <Droplets size={28} />,
-    color: '#0891b2',
-    image: '/images/branding/river-aerial.jpg',
-  },
-  {
-    title: 'Boundary Mapping',
-    description: 'Administrative boundaries at national, provincial, and district levels - clean and accurate.',
-    icon: <Layers size={28} />,
-    color: '#1E5F8E',
-    image: '/images/branding/world-map.jpg',
-  },
-  {
-    title: 'Mining & Exploration',
-    description: 'Geological maps, fault lines, mineral occurrence zones, and lithology data.',
-    icon: <Pickaxe size={28} />,
-    color: '#b45309',
-    image: 'https://images.unsplash.com/photo-1518467166778-b88f373ffec7?w=600&q=80',
-  },
-]
 
 function InlineSignup() {
   const [name, setName] = useState('')
@@ -468,61 +438,6 @@ export default function HomePage() {
               View All Services
               <ArrowRight size={16} />
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── INDUSTRIES ────────────────────────────────────── */}
-      <section className="py-20 lg:py-28 bg-dark border-t border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <div className="flex items-center justify-center gap-3.5 mb-6">
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                Who We Serve
-              </span>
-              <div className="w-9 h-0.5 bg-gold" />
-            </div>
-            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight">
-              Industries We <span className="text-gold">Power</span>
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {industries.map((industry, i) => (
-              <motion.div
-                key={industry.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative h-56 overflow-hidden cursor-pointer"
-              >
-                <Image
-                  src={industry.image}
-                  alt={industry.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  unoptimized
-                />
-                <div
-                  className="absolute inset-0 opacity-80 group-hover:opacity-90 transition-opacity"
-                  style={{ background: `linear-gradient(135deg, ${industry.color}dd 0%, #0f1923ee 100%)` }}
-                />
-                <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                  <div className="w-12 h-12 flex items-center justify-center text-white mb-4 bg-white/20">
-                    {industry.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{industry.title}</h3>
-                  <p className="text-white/80 text-sm leading-relaxed">{industry.description}</p>
-                </div>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>

@@ -12,3 +12,7 @@ Djibouti,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace
 Rwanda,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Rwanda_LULC.tif,,0.0,,2026-04-18T05:06:33.838436+00:00
 Burundi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,,0.0,,2026-04-18T05:06:34.035574+00:00
 Equatorial Guinea,in_progress,0,,,0.0,,2026-04-18T05:06:34.054632+00:00
+Equatorial Guinea,failed,8,,,0.0,"clip: Unable to allocate 4.03 GiB for an array with shape (1, 62979, 68693) and data type bool",2026-04-18T05:26:25.337595+00:00
+Lesotho,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Lesotho_LULC.tif,,0.0,,2026-04-18T05:26:27.368475+00:00
+Guinea-Bissau,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,,0.0,,2026-04-18T05:26:27.403746+00:00
+Togo,in_progress,0,,,0.0,,2026-04-18T05:26:27.421497+00:00
