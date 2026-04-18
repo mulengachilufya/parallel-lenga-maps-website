@@ -47,7 +47,7 @@ export default function LencoPayWidget({
 }: Props) {
   const [loading, setLoading]   = useState(false)
   const [ready, setReady]       = useState(false)
-  const [reference, setRef]     = useState<string | null>(null)
+  const [, setRef]     = useState<string | null>(null)
 
   // Load the Lenco inline script
   useEffect(() => {
