@@ -14,6 +14,7 @@ import RiversList from '@/components/RiversList'
 import WatershedsList from '@/components/WatershedsList'
 import RainfallClimateList from '@/components/RainfallClimateList'
 import AquiferList from '@/components/AquiferList'
+import LulcList from '@/components/LulcList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -77,6 +78,12 @@ const SECTIONS: Record<string, {
     subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
     tier: 'pro',
     component: (plan) => <AquiferList userPlan={plan} />,
+  },
+  'lulc': {
+    title: '🌿 Land Use / Land Cover',
+    subtitle: 'ESA WorldCover 2021 v200 · CC BY 4.0 · EPSG:4326 · GeoTIFF (10 m) per country',
+    tier: 'basic',
+    component: (plan) => <LulcList userPlan={plan} />,
   },
 }
 

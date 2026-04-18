@@ -72,11 +72,23 @@ try:
     from botocore.config import Config
     from dotenv import load_dotenv
     from rasterio.crs import CRS
+    from rasterio.enums import Resampling
     from rasterio.io import MemoryFile
+    from rasterio.shutil import copy as rio_copy
     from shapely.geometry import mapping
     from shapely.ops import unary_union
 except ImportError as e:
     sys.exit(f"Missing dependency: {e}\nRun: python -m pip install -r requirements.txt")
+
+# osgeo (GDAL Python bindings) — optional, used only for the Raster Attribute
+# Table (RAT).  The color table written by rasterio is sufficient for QGIS /
+# ArcGIS rendering; the RAT adds named classes in the Properties panel.
+try:
+    from osgeo import gdal as _gdal
+    _HAS_GDAL = True
+except ImportError:
+    _gdal = None
+    _HAS_GDAL = False
 
 # ── UTF-8 stdout on Windows ────────────────────────────────────────────────────
 if hasattr(sys.stdout, "buffer"):
@@ -118,6 +130,22 @@ ESA_BASE_URL = (
 )
 ESA_NODATA = 255     # ESA WorldCover no-data / void value
 ESA_DTYPE  = "uint8"
+
+# Official ESA WorldCover 2021 class table: (value, class_name, R, G, B)
+# Colors match the ESA-published color scheme exactly.
+ESA_CLASSES: list[tuple[int, str, int, int, int]] = [
+    (10,  "Tree cover",              77,  139, 49 ),
+    (20,  "Shrubland",               251, 185, 130),
+    (30,  "Grassland",               253, 211, 39 ),
+    (40,  "Cropland",                240, 150, 255),
+    (50,  "Built-up",                250, 0,   0  ),
+    (60,  "Bare / sparse vegetation",180, 180, 180),
+    (70,  "Snow and ice",            240, 240, 240),
+    (80,  "Permanent water bodies",  0,   100, 200),
+    (90,  "Herbaceous wetland",      0,   150, 160),
+    (95,  "Mangroves",               0,   207, 117),
+    (100, "Moss and lichen",         250, 230, 160),
+]
 
 # ── Natural Earth boundaries ───────────────────────────────────────────────────
 NE_COUNTRIES_URL = (
@@ -491,6 +519,108 @@ def load_africa_countries() -> gpd.GeoDataFrame:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COG FINALIZATION + COLOR TABLE + RAT
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _embed_colormap_and_rat(tif_path: Path) -> None:
+    """
+    Embed the ESA WorldCover color table (via rasterio — no osgeo needed) and,
+    if osgeo GDAL bindings are present, a full Raster Attribute Table (RAT).
+
+    Color table  — rasterio writes this natively; sufficient for QGIS / ArcGIS
+                   to auto-render each pixel with the correct ESA color.
+    RAT          — adds named class rows (Value, Class_Name, R, G, B) in the
+                   layer Properties panel.  Skipped gracefully if osgeo absent.
+    """
+    # ── Color table via rasterio (works without osgeo) ────────────────────────
+    colormap = {value: (r, g, b, 255) for value, _, r, g, b in ESA_CLASSES}
+    colormap[ESA_NODATA] = (0, 0, 0, 0)   # nodata pixels fully transparent
+    with rasterio.open(tif_path, "r+") as dst:
+        dst.write_colormap(1, colormap)
+
+    # ── RAT via osgeo (optional) ──────────────────────────────────────────────
+    if not _HAS_GDAL:
+        log("  color table embedded  (install gdal for RAT support)", indent=1)
+        return
+
+    ds = _gdal.Open(str(tif_path), _gdal.GA_Update)
+    if ds is None:
+        log(f"  WARNING: GDAL cannot open {tif_path.name} for RAT", indent=1)
+        return
+    band = ds.GetRasterBand(1)
+    rat  = _gdal.RasterAttributeTable()
+    rat.CreateColumn("Value",      _gdal.GFT_Integer, _gdal.GFU_MinMax)
+    rat.CreateColumn("Class_Name", _gdal.GFT_String,  _gdal.GFU_Name)
+    rat.CreateColumn("Red",        _gdal.GFT_Integer, _gdal.GFU_Red)
+    rat.CreateColumn("Green",      _gdal.GFT_Integer, _gdal.GFU_Green)
+    rat.CreateColumn("Blue",       _gdal.GFT_Integer, _gdal.GFU_Blue)
+    for i, (value, class_name, r, g, b) in enumerate(ESA_CLASSES):
+        rat.SetValueAsInt(i, 0, value)
+        rat.SetValueAsString(i, 1, class_name)
+        rat.SetValueAsInt(i, 2, r)
+        rat.SetValueAsInt(i, 3, g)
+        rat.SetValueAsInt(i, 4, b)
+    band.SetDefaultRAT(rat)
+    band.FlushCache()
+    ds.FlushCache()
+    ds = None
+    log(f"  color table + RAT embedded → {tif_path.name}", indent=1)
+
+
+def finalize_as_cog(src_path: Path, dst_path: Path) -> None:
+    """
+    Convert src_path to a Cloud-Optimized GeoTIFF (COG) at dst_path using
+    rasterio (no osgeo required), then embed the ESA color table and RAT.
+
+    Why COG matters for R2-served files
+    ────────────────────────────────────
+    A COG arranges overview levels before full-resolution data so GDAL/QGIS
+    can stream only the zoom level needed via HTTP range requests.  Without
+    COG, a 10 m GeoTIFF of Algeria or DRC must be downloaded in full before
+    any rendering begins.
+
+    Why NEAREST resampling is mandatory
+    ────────────────────────────────────
+    ESA WorldCover values are categorical integers (10, 20, 30 …).  Any
+    interpolating resampler (bilinear, average) invents values like 15 or 27
+    that have no class — corrupting the data.  Resampling.nearest always
+    picks an existing class value for every overview pixel.
+
+    src_path and dst_path may be the same path (in-place via temp file).
+    """
+    in_place = (src_path.resolve() == dst_path.resolve())
+    tmp_path  = dst_path.with_suffix(".cog_tmp.tif") if in_place else dst_path
+
+    # Step 1: build internal overviews on the source with NEAREST resampling
+    overview_levels = [2, 4, 8, 16, 32, 64, 128]
+    with rasterio.open(src_path, "r+") as src:
+        src.build_overviews(overview_levels, Resampling.nearest)
+        src.update_tags(ns="rio_overview", resampling="nearest")
+
+    # Step 2: copy to COG — overviews are baked at the front of the file
+    with rasterio.open(src_path) as src:
+        rio_copy(
+            src,
+            str(tmp_path),
+            driver="GTiff",
+            copy_src_overviews=True,
+            compress="lzw",
+            tiled=True,
+            blockxsize=512,
+            blockysize=512,
+            interleave="band",
+        )
+
+    if in_place:
+        src_path.unlink()
+        tmp_path.rename(dst_path)
+
+    # Step 3: embed color table (+ RAT if osgeo available)
+    _embed_colormap_and_rat(dst_path)
+    log(f"  COG finalized → {dst_path.name}", indent=1)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PER-COUNTRY PROCESSING
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -506,9 +636,10 @@ def process_country(
       1. Identify the ESA WorldCover 3°×3° tiles that overlap the country bbox
       2. Download missing tiles — 3 retries, exponential back-off
       3. Mosaic tiles in memory, bounded to country bbox (+ 0.1° buffer)
-      4. Clip mosaic to exact country boundary
-      5. Write output/{safe}_LULC.tif  (uint8, LZW compressed, 256×256 tiles)
-      6. Upload to Cloudflare R2
+      4. Clip mosaic to exact country boundary (NEAREST, nodata=255)
+      5. Write intermediate GeoTIFF, then convert to COG (512×512 tiles,
+         LZW, NEAREST overviews) and embed ESA color table + RAT
+      6. Upload COG to Cloudflare R2
       7. Upsert row to Supabase lulc_layers
 
     Returns True on success (including graceful skips), False on hard failure.
@@ -601,7 +732,11 @@ def process_country(
         _write_state(country, "failed", len(tile_paths), error=f"clip: {exc}")
         return False
 
-    # ── Write output GeoTIFF ─────────────────────────────────────────────────
+    # ── Write intermediate GeoTIFF (rasterio), then finalize as COG ─────────
+    # We write to a .raw.tif first because rasterio cannot produce a
+    # compliant COG directly (overviews must precede full-res data in the
+    # file).  GDAL's COG driver handles the re-ordering automatically.
+    raw_path = out_path.with_suffix(".raw.tif")
     clipped_meta.update({
         "driver":     "GTiff",
         "dtype":      ESA_DTYPE,
@@ -613,12 +748,12 @@ def process_country(
         "nodata":     ESA_NODATA,
         "compress":   "lzw",
         "tiled":      True,
-        "blockxsize": 256,
-        "blockysize": 256,
+        "blockxsize": 512,
+        "blockysize": 512,
         "interleave": "band",
     })
     try:
-        with rasterio.open(out_path, "w", **clipped_meta) as dst:
+        with rasterio.open(raw_path, "w", **clipped_meta) as dst:
             dst.write(clipped[0], 1)
             dst.update_tags(
                 source="ESA WorldCover 2021 v200",
@@ -627,19 +762,30 @@ def process_country(
                 created=RUN_TS,
                 classes=(
                     "10=Tree cover, 20=Shrubland, 30=Grassland, 40=Cropland, "
-                    "50=Built-up, 60=Bare/sparse, 70=Snow/ice, "
-                    "80=Permanent water, 90=Herbaceous wetland, "
-                    "95=Mangroves, 100=Moss/lichen, 255=NoData"
+                    "50=Built-up, 60=Bare/sparse vegetation, 70=Snow and ice, "
+                    "80=Permanent water bodies, 90=Herbaceous wetland, "
+                    "95=Mangroves, 100=Moss and lichen, 255=NoData"
                 ),
             )
     except Exception as exc:
-        out_path.unlink(missing_ok=True)
+        raw_path.unlink(missing_ok=True)
         log(f"  ERROR: write failed — {exc}", indent=1)
         _write_state(country, "failed", len(tile_paths), error=f"write: {exc}")
         return False
 
+    # Convert to COG (builds overviews with NEAREST resampling) + embed RAT
+    try:
+        finalize_as_cog(raw_path, out_path)
+        raw_path.unlink(missing_ok=True)
+    except Exception as exc:
+        raw_path.unlink(missing_ok=True)
+        out_path.unlink(missing_ok=True)
+        log(f"  ERROR: COG finalization failed — {exc}", indent=1)
+        _write_state(country, "failed", len(tile_paths), error=f"cog: {exc}")
+        return False
+
     size_mb = out_path.stat().st_size / 1_048_576
-    log(f"  output: {out_path.name}  ({size_mb:.2f} MB)", indent=1)
+    log(f"  COG size: {size_mb:.2f} MB", indent=1)
 
     # ── Upload to Cloudflare R2 ──────────────────────────────────────────────
     if not dry_run:
@@ -732,6 +878,14 @@ def main() -> None:
         "--resume", action="store_true",
         help="Skip countries whose output .tif already exists in output/LULC/",
     )
+    parser.add_argument(
+        "--fix-rat", action="store_true",
+        help=(
+            "Patch already-generated GeoTIFFs in output/LULC/ with the RAT "
+            "and color table, then re-upload to R2. No re-clipping is done. "
+            "Use after running the pipeline without RAT support."
+        ),
+    )
     args = parser.parse_args()
 
     log("=" * 65)
@@ -742,6 +896,59 @@ def main() -> None:
         log("  *** DRY RUN — no uploads or DB writes ***")
     log(f"  Tile cache : {TILES_DIR.resolve()}")
     log(f"  Output dir : {OUTPUT_DIR.resolve()}")
+
+    # ── --fix-rat mode: convert existing files to COG + embed RAT, re-upload ─
+    # Handles files produced before COG support was added to the pipeline.
+    if args.fix_rat:
+        tifs = sorted(f for f in OUTPUT_DIR.glob("*.tif") if ".cog_tmp" not in f.name)
+        log(f"\n--fix-rat: found {len(tifs)} GeoTIFFs to convert → COG + RAT")
+        log(f"  Source dir : {OUTPUT_DIR.resolve()}")
+        log("-" * 65)
+        fixed = failed_fix = 0
+        for tif in tifs:
+            # Map filename back to Lenga Maps country name
+            safe_name = tif.stem.replace("_LULC", "")
+            country = next(
+                (c for c in AFRICA_COUNTRIES if r2_safe(c) == safe_name),
+                None,
+            )
+            if country is None:
+                log(f"  SKIP: cannot map '{tif.name}' to a country name", indent=1)
+                failed_fix += 1
+                continue
+
+            log(f"\n  {country}  ({tif.name})")
+            try:
+                finalize_as_cog(tif, tif)   # in-place conversion
+            except Exception as exc:
+                log(f"    ERROR: COG conversion failed — {exc}", indent=1)
+                failed_fix += 1
+                continue
+
+            key = build_r2_key(country)
+            if not args.dry_run:
+                try:
+                    with open(tif, "rb") as fh:
+                        r2.put_object(
+                            Bucket=R2_BUCKET,
+                            Key=key,
+                            Body=fh,
+                            ContentType="image/tiff",
+                        )
+                    log(f"    R2 re-uploaded → {key}", indent=1)
+                except Exception as exc:
+                    log(f"    ERROR: R2 upload failed — {exc}", indent=1)
+                    failed_fix += 1
+                    continue
+            else:
+                log(f"    [dry-run] would re-upload → {key}", indent=1)
+
+            fixed += 1
+
+        log("\n" + "=" * 65)
+        log(f"  --fix-rat complete!  Converted+uploaded: {fixed}  Failed: {failed_fix}")
+        log("=" * 65)
+        return
 
     # ── Step 1: Load Africa country boundaries ───────────────────────────────
     log("\nStep 1: Loading Africa country boundaries (Natural Earth 10m) ...")
