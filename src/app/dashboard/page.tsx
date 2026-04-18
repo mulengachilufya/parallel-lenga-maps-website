@@ -481,7 +481,7 @@ function DashboardContent() {
                       We&apos;ve received your deletion request and will be in touch within <strong>24–48 hours</strong>.
                     </p>
                     <p className="text-gray-400 text-xs">
-                      We&apos;re sorry to see you go, {user.name.split(' ')[0]}. Thank you for being part of Lenga Maps.
+                      We&apos;re sorry to see you go, {user?.name?.split(' ')[0] ?? 'you'}. Thank you for being part of Lenga Maps.
                     </p>
                     <button
                       onClick={() => setShowDeleteModal(false)}
