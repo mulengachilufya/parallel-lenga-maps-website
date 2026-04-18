@@ -1,0 +1,35 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Seychelles,in_progress,0,,,0.0,,2026-04-17T13:30:38.187162+00:00
+Seychelles,failed,2,,,0.0,"clip: feef1992-81b3-43d4-936d-d69de1410b44.tif: Free disk space available is 8.02 GB, whereas 9.36 GB are at least necessary. You can disable this check by defining the CHECK_DISK_FREE_SPACE configuration option to FALSE.",2026-04-17T13:33:20.334642+00:00
+Sao Tome and Principe,in_progress,0,,,0.0,,2026-04-17T13:33:21.417007+00:00
+Sao Tome and Principe,done,1,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sao_Tome_and_Principe_LULC.tif,lulc/Sao_Tome_and_Principe/Sao_Tome_and_Principe_LULC.tif,1.6061,,2026-04-17T13:34:43.669223+00:00
+Comoros,in_progress,0,,,0.0,,2026-04-17T13:34:43.774580+00:00
+Comoros,done,1,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Comoros_LULC.tif,lulc/Comoros/Comoros_LULC.tif,1.7627,,2026-04-17T13:35:29.761669+00:00
+Mauritius,in_progress,0,,,0.0,,2026-04-17T13:35:29.852045+00:00
+Mauritius,failed,1,,,0.0,"clip: 9692bd63-a870-493e-9e0f-fe6427605dfa.tif: Free disk space available is 8.02 GB, whereas 10.98 GB are at least necessary. You can disable this check by defining the CHECK_DISK_FREE_SPACE configuration option to FALSE.",2026-04-17T13:36:40.211318+00:00
+Cabo Verde,in_progress,0,,,0.0,,2026-04-17T13:36:42.826487+00:00
+Cabo Verde,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cabo_Verde_LULC.tif,lulc/Cabo_Verde/Cabo_Verde_LULC.tif,8.3303,,2026-04-17T13:39:45.815254+00:00
+Gambia,in_progress,0,,,0.0,,2026-04-17T13:39:46.061863+00:00
+Gambia,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gambia_LULC.tif,lulc/Gambia/Gambia_LULC.tif,2.1962,,2026-04-17T13:45:11.938424+00:00
+Eswatini,skipped,0,,,0.0,not in Natural Earth,2026-04-17T13:45:13.722815+00:00
+Djibouti,in_progress,0,,,0.0,,2026-04-17T13:45:13.935335+00:00
+Djibouti,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,lulc/Djibouti/Djibouti_LULC.tif,4.4452,,2026-04-17T13:57:21.455085+00:00
+Rwanda,in_progress,0,,,0.0,,2026-04-17T13:57:22.406602+00:00
+Rwanda,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Rwanda_LULC.tif,lulc/Rwanda/Rwanda_LULC.tif,3.3978,,2026-04-17T14:02:05.720163+00:00
+Burundi,in_progress,0,,,0.0,,2026-04-17T14:02:07.503251+00:00
+Burundi,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,lulc/Burundi/Burundi_LULC.tif,12.1746,,2026-04-17T14:08:24.166233+00:00
+Equatorial Guinea,in_progress,0,,,0.0,,2026-04-17T14:08:24.175484+00:00
+Equatorial Guinea,failed,8,,,0.0,"clip: Unable to allocate 4.03 GiB for an array with shape (1, 62979, 68693) and data type uint8",2026-04-17T14:32:35.163618+00:00
+Lesotho,in_progress,0,,,0.0,,2026-04-17T14:32:37.128166+00:00
+Lesotho,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Lesotho_LULC.tif,lulc/Lesotho/Lesotho_LULC.tif,16.6346,,2026-04-17T14:58:46.698175+00:00
+Guinea-Bissau,in_progress,0,,,0.0,,2026-04-17T14:58:46.958995+00:00
+Guinea-Bissau,failed,3,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,lulc/Guinea-Bissau/Guinea-Bissau_LULC.tif,11.122,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Guinea-Bissau/Guinea-Bissau_LULC.tif""",2026-04-17T15:13:23.578105+00:00
+Togo,in_progress,0,,,0.0,,2026-04-17T15:13:23.586224+00:00
+Togo,skipped,0,,,0.0,no tile data found,2026-04-17T15:13:47.720954+00:00
+Sierra Leone,in_progress,0,,,0.0,,2026-04-17T15:13:47.730132+00:00
+Sierra Leone,skipped,0,,,0.0,no tile data found,2026-04-17T15:14:11.874713+00:00
+Liberia,in_progress,0,,,0.0,,2026-04-17T15:14:11.877678+00:00
+Liberia,skipped,0,,,0.0,no tile data found,2026-04-17T15:14:36.028569+00:00
+Benin,in_progress,0,,,0.0,,2026-04-17T15:14:36.031570+00:00
+Benin,skipped,0,,,0.0,no tile data found,2026-04-17T15:15:12.192049+00:00
+Eritrea,in_progress,0,,,0.0,,2026-04-17T15:15:12.197609+00:00

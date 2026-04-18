@@ -1,0 +1,14 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Seychelles,in_progress,0,,,0.0,,2026-04-18T05:01:07.989966+00:00
+Seychelles,failed,2,,,0.0,"clip: ca375792-2584-4de4-aea2-eda62f85fc9e.tif: Free disk space available is 8.02 GB, whereas 9.36 GB are at least necessary. You can disable this check by defining the CHECK_DISK_FREE_SPACE configuration option to FALSE.",2026-04-18T05:04:48.324519+00:00
+Sao Tome and Principe,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sao_Tome_and_Principe_LULC.tif,,0.0,,2026-04-18T05:04:50.601294+00:00
+Comoros,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Comoros_LULC.tif,,0.0,,2026-04-18T05:04:50.810309+00:00
+Mauritius,in_progress,0,,,0.0,,2026-04-18T05:04:50.843937+00:00
+Mauritius,failed,1,,,0.0,"clip: 88412c5b-67ca-4a31-9d5d-6a3179deeaf5.tif: Free disk space available is 8.02 GB, whereas 10.98 GB are at least necessary. You can disable this check by defining the CHECK_DISK_FREE_SPACE configuration option to FALSE.",2026-04-18T05:06:22.603762+00:00
+Cabo Verde,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cabo_Verde_LULC.tif,,0.0,,2026-04-18T05:06:32.171011+00:00
+Gambia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gambia_LULC.tif,,0.0,,2026-04-18T05:06:33.086942+00:00
+Eswatini,skipped,0,,,0.0,not in Natural Earth,2026-04-18T05:06:33.518672+00:00
+Djibouti,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,,0.0,,2026-04-18T05:06:33.819521+00:00
+Rwanda,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Rwanda_LULC.tif,,0.0,,2026-04-18T05:06:33.838436+00:00
+Burundi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,,0.0,,2026-04-18T05:06:34.035574+00:00
+Equatorial Guinea,in_progress,0,,,0.0,,2026-04-18T05:06:34.054632+00:00
