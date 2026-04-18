@@ -100,11 +100,16 @@ function DashboardContent() {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan, account_type, full_name')
+          .eq('id', session.user.id)
+          .single()
         setUser({
           email: session.user.email || '',
-          name: session.user.user_metadata?.full_name || 'User',
-          plan: (session.user.user_metadata?.plan || 'basic') as UserPlan,
-          accountType: (session.user.user_metadata?.account_type || 'student') as AccountType,
+          name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
+          plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
+          accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
         })
       }
       setLoading(false)

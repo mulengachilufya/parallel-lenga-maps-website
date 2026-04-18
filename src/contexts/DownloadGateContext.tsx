@@ -234,25 +234,30 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
   const [gateLoading, setGateLoading] = useState(true)
   const [modal, setModal] = useState<GateModal | null>(null)
 
+  const loadProfile = async (userId: string, email: string) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan, account_type')
+      .eq('id', userId)
+      .single()
+    setGateUser({
+      email,
+      plan: (profile?.plan || 'basic') as PlanTier,
+      accountType: (profile?.account_type || 'student') as AccountType,
+    })
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        setGateUser({
-          email: session.user.email || '',
-          plan: (session.user.user_metadata?.plan || 'basic') as PlanTier,
-          accountType: (session.user.user_metadata?.account_type || 'student') as AccountType,
-        })
+        loadProfile(session.user.id, session.user.email || '')
       }
       setGateLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        setGateUser({
-          email: session.user.email || '',
-          plan: (session.user.user_metadata?.plan || 'basic') as PlanTier,
-          accountType: (session.user.user_metadata?.account_type || 'student') as AccountType,
-        })
+        loadProfile(session.user.id, session.user.email || '')
       } else {
         setGateUser(null)
       }
