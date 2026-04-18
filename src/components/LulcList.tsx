@@ -24,7 +24,8 @@ const LULC_CLASSES = [
   { value: 100, label: 'Moss / lichen',        color: '#FAE6A0' },
 ]
 
-export default function LulcList({ userPlan: _userPlan = 'basic' }: LulcListProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<LulcLayer[]>([])
   const [loading, setLoading]         = useState(true)

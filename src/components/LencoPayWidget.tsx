@@ -36,7 +36,8 @@ interface Props {
 }
 
 export default function LencoPayWidget({
-  userId: _userId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userId,
   email,
   firstName,
   plan,
