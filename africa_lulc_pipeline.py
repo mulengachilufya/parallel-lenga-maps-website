@@ -97,6 +97,10 @@ if hasattr(sys.stdout, "buffer"):
 # ── Environment ────────────────────────────────────────────────────────────────
 load_dotenv(Path(__file__).parent / ".env.local")
 
+# GDAL over-estimates temporary disk space for overviews/mosaic operations.
+# Disable the pre-check so we don't abort on false positives.
+os.environ.setdefault("CHECK_DISK_FREE_SPACE", "NO")
+
 R2_ACCOUNT_ID = os.environ["CLOUDFLARE_R2_ACCOUNT_ID"]
 R2_ACCESS_KEY = os.environ["CLOUDFLARE_R2_ACCESS_KEY_ID"]
 R2_SECRET_KEY = os.environ["CLOUDFLARE_R2_SECRET_ACCESS_KEY"]
@@ -147,6 +151,13 @@ ESA_CLASSES: list[tuple[int, str, int, int, int]] = [
     (100, "Moss and lichen",         250, 230, 160),
 ]
 
+# Pre-built RGBA colormap for rasterio — written at file creation time so it
+# survives COG conversion via rio_copy (no post-hoc r+ needed).
+ESA_COLORMAP: dict[int, tuple[int, int, int, int]] = {
+    value: (r, g, b, 255) for value, _, r, g, b in ESA_CLASSES
+}
+ESA_COLORMAP[ESA_NODATA] = (0, 0, 0, 0)  # nodata pixels fully transparent
+
 # ── Natural Earth boundaries ───────────────────────────────────────────────────
 NE_COUNTRIES_URL = (
     "https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_0_countries.zip"
@@ -183,6 +194,9 @@ NE_NAME_MAP: dict[str, Optional[str]] = {
     "Cape Verde":                       "Cabo Verde",
     "Western Sahara":                   None,   # disputed — excluded
     "Somaliland":                       None,   # unrecognised — excluded
+    "Swaziland":                        "Eswatini",   # old NE name → new name
+    "eSwatini":                         "Eswatini",
+    "Eswatini":                         "Eswatini",
 }
 
 # ── Processing order: smallest → largest by approximate area (km²) ─────────────
@@ -522,30 +536,21 @@ def load_africa_countries() -> gpd.GeoDataFrame:
 # COG FINALIZATION + COLOR TABLE + RAT
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _embed_colormap_and_rat(tif_path: Path) -> None:
+def _embed_rat(raw_tif_path: Path) -> None:
     """
-    Embed the ESA WorldCover color table (via rasterio — no osgeo needed) and,
-    if osgeo GDAL bindings are present, a full Raster Attribute Table (RAT).
+    Embed a Raster Attribute Table into the intermediate raw GeoTIFF (before
+    COG conversion).  Requires osgeo GDAL bindings — skipped gracefully if absent.
 
-    Color table  — rasterio writes this natively; sufficient for QGIS / ArcGIS
-                   to auto-render each pixel with the correct ESA color.
-    RAT          — adds named class rows (Value, Class_Name, R, G, B) in the
-                   layer Properties panel.  Skipped gracefully if osgeo absent.
+    The color table is written directly into the raw.tif at creation time via
+    rasterio (see process_country), so we never need to open a finished COG in
+    r+ mode (which GDAL rejects with a COG-layout warning).
     """
-    # ── Color table via rasterio (works without osgeo) ────────────────────────
-    colormap = {value: (r, g, b, 255) for value, _, r, g, b in ESA_CLASSES}
-    colormap[ESA_NODATA] = (0, 0, 0, 0)   # nodata pixels fully transparent
-    with rasterio.open(tif_path, "r+") as dst:
-        dst.write_colormap(1, colormap)
-
-    # ── RAT via osgeo (optional) ──────────────────────────────────────────────
     if not _HAS_GDAL:
-        log("  color table embedded  (install gdal for RAT support)", indent=1)
         return
 
-    ds = _gdal.Open(str(tif_path), _gdal.GA_Update)
+    ds = _gdal.Open(str(raw_tif_path), _gdal.GA_Update)
     if ds is None:
-        log(f"  WARNING: GDAL cannot open {tif_path.name} for RAT", indent=1)
+        log(f"  WARNING: GDAL cannot open {raw_tif_path.name} for RAT", indent=1)
         return
     band = ds.GetRasterBand(1)
     rat  = _gdal.RasterAttributeTable()
@@ -564,7 +569,7 @@ def _embed_colormap_and_rat(tif_path: Path) -> None:
     band.FlushCache()
     ds.FlushCache()
     ds = None
-    log(f"  color table + RAT embedded → {tif_path.name}", indent=1)
+    log(f"  RAT embedded → {raw_tif_path.name}", indent=1)
 
 
 def finalize_as_cog(src_path: Path, dst_path: Path) -> None:
@@ -615,8 +620,8 @@ def finalize_as_cog(src_path: Path, dst_path: Path) -> None:
         src_path.unlink()
         tmp_path.rename(dst_path)
 
-    # Step 3: embed color table (+ RAT if osgeo available)
-    _embed_colormap_and_rat(dst_path)
+    # Color table is already embedded in src_path (written at raw.tif creation).
+    # rio_copy preserves it via GDALCreateCopy — no r+ reopen of the COG needed.
     log(f"  COG finalized → {dst_path.name}", indent=1)
 
 
@@ -653,6 +658,20 @@ def process_country(
         log(f"  SKIP (resume): {out_path.name} already exists", indent=1)
         _write_state(country, "skipped", output_file=str(out_path))
         return True
+
+    # ── Clean stale files from any previous aborted run ─────────────────────
+    raw_path = out_path.with_suffix(".raw.tif")
+    for _stale in (out_path, raw_path):
+        try:
+            _stale.unlink(missing_ok=True)
+        except PermissionError as _pe:
+            log(
+                f"  ERROR: cannot remove stale file '{_stale.name}' "
+                f"(locked by another process — close QGIS/ArcGIS and retry): {_pe}",
+                indent=1,
+            )
+            _write_state(country, "failed", error=f"locked_file: {_pe}")
+            return False
 
     _write_state(country, "in_progress")
 
@@ -737,10 +756,8 @@ def process_country(
         return False
 
     # ── Write intermediate GeoTIFF (rasterio), then finalize as COG ─────────
-    # We write to a .raw.tif first because rasterio cannot produce a
-    # compliant COG directly (overviews must precede full-res data in the
-    # file).  GDAL's COG driver handles the re-ordering automatically.
-    raw_path = out_path.with_suffix(".raw.tif")
+    # Write colormap here (at creation time) so rio_copy preserves it in the
+    # COG via GDALCreateCopy — avoids opening a finished COG in r+ mode.
     clipped_meta.update({
         "driver":     "GTiff",
         "dtype":      ESA_DTYPE,
@@ -759,6 +776,7 @@ def process_country(
     try:
         with rasterio.open(raw_path, "w", **clipped_meta) as dst:
             dst.write(clipped[0], 1)
+            dst.write_colormap(1, ESA_COLORMAP)
             dst.update_tags(
                 source="ESA WorldCover 2021 v200",
                 country=country,
@@ -777,7 +795,11 @@ def process_country(
         _write_state(country, "failed", len(tile_paths), error=f"write: {exc}")
         return False
 
-    # Convert to COG (builds overviews with NEAREST resampling) + embed RAT
+    # Embed RAT on raw.tif now (before COG; opens in r+ mode which is safe
+    # for unoptimized files).  Colormap was already written above.
+    _embed_rat(raw_path)
+
+    # Convert to COG (builds overviews with NEAREST resampling)
     try:
         finalize_as_cog(raw_path, out_path)
         raw_path.unlink(missing_ok=True)
@@ -923,9 +945,21 @@ def main() -> None:
 
             log(f"\n  {country}  ({tif.name})")
             try:
-                finalize_as_cog(tif, tif)   # in-place conversion
+                # Patch: write colormap to existing file via temp-copy roundtrip
+                # (avoids r+ on a COG which GDAL rejects).
+                tmp = tif.with_suffix(".patch_tmp.tif")
+                with rasterio.open(tif) as src:
+                    meta = src.meta.copy()
+                    data = src.read(1)
+                with rasterio.open(tmp, "w", **meta) as dst:
+                    dst.write(data, 1)
+                    dst.write_colormap(1, ESA_COLORMAP)
+                _embed_rat(tmp)
+                finalize_as_cog(tmp, tif)
+                tmp.unlink(missing_ok=True)
             except Exception as exc:
-                log(f"    ERROR: COG conversion failed — {exc}", indent=1)
+                tmp.unlink(missing_ok=True)
+                log(f"    ERROR: patch failed — {exc}", indent=1)
                 failed_fix += 1
                 continue
 
