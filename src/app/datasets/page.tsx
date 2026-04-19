@@ -10,7 +10,7 @@ import type { DatasetSource } from '@/lib/supabase'
 
 const DATASET_TIPS: Record<number, string> = {
   1: 'Ideal for base maps, census planning, and jurisdiction analysis. Use in QGIS or ArcGIS for boundary overlays.',
-  3: 'Use for watershed delineation, flood risk mapping, and water resource management. Pairs well with rainfall and aquifer data.',
+  3: 'Filter by Strahler order to isolate major rivers. Pairs well with rainfall and aquifer data for watershed and flood-risk analysis.',
   4: 'Clipped to exact country boundaries from ESA WorldCover 2021 (10m). Open in QGIS and apply a paletted renderer on the uint8 band — 10 classes from tree cover to built-up. Ideal for change detection, land degradation mapping, and carbon stock assessment.',
   5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
   15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
@@ -94,7 +94,7 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
 // Only datasets with actual download data on the dashboard
 const LIVE_DATASETS: Record<number, string> = {
   1: '/dashboard?section=admin-boundaries',
-  3: '/dashboard?section=hydrology',
+  3: '/dashboard?section=rivers',
   4: '/dashboard?section=lulc',
   5: '/dashboard?section=drought-index',
   15: '/dashboard?section=rainfall',
@@ -289,6 +289,7 @@ export default function DatasetsPage() {
                   {isLive ? (
                     <Link
                       href={LIVE_DATASETS[dataset.id]}
+                      replace
                       className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full"
                     >
                       {cardContent}

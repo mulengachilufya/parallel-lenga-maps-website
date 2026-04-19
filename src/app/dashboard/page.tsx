@@ -62,8 +62,8 @@ const SECTIONS: Record<string, {
     component: (plan) => <RainfallClimateList userPlan={plan} layerType="temperature" />,
   },
   'rivers': {
-    title: '🌊 HydroRIVERS - River Networks',
-    subtitle: 'WWF / HydroSHEDS v10 · CC BY 4.0 · GeoPackage per country',
+    title: '🌊 River Networks',
+    subtitle: 'HydroSHEDS / FAO · EPSG:4326 · ZIP (Shapefile) per country',
     tier: 'basic',
     component: (plan) => <RiversList userPlan={plan} />,
   },

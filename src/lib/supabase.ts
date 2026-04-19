@@ -81,11 +81,11 @@ export const DATASETS: Dataset[] = [
 
   {
     id: 3,
-    name: 'River Networks & Watersheds',
+    name: 'River Networks',
     category: 'Water & Hydrology',
-    description: 'Major river systems, tributaries, lake boundaries and watershed delineations',
+    description: 'Major river systems and tributaries clipped per country across all 54 African nations',
     source: 'HydroSHEDS / FAO',
-    format: 'Shapefile, GeoJSON',
+    format: 'ZIP (Shapefile)',
     resolution: '90m hydrological',
     icon: '🌊',
     tier: 'basic',
