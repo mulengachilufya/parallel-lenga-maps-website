@@ -386,6 +386,7 @@ function DashboardContent() {
                     ) : (
                       <Link
                         href={`/dashboard?section=${key}`}
+                        replace
                         className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6"
                       >
                         <h3 className="text-lg font-bold text-navy group-hover:text-primary transition-colors mb-1">
