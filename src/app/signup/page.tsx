@@ -194,12 +194,13 @@ function SignupContent() {
           </Link>
 
           <Link href="/" className="flex items-center gap-2 mb-10">
-            <svg viewBox="0 0 40 40" className="w-9 h-9">
-              <circle cx="20" cy="20" r="18" fill="#1E5F8E" />
-              <ellipse cx="20" cy="20" rx="8" ry="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-              <line x1="2" y1="20" x2="38" y2="20" stroke="#F5B800" strokeWidth="1.5" />
-              <circle cx="20" cy="20" r="18" fill="none" stroke="#F5B800" strokeWidth="1.5" />
-            </svg>
+            <Image
+              src="/images/branding/logo.png"
+              alt="Lenga Maps"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
             <span className="font-bold text-white text-lg">LENGA <span className="text-accent">MAPS</span></span>
           </Link>
 
