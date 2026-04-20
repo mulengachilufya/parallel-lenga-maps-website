@@ -42,8 +42,8 @@ export default function AboutPage() {
   return (
     <>
       {/* ── HERO ── */}
-      <section className="relative pt-32 pb-20 overflow-hidden gradient-primary">
-        <div className="absolute inset-0 opacity-10">
+      <section className="relative pt-32 pb-20 overflow-hidden bg-navy">
+        <div className="absolute inset-0">
           <Image
             src="https://images.unsplash.com/photo-1535941339077-2dd1c7963098?w=1920&q=80"
             alt="African wetlands"
@@ -51,6 +51,8 @@ export default function AboutPage() {
             className="object-cover"
             unoptimized
           />
+          {/* Neutral dark overlay for text legibility (no blue tint) */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
