@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ShieldCheck, Loader2 } from 'lucide-react'
+import { ShieldCheck, Loader2, ArrowLeft } from 'lucide-react'
 import { supabase, type AccountType, type PlanTier, PLAN_PRICING } from '@/lib/supabase'
 import ManualPaymentFlow from '@/components/ManualPaymentFlow'
 
@@ -87,6 +87,13 @@ function PaymentPageInner() {
 
       {/* Main */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-6"
+        >
+          <ArrowLeft size={14} />
+          Back to dashboard
+        </Link>
         <ManualPaymentFlow
           plan={plan}
           accountType={accountType}

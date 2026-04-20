@@ -112,19 +112,23 @@ function DashboardContent() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('plan, account_type, full_name')
-          .eq('id', session.user.id)
-          .single()
-        setUser({
-          email: session.user.email || '',
-          name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-          plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
-          accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
-        })
+      if (!session) {
+        // Preserve the dashboard path + section so they land back here after login.
+        const here = window.location.pathname + window.location.search
+        router.replace(`/login?next=${encodeURIComponent(here)}`)
+        return
       }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan, account_type, full_name')
+        .eq('id', session.user.id)
+        .single()
+      setUser({
+        email: session.user.email || '',
+        name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
+        plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
+        accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
+      })
       setLoading(false)
     }
     getUser()
@@ -271,12 +275,32 @@ function DashboardContent() {
               className="mb-8"
             >
               <h1 className="text-2xl font-black text-navy">
-                {user ? `Welcome back, ${user.name.split(' ')[0]} 👋` : 'Download GIS Data'}
+                {user
+                  ? (searchParams.get('welcome') === 'new'
+                      ? `Welcome to Lenga Maps, ${user.name.split(' ')[0]} 👋`
+                      : `Welcome back, ${user.name.split(' ')[0]} 👋`)
+                  : 'Download GIS Data'}
               </h1>
               <p className="text-gray-500 mt-1">
                 {user ? 'Choose a dataset below to browse and download files.' : 'Browse and download GIS datasets for Africa.'}
               </p>
             </motion.div>
+
+            {/* First-time welcome banner */}
+            {searchParams.get('welcome') === 'new' && user && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-5 sm:p-6"
+              >
+                <h2 className="text-lg font-black text-navy mb-1">You&apos;re on the free Basic plan 🎉</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Start by downloading any of the free datasets below — no payment needed. When you&apos;re ready for
+                  more countries, more datasets, or unlimited downloads, upgrade anytime from{' '}
+                  <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>.
+                </p>
+              </motion.div>
+            )}
 
             {/* Stats Cards - only show for logged in users */}
             {user && (

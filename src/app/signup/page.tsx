@@ -5,9 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase, Building2 } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase, Building2, ArrowLeft } from 'lucide-react'
 import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
-import LencoPayWidget from '@/components/LencoPayWidget'
 
 // ── Plan definitions ──────────────────────────────────────────────────────────
 
@@ -65,9 +64,6 @@ function SignupContent() {
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState('')
   const [success,         setSuccess]         = useState(false)
-  // setter retained for future payment-step re-enable
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [pendingPayment,  setPendingPayment]  = useState<{ userId: string; email: string; name: string } | null>(null)
 
   const isBusiness    = accountType === 'business'
   const acctColor     = ACCOUNT_COLORS[accountType]
@@ -106,12 +102,11 @@ function SignupContent() {
         return
       }
 
-      // If session exists (email auto-confirmed) route to the payment page so
-      // the user can complete the transfer for their selected plan. Otherwise
-      // show the "check your email" success screen — they'll land on payment
-      // after confirming and signing in (login honours ?next=).
+      // If email auto-confirmed: drop them straight into the dashboard with
+      // a first-time welcome banner. No payment pressure — they can browse
+      // free Basic datasets and upgrade later from the dashboard when ready.
       if (data.session && data.user) {
-        router.push(`/dashboard/payment?plan=${effectivePlan}&type=${accountType}`)
+        router.push('/dashboard?welcome=new')
       } else {
         setSuccess(true)
       }
@@ -121,64 +116,6 @@ function SignupContent() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // ── Payment step (session exists, plan has ZMW price) ──────────────────────
-  if (pendingPayment) {
-    const priceData = PLAN_PRICING[accountType]?.[effectivePlan]
-    const amountZmw = priceData?.zmw ?? 0
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-dark px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/5 border border-white/10 rounded-2xl p-10 shadow-lg max-w-md w-full"
-        >
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">💳</span>
-            </div>
-            <h2 className="text-2xl font-black text-white mb-2">Activate your plan</h2>
-            <p className="text-blue-300 text-sm">
-              Complete payment to activate your{' '}
-              <span className="text-white font-semibold capitalize">{effectivePlan}</span> plan.
-            </p>
-          </div>
-
-          <div className="bg-white/5 rounded-xl p-4 mb-6 text-sm text-blue-200 space-y-1">
-            <div className="flex justify-between"><span>Plan</span><span className="text-white font-bold capitalize">{effectivePlan}</span></div>
-            <div className="flex justify-between"><span>Account type</span><span className="text-white font-bold capitalize">{accountType}</span></div>
-            <div className="flex justify-between"><span>Amount</span><span className="text-yellow-400 font-bold">K{amountZmw}/month</span></div>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
-              <AlertCircle size={16} />
-              {error}
-            </div>
-          )}
-
-          <LencoPayWidget
-            userId={pendingPayment.userId}
-            email={pendingPayment.email}
-            firstName={pendingPayment.name.split(' ')[0]}
-            plan={effectivePlan}
-            accountType={accountType}
-            amountZmw={amountZmw}
-            onSuccess={() => setSuccess(true)}
-            onError={(msg) => setError(msg)}
-          />
-
-          <button
-            type="button"
-            onClick={() => setSuccess(true)}
-            className="w-full text-center text-xs text-blue-400 hover:text-blue-200 mt-4 transition-colors"
-          >
-            Skip for now — I&apos;ll pay later
-          </button>
-        </motion.div>
-      </div>
-    )
   }
 
   // ── Success screen ──────────────────────────────────────────────────────────
@@ -248,6 +185,14 @@ function SignupContent() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-300 hover:text-white transition-colors mb-6"
+          >
+            <ArrowLeft size={14} />
+            Back to home
+          </Link>
+
           <Link href="/" className="flex items-center gap-2 mb-10">
             <svg viewBox="0 0 40 40" className="w-9 h-9">
               <circle cx="20" cy="20" r="18" fill="#1E5F8E" />
@@ -258,8 +203,8 @@ function SignupContent() {
             <span className="font-bold text-white text-lg">LENGA <span className="text-accent">MAPS</span></span>
           </Link>
 
-          <h1 className="text-3xl font-black text-white mb-1">Create your account</h1>
-          <p className="text-blue-300 mb-8">Get instant access to African GIS data.</p>
+          <h1 className="text-3xl font-black text-white mb-1">Create your free account</h1>
+          <p className="text-blue-300 mb-8">Start on free Basic — upgrade anytime from your dashboard.</p>
 
           {error && (
             <motion.div

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 function LoginForm() {
@@ -15,7 +15,8 @@ function LoginForm() {
   const nextParam = searchParams.get('next')
   const nextPath = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
     ? nextParam
-    : '/datasets'
+    : '/dashboard'
+  const hasNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -55,6 +56,15 @@ function LoginForm() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
+          {/* Back to home */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-6"
+          >
+            <ArrowLeft size={14} />
+            Back to home
+          </Link>
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-10">
             <svg viewBox="0 0 40 40" className="w-9 h-9">
@@ -67,7 +77,9 @@ function LoginForm() {
           </Link>
 
           <h1 className="text-3xl font-black text-navy mb-2">Welcome back</h1>
-          <p className="text-gray-500 mb-8">Sign in to access your datasets and downloads.</p>
+          <p className="text-gray-500 mb-8">
+            {hasNext ? 'Sign in to continue where you left off.' : 'Sign in to access your datasets and downloads.'}
+          </p>
 
           {error && (
             <motion.div
