@@ -17,7 +17,7 @@ const DATASET_TIPS: Record<number, string> = {
   16: 'Monthly mean temperature climatology for habitat modelling, crop suitability, and climate change impact assessments.',
   6: 'Essential for water resource management, transboundary groundwater agreements, and borehole planning. Pairs perfectly with HydroBASINS for full aquifer-to-catchment analysis in QGIS.',
   7: 'Monitor vegetation health, deforestation, and seasonal growth patterns. Time-series NDVI for trend analysis.',
-  8: 'Essential for urban planning, service delivery optimization, and demographic studies. High-resolution gridded data.',
+  8: 'Subnational population counts at ADM1 or ADM2 level, sourced from each country\'s latest official census. Attribute table includes population, reference year, admin names/PCODEs, and a link back to the HDX dataset for audit trails. Ideal for service delivery planning and demographic analysis.',
   9: 'Use for accessibility analysis, logistics planning, and infrastructure gap assessment across African nations.',
   10: 'Critical for biodiversity conservation, flood modelling, and environmental compliance studies.',
   11: 'Supports precision agriculture, land suitability analysis, and erosion risk mapping. Multi-layer soil properties.',
@@ -102,6 +102,7 @@ const LIVE_DATASETS: Record<number, string> = {
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',
   6: '/dashboard?section=aquifer',
+  8: '/dashboard?section=population',
 }
 
 export default function DatasetsPage() {

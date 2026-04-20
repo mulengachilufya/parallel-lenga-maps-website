@@ -15,6 +15,7 @@ import WatershedsList from '@/components/WatershedsList'
 import RainfallClimateList from '@/components/RainfallClimateList'
 import AquiferList from '@/components/AquiferList'
 import LulcList from '@/components/LulcList'
+import PopulationList from '@/components/PopulationList'
 
 type UserPlan = 'basic' | 'pro'
 
@@ -84,6 +85,12 @@ const SECTIONS: Record<string, {
     subtitle: 'ESA WorldCover 2021 v200 · CC BY 4.0 · EPSG:4326 · GeoTIFF (10 m) per country',
     tier: 'basic',
     component: (plan) => <LulcList userPlan={plan} />,
+  },
+  'population': {
+    title: '🏘️ Population & Settlements',
+    subtitle: 'HDX COD-PS (UN OCHA + national census offices) · EPSG:4326 · Shapefile (ZIP) · ADM1/ADM2',
+    tier: 'pro',
+    component: (plan) => <PopulationList userPlan={plan} />,
   },
 }
 

@@ -33,7 +33,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/dashboard')
+      router.push('/datasets')
     } catch {
       setError('An unexpected error occurred. Please try again.')
       setLoading(false)

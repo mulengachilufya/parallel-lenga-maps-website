@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Download, Database, Globe2, Layers, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
@@ -13,11 +13,6 @@ import { supabase, DATASETS } from '@/lib/supabase'
 const heroImage = '/images/branding/river-aerial.jpg'
 
 const services = [
-  {
-    icon: <Globe2 size={28} />,
-    title: 'GIS Consulting',
-    description: 'Expert geospatial analysis, mapping, and spatial data management for projects across Africa.',
-  },
   {
     icon: <Database size={28} />,
     title: 'GIS Data Bank',
@@ -406,12 +401,12 @@ export default function HomePage() {
               <span className="text-gold">We Help Solve It.</span>
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From GIS consulting to data engineering - Lenga Maps provides the geospatial foundation
-              for projects across Africa and beyond.
+              From a centralised GIS data bank to custom mapping and environmental studies - Lenga Maps
+              provides the geospatial foundation for projects across Africa and beyond.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service, i) => (
               <motion.div
                 key={service.title}

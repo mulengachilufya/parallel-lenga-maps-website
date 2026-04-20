@@ -50,7 +50,6 @@ export default function SignupPage() {
 // ── Main form ─────────────────────────────────────────────────────────────────
 
 function SignupContent() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultPlan        = (searchParams.get('plan') || 'basic') as PlanTier
@@ -105,12 +104,10 @@ function SignupContent() {
         return
       }
 
-      const priceData = PLAN_PRICING[accountType]?.[effectivePlan]
-      const hasZmwPrice = !!priceData?.zmw
-
-      // If session exists (email auto-confirmed) and plan has ZMW price → show payment step
-      if (data.session && data.user && hasZmwPrice) {
-        setPendingPayment({ userId: data.user.id, email, name })
+      // If session exists (email auto-confirmed) go straight to datasets.
+      // Otherwise show "check your email" success screen.
+      if (data.session && data.user) {
+        router.push('/datasets')
       } else {
         setSuccess(true)
       }
