@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Download, ArrowRight, CreditCard, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
+import { Check, Download, ArrowRight, ShieldCheck, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
+import { MtnBadge, AirtelBadge } from '@/components/PaymentProviderIcons'
 import Footer from '@/components/Footer'
 import { PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
 
@@ -146,21 +147,13 @@ const accountTypes: {
 const paymentMethods = [
   {
     name: 'MTN Mobile Money',
-    logo: '📱',
-    description: 'Pay instantly with MTN MoMo across Zambia and 14+ African countries.',
-    color: '#FFCC00',
+    badge: <MtnBadge size={56} />,
+    description: 'Pay via MTN MoMo — works from Zambia and any MTN country across Africa.',
   },
   {
     name: 'Airtel Money',
-    logo: '📲',
-    description: 'Seamless payments via Airtel Money - no bank account needed.',
-    color: '#E40000',
-  },
-  {
-    name: 'Bank Card / Visa',
-    logo: '💳',
-    description: 'Secure card payments via Flutterwave - Visa, Mastercard accepted.',
-    color: '#1E5F8E',
+    badge: <AirtelBadge size={56} />,
+    description: 'Pay via Airtel Money — cross-country transfers supported, no bank account needed.',
   },
 ]
 
@@ -408,11 +401,11 @@ export default function PricingPage() {
             </span>
             <h2 className="text-3xl font-black text-navy">Pay Your Way</h2>
             <p className="mt-3 text-gray-500 max-w-lg mx-auto">
-              We accept mobile money, card payments, and bank transfers - because finance shouldn&apos;t be a barrier to good data.
+              Mobile money only — MTN or Airtel. Pay, upload your screenshot, and your account is activated once we confirm.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {paymentMethods.map((method, i) => (
               <motion.div
                 key={method.name}
@@ -420,22 +413,24 @@ export default function PricingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex items-start gap-4"
               >
-                <div className="text-4xl mb-4">{method.logo}</div>
-                <h3 className="font-bold text-navy mb-2">{method.name}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{method.description}</p>
+                <div className="shrink-0">{method.badge}</div>
+                <div>
+                  <h3 className="font-bold text-navy mb-2">{method.name}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{method.description}</p>
+                </div>
               </motion.div>
             ))}
           </div>
 
           <div className="mt-8 bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <CreditCard size={18} className="text-primary" />
-              <span className="font-semibold text-navy">Powered by Flutterwave</span>
+              <ShieldCheck size={18} className="text-primary" />
+              <span className="font-semibold text-navy">Manual verification</span>
             </div>
             <p className="text-gray-500 text-sm">
-              All card and mobile money transactions are secured by Flutterwave - Africa&apos;s leading payment platform.
+              After you pay, upload the transaction screenshot from your dashboard. We confirm and activate your plan within hours.
             </p>
           </div>
         </div>

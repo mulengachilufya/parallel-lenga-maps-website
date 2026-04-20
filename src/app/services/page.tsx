@@ -188,7 +188,7 @@ export default function ServicesPage() {
             {[
               { step: '01', title: 'Sign Up', desc: 'Create your account and choose Basic or Pro.', icon: <Users size={20} /> },
               { step: '02', title: 'Choose Your Data', desc: 'Browse our dataset library and select what you need.', icon: <Database size={20} /> },
-              { step: '03', title: 'Pay Securely', desc: 'Pay via MTN MoMo, Airtel, or card via Flutterwave.', icon: <Globe size={20} /> },
+              { step: '03', title: 'Pay Securely', desc: 'Pay via MTN MoMo or Airtel Money — cross-country transfers supported.', icon: <Globe size={20} /> },
               { step: '04', title: 'Download', desc: 'Instant access to your files in industry-standard formats.', icon: <Download size={20} /> },
             ].map((step, i) => (
               <motion.div
