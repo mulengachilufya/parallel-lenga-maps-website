@@ -106,10 +106,12 @@ function SignupContent() {
         return
       }
 
-      // If session exists (email auto-confirmed) go straight to datasets.
-      // Otherwise show "check your email" success screen.
+      // If session exists (email auto-confirmed) route to the payment page so
+      // the user can complete the transfer for their selected plan. Otherwise
+      // show the "check your email" success screen — they'll land on payment
+      // after confirming and signing in (login honours ?next=).
       if (data.session && data.user) {
-        router.push('/datasets')
+        router.push(`/dashboard/payment?plan=${effectivePlan}&type=${accountType}`)
       } else {
         setSuccess(true)
       }
