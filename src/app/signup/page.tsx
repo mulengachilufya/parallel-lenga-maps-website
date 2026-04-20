@@ -65,6 +65,8 @@ function SignupContent() {
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState('')
   const [success,         setSuccess]         = useState(false)
+  // setter retained for future payment-step re-enable
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pendingPayment,  setPendingPayment]  = useState<{ userId: string; email: string; name: string } | null>(null)
 
   const isBusiness    = accountType === 'business'
