@@ -8,11 +8,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type AccountType = 'student' | 'professional' | 'business'
 export type PlanTier = 'basic' | 'pro' | 'max'
 
+// plan_status is independent of plan:
+//   - 'free'    : user has an account but has not paid for any plan yet (default)
+//   - 'pending' : user submitted manual payment, awaiting admin verification
+//   - 'active'  : admin verified payment — their `plan` field grants download access
+// Only 'active' lets a user actually download. 'plan' alone means nothing without 'active'.
+export type PlanStatus = 'free' | 'pending' | 'active'
+
 export type UserProfile = {
   id: string
   email: string
   account_type: AccountType
   plan: PlanTier
+  plan_status: PlanStatus
   created_at: string
 }
 
@@ -42,6 +50,22 @@ export function formatPrice(accountType: AccountType, plan: PlanTier): string {
   if (!price) return '—'
   if (price.zmw) return `K${price.zmw}`
   return `$${price.usd}`
+}
+
+// Map of dataset id → dashboard section URL. A dataset appearing here means
+// it has live data the user can actually browse (even without signing in).
+// Keep this in sync with the SECTIONS map in src/app/dashboard/page.tsx.
+export const LIVE_DATASET_ROUTES: Record<number, string> = {
+  1:  '/dashboard?section=admin-boundaries',
+  3:  '/dashboard?section=rivers',
+  4:  '/dashboard?section=lulc',
+  5:  '/dashboard?section=drought-index',
+  6:  '/dashboard?section=aquifer',
+  8:  '/dashboard?section=population',
+  13: '/dashboard?section=rivers',
+  14: '/dashboard?section=watersheds',
+  15: '/dashboard?section=rainfall',
+  16: '/dashboard?section=temperature',
 }
 
 export type DatasetSource = {

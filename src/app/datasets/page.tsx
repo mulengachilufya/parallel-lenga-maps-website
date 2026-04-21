@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Download, Lock, Clock, ExternalLink, Layers } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { DATASETS } from '@/lib/supabase'
+import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
 import type { DatasetSource } from '@/lib/supabase'
 
 const DATASET_TIPS: Record<number, string> = {
@@ -91,19 +91,10 @@ function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color:
   )
 }
 
-// Only datasets with actual download data on the dashboard
-const LIVE_DATASETS: Record<number, string> = {
-  1: '/dashboard?section=admin-boundaries',
-  3: '/dashboard?section=rivers',
-  4: '/dashboard?section=lulc',
-  5: '/dashboard?section=drought-index',
-  15: '/dashboard?section=rainfall',
-  16: '/dashboard?section=temperature',
-  13: '/dashboard?section=rivers',
-  14: '/dashboard?section=watersheds',
-  6: '/dashboard?section=aquifer',
-  8: '/dashboard?section=population',
-}
+// Dataset-id → dashboard section URL, re-exported from lib/supabase so the
+// homepage and this page stay in sync. Presence means the dataset has live
+// data users can browse (signing in only required when they click Download).
+const LIVE_DATASETS = LIVE_DATASET_ROUTES
 
 export default function DatasetsPage() {
   return (

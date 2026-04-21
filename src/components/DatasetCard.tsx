@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Lock } from 'lucide-react'
 
@@ -19,16 +20,22 @@ interface Dataset {
 interface DatasetCardProps {
   dataset: Dataset
   index: number
+  /**
+   * If provided, wraps the card in a <Link>. The DownloadGate still guards
+   * the actual download button inside the destination page — the link just
+   * lets anonymous users browse the dataset contents freely.
+   */
+  href?: string
 }
 
-export default function DatasetCard({ dataset, index }: DatasetCardProps) {
-  return (
+export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
+  const card = (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
       viewport={{ once: true }}
-      className="flip-card h-64"
+      className={`flip-card h-64 ${href ? 'cursor-pointer' : ''}`}
     >
       <div className="flip-card-inner h-full rounded-2xl">
         {/* Front */}
@@ -95,11 +102,20 @@ export default function DatasetCard({ dataset, index }: DatasetCardProps) {
           </div>
           <div className="mt-4">
             <button className="w-full py-2 bg-accent text-navy font-semibold rounded-lg text-sm hover:bg-yellow-400 transition-colors">
-              View Dataset
+              {href ? 'Browse Dataset' : 'View Dataset'}
             </button>
           </div>
         </div>
       </div>
     </motion.div>
   )
+
+  if (href) {
+    return (
+      <Link href={href} className="block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-2xl">
+        {card}
+      </Link>
+    )
+  }
+  return card
 }

@@ -111,11 +111,11 @@ function DashboardContent() {
 
   useEffect(() => {
     const getUser = async () => {
+      // Anonymous users are allowed to browse — they'll hit the DownloadGate
+      // modal only when they actually click a Download button on a file.
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        // Preserve the dashboard path + section so they land back here after login.
-        const here = window.location.pathname + window.location.search
-        router.replace(`/login?next=${encodeURIComponent(here)}`)
+        setLoading(false)
         return
       }
       const { data: profile } = await supabase

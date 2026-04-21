@@ -3,20 +3,27 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { X, Lock, ArrowRight, Star, Zap } from 'lucide-react'
-import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
+import { X, Lock, ArrowRight, Star, Zap, CreditCard, Clock } from 'lucide-react'
+import { supabase, PLAN_PRICING, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface DownloadUser {
   email: string
   plan: PlanTier
+  planStatus: PlanStatus
   accountType: AccountType
 }
 
+// Three gate branches (cascade):
+//   'signup'  — no session at all → sign in / create free account
+//   'pay'     — logged in but plan_status !== 'active' → activate their plan
+//   'upgrade' — active but current plan tier < required tier → upgrade to higher plan
 interface GateModal {
-  type: 'signup' | 'upgrade'
+  type: 'signup' | 'pay' | 'upgrade'
   requiredTier: PlanTier
+  currentPlan?: PlanTier    // for 'pay' — the plan they originally selected
+  planStatus?: PlanStatus   // for 'pay' — so we can differentiate pending vs free
 }
 
 interface DownloadGateContextType {
@@ -50,9 +57,9 @@ const TIER_DESCS: Record<PlanTier, string> = {
 // ── Modal ──────────────────────────────────────────────────────────────────────
 
 function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () => void }) {
-  const isSignup = modal.type === 'signup'
   const requiredLabel = TIER_LABELS[modal.requiredTier]
   const requiredColor = TIER_COLORS[modal.requiredTier]
+  const isPending = modal.type === 'pay' && modal.planStatus === 'pending'
 
   return (
     <div
@@ -78,7 +85,11 @@ function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () =
               className="w-11 h-11 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: `${requiredColor}18` }}
             >
-              <Lock size={20} style={{ color: requiredColor }} />
+              {modal.type === 'pay'
+                ? (isPending
+                    ? <Clock size={20} style={{ color: requiredColor }} />
+                    : <CreditCard size={20} style={{ color: requiredColor }} />)
+                : <Lock size={20} style={{ color: requiredColor }} />}
             </div>
             <button
               onClick={onClose}
@@ -88,7 +99,7 @@ function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () =
             </button>
           </div>
 
-          {isSignup ? (
+          {modal.type === 'signup' ? (
             /* ── SIGN UP GATE ─────────────────────────────────────────────── */
             <>
               <h2 className="text-xl font-black text-navy mb-1">Sign in to download</h2>
@@ -158,6 +169,96 @@ function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () =
                 </Link>
               </p>
             </>
+          ) : modal.type === 'pay' ? (
+            /* ── PAY / ACTIVATE GATE ──────────────────────────────────────── */
+            <>
+              <h2 className="text-xl font-black text-navy mb-1">
+                {isPending ? 'Payment under review' : 'Activate your plan to download'}
+              </h2>
+              <p className="text-gray-500 text-sm mb-5">
+                {isPending
+                  ? 'Your payment is being verified. You\u2019ll get download access as soon as we confirm it (usually within a few hours).'
+                  : 'You have an account, but no active plan yet. Choose and pay for a plan to start downloading.'}
+              </p>
+
+              {!isPending && (
+                <div className="space-y-2 mb-5">
+                  {(['basic', 'pro', 'max'] as PlanTier[]).map((tier) => {
+                    const price = PLAN_PRICING.student[tier]
+                    const isRecommended = tier === modal.requiredTier
+                    return (
+                      <Link
+                        key={tier}
+                        href={`/dashboard/payment?plan=${tier}`}
+                        onClick={onClose}
+                        className="flex items-center justify-between px-3.5 py-3 rounded-xl border-2 transition-all hover:shadow-md hover:-translate-y-0.5"
+                        style={{
+                          borderColor: isRecommended ? requiredColor : '#e5e7eb',
+                          backgroundColor: isRecommended ? `${requiredColor}08` : 'white',
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-navy text-sm">{TIER_LABELS[tier]}</span>
+                            {isRecommended && (
+                              <span
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white leading-tight"
+                                style={{ backgroundColor: requiredColor }}
+                              >
+                                Needed for this file
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{TIER_DESCS[tier]}</p>
+                        </div>
+                        <div className="text-right ml-3 shrink-0">
+                          {price?.zmw && (
+                            <div className="font-black text-sm leading-none" style={{ color: TIER_COLORS[tier] }}>
+                              K{price.zmw}
+                              <span className="text-[10px] font-normal text-gray-400">/mo</span>
+                            </div>
+                          )}
+                          {price?.usd && (
+                            <div className="text-[11px] text-gray-500 mt-0.5">
+                              ${price.usd}
+                              <span className="text-[9px] text-gray-400">/mo</span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+
+              {isPending ? (
+                <Link
+                  href="/dashboard"
+                  onClick={onClose}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-primary text-white hover:bg-navy transition-all"
+                >
+                  Back to dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href={`/dashboard/payment?plan=${modal.requiredTier}`}
+                    onClick={onClose}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                    style={{ backgroundColor: requiredColor }}
+                  >
+                    Pay for {requiredLabel} <ArrowRight size={14} />
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    onClick={onClose}
+                    className="mt-2 w-full flex items-center justify-center py-2.5 rounded-xl font-medium text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    Compare plans
+                  </Link>
+                </>
+              )}
+            </>
           ) : (
             /* ── UPGRADE GATE ─────────────────────────────────────────────── */
             <>
@@ -197,7 +298,7 @@ function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () =
               </div>
 
               <Link
-                href="/pricing"
+                href={`/dashboard/payment?plan=${modal.requiredTier}`}
                 onClick={onClose}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 style={{ backgroundColor: requiredColor }}
@@ -237,12 +338,14 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string, email: string) => {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan, account_type')
+      .select('plan, plan_status, account_type')
       .eq('id', userId)
       .single()
     setGateUser({
       email,
       plan: (profile?.plan || 'basic') as PlanTier,
+      // Default to 'free' if column is missing or empty — never silently grant access.
+      planStatus: (profile?.plan_status || 'free') as PlanStatus,
       accountType: (profile?.account_type || 'student') as AccountType,
     })
   }
@@ -267,10 +370,22 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const guardDownload = (requiredTier: PlanTier, fn: () => void) => {
+    // Cascade: no session → sign up / sign in
     if (!gateUser) {
       setModal({ type: 'signup', requiredTier })
       return
     }
+    // Has an account but has not paid (or payment still pending verification)
+    if (gateUser.planStatus !== 'active') {
+      setModal({
+        type: 'pay',
+        requiredTier,
+        currentPlan: gateUser.plan,
+        planStatus: gateUser.planStatus,
+      })
+      return
+    }
+    // Active plan but insufficient tier for this file → upgrade
     if (TIER_ORDER[gateUser.plan] < TIER_ORDER[requiredTier]) {
       setModal({ type: 'upgrade', requiredTier })
       return

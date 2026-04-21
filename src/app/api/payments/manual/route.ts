@@ -295,6 +295,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not record submission.' }, { status: 500 })
   }
 
+  // ─── Flip the user's plan to 'pending' + record their chosen plan/tier ──
+  // This drives the DownloadGate UI: while pending, the gate shows "Payment
+  // under review" instead of asking them to pay again. Admin verification
+  // later flips plan_status to 'active'.
+  const { error: profileErr } = await service
+    .from('profiles')
+    .update({
+      plan,
+      account_type: accountType,
+      plan_status:  'pending',
+    })
+    .eq('id', userId)
+  if (profileErr) {
+    // Non-fatal — the payment row is the source of truth; log and continue.
+    console.error('[ManualPayment] profile status update failed:', profileErr)
+  }
+
   // ─── Notifications (best-effort) ──────────────────────────────────────
   let screenshotUrl = ''
   try {
