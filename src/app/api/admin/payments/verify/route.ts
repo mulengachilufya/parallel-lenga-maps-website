@@ -11,17 +11,45 @@ import { isAdminEmail } from '@/lib/admin'
  *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
  *   - profiles.plan → plan recorded on the payment row
  *   - profiles.plan_status → 'active'
+ *   - profiles.plan_expires_at → now() + 30 days (single-month billing period)
  *   - fires Web3Forms email to the customer letting them know access is live
  *
  * On 'reject':
  *   - manual_payments.status → 'rejected', admin_note = note
  *   - profiles.plan_status → 'free'  (they'll need to resubmit)
+ *
+ * Rate limit: 30 verify/reject actions per admin per minute. Protects against
+ * accidental scripts/double-clicks flipping the whole queue at once.
  */
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// One month of paid access — the unit customers pay for on the pricing page.
+const ACTIVE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000
+
+// Simple per-admin in-memory rate limiter. Fine for a single Vercel instance
+// under normal admin load; if we ever need cross-instance enforcement we
+// can move this into the DB.
+const RATE_LIMIT_WINDOW_MS = 60 * 1000
+const RATE_LIMIT_MAX_ACTIONS = 30
+const adminActionHistory = new Map<string, number[]>()
+
+function checkRateLimit(adminId: string): boolean {
+  const now = Date.now()
+  const history = (adminActionHistory.get(adminId) || []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS
+  )
+  if (history.length >= RATE_LIMIT_MAX_ACTIONS) {
+    adminActionHistory.set(adminId, history)
+    return false
+  }
+  history.push(now)
+  adminActionHistory.set(adminId, history)
+  return true
+}
 
 async function notifyCustomer(
   action: 'verify' | 'reject',
@@ -64,6 +92,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
+  if (!checkRateLimit(user.id)) {
+    return NextResponse.json(
+      { error: 'too many actions — slow down and try again in a minute' },
+      { status: 429 }
+    )
+  }
+
   const body = await req.json().catch(() => ({} as Record<string, unknown>))
   const reference = typeof body.reference === 'string' ? body.reference.trim() : ''
   const action = body.action === 'reject' ? 'reject' : 'verify'
@@ -102,12 +137,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
     }
 
+    const expiresAt = new Date(Date.now() + ACTIVE_PERIOD_MS).toISOString()
     const { error: profErr } = await service
       .from('profiles')
       .update({
-        plan:          payment.plan,
-        account_type:  payment.account_type,
-        plan_status:   'active',
+        plan:            payment.plan,
+        account_type:    payment.account_type,
+        plan_status:     'active',
+        plan_expires_at: expiresAt,
       })
       .eq('id', payment.user_id)
     if (profErr) {

@@ -1,6 +1,6 @@
 # Lenga Maps — Engineering Handoff
 
-_Last updated: 2026-04-22_
+_Last updated: 2026-04-22 (monthly expiry + admin link + auth callback + rate limit added)_
 
 This doc covers the work done in the most recent series of sessions and hands
 off cleanly so another engineer can pick up without context loss.
@@ -143,6 +143,9 @@ and CTAs point at the right next step (`/signup`, `/dashboard/payment?plan=X`,
 ### DB migrations / data
 
 - **`supabase/migrations/003_add_plan_status.sql`** — NEW. Adds `plan_status` column with default `'free'`; backfills existing rows to `'free'`.
+- **`supabase/migrations/004_add_plan_expires_at.sql`** — NEW. Adds `plan_expires_at timestamptz` (nullable). App treats `NULL` as no-expiry (lifetime), `> now()` as active, `<= now()` as expired.
+- **`src/app/api/admin/me/route.ts`** — NEW. GET returns `{ isAdmin: boolean }` for the current session. Dashboard header uses this to decide whether to show the Admin link (ADMIN_EMAILS is server-only).
+- **`src/app/auth/callback/route.ts`** — NEW. Handles Supabase email-confirmation links: exchanges the `?code=` for a session cookie, then redirects into the app. On failure sends the user to `/login?error=expired_link`.
 - **`scripts/prepare-population-settlements.py`** — Python pipeline: pulls HDX COD-AB (boundaries) + COD-PS (subnational population) for all 54 African countries, joins on PCODE, exports per-country shapefile zips to `output/PopulationSettlements/`.
 - **`scripts/seed-population-settlements.ts`** — Uploads the zips to R2 and upserts `population_settlements_layers` rows in Supabase.
 - **`src/app/api/population-settlements/route.ts`** — GET endpoint with presigned download URLs.
@@ -157,37 +160,119 @@ and CTAs point at the right next step (`/signup`, `/dashboard/payment?plan=X`,
 ## 5. Manual steps the owner still needs to do
 
 These **cannot** be automated — they require access to the Supabase dashboard
-and the Vercel project. They block full functionality of what we built:
+and the Vercel project. Until you do these, the paid flow is half-wired:
+migrations missing means the app can't read/write `plan_status` or
+`plan_expires_at`, env vars missing means the admin panel and emails don't
+work.
 
-### 5.1 Required (blocks all paid flow)
+Each subsection is **click-by-click**. Do them in the order given.
 
-1. **Run the plan_status migration** in the Supabase SQL editor:
+### 5.1 Run the two SQL migrations (Supabase)
+
+Both migrations are idempotent — safe to re-run if you're unsure whether you ran them before.
+
+1. Open [https://supabase.com](https://supabase.com) → sign in → pick the **lenga-maps** project.
+2. In the left sidebar click **SQL Editor** → **+ New query**.
+3. Paste and **Run** this (migration `003_add_plan_status.sql`):
    ```sql
-   -- contents of supabase/migrations/003_add_plan_status.sql
    ALTER TABLE profiles
      ADD COLUMN IF NOT EXISTS plan_status text NOT NULL DEFAULT 'free';
+
+   ALTER TABLE profiles
+     DROP CONSTRAINT IF EXISTS profiles_plan_status_check;
+   ALTER TABLE profiles
+     ADD CONSTRAINT profiles_plan_status_check
+     CHECK (plan_status IN ('free', 'pending', 'active'));
+
    UPDATE profiles SET plan_status = 'free' WHERE plan_status IS NULL;
    ```
-
-2. **Create the `manual_payments` table** if it doesn't yet exist. Schema is in the header comment of `src/app/api/payments/manual/route.ts` (lines 29–55).
-
-3. **Set env vars on Vercel** (Settings → Environment Variables, Production + Preview + Development, then Redeploy):
-   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — from Supabase dashboard.
-   - `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_R2_BUCKET_NAME`.
-   - `NEXT_PUBLIC_WEB3FORMS_KEY` — for email.
-   - `ADMIN_EMAILS` = `lengamaps@gmail.com,cmulenga672@gmail.com`.
-
-4. **Activate the owner's own account** so they can test paid downloads:
+4. **+ New query** again. Paste and **Run** this (migration `004_add_plan_expires_at.sql`):
    ```sql
-   UPDATE profiles
-   SET plan_status = 'active', plan = 'max'
-   WHERE email = 'cmulenga672@gmail.com';
+   ALTER TABLE profiles
+     ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz;
+   ```
+5. Verify the columns exist: left sidebar → **Table Editor** → `profiles`. You should see both `plan_status` and `plan_expires_at` columns.
+
+### 5.2 Create the `manual_payments` table (Supabase)
+
+Only do this if it doesn't already exist (check the Table Editor first — if you already see `manual_payments` in the list, skip).
+
+1. **SQL Editor** → **+ New query**. Paste and **Run**:
+   ```sql
+   CREATE TABLE IF NOT EXISTS manual_payments (
+     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     reference       text UNIQUE NOT NULL,
+     user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+     user_email      text NOT NULL,
+     user_name       text,
+     phone           text,
+     country         text,
+     plan            text NOT NULL,
+     account_type    text NOT NULL,
+     amount          numeric,
+     currency        text,
+     method          text NOT NULL,
+     txn_ref         text,
+     screenshot_key  text NOT NULL,
+     status          text NOT NULL DEFAULT 'pending'
+                     CHECK (status IN ('pending', 'verified', 'rejected')),
+     admin_note      text,
+     verified_at     timestamptz,
+     verified_by     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+     submitted_at    timestamptz NOT NULL DEFAULT now()
+   );
+   CREATE INDEX IF NOT EXISTS idx_manual_payments_status ON manual_payments(status);
+   CREATE INDEX IF NOT EXISTS idx_manual_payments_user ON manual_payments(user_id);
    ```
 
-### 5.2 Optional
+### 5.3 Set environment variables on Vercel
 
-- **CallMeBot WhatsApp** — instructions in the `.env.local.example` header. One-time ~5-min setup. If left blank, email still fires.
-- **Custom domain email** for customer notifications — Web3Forms sends from a shared sender; for polish, replace with a real SMTP integration later.
+1. Go to [https://vercel.com](https://vercel.com) → your team → the **lenga-maps-platform** project.
+2. Click **Settings** (top nav) → **Environment Variables** (left sidebar).
+3. For each var below, click **Add New**, paste the name + value, leave all three checkboxes ticked (Production, Preview, Development), click **Save**.
+
+   | Name | Value / where to get it |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API → `anon public` key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role` key (**secret — never put in client code**) |
+   | `CLOUDFLARE_R2_ACCOUNT_ID` | Cloudflare dashboard → R2 → top-right account ID |
+   | `CLOUDFLARE_R2_ACCESS_KEY_ID` | Cloudflare R2 → Manage R2 API Tokens → your token's key ID |
+   | `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | Cloudflare R2 → same token's secret |
+   | `CLOUDFLARE_R2_BUCKET_NAME` | Name of your R2 bucket (the one storing GIS zips + screenshots) |
+   | `NEXT_PUBLIC_WEB3FORMS_KEY` | [https://web3forms.com](https://web3forms.com) → sign up with `lengamaps@gmail.com` → copy the access key |
+   | `ADMIN_EMAILS` | `lengamaps@gmail.com,cmulenga672@gmail.com` — comma-separated, no spaces |
+
+4. After **all** vars are saved, go to **Deployments** (top nav) → find the latest deploy → click `...` → **Redeploy**. Vercel only picks up env changes on a fresh deploy.
+
+### 5.4 Activate your own account for testing
+
+Without this, even you get the paywall when you click Download.
+
+1. Supabase → **SQL Editor** → **+ New query**.
+2. Run:
+   ```sql
+   UPDATE profiles
+   SET plan_status     = 'active',
+       plan            = 'max',
+       plan_expires_at = now() + interval '1 year'
+   WHERE email = 'cmulenga672@gmail.com';
+   ```
+3. Log in to the site as that user → click any dataset → click any Download → the file should download without a modal.
+
+### 5.5 Point the Supabase email template at `/auth/callback`
+
+Otherwise new signups click the confirmation link and land on a bare Supabase page instead of your site.
+
+1. Supabase → **Authentication** (left sidebar) → **Email Templates** → **Confirm signup**.
+2. Find any line of the form `{{ .ConfirmationURL }}`. Above it, find **Redirect URL** — set it to `https://lengamaps.com/auth/callback`. (For local testing you can add `http://localhost:3000/auth/callback` to **URL Configuration → Additional Redirect URLs**.)
+3. Do the same for the **Reset password** and **Magic link** templates if you use them.
+4. Save.
+
+### 5.6 Optional
+
+- **CallMeBot WhatsApp** — one-time ~5-min setup per the `.env.local.example` header (message `+34 644 51 95 89` with `I allow callmebot to send me messages`, it replies with an API key). Set `CALLMEBOT_WHATSAPP_PHONE` and `CALLMEBOT_WHATSAPP_APIKEY` on Vercel. If left blank, email notifications still fire.
+- **Custom domain email sender** — Web3Forms currently sends from a shared address. Swap to Resend / Postmark later for polish.
 
 ---
 
@@ -208,11 +293,11 @@ and the Vercel project. They block full functionality of what we built:
 
 ### Should-do soon
 
-1. **Admin navigation entry.** There's currently no link to `/admin/payments` anywhere. Owner has to type the URL. Suggest: show an "Admin" menu item in the dashboard header when `isAdminEmail(session.email)` is true. Since `ADMIN_EMAILS` is server-side only, the cleanest implementation is a tiny `GET /api/admin/me` endpoint that returns `{ isAdmin: boolean }` and have the dashboard header call it.
+1. ~~**Admin navigation entry.**~~ ✅ Done — `/api/admin/me` endpoint added; dashboard header shows an "Admin" button when the current user is admin-allow-listed.
 2. ~~**Pending payment badge on the customer dashboard.**~~ ✅ Done — `src/app/dashboard/page.tsx` shows a yellow "Payment under review" banner when `plan_status === 'pending'`.
-3. **Email verification UX.** Signup currently sends a confirmation email. Make sure the email template points to `https://lengamaps.com/auth/callback` (or equivalent) so the user lands back on the site, not a generic Supabase page. Re-check the Supabase Auth settings dashboard.
-4. **Monthly billing.** Plans are currently one-off manual payments — `plan_status='active'` doesn't expire. Add a `plan_expires_at` column and either: (a) a cron that flips expired rows to `'free'`, or (b) compute `active` dynamically from `expires_at > now()`. Choose based on whether we want recurring billing or month-by-month manual renewals.
-5. **Rate-limit the admin verify endpoint.** The manual submit endpoint has a 60-min / 3-pending rate limit. Admin verify has none — add a small sanity check (e.g. max N verifications per minute) to prevent accidental auto-scripts from flipping everyone to active.
+3. ~~**Email verification UX.**~~ ✅ Done — `/auth/callback` route handles the Supabase confirmation code exchange and redirects into the app. Owner must still point the Supabase email template at `https://lengamaps.com/auth/callback` (see §5.5).
+4. ~~**Monthly billing.**~~ ✅ Done — `plan_expires_at` column added, admin verify sets it to `now() + 30 days`, the DownloadGate and dashboard treat past-expiry as lapsed (drops to the "renew" pay modal). No cron required — enforcement is in the app. Owner renews by re-approving a fresh payment, which bumps the expiry forward another 30 days.
+5. ~~**Rate-limit the admin verify endpoint.**~~ ✅ Done — in-memory 30-actions-per-minute-per-admin limit in `src/app/api/admin/payments/verify/route.ts`. Exceeding it returns HTTP 429.
 
 ### Could-do, not blocking
 

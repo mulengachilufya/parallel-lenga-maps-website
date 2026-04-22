@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock } from 'lucide-react'
+import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock } from 'lucide-react'
 import { supabase, DATASETS, PLAN_PRICING, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
@@ -24,6 +24,7 @@ interface UserData {
   name: string
   plan: UserPlan
   planStatus: PlanStatus
+  planExpiresAt: string | null
   accountType: AccountType
 }
 
@@ -106,6 +107,7 @@ function DashboardContent() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteSuccess, setDeleteSuccess] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Which section to show - null means show the overview (all sections listed as cards)
   const section = searchParams.get('section')
@@ -121,7 +123,7 @@ function DashboardContent() {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, plan_status, account_type, full_name')
+        .select('plan, plan_status, plan_expires_at, account_type, full_name')
         .eq('id', session.user.id)
         .single()
       setUser({
@@ -130,9 +132,20 @@ function DashboardContent() {
         plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
         // Default to 'free' if the column is missing so we never silently grant access.
         planStatus: (profile?.plan_status || 'free') as PlanStatus,
+        planExpiresAt: (profile?.plan_expires_at as string | null) ?? null,
         accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
       })
       setLoading(false)
+
+      // Separate check (safe-fail) for admin status so the header can show
+      // the /admin/payments link. ADMIN_EMAILS lives server-side only.
+      try {
+        const res = await fetch('/api/admin/me', { cache: 'no-store' })
+        if (res.ok) {
+          const json = await res.json()
+          setIsAdmin(!!json.isAdmin)
+        }
+      } catch { /* ignore — non-admins never see the link anyway */ }
     }
     getUser()
   }, [router])
@@ -208,6 +221,15 @@ function DashboardContent() {
           <div className="flex items-center gap-4">
             {user ? (
               <>
+                {isAdmin && (
+                  <Link
+                    href="/admin/payments"
+                    className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-primary transition-colors"
+                  >
+                    <Shield size={13} />
+                    Admin
+                  </Link>
+                )}
                 <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
                   <User size={14} className="text-gray-500" />
                   <span className="text-sm text-gray-700">{user.email}</span>
@@ -302,6 +324,68 @@ function DashboardContent() {
                   more countries, more datasets, or unlimited downloads, upgrade anytime from{' '}
                   <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>.
                 </p>
+              </motion.div>
+            )}
+
+            {/* Plan-expired banner — active+past-expiry → treated as lapsed.
+                Points them at /dashboard/payment to renew. */}
+            {user?.planStatus === 'active' && user.planExpiresAt &&
+              new Date(user.planExpiresAt).getTime() <= Date.now() && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-red-50 border border-red-300 rounded-2xl p-5 sm:p-6 flex items-start gap-4"
+              >
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-red-200 flex items-center justify-center">
+                  <CalendarClock size={20} className="text-red-900" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-black text-navy mb-1">Your plan has expired</h2>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Your <strong className="capitalize">{user.plan}</strong> access period
+                    has ended. Renew anytime to pick up where you left off — same quick
+                    MTN / Airtel flow.
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/payment?plan=${user.plan}`}
+                  className="shrink-0 self-center bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
+                >
+                  Renew now
+                </Link>
+              </motion.div>
+            )}
+
+            {/* Plan-expires-soon banner — active and within 7 days of expiry.
+                Heads-up so renewals don't fall off a cliff. */}
+            {user?.planStatus === 'active' && user.planExpiresAt &&
+              (() => {
+                const msLeft = new Date(user.planExpiresAt).getTime() - Date.now()
+                const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24))
+                return msLeft > 0 && daysLeft <= 7
+              })() && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-amber-50 border border-amber-300 rounded-2xl p-5 sm:p-6 flex items-start gap-4"
+              >
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-200 flex items-center justify-center">
+                  <CalendarClock size={20} className="text-amber-900" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-black text-navy mb-1">Your plan renews soon</h2>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Your <strong className="capitalize">{user.plan}</strong> plan expires on{' '}
+                    <strong>{new Date(user.planExpiresAt!).toLocaleDateString()}</strong>.
+                    Renew early to avoid any download interruption.
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/payment?plan=${user.plan}`}
+                  className="shrink-0 self-center bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
+                >
+                  Renew
+                </Link>
               </motion.div>
             )}
 

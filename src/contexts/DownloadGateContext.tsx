@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { X, Lock, ArrowRight, Star, Zap, CreditCard, Clock } from 'lucide-react'
-import { supabase, PLAN_PRICING, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
+import { supabase, PLAN_PRICING, isPlanActive, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -12,18 +12,23 @@ interface DownloadUser {
   email: string
   plan: PlanTier
   planStatus: PlanStatus
+  planExpiresAt: string | null
   accountType: AccountType
 }
 
 // Three gate branches (cascade):
 //   'signup'  — no session at all → sign in / create free account
-//   'pay'     — logged in but plan_status !== 'active' → activate their plan
+//   'pay'     — logged in but plan not currently active → activate/renew their plan
+//               (covers: plan_status='free', plan_status='pending', or plan_status='active'
+//                but plan_expires_at has passed)
 //   'upgrade' — active but current plan tier < required tier → upgrade to higher plan
+type PayReason = 'free' | 'pending' | 'expired'
+
 interface GateModal {
   type: 'signup' | 'pay' | 'upgrade'
   requiredTier: PlanTier
   currentPlan?: PlanTier    // for 'pay' — the plan they originally selected
-  planStatus?: PlanStatus   // for 'pay' — so we can differentiate pending vs free
+  payReason?: PayReason     // for 'pay' — which sub-state we're in
 }
 
 interface DownloadGateContextType {
@@ -59,7 +64,8 @@ const TIER_DESCS: Record<PlanTier, string> = {
 function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () => void }) {
   const requiredLabel = TIER_LABELS[modal.requiredTier]
   const requiredColor = TIER_COLORS[modal.requiredTier]
-  const isPending = modal.type === 'pay' && modal.planStatus === 'pending'
+  const isPending = modal.type === 'pay' && modal.payReason === 'pending'
+  const isExpired = modal.type === 'pay' && modal.payReason === 'expired'
 
   return (
     <div
@@ -173,12 +179,18 @@ function DownloadGateModal({ modal, onClose }: { modal: GateModal; onClose: () =
             /* ── PAY / ACTIVATE GATE ──────────────────────────────────────── */
             <>
               <h2 className="text-xl font-black text-navy mb-1">
-                {isPending ? 'Payment under review' : 'Activate your plan to download'}
+                {isPending
+                  ? 'Payment under review'
+                  : isExpired
+                    ? 'Your plan has expired'
+                    : 'Activate your plan to download'}
               </h2>
               <p className="text-gray-500 text-sm mb-5">
                 {isPending
                   ? 'Your payment is being verified. You\u2019ll get download access as soon as we confirm it (usually within a few hours).'
-                  : 'You have an account, but no active plan yet. Choose and pay for a plan to start downloading.'}
+                  : isExpired
+                    ? 'Your monthly access period has ended. Renew your plan below to keep downloading — it\u2019s the same quick MTN / Airtel flow.'
+                    : 'You have an account, but no active plan yet. Choose and pay for a plan to start downloading.'}
               </p>
 
               {!isPending && (
@@ -338,7 +350,7 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string, email: string) => {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan, plan_status, account_type')
+      .select('plan, plan_status, plan_expires_at, account_type')
       .eq('id', userId)
       .single()
     setGateUser({
@@ -346,6 +358,7 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
       plan: (profile?.plan || 'basic') as PlanTier,
       // Default to 'free' if column is missing or empty — never silently grant access.
       planStatus: (profile?.plan_status || 'free') as PlanStatus,
+      planExpiresAt: (profile?.plan_expires_at as string | null) ?? null,
       accountType: (profile?.account_type || 'student') as AccountType,
     })
   }
@@ -375,13 +388,24 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
       setModal({ type: 'signup', requiredTier })
       return
     }
-    // Has an account but has not paid (or payment still pending verification)
-    if (gateUser.planStatus !== 'active') {
+    // Pay gate covers three sub-states (never paid, pending review, expired).
+    const active = isPlanActive(gateUser.planStatus, gateUser.planExpiresAt)
+    if (!active) {
+      let payReason: PayReason = 'free'
+      if (gateUser.planStatus === 'pending') {
+        payReason = 'pending'
+      } else if (
+        gateUser.planStatus === 'active' &&
+        gateUser.planExpiresAt &&
+        new Date(gateUser.planExpiresAt).getTime() <= Date.now()
+      ) {
+        payReason = 'expired'
+      }
       setModal({
         type: 'pay',
         requiredTier,
         currentPlan: gateUser.plan,
-        planStatus: gateUser.planStatus,
+        payReason,
       })
       return
     }

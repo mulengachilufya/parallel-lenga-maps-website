@@ -21,7 +21,19 @@ export type UserProfile = {
   account_type: AccountType
   plan: PlanTier
   plan_status: PlanStatus
+  // When the current paid period ends. null = never set (pre-migration row
+  // or comped/lifetime account). In the future (> now) = active.
+  // In the past (<= now) = expired — gate treats them as if they never paid.
+  plan_expires_at: string | null
   created_at: string
+}
+
+// Shared helper: is this plan still within its paid window?
+// null expiry means "no expiry set" — treat as valid (e.g. lifetime/comped accounts).
+export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | undefined): boolean {
+  if (planStatus !== 'active') return false
+  if (!expiresAt) return true
+  return new Date(expiresAt).getTime() > Date.now()
 }
 
 export interface PlanPrice {
