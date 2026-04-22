@@ -1,12 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Download, ArrowRight, ShieldCheck, Star, GraduationCap, Briefcase, Building2 } from 'lucide-react'
+import { Check, Download, ArrowRight, ShieldCheck, Star, GraduationCap, Briefcase, Building2, Copy } from 'lucide-react'
 import { MtnBadge, AirtelBadge } from '@/components/PaymentProviderIcons'
 import Footer from '@/components/Footer'
-import { PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
+import { supabase, PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
+
+// Real mobile-money destinations — kept in sync with ManualPaymentFlow.tsx.
+// These are shown publicly on the pricing page so customers can see exactly
+// who / what number they'll be sending to before they even sign up.
+const MTN_NUMBER    = '+260 965 699 359'
+const AIRTEL_NUMBER = '+260 779 187 025'
+const RECEIVER_NAME = 'Mulenga Chilufya'
 
 type FeatureItem = string | { main: string; subs: string[] }
 
@@ -157,8 +164,62 @@ const paymentMethods = [
   },
 ]
 
+// ── Copyable value pill used in the "How to pay" section ─────────────────────
+function PayCopy({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3 mb-2 last:mb-0">
+      <div className="min-w-0">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</div>
+        <div className="text-base sm:text-lg font-black text-navy truncate select-all">{value}</div>
+      </div>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value.replace(/\s/g, ''))
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1500)
+          } catch { /* clipboard blocked — user can long-press */ }
+        }}
+        className={`ml-3 shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+          copied ? 'bg-green-600 text-white' : 'bg-navy text-white hover:bg-primary'
+        }`}
+      >
+        {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+      </button>
+    </div>
+  )
+}
+
 export default function PricingPage() {
   const [accountType, setAccountType] = useState<AccountType>('student')
+  const [isSignedIn, setIsSignedIn] = useState(false)
+
+  // Detect session so we can route the plan CTAs smartly:
+  //   · signed in  → skip signup, go straight to /dashboard/payment?plan=X&type=Y
+  //                  (that's where the MTN/Airtel numbers + instructions live)
+  //   · signed out → /signup?plan=X&type=Y (preserves intent; user can still
+  //                  skip to the free dashboard after signing up if they change
+  //                  their mind — we don't force payment after signup)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsSignedIn(!!session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(!!session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const planHref = (planId: 'basic' | 'pro' | 'max') =>
+    isSignedIn
+      ? `/dashboard/payment?plan=${planId}&type=${accountType}`
+      : `/signup?plan=${planId}&type=${accountType}`
+
+  // "How to pay" section region toggle — Zambian users dial *303# / *115#,
+  // international users go through "Send money abroad" in their MoMo app.
+  const [payRegion, setPayRegion] = useState<'zambian' | 'international'>('zambian')
 
   const isBusiness = accountType === 'business'
   const activeType = accountTypes.find((t) => t.id === accountType)!
@@ -359,7 +420,7 @@ export default function PricingPage() {
                       </ul>
 
                       <Link
-                        href={`/signup?plan=${plan.id}&type=${accountType}`}
+                        href={planHref(plan.id)}
                         className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
                           plan.highlight
                             ? 'bg-accent text-navy hover:bg-yellow-400'
@@ -368,11 +429,11 @@ export default function PricingPage() {
                             : 'bg-primary text-white hover:bg-navy'
                         }`}
                       >
-                        {plan.cta}
+                        {isSignedIn ? 'Continue to payment' : plan.cta}
                         <ArrowRight size={16} />
                       </Link>
 
-                      {plan.id === 'basic' && (
+                      {plan.id === 'basic' && !isSignedIn && (
                         <p className="text-center text-xs text-gray-400 mt-3">
                           No credit card required for trial
                         </p>
@@ -432,6 +493,155 @@ export default function PricingPage() {
             <p className="text-gray-500 text-sm">
               After you pay, upload the transaction screenshot from your dashboard. We confirm and activate your plan within hours.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW TO PAY — real numbers + step-by-step ── */}
+      <section className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <span className="inline-block bg-accent/20 text-navy text-sm font-semibold px-4 py-2 rounded-full mb-4">
+              How to Pay
+            </span>
+            <h2 className="text-3xl font-black text-navy">The exact numbers to send to</h2>
+            <p className="mt-3 text-gray-500 max-w-xl mx-auto">
+              These are the real mobile-money accounts. Same numbers work for in-country Zambian
+              transfers and cross-border MoMo from anywhere in Africa.
+            </p>
+          </motion.div>
+
+          {/* Region toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex bg-gray-100 rounded-xl p-1.5">
+              <button
+                onClick={() => setPayRegion('zambian')}
+                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition ${
+                  payRegion === 'zambian'
+                    ? 'bg-white text-navy shadow-sm'
+                    : 'text-gray-500 hover:text-navy'
+                }`}
+              >
+                🇿🇲 In Zambia
+              </button>
+              <button
+                onClick={() => setPayRegion('international')}
+                className={`px-5 py-2.5 rounded-lg text-sm font-bold transition ${
+                  payRegion === 'international'
+                    ? 'bg-white text-navy shadow-sm'
+                    : 'text-gray-500 hover:text-navy'
+                }`}
+              >
+                🌍 Outside Zambia
+              </button>
+            </div>
+          </div>
+
+          {/* Number cards */}
+          <div className="grid md:grid-cols-2 gap-5 mb-8">
+            {/* MTN */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-5"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <MtnBadge size={44} />
+                <div>
+                  <div className="font-black text-navy">MTN Mobile Money</div>
+                  <div className="text-xs text-gray-500">
+                    {payRegion === 'zambian' ? 'Dial *303# or use the MTN MoMo app' : 'Any MTN country across Africa'}
+                  </div>
+                </div>
+              </div>
+              <PayCopy label="Number to send to" value={MTN_NUMBER} />
+              <PayCopy label="Receiver name" value={RECEIVER_NAME} />
+            </motion.div>
+
+            {/* Airtel */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="bg-red-50 border-2 border-red-300 rounded-2xl p-5"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <AirtelBadge size={44} />
+                <div>
+                  <div className="font-black text-navy">Airtel Money</div>
+                  <div className="text-xs text-gray-500">
+                    {payRegion === 'zambian' ? 'Dial *115# or use the Airtel Money app' : 'Cross-country transfers supported'}
+                  </div>
+                </div>
+              </div>
+              <PayCopy label="Number to send to" value={AIRTEL_NUMBER} />
+              <PayCopy label="Receiver name" value={RECEIVER_NAME} />
+            </motion.div>
+          </div>
+
+          {/* Step-by-step instructions */}
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-7">
+            <h3 className="text-lg font-black text-navy mb-4">
+              {payRegion === 'zambian' ? 'Send from Zambia' : 'Send from outside Zambia'}
+            </h3>
+            <ol className="space-y-3">
+              {(payRegion === 'international'
+                ? [
+                    'Open your MTN MoMo or Airtel Money app and choose "Send money abroad" (or "Cross-border transfer") to Zambia.',
+                    `Enter one of the numbers above and confirm the receiver name is "${RECEIVER_NAME}".`,
+                    'Enter the plan amount (USD or your local equivalent — your provider quotes the rate).',
+                    'Complete the transfer with your PIN and wait for the confirmation SMS.',
+                    'Take a clear screenshot of the confirmation — it should show amount, receiver, and transaction ID.',
+                    'Sign in, head to your dashboard, and upload the screenshot. We verify and activate your plan within a few hours.',
+                  ]
+                : [
+                    'Dial *303# (MTN) or *115# (Airtel), or open the provider app.',
+                    'Choose "Send money" and enter the number above.',
+                    `Enter the plan amount and confirm the receiver name is "${RECEIVER_NAME}".`,
+                    'Complete the transfer with your PIN and wait for the confirmation SMS.',
+                    'Take a clear screenshot of the confirmation SMS or app receipt.',
+                    'Sign in, head to your dashboard, and upload the screenshot. We verify and activate your plan within a few hours.',
+                  ]
+              ).map((s, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white font-black text-xs flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <span className="pt-1 text-sm text-gray-700 leading-relaxed">{s}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Follow-through CTA */}
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+            {isSignedIn ? (
+              <Link
+                href="/dashboard/payment"
+                className="inline-flex items-center gap-2 bg-navy text-white font-bold px-6 py-3 rounded-xl hover:bg-primary transition-all"
+              >
+                Upload payment screenshot <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 bg-navy text-white font-bold px-6 py-3 rounded-xl hover:bg-primary transition-all"
+                >
+                  Create free account <ArrowRight size={14} />
+                </Link>
+                <span className="text-gray-400 text-xs">
+                  …then upload your screenshot from your dashboard.
+                </span>
+              </>
+            )}
           </div>
         </div>
       </section>

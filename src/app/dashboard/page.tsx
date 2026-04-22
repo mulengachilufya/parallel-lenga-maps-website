@@ -5,8 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X } from 'lucide-react'
-import { supabase, DATASETS, PLAN_PRICING, type AccountType } from '@/lib/supabase'
+import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock } from 'lucide-react'
+import { supabase, DATASETS, PLAN_PRICING, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
@@ -23,6 +23,7 @@ interface UserData {
   email: string
   name: string
   plan: UserPlan
+  planStatus: PlanStatus
   accountType: AccountType
 }
 
@@ -120,13 +121,15 @@ function DashboardContent() {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, account_type, full_name')
+        .select('plan, plan_status, account_type, full_name')
         .eq('id', session.user.id)
         .single()
       setUser({
         email: session.user.email || '',
         name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
         plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
+        // Default to 'free' if the column is missing so we never silently grant access.
+        planStatus: (profile?.plan_status || 'free') as PlanStatus,
         accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
       })
       setLoading(false)
@@ -299,6 +302,30 @@ function DashboardContent() {
                   more countries, more datasets, or unlimited downloads, upgrade anytime from{' '}
                   <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>.
                 </p>
+              </motion.div>
+            )}
+
+            {/* Payment-under-review banner — shown whenever a user has
+                submitted a manual payment but it hasn't been verified yet.
+                Surfaces the status outside the DownloadGate modal so they
+                don't have to click Download to see we're processing it. */}
+            {user?.planStatus === 'pending' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-yellow-50 border border-yellow-300 rounded-2xl p-5 sm:p-6 flex items-start gap-4"
+              >
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-yellow-200 flex items-center justify-center">
+                  <Clock size={20} className="text-yellow-900" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-black text-navy mb-1">Payment under review</h2>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Thanks for submitting your <strong className="capitalize">{user.plan}</strong>{' '}
+                    payment — we usually confirm within a few hours. You&apos;ll get an email as soon as
+                    your plan is active, and you can still browse free datasets in the meantime.
+                  </p>
+                </div>
               </motion.div>
             )}
 

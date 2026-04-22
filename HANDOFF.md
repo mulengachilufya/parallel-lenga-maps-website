@@ -1,6 +1,6 @@
 # Lenga Maps — Engineering Handoff
 
-_Last updated: 2026-04-21_
+_Last updated: 2026-04-22_
 
 This doc covers the work done in the most recent series of sessions and hands
 off cleanly so another engineer can pick up without context loss.
@@ -127,10 +127,10 @@ and CTAs point at the right next step (`/signup`, `/dashboard/payment?plan=X`,
 - **`src/app/admin/payments/page.tsx`** — NEW. Admin UI. Tabs, screenshot preview, approve/reject, reason field, customer details.
 - **`src/app/login/page.tsx`** — default `nextPath` changed from `/datasets` to `/dashboard`; added back-to-home link; real logo (`/images/branding/logo.png`) replaces placeholder SVG; "Sign in to continue where you left off" if a `?next=` is present.
 - **`src/app/signup/page.tsx`** — removed forced payment redirect (now goes to `/dashboard?welcome=new`), removed `pendingPayment`/`LencoPayWidget` dead code, added back-to-home link, real logo.
-- **`src/app/dashboard/page.tsx`** — anonymous users **no longer redirected** (they can browse); first-time welcome banner shown when `?welcome=new`.
+- **`src/app/dashboard/page.tsx`** — anonymous users **no longer redirected** (they can browse); first-time welcome banner shown when `?welcome=new`; **pending-payment banner** when `plan_status === 'pending'` so the status is surfaced outside the DownloadGate modal.
 - **`src/app/dashboard/payment/page.tsx`** — added back-to-dashboard link; replaced placeholder SVG logo.
 - **`src/app/page.tsx`** (home) — DatasetCards now pass `href` from `LIVE_DATASET_ROUTES`, removed Globe2 icon + GIS Consulting service card (grid now `lg:grid-cols-3`).
-- **`src/app/pricing/page.tsx`** — replaced 3-card payment methods grid (MTN / Airtel / Bank Card) with 2-card (MTN / Airtel) using `MtnBadge`/`AirtelBadge`. Removed Flutterwave banner in favour of "Manual verification" explanation.
+- **`src/app/pricing/page.tsx`** — replaced 3-card payment methods grid (MTN / Airtel / Bank Card) with 2-card (MTN / Airtel) using `MtnBadge`/`AirtelBadge`. Removed Flutterwave banner in favour of "Manual verification" explanation. **Plan CTAs are now auth-aware**: a signed-in user clicking `Basic` / `Pro` / `Max` goes directly to `/dashboard/payment?plan=X&type=Y` (skipping signup); a signed-out user still goes to `/signup?plan=X&type=Y`. Added a **"How to Pay"** section with the real MTN (`+260 965 699 359`) and Airtel (`+260 779 187 025`) numbers + receiver name + a region-toggled step-by-step guide, so instructions are discoverable publicly before anyone signs up.
 - **`src/app/services/page.tsx`** — removed Flutterwave mention from step 3 copy.
 - **`src/app/about-us/page.tsx`** — replaced `gradient-primary` hero overlay with `bg-navy` + a neutral black gradient so the elephant image shows through.
 
@@ -208,8 +208,8 @@ and the Vercel project. They block full functionality of what we built:
 
 ### Should-do soon
 
-1. **Admin navigation entry.** There's currently no link to `/admin/payments` anywhere. Owner has to type the URL. Suggest: show an "Admin" menu item in the dashboard header when `isAdminEmail(session.email)` is true.
-2. **Pending payment badge on the customer dashboard.** When `plan_status === 'pending'`, show a small banner on `/dashboard` — "Your payment is under review. You'll get access as soon as we confirm it." Right now they only see this if they try to download.
+1. **Admin navigation entry.** There's currently no link to `/admin/payments` anywhere. Owner has to type the URL. Suggest: show an "Admin" menu item in the dashboard header when `isAdminEmail(session.email)` is true. Since `ADMIN_EMAILS` is server-side only, the cleanest implementation is a tiny `GET /api/admin/me` endpoint that returns `{ isAdmin: boolean }` and have the dashboard header call it.
+2. ~~**Pending payment badge on the customer dashboard.**~~ ✅ Done — `src/app/dashboard/page.tsx` shows a yellow "Payment under review" banner when `plan_status === 'pending'`.
 3. **Email verification UX.** Signup currently sends a confirmation email. Make sure the email template points to `https://lengamaps.com/auth/callback` (or equivalent) so the user lands back on the site, not a generic Supabase page. Re-check the Supabase Auth settings dashboard.
 4. **Monthly billing.** Plans are currently one-off manual payments — `plan_status='active'` doesn't expire. Add a `plan_expires_at` column and either: (a) a cron that flips expired rows to `'free'`, or (b) compute `active` dynamically from `expires_at > now()`. Choose based on whether we want recurring billing or month-by-month manual renewals.
 5. **Rate-limit the admin verify endpoint.** The manual submit endpoint has a 60-min / 3-pending rate limit. Admin verify has none — add a small sanity check (e.g. max N verifications per minute) to prevent accidental auto-scripts from flipping everyone to active.
