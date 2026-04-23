@@ -6,7 +6,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
  *
  * Supabase email-confirmation / magic-link landing page. The confirmation
  * email template in Supabase Auth points here (e.g.
- * https://lengamaps.com/auth/callback) — this route exchanges the one-time
+ * https://www.lengamaps.com/auth/callback) — this route exchanges the one-time
  * code for a real session cookie, then redirects the user into the app.
  *
  * If anything fails, we send them to /login with an error query so they can

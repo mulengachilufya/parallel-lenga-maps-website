@@ -265,7 +265,7 @@ Without this, even you get the paywall when you click Download.
 Otherwise new signups click the confirmation link and land on a bare Supabase page instead of your site.
 
 1. Supabase → **Authentication** (left sidebar) → **Email Templates** → **Confirm signup**.
-2. Find any line of the form `{{ .ConfirmationURL }}`. Above it, find **Redirect URL** — set it to `https://lengamaps.com/auth/callback`. (For local testing you can add `http://localhost:3000/auth/callback` to **URL Configuration → Additional Redirect URLs**.)
+2. Find any line of the form `{{ .ConfirmationURL }}`. Above it, find **Redirect URL** — set it to `https://www.lengamaps.com/auth/callback`. (For local testing you can add `http://localhost:3000/auth/callback` to **URL Configuration → Additional Redirect URLs**.)
 3. Do the same for the **Reset password** and **Magic link** templates if you use them.
 4. Save.
 
@@ -295,7 +295,7 @@ Otherwise new signups click the confirmation link and land on a bare Supabase pa
 
 1. ~~**Admin navigation entry.**~~ ✅ Done — `/api/admin/me` endpoint added; dashboard header shows an "Admin" button when the current user is admin-allow-listed.
 2. ~~**Pending payment badge on the customer dashboard.**~~ ✅ Done — `src/app/dashboard/page.tsx` shows a yellow "Payment under review" banner when `plan_status === 'pending'`.
-3. ~~**Email verification UX.**~~ ✅ Done — `/auth/callback` route handles the Supabase confirmation code exchange and redirects into the app. Owner must still point the Supabase email template at `https://lengamaps.com/auth/callback` (see §5.5).
+3. ~~**Email verification UX.**~~ ✅ Done — `/auth/callback` route handles the Supabase confirmation code exchange and redirects into the app. Owner must still point the Supabase email template at `https://www.lengamaps.com/auth/callback` (see §5.5).
 4. ~~**Monthly billing.**~~ ✅ Done — `plan_expires_at` column added, admin verify sets it to `now() + 30 days`, the DownloadGate and dashboard treat past-expiry as lapsed (drops to the "renew" pay modal). No cron required — enforcement is in the app. Owner renews by re-approving a fresh payment, which bumps the expiry forward another 30 days.
 5. ~~**Rate-limit the admin verify endpoint.**~~ ✅ Done — in-memory 30-actions-per-minute-per-admin limit in `src/app/api/admin/payments/verify/route.ts`. Exceeding it returns HTTP 429.
 
