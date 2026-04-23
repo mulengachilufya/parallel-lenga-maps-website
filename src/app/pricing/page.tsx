@@ -32,7 +32,7 @@ const basePlans: PlanDef[] = [
   {
     id: 'basic',
     name: 'Basic',
-    tagline: '7-day free trial',
+    tagline: 'Starter',
     description: 'Core African spatial data for your everyday mapping needs.',
     color: '#1E5F8E',
     highlight: false,
@@ -52,7 +52,7 @@ const basePlans: PlanDef[] = [
       'Email support',
       'Download up to 10 files/month',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Get Basic Access',
   },
   {
     id: 'pro',
@@ -676,8 +676,8 @@ export default function PricingPage() {
               a: 'Yes - government agencies, NGOs, and academic institutions may be eligible for discounted rates. Contact us at lengamaps@gmail.com.',
             },
             {
-              q: 'Is there a free trial?',
-              a: 'Basic plan subscribers get a 7-day free trial with no credit card required. You will only be charged after the trial period.',
+              q: 'How does billing work?',
+              a: 'Plans are billed monthly via MTN or Airtel Mobile Money. After you submit your payment screenshot, we verify it manually (usually within a few hours) and your plan activates for 30 days. Renew anytime from your dashboard.',
             },
           ].map((item, i) => (
             <motion.div
@@ -699,7 +699,7 @@ export default function PricingPage() {
       <section className="py-16 bg-accent">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-black text-navy mb-4">Start Mapping Today</h2>
-          <p className="text-navy/70 mb-8">7-day free trial. Cancel anytime.</p>
+          <p className="text-navy/70 mb-8">Monthly plans. Cancel anytime.</p>
           <Link
             href="/signup"
             className="inline-flex items-center gap-2 bg-navy text-white font-bold px-10 py-4 rounded-xl hover:bg-primary transition-all shadow-lg"

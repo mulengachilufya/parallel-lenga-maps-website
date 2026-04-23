@@ -350,14 +350,14 @@ export default function HomePage() {
                 <span className="text-gold">Free Account</span>
               </h2>
               <p className="text-[1.05rem] text-white/60 leading-relaxed mb-8">
-                Sign up in seconds and start downloading professional GIS datasets
-                covering all 54 African countries. No credit card required for the Basic plan.
+                Sign up in seconds and browse professional GIS datasets
+                covering all 54 African countries. Free to create an account.
               </p>
 
               <div className="space-y-4">
                 {[
                   'Access to 15+ curated GIS datasets',
-                  '7-day free trial on Basic plan',
+                  'Browse datasets free, pay only when you download',
                   'Professional-grade data from global institutions',
                   'Shapefile, GeoTIFF, and GeoJSON formats',
                 ].map((feature) => (
