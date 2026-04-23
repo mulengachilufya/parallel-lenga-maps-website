@@ -7,7 +7,7 @@ import type { LulcLayer } from '@/app/api/lulc/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface LulcListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 // ESA WorldCover class descriptions shown in the info banner

@@ -1,7 +1,7 @@
 'use client'
 
 interface WatershedsListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

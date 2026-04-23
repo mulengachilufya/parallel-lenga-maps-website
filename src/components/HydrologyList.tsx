@@ -16,7 +16,7 @@ const LAYER_COLORS: Record<string, string> = {
 }
 
 interface HydrologyListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps) {
@@ -184,7 +184,7 @@ export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps
         </div>
       )}
 
-      {userPlan !== 'pro' && (
+      {userPlan === 'basic' && (
         <p className="text-xs text-gray-400 mt-2">
           * Upgrade to Pro to unlock all 54 countries and full download access.
         </p>

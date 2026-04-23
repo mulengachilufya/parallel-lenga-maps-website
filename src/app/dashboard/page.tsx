@@ -17,7 +17,17 @@ import AquiferList from '@/components/AquiferList'
 import LulcList from '@/components/LulcList'
 import PopulationList from '@/components/PopulationList'
 
-type UserPlan = 'basic' | 'pro'
+type UserPlan = 'basic' | 'pro' | 'max'
+
+// Label + description shown in the "Current Plan" card.
+const PLAN_LABELS: Record<UserPlan, string> = { basic: 'Basic', pro: 'Pro', max: 'Max' }
+const PLAN_BLURBS: Record<UserPlan, string> = {
+  basic: 'Core access',
+  pro: 'Full access',
+  max: 'Maximum access',
+}
+// Pro + Max both unlock every current dataset. Only Basic is gated.
+const hasFullAccess = (p: UserPlan) => p !== 'basic'
 
 interface UserData {
   email: string
@@ -196,7 +206,7 @@ function DashboardContent() {
 
   const userPlan = user?.plan || 'basic'
   const accessibleDatasets = DATASETS.filter(
-    (d) => (userPlan === 'pro') || d.tier === 'basic'
+    (d) => hasFullAccess(userPlan) || d.tier === 'basic'
   )
 
   // ── Single-section view ─────────────────────────────────────────────────
@@ -421,26 +431,37 @@ function DashboardContent() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                   className={`rounded-2xl p-6 text-white ${
-                    user.plan === 'pro' ? 'bg-accent' : 'gradient-primary'
+                    user.plan === 'max' ? 'bg-purple-600' :
+                    user.plan === 'pro' ? 'bg-accent' :
+                    'gradient-primary'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
                     {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
+                    {user.plan === 'max' && <Star size={16} fill="currentColor" />}
                   </div>
-                  <div className="text-3xl font-black mb-1">{user.plan === 'pro' ? 'Pro' : 'Basic'}</div>
+                  <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
                   <p className="text-sm opacity-80">
-                    {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {user.plan === 'pro' ? 'Full access' : 'Core access'}
+                    {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
                   </p>
                   <p className="text-xs opacity-60 mt-0.5 capitalize">
                     {user.accountType} rate
                   </p>
-                  {user.plan !== 'pro' && (
+                  {user.plan === 'basic' && (
                     <Link
                       href="/pricing"
                       className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
                     >
                       Upgrade to Pro <ChevronRight size={12} />
+                    </Link>
+                  )}
+                  {user.plan === 'pro' && (
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
+                    >
+                      Upgrade to Max <ChevronRight size={12} />
                     </Link>
                   )}
                 </motion.div>
@@ -470,17 +491,17 @@ function DashboardContent() {
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
                   </div>
                   <div className="text-3xl font-black text-navy">
-                    {user.plan === 'pro' ? '54' : '3'}
+                    {hasFullAccess(user.plan) ? '54' : '3'}
                   </div>
                   <p className="text-sm text-gray-400 mt-1">
-                    {user.plan === 'pro' ? 'All of Africa' : 'Choose any 3'}
+                    {hasFullAccess(user.plan) ? 'All of Africa' : 'Choose any 3'}
                   </p>
                 </motion.div>
               </div>
             )}
 
             {/* Upgrade Banner (Basic only) */}
-            {user && user.plan !== 'pro' && (
+            {user && user.plan === 'basic' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -508,7 +529,7 @@ function DashboardContent() {
             {/* Dataset cards - each links to its own isolated view */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(SECTIONS).map(([key, sec], i) => {
-                const isProLocked = sec.tier === 'pro' && userPlan !== 'pro'
+                const isProLocked = sec.tier === 'pro' && !hasFullAccess(userPlan)
 
                 return (
                   <motion.div

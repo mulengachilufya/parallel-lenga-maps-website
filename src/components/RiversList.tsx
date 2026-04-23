@@ -6,7 +6,7 @@ import type { HydrologyLayer } from '@/app/api/hydrology/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface RiversListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 export default function RiversList({ userPlan = 'basic' }: RiversListProps) {
@@ -146,7 +146,7 @@ export default function RiversList({ userPlan = 'basic' }: RiversListProps) {
         </>
       )}
 
-      {userPlan !== 'pro' && (
+      {userPlan === 'basic' && (
         <p className="text-xs text-gray-400 mt-2">
           * Upgrade to Pro to unlock all 50 countries and unlimited downloads.
         </p>

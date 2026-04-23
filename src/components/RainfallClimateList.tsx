@@ -58,7 +58,7 @@ const GIS_META: Record<string, { source: string; units: string; resolution: stri
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface RainfallClimateListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
   /** When set, fetches and displays ONLY this layer type */
   layerType?: 'rainfall' | 'temperature' | 'drought_index'
 }
@@ -223,7 +223,7 @@ export default function RainfallClimateList({ userPlan = 'basic', layerType }: R
         </div>
       )}
 
-      {userPlan !== 'pro' && (
+      {userPlan === 'basic' && (
         <p className="text-xs text-gray-400 mt-2">
           * Upgrade to Pro to unlock all 54 countries and full download access.
         </p>

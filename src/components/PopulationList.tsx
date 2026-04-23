@@ -7,7 +7,7 @@ import type { PopulationSettlementsLayer } from '@/app/api/population-settlement
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface PopulationListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 export default function PopulationList({ userPlan = 'basic' }: PopulationListProps) {
@@ -169,7 +169,7 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
         </div>
       )}
 
-      {userPlan !== 'pro' && (
+      {userPlan === 'basic' && (
         <p className="text-xs text-gray-400 mt-2">
           * Population & Settlements is Pro-only. Upgrade to unlock all 54 countries.
         </p>

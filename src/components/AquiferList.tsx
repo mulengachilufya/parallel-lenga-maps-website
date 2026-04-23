@@ -7,7 +7,7 @@ import type { AquiferLayer } from '@/app/api/aquifer/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface AquiferListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
@@ -136,7 +136,12 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
       {/* Country grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((layer, idx) => {
-          const isPro = userPlan !== 'pro'
+          // `isLocked` = true means the user is on Basic and needs to upgrade
+          // to unlock Pro-tier datasets (aquifer). Pro and Max both have access.
+          const isLocked = userPlan === 'basic'
+          // Kept as `isPro` for downstream template compatibility — semantically
+          // it's "user is locked out of this Pro-tier dataset".
+          const isPro = isLocked
           const isDownloading = downloading === layer.id
           const hasConflicts = (layer.conflict_count || 0) > 0
 

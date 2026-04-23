@@ -21,7 +21,7 @@ const ADMIN_LEVEL_COLORS: Record<number, string> = {
 }
 
 interface AdminBoundariesListProps {
-  userPlan?: 'basic' | 'pro'
+  userPlan?: 'basic' | 'pro' | 'max'
 }
 
 interface GroupedCountry {

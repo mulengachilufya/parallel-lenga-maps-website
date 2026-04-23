@@ -62,8 +62,9 @@ export async function GET(
   }
 
   // ── Tier check ────────────────────────────────────────────────────────────
+  // Basic users capped at 100 MB per file; Pro and Max have no size cap.
   const sizeMb: number = fileRow.file_size_mb ?? 0
-  if (userPlan !== 'pro' && sizeMb >= 100) {
+  if (userPlan === 'basic' && sizeMb >= 100) {
     return NextResponse.json(
       {
         error: 'File size exceeds Basic plan limit (100 MB). Upgrade to Pro for unlimited downloads.',
