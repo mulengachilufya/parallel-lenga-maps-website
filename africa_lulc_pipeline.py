@@ -70,6 +70,7 @@ try:
     import rasterio.merge
     import rasterio.mask
     from botocore.config import Config
+    from boto3.s3.transfer import TransferConfig
     from dotenv import load_dotenv
     from rasterio.crs import CRS
     from rasterio.enums import Resampling
@@ -233,36 +234,38 @@ PROCESSING_ORDER: list[str] = [
     "Guinea",                   # ~245,857 km²
     "Gabon",                    # ~267,668 km²
     "Burkina Faso",             # ~274,222 km²
+    # ── Southern Africa priority (user-requested: Zambia first) ───────────────
+    "Zambia",                   # ~752,618 km²  ← priority start
+    "Zimbabwe",                 # ~390,757 km²
+    "Botswana",                 # ~581,730 km²
+    "Madagascar",               # ~587,041 km²
+    "Mozambique",               # ~801,590 km²
+    "Namibia",                  # ~824,292 km²
+    "Tanzania",                 # ~945,087 km²
+    "South Africa",             # ~1,219,090 km²
+    "Angola",                   # ~1,246,700 km²
+    "Democratic Republic of the Congo",  # ~2,344,858 km²
+    # ── Remaining mid-sized (West/Central/East Africa) ────────────────────────
     "Ivory Coast",              # ~322,463 km²
     "Congo",                    # ~342,000 km²
-    "Zimbabwe",                 # ~390,757 km²
     "Morocco",                  # ~446,550 km²
     "Cameroon",                 # ~475,442 km²
     "Kenya",                    # ~580,367 km²
-    "Botswana",                 # ~581,730 km²
-    "Madagascar",               # ~587,041 km²
     "Central African Republic", # ~622,984 km²
     "Somalia",                  # ~637,657 km²
     "South Sudan",              # ~644,329 km²
-    "Zambia",                   # ~752,618 km²
-    "Mozambique",               # ~801,590 km²
-    "Namibia",                  # ~824,292 km²
-    # ── Large ─────────────────────────────────────────────────────────────────
+    # ── Large (North/West/East Africa) ────────────────────────────────────────
     "Nigeria",                  # ~923,768 km²
-    "Tanzania",                 # ~945,087 km²
     "Egypt",                    # ~1,002,450 km²
     "Mauritania",               # ~1,030,700 km²
     "Ethiopia",                 # ~1,104,300 km²
-    "South Africa",             # ~1,219,090 km²
     "Mali",                     # ~1,240,192 km²
-    "Angola",                   # ~1,246,700 km²
     "Niger",                    # ~1,267,000 km²
     "Chad",                     # ~1,284,000 km²
     "Libya",                    # ~1,759,540 km²
     "Sudan",                    # ~1,886,068 km²
     # ── Giant ─────────────────────────────────────────────────────────────────
-    "Democratic Republic of the Congo",  # ~2,344,858 km²
-    "Algeria",                           # ~2,381,741 km²
+    "Algeria",                  # ~2,381,741 km²
 ]
 
 # Integrity checks — caught at import time so mistakes surface immediately
@@ -338,6 +341,27 @@ r2 = boto3.client(
     config=Config(signature_version="s3v4"),
     region_name="auto",
 )
+
+# 64 MB parts × 10 concurrent ≈ 640 MB in flight.  Bypasses the effective
+# single-PUT failure ceiling (~300 MB) some networks hit against R2 and
+# handles 1–2 GB rasters (Angola, Zambia, South Africa, Tanzania) reliably.
+R2_MPU_CONFIG = TransferConfig(
+    multipart_threshold=64 * 1024 * 1024,
+    multipart_chunksize=64 * 1024 * 1024,
+    max_concurrency=10,
+    use_threads=True,
+)
+
+
+def r2_upload(local_path: Path, key: str, content_type: str = "image/tiff") -> None:
+    """Upload a file to R2 using multipart (any size, no practical cap)."""
+    r2.upload_file(
+        Filename=str(local_path),
+        Bucket=R2_BUCKET,
+        Key=key,
+        ExtraArgs={"ContentType": content_type},
+        Config=R2_MPU_CONFIG,
+    )
 
 
 def r2_safe(country: str) -> str:
@@ -476,6 +500,143 @@ def download_tile(lat_ul: int, lon_ul: int, retries: int = 3) -> Optional[Path]:
                 return None
 
     return None  # unreachable, but satisfies type checker
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLIP-BEFORE-MOSAIC  (memory-efficient alternative to full bbox mosaic)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _clip_tiles_to_geom(
+    tile_paths: list[Path],
+    geom,                     # Shapely geometry, EPSG:4326
+    out_path: Path,           # Write merged result here directly (no RAM array)
+    nodata: int = ESA_NODATA,
+) -> Optional[tuple[int, int]]:
+    """
+    Clip each tile to the country geometry and merge the clips directly to
+    out_path on disk using windowed writes.  Never allocates the full-extent
+    mosaic array in RAM — critical for large countries like Sudan (30 GiB) or
+    Algeria (12 GiB) that crashed the previous rasterio.merge.merge() approach.
+
+    Phase 1 — clip: each ESA tile is masked to the country geometry and saved
+               as a small .clip_tmp.tif in TILES_DIR.
+    Phase 2 — compute extent: scan all clips to derive the merged bbox/resolution.
+    Phase 3 — write: create out_path, initialize with nodata in 512-row strips
+               (peak RAM ≤ 512 × width bytes ≈ 100 MB), then copy each clip
+               into its window.
+
+    Returns (width, height) on success, or None if no valid pixels found.
+    """
+    from shapely.geometry import box as shapely_box
+    from rasterio.windows import from_bounds as window_from_bounds, Window
+    from rasterio.transform import from_origin
+
+    tmp_clips: list[Path] = []
+    try:
+        # ── Phase 1: clip each tile to country geometry ──────────────────────
+        merge_crs   = None
+        merge_dtype = ESA_DTYPE
+        for tile_path in tile_paths:
+            with rasterio.open(tile_path) as src:
+                b = src.bounds
+                tile_box = shapely_box(b.left, b.bottom, b.right, b.top)
+                intersection = geom.intersection(tile_box)
+                if intersection.is_empty:
+                    continue
+                clip_geom = intersection.buffer(0.0001)
+                try:
+                    data, transform = rasterio.mask.mask(
+                        src,
+                        [mapping(clip_geom)],
+                        crop=True,
+                        all_touched=True,
+                        nodata=nodata,
+                    )
+                except Exception as exc:
+                    log(f"      tile {tile_path.stem}: clip error — {exc}", indent=4)
+                    continue
+                if np.all(data == nodata):
+                    continue
+                tmp_path = TILES_DIR / f"{tile_path.stem}.clip_tmp.tif"
+                with rasterio.open(
+                    tmp_path, "w",
+                    driver="GTiff", dtype=ESA_DTYPE, count=1,
+                    crs=src.crs, transform=transform,
+                    height=data.shape[1], width=data.shape[2],
+                    nodata=nodata,
+                ) as dst:
+                    dst.write(data[0], 1)
+                if merge_crs is None:
+                    merge_crs   = src.crs
+                    merge_dtype = src.dtypes[0]
+                tmp_clips.append(tmp_path)
+                log(
+                    f"      tile {tile_path.stem}: clipped "
+                    f"({data.shape[2]}×{data.shape[1]} px)",
+                    indent=4,
+                )
+
+        if not tmp_clips:
+            return None
+
+        # ── Phase 2: compute merged output extent ────────────────────────────
+        x_res = y_res = None
+        lefts, bottoms, rights, tops = [], [], [], []
+        for p in tmp_clips:
+            with rasterio.open(p) as ds:
+                b = ds.bounds
+                lefts.append(b.left);   bottoms.append(b.bottom)
+                rights.append(b.right); tops.append(b.top)
+                if x_res is None:
+                    x_res, y_res  = ds.res[1], ds.res[0]
+                    merge_crs     = ds.crs
+                    merge_dtype   = ds.dtypes[0]
+
+        left  = min(lefts);   bottom = min(bottoms)
+        right = max(rights);  top    = max(tops)
+        width  = max(1, round((right - left) / x_res))
+        height = max(1, round((top   - bottom) / y_res))
+        out_transform = from_origin(left, top, x_res, y_res)
+
+        # ── Phase 3: write directly to out_path, one clip at a time ─────────
+        meta = dict(
+            driver="GTiff", dtype=merge_dtype, count=1,
+            crs=merge_crs, transform=out_transform,
+            height=height, width=width, nodata=nodata,
+            compress="lzw", tiled=True, blockxsize=512, blockysize=512,
+        )
+        with rasterio.open(out_path, "w", **meta) as dst:
+            # Fill with nodata 512 rows at a time so no large array is needed.
+            # LZW-compressed all-nodata strips are near-zero bytes on disk.
+            strip_buf = np.full((512, width), nodata, dtype=np.dtype(merge_dtype))
+            for row_start in range(0, height, 512):
+                h = min(512, height - row_start)
+                dst.write(
+                    strip_buf[:h], 1,
+                    window=Window(0, row_start, width, h),
+                )
+
+            for clip_path in tmp_clips:
+                with rasterio.open(clip_path) as src:
+                    win = window_from_bounds(*src.bounds, transform=out_transform)
+                    win = win.round_lengths().round_offsets()
+                    col = max(0, int(win.col_off))
+                    row = max(0, int(win.row_off))
+                    w   = min(int(round(win.width)),  width  - col)
+                    h   = min(int(round(win.height)), height - row)
+                    if w <= 0 or h <= 0:
+                        continue
+                    src_data = src.read(
+                        1, out_shape=(h, w), resampling=Resampling.nearest,
+                    )
+                    dst.write(src_data, 1, window=Window(col, row, w, h))
+
+        log(f"      merged: {width}×{height} px", indent=4)
+        return width, height
+
+    finally:
+        for p in tmp_clips:
+            p.unlink(missing_ok=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -634,6 +795,7 @@ def process_country(
     geom,             # Shapely geometry (EPSG:4326)
     dry_run:  bool = False,
     resume:   bool = False,
+    skip_r2:  bool = False,
 ) -> bool:
     """
     Full pipeline for one country:
@@ -705,77 +867,32 @@ def process_country(
 
     log(f"  tiles with data: {len(tile_paths)}", indent=1)
 
-    # ── Mosaic tiles (bounded to country bbox + buffer) ──────────────────────
-    # Using MemoryFile to avoid writing temporary mosaic files to disk.
+    # ── Clip-before-mosaic: writes raw_path directly, no full-extent array ──
+    # _clip_tiles_to_geom writes the merged GeoTIFF tile-by-tile to raw_path,
+    # keeping peak RAM to one 512-row strip (~100 MB) instead of the full
+    # country extent (which was up to 30 GiB for Sudan/Algeria).
     try:
-        datasets = [rasterio.open(p) for p in tile_paths]
-        try:
-            mosaic_bounds = (minx - buf, miny - buf, maxx + buf, maxy + buf)
-            mosaic_data, mosaic_transform = rasterio.merge.merge(
-                datasets,
-                bounds=mosaic_bounds,
-                nodata=ESA_NODATA,
-                method="first",
-            )
-            mosaic_crs = datasets[0].crs
-        finally:
-            for ds in datasets:
-                ds.close()
+        dims = _clip_tiles_to_geom(tile_paths, geom, raw_path)
     except Exception as exc:
-        log(f"  ERROR: mosaic failed — {exc}", indent=1)
-        _write_state(country, "failed", len(tile_paths), error=f"mosaic: {exc}")
-        return False
-
-    # ── Clip to exact country boundary via MemoryFile ────────────────────────
-    mosaic_profile = {
-        "driver":    "GTiff",
-        "dtype":     ESA_DTYPE,
-        "count":     1,
-        "crs":       mosaic_crs,
-        "transform": mosaic_transform,
-        "height":    mosaic_data.shape[1],
-        "width":     mosaic_data.shape[2],
-        "nodata":    ESA_NODATA,
-    }
-    try:
-        with MemoryFile() as memfile:
-            with memfile.open(**mosaic_profile) as mem_ds:
-                mem_ds.write(mosaic_data)
-            with memfile.open() as mem_ds:
-                clipped, clipped_transform = rasterio.mask.mask(
-                    mem_ds,
-                    [mapping(geom)],
-                    crop=True,
-                    all_touched=True,   # include every pixel that touches the
-                    nodata=ESA_NODATA,  # boundary — prevents cut-off edges
-                )
-                clipped_meta = mem_ds.meta.copy()
-    except Exception as exc:
-        log(f"  ERROR: clip failed — {exc}", indent=1)
+        raw_path.unlink(missing_ok=True)
+        log(f"  ERROR: clip-mosaic failed — {exc}", indent=1)
         _write_state(country, "failed", len(tile_paths), error=f"clip: {exc}")
         return False
 
-    # ── Write intermediate GeoTIFF (rasterio), then finalize as COG ─────────
-    # Write colormap here (at creation time) so rio_copy preserves it in the
-    # COG via GDALCreateCopy — avoids opening a finished COG in r+ mode.
-    clipped_meta.update({
-        "driver":     "GTiff",
-        "dtype":      ESA_DTYPE,
-        "count":      1,
-        "height":     clipped.shape[1],
-        "width":      clipped.shape[2],
-        "transform":  clipped_transform,
-        "crs":        CRS.from_epsg(4326),
-        "nodata":     ESA_NODATA,
-        "compress":   "lzw",
-        "tiled":      True,
-        "blockxsize": 512,
-        "blockysize": 512,
-        "interleave": "band",
-    })
+    if dims is None:
+        log(
+            f"  NOTE: no valid land pixels found for {country} — skipping",
+            indent=1,
+        )
+        _write_state(country, "skipped", error="no valid data after per-tile clip")
+        return True
+
+    width, height = dims
+    log(f"  clipped shape: {width}×{height} px", indent=1)
+
+    # ── Embed colormap + tags into raw_path (r+ on non-COG tif is safe) ─────
     try:
-        with rasterio.open(raw_path, "w", **clipped_meta) as dst:
-            dst.write(clipped[0], 1)
+        with rasterio.open(raw_path, "r+") as dst:
             dst.write_colormap(1, ESA_COLORMAP)
             dst.update_tags(
                 source="ESA WorldCover 2021 v200",
@@ -814,15 +931,11 @@ def process_country(
     log(f"  COG size: {size_mb:.2f} MB", indent=1)
 
     # ── Upload to Cloudflare R2 ──────────────────────────────────────────────
-    if not dry_run:
+    if skip_r2:
+        log(f"  [skip-r2] R2 upload skipped → {key}", indent=1)
+    elif not dry_run:
         try:
-            with open(out_path, "rb") as fh:
-                r2.put_object(
-                    Bucket=R2_BUCKET,
-                    Key=key,
-                    Body=fh,
-                    ContentType="image/tiff",
-                )
+            r2_upload(out_path, key, "image/tiff")
             log(f"  R2 upload: {key}", indent=1)
         except Exception as exc:
             log(f"  ERROR: R2 upload failed — {exc}", indent=1)
@@ -835,7 +948,7 @@ def process_country(
         log(f"  [dry-run] R2 would write → {key}", indent=1)
 
     # ── Upsert to Supabase ───────────────────────────────────────────────────
-    upsert_supabase(country, key, size_mb, dry_run)
+    upsert_supabase(country, key, size_mb, dry_run or skip_r2)
 
     _write_state(country, "done", len(tile_paths), str(out_path), key, size_mb)
     return True
@@ -912,6 +1025,10 @@ def main() -> None:
             "Use after running the pipeline without RAT support."
         ),
     )
+    parser.add_argument(
+        "--skip-r2", action="store_true",
+        help="Save GeoTIFFs locally only — skip R2 uploads (upload manually later)",
+    )
     args = parser.parse_args()
 
     log("=" * 65)
@@ -966,13 +1083,7 @@ def main() -> None:
             key = build_r2_key(country)
             if not args.dry_run:
                 try:
-                    with open(tif, "rb") as fh:
-                        r2.put_object(
-                            Bucket=R2_BUCKET,
-                            Key=key,
-                            Body=fh,
-                            ContentType="image/tiff",
-                        )
+                    r2_upload(tif, key, "image/tiff")
                     log(f"    R2 re-uploaded → {key}", indent=1)
                 except Exception as exc:
                     log(f"    ERROR: R2 upload failed — {exc}", indent=1)
@@ -1041,6 +1152,7 @@ def main() -> None:
                 country, geom,
                 dry_run=args.dry_run,
                 resume=args.resume,
+                skip_r2=args.skip_r2,
             )
             if ok:
                 success += 1
