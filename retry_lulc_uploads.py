@@ -34,6 +34,7 @@ from africa_lulc_pipeline import (
     r2_safe,
     r2_upload,
 )
+from finalize_and_upload_lulc import write_pam_sidecar
 
 
 LULC_TABLE_URL = f"{SUPABASE_URL}/rest/v1/lulc_layers"
@@ -123,8 +124,13 @@ def process_country(country: str, force: bool = False) -> bool:
         log(f"    ERROR: local tif missing: {tif.name}")
         return False
     if not aux.exists():
-        log(f"    ERROR: local sidecar missing: {aux.name}")
-        return False
+        log(f"    sidecar missing — generating PAM RAT")
+        try:
+            written = write_pam_sidecar(tif)
+            log(f"    sidecar written → {written.name} ({written.stat().st_size} B)")
+        except Exception as e:
+            log(f"    ERROR: sidecar write failed: {type(e).__name__}: {e}")
+            return False
 
     tif_key = build_r2_key(country)
     aux_key = tif_key + ".aux.xml"
