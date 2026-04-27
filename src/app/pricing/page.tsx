@@ -363,29 +363,44 @@ export default function PricingPage() {
 
                       {/* Price display */}
                       <div className="mb-6 pb-5 border-b border-gray-100">
-                        {priceData?.zmw && (
+                        {priceData?.zmw && priceData.usd ? (
+                          <div className="flex items-stretch gap-2">
+                            {/* In Zambia — Kwacha */}
+                            <div
+                              className="relative flex-1 rounded-lg px-3 py-2 overflow-hidden"
+                              style={{ backgroundColor: `${plan.color}15`, borderWidth: 1, borderStyle: 'solid', borderColor: `${plan.color}40` }}
+                            >
+                              <span className="absolute top-1 right-1.5 text-[11px] opacity-40 leading-none">🇿🇲</span>
+                              <div className="text-[9px] font-bold uppercase tracking-wider opacity-70 mb-0.5" style={{ color: plan.color }}>
+                                In Zambia
+                              </div>
+                              <div className="text-xl font-black leading-none" style={{ color: plan.color }}>
+                                K{priceData.zmw}
+                                <span className="text-xs font-normal opacity-75">/mo</span>
+                              </div>
+                            </div>
+                            {/* Outside Zambia — USD */}
+                            <div className="flex-1 bg-red-600 text-white rounded-lg px-3 py-2">
+                              <div className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-0.5">
+                                Outside Zambia
+                              </div>
+                              <div className="text-xl font-black leading-none">
+                                ${priceData.usd}
+                                <span className="text-xs font-normal opacity-75">/mo</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : priceData?.zmw ? (
                           <div className="text-3xl font-black" style={{ color: plan.color }}>
                             K{priceData.zmw}
                             <span className="text-base font-normal text-gray-400">/mo</span>
                           </div>
-                        )}
-                        {!priceData?.zmw && priceData && (
+                        ) : priceData ? (
                           <div className="text-3xl font-black" style={{ color: plan.color }}>
                             ${priceData.usd}
                             <span className="text-base font-normal text-gray-400">/mo</span>
                           </div>
-                        )}
-                        {priceData?.zmw && priceData.usd && (
-                          <div className="mt-2 bg-red-600 text-white rounded-lg px-3 py-2 inline-block">
-                            <div className="text-[9px] font-bold uppercase tracking-wider opacity-80 mb-0.5">
-                              Outside Zambia
-                            </div>
-                            <div className="text-xl font-black leading-none">
-                              ${priceData.usd}
-                              <span className="text-xs font-normal opacity-75">/mo</span>
-                            </div>
-                          </div>
-                        )}
+                        ) : null}
                         <div className="text-xs text-green-600 font-semibold mt-2">{plan.tagline}</div>
                       </div>
 
