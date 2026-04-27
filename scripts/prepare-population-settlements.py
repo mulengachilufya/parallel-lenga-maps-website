@@ -116,10 +116,47 @@ def detect_col(df: pd.DataFrame, candidates: list[str]) -> Optional[str]:
     return None
 
 
-def read_pop_table(xlsx_bytes: bytes) -> Optional[pd.DataFrame]:
+def detect_pop_col(df: pd.DataFrame) -> Optional[str]:
     """
-    Read the population table from a COD-PS Excel file.
-    Many COD-PS files have multiple sheets; prefer ADM2, fall back to ADM1.
+    Find the population total column. HDX COD-PS workbooks vary:
+      - Standard: 'T_TL' (or 'Total', 'TOTAL')
+      - Some use: 'Pop_YYYY' / 'T_YYYY' (year-coded; pick the latest)
+      - Some use: 'Population' / 'POP'
+    Falls back to year-coded patterns when no exact match exists.
+    """
+    exact = detect_col(df, POP_TOTAL_CANDIDATES)
+    if exact:
+        return exact
+
+    year_cols: list[tuple[int, str]] = []
+    for c in df.columns:
+        m = re.fullmatch(r"(?i)(t|pop)_?(\d{4})", str(c))
+        if m:
+            year_cols.append((int(m.group(2)), c))
+    if year_cols:
+        year_cols.sort(reverse=True)
+        return year_cols[0][1]
+
+    return None
+
+
+def detect_pcode_col(df: pd.DataFrame, level: Optional[str] = None) -> Optional[str]:
+    """Find the PCODE column, preferring one matching the requested level."""
+    if level == "ADM2":
+        for c in df.columns:
+            if re.fullmatch(r"(?i)adm(in)?_?2.*pcode", str(c)):
+                return c
+    elif level == "ADM1":
+        for c in df.columns:
+            if re.fullmatch(r"(?i)adm(in)?_?1.*pcode", str(c)):
+                return c
+    return detect_col(df, PCODE_CANDIDATES)
+
+
+def read_pop_table(xlsx_bytes: bytes, level: Optional[str] = None) -> Optional[pd.DataFrame]:
+    """
+    Read the population table from a COD-PS Excel file at the requested admin
+    level. Returns None if no sheet at that level has both PCODE and pop cols.
     """
     try:
         xls = pd.ExcelFile(io.BytesIO(xlsx_bytes), engine="openpyxl")
@@ -127,18 +164,21 @@ def read_pop_table(xlsx_bytes: bytes) -> Optional[pd.DataFrame]:
         print(f"    cannot read xlsx: {e}")
         return None
 
-    # Prefer sheets named by admin level
-    preferred = sorted(
-        xls.sheet_names,
-        key=lambda n: (
-            0 if "adm2" in n.lower() else
-            1 if "adm1" in n.lower() else
-            2
-        ),
-    )
-    for sheet in preferred:
+    if level == "ADM2":
+        sheet_match = lambda n: bool(re.search(r"adm(in)?_?2(?!\d)", n.lower()))
+    elif level == "ADM1":
+        sheet_match = lambda n: bool(re.search(r"adm(in)?_?1(?!\d)", n.lower()))
+    else:
+        sheet_match = lambda n: True
+
+    candidates = [s for s in xls.sheet_names if sheet_match(s)]
+    # If no sheet name carries the level marker, fall back to scanning all.
+    if not candidates:
+        candidates = list(xls.sheet_names)
+
+    for sheet in candidates:
         df = xls.parse(sheet)
-        if detect_col(df, PCODE_CANDIDATES) and detect_col(df, POP_TOTAL_CANDIDATES):
+        if detect_pcode_col(df, level) and detect_pop_col(df):
             return df
     return None
 
@@ -178,11 +218,23 @@ def process_country(iso3: str, country: str, work_dir: Path) -> Optional[dict]:
         print("  no COD-PS dataset on HDX — skipping")
         return None
 
-    ps_res = pick_resource(
-        ps_pkg,
-        lambda r: (r.get("format", "").lower() in ("xlsx", "xls"))
-                  and "adm" in (r.get("name") or r.get("description") or "").lower(),
-    )
+    # Prefer the actual population workbook (xxx_admpop_*.xlsx) — many HDX
+    # COD-PS packages also include a separate "AdminBoundaries_TabularData.xlsx"
+    # which is metadata, not population, and matches the older predicate.
+    def _is_pop_xlsx(r: dict) -> bool:
+        if r.get("format", "").lower() not in ("xlsx", "xls"):
+            return False
+        text = ((r.get("name") or "") + " " + (r.get("description") or "")
+                + " " + (r.get("url") or "")).lower()
+        return "admpop" in text or "_pop_" in text or "pop_" in text or "_pop." in text
+
+    ps_res = pick_resource(ps_pkg, _is_pop_xlsx)
+    if not ps_res:
+        ps_res = pick_resource(
+            ps_pkg,
+            lambda r: (r.get("format", "").lower() in ("xlsx", "xls"))
+                      and "adm" in (r.get("name") or r.get("description") or "").lower(),
+        )
     if not ps_res:
         ps_res = pick_resource(
             ps_pkg,
@@ -204,93 +256,106 @@ def process_country(iso3: str, country: str, work_dir: Path) -> Optional[dict]:
     with zipfile.ZipFile(io.BytesIO(ab_bytes)) as zf:
         zf.extractall(country_tmp)
 
-    # Prefer ADM2, fall back to ADM1
+    # Available boundary levels — ADM2 preferred, ADM1 used as fallback when
+    # the COD-PS workbook lacks an ADM2 sheet (e.g. Cameroon, Cote d'Ivoire).
+    # HDX naming varies: `xxx_adm2_*.shp`, `xxx_admin2.shp`, `xxx_adm_2_*.shp`, etc.
     shp_candidates = sorted(country_tmp.rglob("*.shp"))
-    adm2 = [p for p in shp_candidates if "adm2" in p.stem.lower()]
-    adm1 = [p for p in shp_candidates if "adm1" in p.stem.lower()]
-    if adm2:
-        shp = adm2[0]
-        level = "ADM2"
-    elif adm1:
-        shp = adm1[0]
-        level = "ADM1"
-    else:
+    adm2 = [p for p in shp_candidates if re.search(r"adm(in)?_?2(?!\d)", p.stem.lower())]
+    adm1 = [p for p in shp_candidates if re.search(r"adm(in)?_?1(?!\d)", p.stem.lower())]
+    level_options: list[tuple[str, Path]] = []
+    if adm2: level_options.append(("ADM2", adm2[0]))
+    if adm1: level_options.append(("ADM1", adm1[0]))
+    if not level_options:
         print("  no ADM1/ADM2 shapefile in archive — skipping")
         return None
-    print(f"  using {level} boundaries: {shp.name}")
 
-    gdf = gpd.read_file(shp)
-    if gdf.crs is None or gdf.crs.to_epsg() != 4326:
-        gdf = gdf.to_crs(epsg=4326)
+    out: Optional[gpd.GeoDataFrame] = None
+    level: str = ""
+    ref_year: int = 0
+    total_pop: int = 0
+    feature_count: int = 0
 
-    # 5) Load population table
-    df = read_pop_table(ps_bytes)
-    if df is None:
-        print("  cannot find matching pop table sheet — skipping")
+    for try_level, try_shp in level_options:
+        print(f"  trying {try_level} boundaries: {try_shp.name}")
+
+        gdf = gpd.read_file(try_shp)
+        if gdf.crs is None or gdf.crs.to_epsg() != 4326:
+            gdf = gdf.to_crs(epsg=4326)
+
+        df = read_pop_table(ps_bytes, level=try_level)
+        if df is None:
+            print(f"    no {try_level} sheet in COD-PS xlsx — trying next")
+            continue
+
+        pcode_col = detect_pcode_col(df, try_level)
+        pop_col   = detect_pop_col(df)
+        year_col  = detect_col(df, YEAR_CANDIDATES)
+
+        gdf_pcode_col = detect_pcode_col(gdf, try_level)
+        if not gdf_pcode_col:
+            print(f"    boundaries missing PCODE column — trying next")
+            continue
+        if not pcode_col or not pop_col:
+            print(f"    pop xlsx missing pcode/pop column — trying next")
+            continue
+
+        df[pcode_col] = df[pcode_col].astype(str).str.strip()
+        gdf[gdf_pcode_col] = gdf[gdf_pcode_col].astype(str).str.strip()
+
+        pop_df = df.groupby(pcode_col, as_index=False)[pop_col].sum()
+        pop_df = pop_df.rename(columns={pcode_col: gdf_pcode_col, pop_col: "population"})
+
+        merged = gdf.merge(pop_df, on=gdf_pcode_col, how="left")
+        missing = merged["population"].isna().sum()
+        merged["population"] = merged["population"].fillna(0).astype("Int64")
+
+        try_total = int(merged["population"].sum())
+        if try_total == 0:
+            print(f"    {try_level} join produced 0 pop (PCODE mismatch) — trying next")
+            continue
+        if missing:
+            print(f"    warning: {missing} polygon(s) without population match — left as 0")
+
+        # Reference year — try, in order: `year` column, year embedded in the
+        # pop column name (e.g. `Pop_2020`), then dataset title.
+        ref_year = 0
+        if year_col and year_col in df.columns:
+            yrs = pd.to_numeric(df[year_col], errors="coerce").dropna().astype(int)
+            if len(yrs): ref_year = int(yrs.max())
+        if not ref_year:
+            m = re.search(r"(19|20)\d{2}", str(pop_col))
+            if m: ref_year = int(m.group(0))
+        if not ref_year:
+            m = re.search(r"(19|20)\d{2}", ps_pkg.get("title", "") + " " + (ps_res.get("name") or ""))
+            ref_year = int(m.group(0)) if m else 0
+
+        adm1_name = detect_col(merged, ["ADM1_EN", "ADM1_NAME", "admin1Name_en"])
+        adm1_pc   = detect_col(merged, ["ADM1_PCODE", "admin1Pcode"])
+        adm2_name = detect_col(merged, ["ADM2_EN", "ADM2_NAME", "admin2Name_en"])
+        adm2_pc   = detect_col(merged, ["ADM2_PCODE", "admin2Pcode"])
+
+        out = gpd.GeoDataFrame({
+            "iso3":        iso3,
+            "adm0_name":   country.replace("-", " "),
+            "adm1_name":   merged[adm1_name] if adm1_name else "",
+            "adm1_pcode":  merged[adm1_pc]   if adm1_pc   else "",
+            "adm2_name":   merged[adm2_name] if adm2_name else "",
+            "adm2_pcode":  merged[adm2_pc]   if adm2_pc   else "",
+            "population":  merged["population"],
+            "ref_year":    ref_year,
+            "source":      f"HDX COD-PS ({ps_pkg.get('title','')[:80]})",
+            "hdx_url":     f"https://data.humdata.org/dataset/{ps_pkg.get('name','')}",
+            "geometry":    merged.geometry,
+        }, geometry="geometry", crs=merged.crs)
+        level = try_level
+        total_pop = try_total
+        feature_count = len(out)
+        print(f"    ✓ {try_level} join: {feature_count} features · pop {total_pop:,}")
+        break
+
+    if out is None:
+        print("  no admin level produced a valid pop join — skipping")
         return None
-
-    pcode_col = detect_col(df, PCODE_CANDIDATES)
-    pop_col   = detect_col(df, POP_TOTAL_CANDIDATES)
-    year_col  = detect_col(df, YEAR_CANDIDATES)
-
-    # 6) Find matching PCODE column in boundaries
-    gdf_pcode_col = detect_col(gdf, PCODE_CANDIDATES)
-    if not gdf_pcode_col:
-        print(f"  boundaries missing PCODE column (have: {list(gdf.columns)}) — skipping")
-        return None
-
-    # Ensure same admin level on both sides when possible
-    if level == "ADM2":
-        candidates_adm2 = [c for c in df.columns if re.fullmatch(r"(?i)adm(in)?2.*pcode", c)]
-        if candidates_adm2:
-            pcode_col = candidates_adm2[0]
-
-    df[pcode_col] = df[pcode_col].astype(str).str.strip()
-    gdf[gdf_pcode_col] = gdf[gdf_pcode_col].astype(str).str.strip()
-
-    # Collapse pop to one row per pcode (sum disaggregations if present)
-    pop_df = df.groupby(pcode_col, as_index=False)[pop_col].sum()
-    pop_df = pop_df.rename(columns={pcode_col: gdf_pcode_col, pop_col: "population"})
-
-    # Join
-    merged = gdf.merge(pop_df, on=gdf_pcode_col, how="left")
-    missing = merged["population"].isna().sum()
-    if missing:
-        print(f"  warning: {missing} polygon(s) without population match — left as NULL")
-    merged["population"] = merged["population"].fillna(0).astype("Int64")
-
-    # Reference year: from column if present, else parse dataset title
-    ref_year = None
-    if year_col and year_col in df.columns:
-        yrs = pd.to_numeric(df[year_col], errors="coerce").dropna().astype(int)
-        if len(yrs):
-            ref_year = int(yrs.max())
-    if not ref_year:
-        m = re.search(r"(19|20)\d{2}", ps_pkg.get("title", "") + " " + (ps_res.get("name") or ""))
-        ref_year = int(m.group(0)) if m else 0
-
-    # Compose attributes
-    adm1_name = detect_col(merged, ["ADM1_EN", "ADM1_NAME", "admin1Name_en"])
-    adm1_pc   = detect_col(merged, ["ADM1_PCODE", "admin1Pcode"])
-    adm2_name = detect_col(merged, ["ADM2_EN", "ADM2_NAME", "admin2Name_en"])
-    adm2_pc   = detect_col(merged, ["ADM2_PCODE", "admin2Pcode"])
-
-    out = gpd.GeoDataFrame({
-        "iso3":        iso3,
-        "adm0_name":   country.replace("-", " "),
-        "adm1_name":   merged[adm1_name] if adm1_name else "",
-        "adm1_pcode":  merged[adm1_pc]   if adm1_pc   else "",
-        "adm2_name":   merged[adm2_name] if adm2_name else "",
-        "adm2_pcode":  merged[adm2_pc]   if adm2_pc   else "",
-        "population":  merged["population"],
-        "ref_year":    ref_year,
-        "source":      f"HDX COD-PS ({ps_pkg.get('title','')[:80]})",
-        "hdx_url":     f"https://data.humdata.org/dataset/{ps_pkg.get('name','')}",
-        "geometry":    merged.geometry,
-    }, geometry="geometry", crs=merged.crs)
-
-    total_pop = int(out["population"].sum())
-    feature_count = len(out)
 
     # 7) Write shapefile + zip
     out_name = f"{country}_Population_{level}_{ref_year}"
