@@ -14,6 +14,10 @@ export interface LulcLayer {
   epsg: number
   created_at: string
   download_url?: string
+  // PAM sidecar (.aux.xml) — holds the Raster Attribute Table (pixel value
+  // → class name + colour). The .tif is meaningless without it: QGIS opens
+  // it as opaque numeric pixels. Convention is `r2_key + ".aux.xml"`.
+  sidecar_url?: string
 }
 
 /**
@@ -56,7 +60,12 @@ export async function GET(request: NextRequest) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
+            const [download_url, sidecar_url] = await Promise.all([
+              getDownloadUrl(layer.r2_key, 3600),
+              // Sidecar is non-fatal if absent — fall through to undefined.
+              getDownloadUrl(`${layer.r2_key}.aux.xml`, 3600).catch(() => undefined),
+            ])
+            return { ...layer, download_url, sidecar_url }
           } catch {
             return layer
           }

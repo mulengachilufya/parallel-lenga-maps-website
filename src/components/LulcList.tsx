@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Download, Search, Layers } from 'lucide-react'
+import { Download, Search, Layers, Info } from 'lucide-react'
 import type { LulcLayer } from '@/app/api/lulc/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
@@ -50,17 +50,32 @@ export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
     fetchLayers()
   }, [])
 
+  // Click a presigned URL as a download. Some browsers ignore the `download`
+  // attribute on cross-origin URLs (R2 presigns are cross-origin to lengamaps.com)
+  // — that's fine, the file still saves with its key's basename via the
+  // Content-Disposition we set when the object was uploaded, or the URL path.
+  const triggerDownload = (url: string, filename: string) => {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
   const handleDownload = (layer: LulcLayer) => {
     if (!layer.download_url) return
     guardDownload('basic', () => {
       setDownloading(layer.id)
-      const link = document.createElement('a')
-      link.href = layer.download_url!
-      link.download = layer.r2_key.split('/').pop() || 'lulc.tif'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setTimeout(() => setDownloading(null), 2000)
+      const tifName = layer.r2_key.split('/').pop() || 'lulc.tif'
+      triggerDownload(layer.download_url!, tifName)
+      // Trigger the sidecar a beat later — back-to-back triggers in some
+      // browsers (Safari especially) collapse into a single download.
+      if (layer.sidecar_url) {
+        setTimeout(() => triggerDownload(layer.sidecar_url!, `${tifName}.aux.xml`), 600)
+      }
+      setTimeout(() => setDownloading(null), 2500)
     })
   }
 
@@ -146,6 +161,18 @@ export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
         </p>
       </div>
 
+      {/* Dual-download notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 flex items-start gap-2.5">
+        <Info size={14} className="text-amber-700 flex-shrink-0 mt-0.5" />
+        <div className="text-[11px] text-amber-900 leading-relaxed">
+          <span className="font-semibold">Each download saves two files</span> — a{' '}
+          <code className="font-mono bg-amber-100 px-1 rounded">.tif</code> raster and a{' '}
+          <code className="font-mono bg-amber-100 px-1 rounded">.tif.aux.xml</code> sidecar
+          containing the colour table and class names (Tree cover, Cropland, …). Keep both
+          in the same folder before opening in QGIS / ArcGIS so the attribute table loads.
+        </div>
+      </div>
+
       {/* Search */}
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -205,7 +232,7 @@ export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
                 ) : (
                   <>
                     <Download size={13} />
-                    Download .tif
+                    Download
                   </>
                 )}
               </button>
