@@ -1,9 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// IMPORTANT: this MUST be createBrowserClient (cookie-backed), not the raw
+// createClient from `@supabase/supabase-js` (localStorage-backed). The plain
+// client puts the session in localStorage where server route handlers cannot
+// see it — every authenticated POST (manual payment, admin, etc.) returns
+// 401 even when the user is signed in. createBrowserClient writes the
+// session into the same cookies that `createServerSupabase()` reads.
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 export type AccountType = 'student' | 'professional' | 'business'
 export type PlanTier = 'basic' | 'pro' | 'max'
