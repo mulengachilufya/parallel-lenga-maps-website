@@ -8,7 +8,7 @@
 
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
-import { ArrowLeft, KeyRound, Terminal, Boxes, Globe2, ShieldCheck, Sparkles, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, KeyRound, Terminal, Boxes, Globe2, ShieldCheck, Sparkles, MessageCircle, Mail, type LucideIcon } from 'lucide-react'
 
 export const metadata = {
   title: 'REST API · Lenga Maps',
@@ -211,17 +211,41 @@ for f in bundle["bundle"]["files"]:
           </table>
         </Section>
 
-        <div className="mt-12 bg-navy text-white rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xl font-black mb-1">Need the API on a custom plan?</h3>
-            <p className="text-sm text-blue-200">Higher quotas, dedicated support, on-prem mirror — talk to us.</p>
+        {/* Custom-plan CTA. We deliberately don't lead with a mailto: link —
+            many users have no default mail handler, so the click silently
+            does nothing. WhatsApp + the contact form are the two channels we
+            actually own. The email address is shown in plain text so a
+            copy-paste-and-go user is never blocked. */}
+        <div className="mt-12 bg-navy text-white rounded-2xl p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div>
+              <h3 className="text-xl font-black mb-1">Need the API on a custom plan?</h3>
+              <p className="text-sm text-blue-200">Higher quotas, dedicated support, on-prem mirror — talk to us.</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <a
+                href="https://wa.me/260965699359?text=Hi%20Lenga%20Maps%2C%20I%27d%20like%20to%20discuss%20a%20custom%20API%20plan."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-accent text-navy text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-yellow-400 transition-colors whitespace-nowrap"
+              >
+                <MessageCircle size={15} />
+                WhatsApp us
+              </a>
+              <Link
+                href="/contact-us"
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap"
+              >
+                <Mail size={15} />
+                Contact form
+              </Link>
+            </div>
           </div>
-          <a
-            href="mailto:lengamaps@gmail.com?subject=API%20—%20custom%20plan"
-            className="bg-accent text-navy text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-yellow-400 transition-colors whitespace-nowrap"
-          >
-            Email sales
-          </a>
+          <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 text-xs text-blue-200">
+            <Mail size={13} />
+            <span>or copy our email:</span>
+            <code className="bg-white/10 px-2 py-1 rounded text-white font-mono select-all">lengamaps@gmail.com</code>
+          </div>
         </div>
       </div>
     </div>
