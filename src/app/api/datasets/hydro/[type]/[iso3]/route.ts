@@ -62,7 +62,7 @@ export async function GET(
   // payment lands — that's the only number we can trust.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at')
+    .select('plan, account_type, plan_status, plan_expires_at')
     .eq('id', resolvedUser.id)
     .single()
 
@@ -80,6 +80,7 @@ export async function GET(
     )
   }
   const userPlan = profile.plan as string
+  const userAccountType = profile.account_type as string
 
   const { data: fileRow, error } = await supabase
     .from('hydro_files')
@@ -97,10 +98,13 @@ export async function GET(
 
   // ── Tier check ────────────────────────────────────────────────────────────
   // Rivers + watersheds are Basic-tier datasets, so any active plan unlocks
-  // them. Within the Basic tier we keep the 100 MB per-file cap as an extra
-  // soft limit (encourages basic users to upgrade to pro for big watersheds).
+  // them. The 100 MB per-file cap is a soft limit on Student/Professional
+  // basic plans only — Business basic ($75) is sold as "Everything in Max"
+  // so it gets uncapped downloads at the Basic plan level.
   const sizeMb: number = fileRow.file_size_mb ?? 0
-  if (userPlan === 'basic' && sizeMb >= 100) {
+  const isCappedBasic =
+    userPlan === 'basic' && userAccountType !== 'business'
+  if (isCappedBasic && sizeMb >= 100) {
     return NextResponse.json(
       {
         error: 'File size exceeds Basic plan limit (100 MB). Upgrade to Pro for unlimited downloads.',

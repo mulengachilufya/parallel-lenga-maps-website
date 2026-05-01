@@ -8,19 +8,20 @@
  *   actual files for free. This helper fixes that: routes call it once,
  *   and only return `download_url` if it returns true.
  *
- * Tier model (matches DownloadGateContext):
- *   - basic: any active plan (basic / pro / max) can download
- *   - pro:   only pro / max can download
+ * Tier model (single source of truth: hasFullDatasetAccess in lib/supabase):
+ *   - basic-tier datasets: any active plan unlocks them (incl. Business basic)
+ *   - pro-tier datasets:
+ *       · Student / Professional: only plan='pro' or plan='max'
+ *       · Business: ANY plan unlocks them (basic + pro both = "Everything in Max")
  *
  * Returning `false` means "give them metadata only, no presigned URL". The
  * client UI already handles missing download_url gracefully (the Download
  * button disables itself).
  */
 import { createServerSupabase } from './supabase-server'
+import { hasFullDatasetAccess, type AccountType, type PlanTier } from './supabase'
 
 export type Tier = 'basic' | 'pro'
-
-const PLAN_RANK: Record<string, number> = { basic: 0, pro: 1, max: 2 }
 
 /**
  * Check whether the caller has an active plan that unlocks this tier.
@@ -30,7 +31,7 @@ const PLAN_RANK: Record<string, number> = { basic: 0, pro: 1, max: 2 }
  *   - signed-in users with no profile row
  *   - plan_status != 'active'
  *   - plan_expires_at in the past
- *   - active user whose plan rank is below the required tier
+ *   - active non-business user on plan='basic' trying to access a pro-tier dataset
  */
 export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
   const supabase = createServerSupabase()
@@ -39,7 +40,7 @@ export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at')
+    .select('plan, account_type, plan_status, plan_expires_at')
     .eq('id', user.id)
     .single()
 
@@ -50,7 +51,11 @@ export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
     return false
   }
 
-  const userRank   = PLAN_RANK[profile.plan ?? 'basic'] ?? 0
-  const requiredRank = tier === 'pro' ? 1 : 0
-  return userRank >= requiredRank
+  // Basic-tier datasets: any active plan unlocks them. Pro-tier: depends on
+  // plan AND account_type — Business gets full access at every plan level.
+  if (tier === 'basic') return true
+  return hasFullDatasetAccess(
+    (profile.plan ?? 'basic') as PlanTier,
+    (profile.account_type ?? 'student') as AccountType,
+  )
 }

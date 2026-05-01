@@ -42,6 +42,25 @@ export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | 
   return new Date(expiresAt).getTime() > Date.now()
 }
 
+/**
+ * Does this (account_type, plan) combo unlock pro-tier datasets
+ * (Aquifer, Population, etc.)?
+ *
+ * The rule on the pricing page:
+ *   - Student / Professional: basic = limited datasets;  pro/max = full
+ *   - Business: ANY plan level = full data access. Business basic ($75)
+ *     is sold as "Everything in Max", and Business pro ($225) just adds
+ *     API + on-site support. The basic→pro gradient for Business is NOT
+ *     about which datasets they can download.
+ *
+ * Use this everywhere we ask "can this user access pro-tier data?"
+ * — never reimplement plan==='basic' inline; it's wrong for Business.
+ */
+export function hasFullDatasetAccess(plan: PlanTier, accountType: AccountType): boolean {
+  if (accountType === 'business') return true
+  return plan !== 'basic'
+}
+
 export interface PlanPrice {
   zmw?: number
   usd: number

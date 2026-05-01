@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
-import { supabase, DATASETS, PLAN_PRICING, type AccountType, type PlanStatus } from '@/lib/supabase'
+import { supabase, DATASETS, PLAN_PRICING, hasFullDatasetAccess, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
@@ -26,8 +26,9 @@ const PLAN_BLURBS: Record<UserPlan, string> = {
   pro: 'Full access',
   max: 'Maximum access',
 }
-// Pro + Max both unlock every current dataset. Only Basic is gated.
-const hasFullAccess = (p: UserPlan) => p !== 'basic'
+// Note: this is now a thin wrapper around the shared helper. Always pass
+// account_type — Business at any plan level (basic OR pro) gets full data
+// access per the pricing page ("Everything in Max" on Business basic).
 
 interface UserData {
   email: string
@@ -39,12 +40,17 @@ interface UserData {
 }
 
 // ── Section registry ────────────────────────────────────────────────────────
-// Maps URL section param → component, title, subtitle, tier
+// Maps URL section param → component, title, subtitle, tier.
+// `component` receives:
+//   plan          — the user's plan tier (basic/pro/max)
+//   hasFullAccess — pre-computed boolean: pro/max OR any business plan
+// Inside list components, prefer `hasFullAccess` over recomputing from plan
+// alone, because that recomputation will silently miss Business basic users.
 const SECTIONS: Record<string, {
   title: string
   subtitle?: string
   tier: 'basic' | 'pro'
-  component: (plan: UserPlan) => React.ReactNode
+  component: (plan: UserPlan, hasFullAccess: boolean) => React.ReactNode
 }> = {
   'admin-boundaries': {
     title: '📍 Administrative Boundaries',
@@ -90,7 +96,7 @@ const SECTIONS: Record<string, {
     title: '💧 Groundwater Aquifers',
     subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
     tier: 'pro',
-    component: (plan) => <AquiferList userPlan={plan} />,
+    component: (plan, hasFullAccess) => <AquiferList userPlan={plan} hasFullAccess={hasFullAccess} />,
   },
   'lulc': {
     title: '🌿 Land Use / Land Cover',
@@ -102,7 +108,7 @@ const SECTIONS: Record<string, {
     title: '🏘️ Population & Settlements',
     subtitle: 'HDX COD-PS (UN OCHA + national census offices) · EPSG:4326 · Shapefile (ZIP) · ADM1/ADM2',
     tier: 'pro',
-    component: (plan) => <PopulationList userPlan={plan} />,
+    component: (plan, hasFullAccess) => <PopulationList userPlan={plan} hasFullAccess={hasFullAccess} />,
   },
 }
 
@@ -204,9 +210,13 @@ function DashboardContent() {
     )
   }
 
-  const userPlan = user?.plan || 'basic'
+  const userPlan        = user?.plan || 'basic'
+  const userAccountType = user?.accountType || 'student'
+  // hasFullAccess returns true for: pro/max plans, OR ANY business plan.
+  // Business basic ($75) is sold as "Everything in Max" so it gets every dataset.
+  const userHasFullAccess = hasFullDatasetAccess(userPlan, userAccountType)
   const accessibleDatasets = DATASETS.filter(
-    (d) => hasFullAccess(userPlan) || d.tier === 'basic'
+    (d) => userHasFullAccess || d.tier === 'basic'
   )
 
   // ── Single-section view ─────────────────────────────────────────────────
@@ -304,7 +314,7 @@ function DashboardContent() {
             </motion.div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              {sectionData.component(userPlan)}
+              {sectionData.component(userPlan, userHasFullAccess)}
             </div>
           </>
         ) : (
@@ -502,10 +512,10 @@ function DashboardContent() {
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
                   </div>
                   <div className="text-3xl font-black text-navy">
-                    {hasFullAccess(user.plan) ? '54' : '3'}
+                    {userHasFullAccess ? '54' : '3'}
                   </div>
                   <p className="text-sm text-gray-400 mt-1">
-                    {hasFullAccess(user.plan) ? 'All of Africa' : 'Choose any 3'}
+                    {userHasFullAccess ? 'All of Africa' : 'Choose any 3'}
                   </p>
                 </motion.div>
               </div>
@@ -540,7 +550,7 @@ function DashboardContent() {
             {/* Dataset cards - each links to its own isolated view */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(SECTIONS).map(([key, sec], i) => {
-                const isProLocked = sec.tier === 'pro' && !hasFullAccess(userPlan)
+                const isProLocked = sec.tier === 'pro' && !userHasFullAccess
 
                 return (
                   <motion.div

@@ -8,9 +8,14 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface PopulationListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pre-computed by the dashboard: pro/max OR any business plan. Use this
+   *  instead of recomputing from `userPlan === 'basic'` — that recomputation
+   *  silently locks Business basic users out despite their pricing promise. */
+  hasFullAccess?: boolean
 }
 
-export default function PopulationList({ userPlan = 'basic' }: PopulationListProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function PopulationList({ userPlan = 'basic', hasFullAccess = false }: PopulationListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<PopulationSettlementsLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -169,7 +174,7 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
         </div>
       )}
 
-      {userPlan === 'basic' && (
+      {!hasFullAccess && (
         <p className="text-xs text-gray-400 mt-2">
           * Population & Settlements is Pro-only. Upgrade to unlock all 54 countries.
         </p>

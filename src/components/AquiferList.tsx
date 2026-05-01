@@ -8,9 +8,14 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface AquiferListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pre-computed by the dashboard: pro/max OR any business plan. Pass it
+   *  through here instead of recomputing from `userPlan` alone — that
+   *  recomputation will incorrectly lock out Business basic users. */
+  hasFullAccess?: boolean
 }
 
-export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function AquiferList({ userPlan = 'basic', hasFullAccess = false }: AquiferListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -136,9 +141,10 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
       {/* Country grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((layer, idx) => {
-          // `isLocked` = true means the user is on Basic and needs to upgrade
-          // to unlock Pro-tier datasets (aquifer). Pro and Max both have access.
-          const isLocked = userPlan === 'basic'
+          // `isLocked` = true means the user does NOT have full data access.
+          // Source of truth: hasFullAccess (computed by the dashboard from
+          // plan + account_type so Business basic correctly counts as full).
+          const isLocked = !hasFullAccess
           // Kept as `isPro` for downstream template compatibility — semantically
           // it's "user is locked out of this Pro-tier dataset".
           const isPro = isLocked

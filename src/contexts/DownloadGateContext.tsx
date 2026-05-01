@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { X, Lock, ArrowRight, Star, Zap, CreditCard, Clock } from 'lucide-react'
-import { supabase, PLAN_PRICING, isPlanActive, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
+import { supabase, PLAN_PRICING, isPlanActive, hasFullDatasetAccess, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -409,8 +409,15 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
       })
       return
     }
-    // Active plan but insufficient tier for this file → upgrade
-    if (TIER_ORDER[gateUser.plan] < TIER_ORDER[requiredTier]) {
+    // Active plan but insufficient tier for this file → upgrade.
+    // Special case: Business at any plan level has full data access (the
+    // basic→pro gradient for Business is API + on-site, not which datasets
+    // they can download). So a Business basic user trying to download a
+    // pro-tier file should NOT see the upgrade modal.
+    const insufficient = requiredTier === 'pro'
+      ? !hasFullDatasetAccess(gateUser.plan, gateUser.accountType)
+      : TIER_ORDER[gateUser.plan] < TIER_ORDER[requiredTier]
+    if (insufficient) {
       setModal({ type: 'upgrade', requiredTier })
       return
     }
