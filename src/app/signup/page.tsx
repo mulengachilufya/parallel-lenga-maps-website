@@ -102,10 +102,17 @@ function SignupContent() {
         return
       }
 
-      // If email auto-confirmed: drop them straight into the dashboard with
-      // a first-time welcome banner. No payment pressure — they can browse
-      // free Basic datasets and upgrade later from the dashboard when ready.
+      // If email auto-confirmed: sync the chosen plan/account_type from
+      // user_metadata into the profiles row BEFORE redirecting. Without this
+      // call, Supabase's handle_new_user trigger leaves the user labelled as
+      // Basic Student regardless of what they picked on the pricing page.
+      // We swallow errors here — a profile-sync failure shouldn't block the
+      // user from reaching their dashboard. The dashboard can re-trigger
+      // it on first load if the row looks wrong.
       if (data.session && data.user) {
+        try {
+          await fetch('/api/account/init-profile', { method: 'POST' })
+        } catch { /* non-fatal */ }
         router.push('/dashboard?welcome=new')
       } else {
         setSuccess(true)
