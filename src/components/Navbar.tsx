@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/atlas', label: 'Atlas' },
   { href: '/datasets', label: 'Download GIS Data' },
+  { href: '/docs/api', label: 'API' },
   { href: '/contact-us', label: 'Contact Us' },
 ]
 

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock } from 'lucide-react'
+import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
 import { supabase, DATASETS, PLAN_PRICING, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
@@ -238,6 +238,17 @@ function DashboardContent() {
                   >
                     <Shield size={13} />
                     Admin
+                  </Link>
+                )}
+                {/* Business-tier perk: API keys live behind a separate page so
+                    the dashboard stays focused on browsing datasets. */}
+                {user.accountType === 'business' && (
+                  <Link
+                    href="/dashboard/api-keys"
+                    className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
+                  >
+                    <KeyRound size={13} />
+                    API keys
                   </Link>
                 )}
                 <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
