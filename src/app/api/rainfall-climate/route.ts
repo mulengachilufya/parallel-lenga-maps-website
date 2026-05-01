@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface RainfallClimateLayer {
   id: number
@@ -63,7 +66,10 @@ export async function GET(request: NextRequest) {
 
     let layers: RainfallClimateLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // Rainfall / temperature / drought-index are all Basic-tier datasets.
+    // Gate URLs behind an active plan; metadata stays public for catalogue.
+    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

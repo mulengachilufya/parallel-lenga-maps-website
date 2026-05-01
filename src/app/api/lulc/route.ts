@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface LulcLayer {
   id: number
@@ -56,7 +59,9 @@ export async function GET(request: NextRequest) {
 
     let layers: LulcLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // LULC is a Basic-tier dataset; gate the URLs behind any active plan.
+    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

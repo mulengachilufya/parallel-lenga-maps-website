@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface HydrologyLayer {
   id: number
@@ -55,7 +58,11 @@ export async function GET(request: NextRequest) {
 
     let layers: HydrologyLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // Gate the presigned URLs behind an active basic-or-better plan. Anyone
+    // can browse the catalogue (country names, sizes, sources) but only
+    // paying users get the download link.
+    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

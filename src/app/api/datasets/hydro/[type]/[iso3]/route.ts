@@ -24,6 +24,9 @@ export async function GET(
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
+  // Two acceptable session sources: a Bearer token (Authorization header)
+  // OR a Supabase cookie session. The dashboard sends cookies; older clients
+  // may still send tokens.
   const authClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -33,19 +36,50 @@ export async function GET(
   const { data: { user } } = token
     ? await authClient.auth.getUser(token)
     : { data: { user: null } }
-  const session = user ? { user } : null
 
-  if (!session) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  // Fallback to cookie-based session for browser callers (the dashboard).
+  let resolvedUser = user
+  if (!resolvedUser) {
+    const { createServerSupabase } = await import('@/lib/supabase-server')
+    const cookieClient = createServerSupabase()
+    const { data: { user: cookieUser } } = await cookieClient.auth.getUser()
+    resolvedUser = cookieUser
   }
 
-  const userPlan: string = user?.user_metadata?.plan ?? 'basic'
+  if (!resolvedUser) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  }
 
   // ── Fetch file metadata ───────────────────────────────────────────────────
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+
+  // Read plan from PROFILES (not user_metadata). user_metadata is set
+  // client-side at signup and could lie about the user's actual paid tier.
+  // profiles.plan is what the admin verify endpoint writes after a real
+  // payment lands — that's the only number we can trust.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan, plan_status, plan_expires_at')
+    .eq('id', resolvedUser.id)
+    .single()
+
+  if (!profile || profile.plan_status !== 'active') {
+    return NextResponse.json(
+      { error: 'Active plan required.', upgrade_url: '/pricing' },
+      { status: 403 }
+    )
+  }
+  if (profile.plan_expires_at &&
+      new Date(profile.plan_expires_at).getTime() <= Date.now()) {
+    return NextResponse.json(
+      { error: 'Your plan has expired.', upgrade_url: '/dashboard/payment' },
+      { status: 403 }
+    )
+  }
+  const userPlan = profile.plan as string
 
   const { data: fileRow, error } = await supabase
     .from('hydro_files')
@@ -62,7 +96,9 @@ export async function GET(
   }
 
   // ── Tier check ────────────────────────────────────────────────────────────
-  // Basic users capped at 100 MB per file; Pro and Max have no size cap.
+  // Rivers + watersheds are Basic-tier datasets, so any active plan unlocks
+  // them. Within the Basic tier we keep the 100 MB per-file cap as an extra
+  // soft limit (encourages basic users to upgrade to pro for big watersheds).
   const sizeMb: number = fileRow.file_size_mb ?? 0
   if (userPlan === 'basic' && sizeMb >= 100) {
     return NextResponse.json(
@@ -86,7 +122,7 @@ export async function GET(
 
   // ── Log download ──────────────────────────────────────────────────────────
   await supabase.from('hydro_downloads').insert({
-    user_id: user?.id,
+    user_id: resolvedUser.id,
     file_id: fileRow.id,
     tier:    userPlan,
   })
