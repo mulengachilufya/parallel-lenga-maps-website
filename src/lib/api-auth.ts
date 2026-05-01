@@ -90,9 +90,13 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
     return { ok: false, failure: { type: 'quota-exceeded', field: 'egress' } }
   }
 
-  // Verify the owning profile is on an active Business plan. We re-check this
-  // on every request so a downgrade or expired payment kills API access
-  // immediately — no need to revoke each key by hand.
+  // Verify the owning profile is on an active Business — On-site plan. We
+  // re-check this on every request so a downgrade or expired payment kills
+  // API access immediately — no need to revoke each key by hand.
+  //
+  // The gate is account_type='business' AND plan IN ('pro','max'). The $75
+  // Business tier (plan='basic') is dashboard-only and CANNOT use the API
+  // even if a key was minted before the tier split.
   const { data: profile } = await supabase
     .from('profiles')
     .select('plan, plan_status, plan_expires_at, account_type')
@@ -102,6 +106,9 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
   if (!profile)                                return { ok: false, failure: { type: 'plan-inactive' } }
   if (profile.plan_status !== 'active')        return { ok: false, failure: { type: 'plan-inactive' } }
   if (profile.account_type !== 'business')     return { ok: false, failure: { type: 'plan-inactive' } }
+  if (profile.plan !== 'pro' && profile.plan !== 'max') {
+    return { ok: false, failure: { type: 'plan-inactive' } }
+  }
   if (profile.plan_expires_at &&
       new Date(profile.plan_expires_at).getTime() <= Date.now()) {
     return { ok: false, failure: { type: 'plan-inactive' } }
@@ -185,7 +192,7 @@ function failureBody(failure: AuthFailure) {
       return {
         status: 403,
         error:  'plan_inactive',
-        message: 'API access requires an active Business plan. See https://lenga-maps.com/pricing.',
+        message: 'API access requires the active Business — On-site tier ($225/mo). See https://lenga-maps.com/pricing.',
       }
     case 'quota-exceeded':
       return {

@@ -27,8 +27,10 @@ interface ApiKeyRow {
   revoked_at:               string | null
 }
 
-/** Profile gate: business + active + not-expired. Returns the user_id on
- *  success, a NextResponse on failure. */
+/** Profile gate: Business — On-site tier (account_type='business' AND
+ *  plan IN ('pro','max')) + active + not-expired. The $75 Business tier
+ *  (plan='basic') gets a separate api_tier_required error so the dashboard
+ *  can show a useful upgrade message instead of a generic 403. */
 async function requireBusinessUser(): Promise<{ userId: string } | NextResponse> {
   const supabase = createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
@@ -38,7 +40,7 @@ async function requireBusinessUser(): Promise<{ userId: string } | NextResponse>
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('account_type, plan_status, plan_expires_at')
+    .select('account_type, plan, plan_status, plan_expires_at')
     .eq('id', session.user.id)
     .single()
 
@@ -48,15 +50,24 @@ async function requireBusinessUser(): Promise<{ userId: string } | NextResponse>
       { status: 403 },
     )
   }
+  if (profile.plan !== 'pro' && profile.plan !== 'max') {
+    return NextResponse.json(
+      {
+        error:   'api_tier_required',
+        message: 'API keys are available on the Business — On-site tier ($225/mo). Email lengamaps@gmail.com to upgrade.',
+      },
+      { status: 403 },
+    )
+  }
   if (profile.plan_status !== 'active') {
     return NextResponse.json(
-      { error: 'plan_inactive', message: 'Activate your Business plan to mint API keys.' },
+      { error: 'plan_inactive', message: 'Activate your Business — On-site plan to mint API keys.' },
       { status: 403 },
     )
   }
   if (profile.plan_expires_at && new Date(profile.plan_expires_at).getTime() <= Date.now()) {
     return NextResponse.json(
-      { error: 'plan_expired', message: 'Your Business plan has expired. Renew to mint API keys.' },
+      { error: 'plan_expired', message: 'Your Business — On-site plan has expired. Renew to mint API keys.' },
       { status: 403 },
     )
   }

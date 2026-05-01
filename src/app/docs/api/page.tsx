@@ -59,8 +59,9 @@ export default function ApiDocsPage() {
         <Section icon={KeyRound} title="Authentication">
           <p className="mb-4 text-gray-700 leading-relaxed">
             Generate a bearer token on the{' '}
-            <Link href="/dashboard/api-keys" className="text-primary font-semibold hover:underline">API keys page</Link>{' '}
-            (Business plan required). Send it on every request:
+            <Link href="/dashboard/api-keys" className="text-primary font-semibold hover:underline">API keys page</Link>.
+            Available on the <strong>Business — On-site</strong> tier ($225/mo, includes 3 seats).
+            The dashboard-only $75 Business tier doesn&apos;t include API access. Send it on every request:
           </p>
           <Code block>{`Authorization: Bearer lm_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`}</Code>
           <p className="mt-4 text-sm text-gray-500 leading-relaxed">

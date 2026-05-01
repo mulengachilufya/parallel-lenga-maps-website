@@ -102,24 +102,60 @@ const basePlans: PlanDef[] = [
   },
 ]
 
-const businessPlan = {
-  name: 'Business / Company',
-  tagline: 'For Teams & Enterprises',
-  description:
-    'Complete GIS data access for commercial operations, development firms, and enterprise teams.',
-  color: '#7c3aed',
-  features: [
-    'Everything in Max',
-    'Up to 3 team seats',
-    'Commercial redistribution rights',
-    'Custom data extracts on request',
-    'Dedicated account manager',
-    'Invoice & PO billing available',
-    'SLA-backed data delivery',
-  ],
-  price: 60,
-  cta: 'Contact Us to Subscribe',
+// Two business sub-tiers. Both include 3 team seats and everything in Max.
+//   · Business ($75) — manual dashboard access, no programmatic API
+//   · Business — On-site ($225) — adds REST API + up to 2 on-site visits/year
+//     (client covers travel + expenses)
+type BusinessPlanDef = {
+  id: 'basic' | 'pro'
+  name: string
+  tagline: string
+  description: string
+  highlight: boolean
+  features: string[]
+  price: number
+  cta: string
 }
+
+const businessPlans: BusinessPlanDef[] = [
+  {
+    id: 'basic',
+    name: 'Business',
+    tagline: 'For Teams',
+    description:
+      'Complete GIS data access for commercial operations, development firms, and enterprise teams.',
+    highlight: false,
+    features: [
+      'Everything in Max',
+      'Up to 3 team seats',
+      'Commercial redistribution rights',
+      'Custom data extracts on request',
+      'Dedicated account manager',
+      'Invoice & PO billing available',
+      'SLA-backed data delivery',
+    ],
+    price: 75,
+    cta: 'Contact Us to Subscribe',
+  },
+  {
+    id: 'pro',
+    name: 'Business — On-site',
+    tagline: 'Premium',
+    description:
+      'Everything in Business, plus programmatic REST API access and engineering visits to your office.',
+    highlight: true,
+    features: [
+      'Everything in Business',
+      'REST API access (5,000 calls + 50 GB / month per key)',
+      'Up to 2 on-site engineering visits/year (you cover travel & expenses)',
+      'Custom integration support',
+      'Priority WhatsApp & email queue',
+      'Reproducible data pulls for your CI / ETL',
+    ],
+    price: 225,
+    cta: 'Contact Us to Subscribe',
+  },
+]
 
 const accountTypes: {
   id: AccountType
@@ -280,56 +316,76 @@ export default function PricingPage() {
             {activeType.blurb}
           </p>
 
-          {/* Business — single card */}
+          {/* Business — two cards (manual + on-site/API) */}
           {isBusiness ? (
-            <div className="flex justify-center">
-              <motion.div
-                key="business"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative rounded-2xl overflow-hidden shadow-2xl ring-2 ring-purple-500 bg-white max-w-md w-full"
-              >
-                <div className="bg-purple-600 text-white text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
-                  <Building2 size={12} />
-                  Enterprise &amp; Business
-                  <Building2 size={12} />
-                </div>
-                <div className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1 pr-4">
-                      <h2 className="text-2xl font-black text-navy">{businessPlan.name}</h2>
-                      <p className="text-gray-500 text-sm mt-1">{businessPlan.description}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-3xl font-black text-purple-600">
-                        ${businessPlan.price}
-                        <span className="text-base font-normal text-gray-400">/month</span>
-                      </div>
-                      <div className="text-xs text-purple-500 font-semibold mt-1">
-                        {businessPlan.tagline}
-                      </div>
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {businessPlan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check size={12} className="text-purple-600" strokeWidth={3} />
-                        </div>
-                        <span className="text-gray-700 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href="/contact-us?subject=business-plan"
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-700 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            <>
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-start">
+                {businessPlans.map((plan, i) => (
+                  <motion.div
+                    key={`business-${plan.id}`}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.12 }}
+                    className={`relative rounded-2xl overflow-hidden bg-white ${
+                      plan.highlight
+                        ? 'shadow-2xl ring-2 ring-purple-500'
+                        : 'shadow-lg border border-gray-200'
+                    }`}
                   >
-                    {businessPlan.cta}
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </motion.div>
-            </div>
+                    {plan.highlight && (
+                      <div className="bg-purple-600 text-white text-xs font-black uppercase tracking-widest text-center py-2.5 flex items-center justify-center gap-1.5">
+                        <Building2 size={12} />
+                        Most Premium
+                        <Building2 size={12} />
+                      </div>
+                    )}
+                    <div className="p-7">
+                      <div className="flex items-start justify-between mb-5">
+                        <div className="flex-1 pr-4">
+                          <h2 className="text-2xl font-black text-navy">{plan.name}</h2>
+                          <p className="text-gray-500 text-sm mt-1 leading-snug">{plan.description}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-3xl font-black text-purple-600">
+                            ${plan.price}
+                            <span className="text-base font-normal text-gray-400">/mo</span>
+                          </div>
+                          <div className="text-xs text-purple-500 font-semibold mt-1">
+                            {plan.tagline}
+                          </div>
+                        </div>
+                      </div>
+                      <ul className="space-y-2.5 mb-7">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-3">
+                            <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Check size={12} className="text-purple-600" strokeWidth={3} />
+                            </div>
+                            <span className="text-gray-700 text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Link
+                        href={`/contact-us?subject=business-${plan.id}-plan`}
+                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                          plan.highlight
+                            ? 'bg-purple-600 text-white hover:bg-purple-700'
+                            : 'bg-navy text-white hover:bg-primary'
+                        }`}
+                      >
+                        {plan.cta}
+                        <ArrowRight size={16} />
+                      </Link>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <p className="text-center text-xs text-gray-500 mt-6 max-w-2xl mx-auto leading-relaxed">
+                Both Business tiers include 3 team seats. The On-site tier is for organisations
+                that want a Lenga Maps engineer in their office — travel and accommodation are
+                billed back at cost (not included in the monthly fee).
+              </p>
+            </>
           ) : (
             /* Student / Professional — 3-column grid */
             <div className="grid md:grid-cols-3 gap-6 items-start">

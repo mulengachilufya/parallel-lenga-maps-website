@@ -59,7 +59,13 @@ export const PLAN_PRICING: Record<AccountType, Partial<Record<PlanTier, PlanPric
     max:   { zmw: 300, usd: 15 },
   },
   business: {
-    basic: { usd: 60 },
+    // Two business sub-tiers (each includes 3 team seats):
+    //   basic ($75) — manual dashboard access, no API
+    //   pro   ($225) — adds REST API + up to 2 on-site visits/year (client
+    //                  covers travel + expenses). Up from the prior $60
+    //                  business price now that the API is real.
+    basic: { usd: 75  },
+    pro:   { usd: 225 },
   },
 }
 

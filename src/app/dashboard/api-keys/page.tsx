@@ -125,13 +125,14 @@ export default function ApiKeysPage() {
             <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
               <KeyRound className="text-amber-600" size={22} />
             </div>
-            <h1 className="text-2xl font-black text-navy mb-2">API access is a Business-tier feature</h1>
+            <h1 className="text-2xl font-black text-navy mb-2">API access is on the Business — On-site tier</h1>
             <p className="text-gray-500 max-w-lg mx-auto mb-6 text-sm leading-relaxed">
-              {eligReason === 'signin'      && "Sign in with a Business account to mint API keys."}
-              {eligReason === 'business_only'  && "Switch to a Business account to use the REST API. Need to upgrade? Email lengamaps@gmail.com."}
-              {eligReason === 'plan_inactive' && "Your Business plan isn't active yet — finish payment to unlock API keys."}
-              {eligReason === 'plan_expired'  && "Your Business plan has expired. Renew to keep API access."}
-              {eligReason === 'error'         && "We couldn't verify your account just now. Refresh and try again."}
+              {eligReason === 'signin'             && "Sign in with a Business — On-site account to mint API keys."}
+              {eligReason === 'business_only'      && "Switch to a Business account to use the REST API. Email lengamaps@gmail.com to upgrade."}
+              {eligReason === 'api_tier_required'  && "Your Business plan is the dashboard-only $75 tier. Upgrade to Business — On-site ($225/mo) for REST API access. Email lengamaps@gmail.com."}
+              {eligReason === 'plan_inactive'      && "Your Business — On-site plan isn't active yet — finish payment to unlock API keys."}
+              {eligReason === 'plan_expired'       && "Your Business — On-site plan has expired. Renew to keep API access."}
+              {eligReason === 'error'              && "We couldn't verify your account just now. Refresh and try again."}
             </p>
             <Link href="/pricing" className="inline-flex items-center gap-2 bg-accent text-navy text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-yellow-400 transition-colors">
               See Business pricing
