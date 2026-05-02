@@ -13,7 +13,7 @@ import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/s
 const PLAN_DESCS: Record<PlanTier, string> = {
   basic: '3 countries · 4 core datasets · 10 files/month',
   pro:   'All 54 countries · 9 datasets · 25 files/month',
-  max:   'All 54 countries · 15+ datasets · unlimited downloads',
+  max:   'All 54 countries · 9 datasets · unlimited downloads · commercial rights',
 }
 
 const PLAN_COLORS: Record<PlanTier, string> = {
