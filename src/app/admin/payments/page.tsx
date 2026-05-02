@@ -80,6 +80,18 @@ export default function AdminPaymentsPage() {
     boot()
   }, [load, tab])
 
+  // Poll the list every 30 seconds while open so new submissions appear
+  // automatically — admin doesn't have to refresh by hand. Skipped while a
+  // verify/reject is mid-flight so we don't yank the row out from under the
+  // operator's mouse click.
+  useEffect(() => {
+    if (authState !== 'ok') return
+    const interval = setInterval(() => {
+      if (!actioning && !rejectingRef) load(tab)
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [authState, tab, actioning, rejectingRef, load])
+
   const act = async (reference: string, action: 'verify' | 'reject', note?: string) => {
     setActioning(reference)
     setFlash(null)

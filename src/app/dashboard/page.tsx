@@ -124,6 +124,12 @@ function DashboardContent() {
   const [deleteSuccess, setDeleteSuccess] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  // Admin-only: number of manual_payments rows with status='pending'. Polled
+  // every 30s so a new submission shows up as a red badge on the Admin button
+  // without the operator needing to open /admin/payments. This is the single
+  // most reliable signal — even if every notification channel silently fails,
+  // the badge appears the next time the dashboard polls.
+  const [pendingCount, setPendingCount] = useState(0)
 
   // Which section to show - null means show the overview (all sections listed as cards)
   const section = searchParams.get('section')
@@ -153,18 +159,38 @@ function DashboardContent() {
       })
       setLoading(false)
 
-      // Separate check (safe-fail) for admin status so the header can show
-      // the /admin/payments link. ADMIN_EMAILS lives server-side only.
+      // Single combined check: admin status + pending payment count.
+      // /api/admin/pending-count returns isAdmin AND count in one round-trip
+      // and never errors (returns count=0 for non-admins).
       try {
-        const res = await fetch('/api/admin/me', { cache: 'no-store' })
+        const res = await fetch('/api/admin/pending-count', { cache: 'no-store' })
         if (res.ok) {
           const json = await res.json()
           setIsAdmin(!!json.isAdmin)
+          setPendingCount(Number(json.count) || 0)
         }
       } catch { /* ignore — non-admins never see the link anyway */ }
     }
     getUser()
   }, [router])
+
+  // Admin-only: poll the pending count every 30s while the dashboard is open.
+  // This is what makes new payments unmissable — even with email + WhatsApp
+  // + Telegram all dead, the badge will appear within 30s.
+  useEffect(() => {
+    if (!isAdmin) return
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/admin/pending-count', { cache: 'no-store' })
+        if (res.ok) {
+          const json = await res.json()
+          setPendingCount(Number(json.count) || 0)
+        }
+      } catch { /* transient — try again next tick */ }
+    }
+    const interval = setInterval(tick, 30_000)
+    return () => clearInterval(interval)
+  }, [isAdmin])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -244,10 +270,19 @@ function DashboardContent() {
                 {isAdmin && (
                   <Link
                     href="/admin/payments"
-                    className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-primary transition-colors"
+                    className={`relative hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                      pendingCount > 0
+                        ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+                        : 'bg-navy text-white hover:bg-primary'
+                    }`}
                   >
                     <Shield size={13} />
                     Admin
+                    {pendingCount > 0 && (
+                      <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-5 rounded-full bg-white text-red-600 text-[11px] font-black px-1.5">
+                        {pendingCount}
+                      </span>
+                    )}
                   </Link>
                 )}
                 {/* Business-tier perk: API keys live behind a separate page so

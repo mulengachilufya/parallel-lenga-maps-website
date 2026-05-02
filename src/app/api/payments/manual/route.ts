@@ -162,6 +162,57 @@ async function notifyWhatsApp(message: string) {
   }
 }
 
+/**
+ * Telegram bot notification — the most reliable of our notification channels.
+ *
+ * Setup (60 seconds, one-time):
+ *   1. On Telegram, open @BotFather, run /newbot, follow prompts.
+ *   2. Save the bot token (looks like 7234567890:AAH-xxxxxxxxxxxxxxxxxx).
+ *   3. Open @userinfobot in Telegram and send any message — it replies with
+ *      your numeric chat ID (e.g. 123456789).
+ *   4. Send any message to YOUR new bot first (so it can DM you).
+ *   5. On Vercel, set env vars:
+ *        TELEGRAM_BOT_TOKEN=<the token>
+ *        TELEGRAM_CHAT_ID=<your chat id>
+ *   6. Redeploy.
+ *
+ * Why Telegram over Web3Forms email or CallMeBot WhatsApp:
+ *   - Email lands in spam, requires the inbox to be open
+ *   - CallMeBot is a free unofficial proxy that rate-limits and disappears
+ *   - Telegram's Bot API is first-party, free, instant, and on your phone
+ */
+async function notifyTelegram(message: string): Promise<{ ok: boolean; error?: string }> {
+  const token  = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) {
+    return { ok: false, error: 'telegram_not_configured' }
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        chat_id:    chatId,
+        text:       message,
+        parse_mode: 'HTML',
+        // disable_web_page_preview keeps the screenshot URL preview from
+        // bloating the message; the link itself is still tappable.
+        disable_web_page_preview: true,
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error('[ManualPayment] telegram non-OK:', res.status, body)
+      return { ok: false, error: `telegram_${res.status}` }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error('[ManualPayment] telegram notify failed:', err)
+    return { ok: false, error: String(err) }
+  }
+}
+
 export async function POST(request: NextRequest) {
   // ─── Auth ──────────────────────────────────────────────────────────────
   const supabase = createServerSupabase()
@@ -312,7 +363,10 @@ export async function POST(request: NextRequest) {
     console.error('[ManualPayment] profile status update failed:', profileErr)
   }
 
-  // ─── Notifications (best-effort) ──────────────────────────────────────
+  // ─── Notifications (multi-channel, best-effort) ───────────────────────
+  // Send to email, WhatsApp, AND Telegram in parallel. The DB row is the
+  // source of truth — if every channel fails, the admin still sees it on
+  // /admin/payments via the pending-count badge in the dashboard header.
   let screenshotUrl = ''
   try {
     screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600)
@@ -325,8 +379,23 @@ export async function POST(request: NextRequest) {
     countryName, senderPhone, senderName: profileName, txnRef,
     screenshotUrl, submittedAt,
   }
-  // Fire-and-forget, but await both so failures are logged before response
-  await Promise.allSettled([
+
+  // Telegram message — HTML-formatted, keeps the link clean and tappable.
+  const tgMessage = [
+    `<b>💰 New payment — ${escapeHtml(reference)}</b>`,
+    `${escapeHtml(amountLabel)} via ${escapeHtml(method.toUpperCase())} — ${escapeHtml(plan)}/${escapeHtml(accountType)}`,
+    `${escapeHtml(profileName || userEmail)}`,
+    region === 'international' && countryName ? `From: ${escapeHtml(countryName)}` : '',
+    txnRef ? `Txn: <code>${escapeHtml(txnRef)}</code>` : '',
+    senderPhone ? `Phone: ${escapeHtml(senderPhone)}` : '',
+    '',
+    screenshotUrl ? `<a href="${screenshotUrl}">View screenshot</a> · ` : '',
+    `<a href="https://www.lengamaps.com/admin/payments">Approve in admin</a>`,
+  ].filter(Boolean).join('\n')
+
+  // Run all three channels in parallel. Promise.allSettled means one failure
+  // never blocks another — we get whichever channels are working.
+  const results = await Promise.allSettled([
     notifyEmail(notifyArgs),
     notifyWhatsApp(
       `Lenga Maps payment ${reference}\n` +
@@ -334,7 +403,26 @@ export async function POST(request: NextRequest) {
       `${profileName || userEmail}\n` +
       (screenshotUrl ? `Screenshot: ${screenshotUrl}` : '')
     ),
+    notifyTelegram(tgMessage),
   ])
+  // Log the outcome for each channel — useful for diagnosing silent failures.
+  console.log('[ManualPayment] notifications', {
+    reference,
+    email:    results[0].status,
+    whatsapp: results[1].status,
+    telegram: results[2].status === 'fulfilled' ? results[2].value : 'rejected',
+  })
 
   return NextResponse.json({ reference, submitted_at: submittedAt })
+}
+
+// Tiny HTML escaper for Telegram — payments contain user-supplied strings
+// (sender_name, country_name, etc.) and Telegram's HTML parse mode chokes
+// on stray < or & characters.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
