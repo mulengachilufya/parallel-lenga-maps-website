@@ -128,9 +128,14 @@ async function notifyEmail(args: {
   screenshotUrl: string
   submittedAt: string
 }): Promise<{ ok: boolean; error?: string; status?: number }> {
-  const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+  // Prefer the dedicated payments/admin Web3Forms key — that lets payment
+  // alerts land in a separate inbox from the homepage "Leave a message"
+  // contact form. Falls back to the shared key for single-key setups.
+  const accessKey =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
   if (!accessKey) {
-    console.error('[ManualPayment] NEXT_PUBLIC_WEB3FORMS_KEY missing — email NOT sent')
+    console.error('[ManualPayment] no Web3Forms key configured — email NOT sent. Set NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN.')
     return { ok: false, error: 'web3forms_key_missing' }
   }
 

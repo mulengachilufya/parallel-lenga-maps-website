@@ -58,7 +58,12 @@ async function notifyCustomer(
   plan: string,
   note: string,
 ) {
-  const key = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+  // Same key-resolution pattern as the inbound payment notifier — admin
+  // payment-flow emails (verify / reject confirmations to the customer)
+  // share the dedicated payments key when set.
+  const key =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
   if (!key) return
   const displayName = name || 'there'
   const subject = action === 'verify'

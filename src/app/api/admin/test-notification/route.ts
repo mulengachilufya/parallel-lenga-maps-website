@@ -33,13 +33,24 @@ export async function POST() {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+  // Prefer the dedicated admin/payments key. Falls back to the shared
+  // marketing key (NEXT_PUBLIC_WEB3FORMS_KEY) so single-key setups still
+  // work — but a separate _ADMIN key is recommended so payment notifications
+  // can land in a different inbox from contact-form messages.
+  const accessKey =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+  const keySource: 'admin' | 'shared' | 'none' =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ? 'admin'
+    : process.env.NEXT_PUBLIC_WEB3FORMS_KEY ? 'shared'
+    : 'none'
+
   if (!accessKey) {
     return NextResponse.json({
-      ok:        false,
-      stage:     'config',
-      error:     'NEXT_PUBLIC_WEB3FORMS_KEY is not set on Vercel.',
-      hint:      'Add the key under Vercel → Settings → Environment Variables, then redeploy.',
+      ok:    false,
+      stage: 'config',
+      error: 'No Web3Forms key configured. Set NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN (preferred) or NEXT_PUBLIC_WEB3FORMS_KEY on Vercel.',
+      hint:  'Add the key under Vercel → Settings → Environment Variables, then redeploy.',
     }, { status: 500 })
   }
 
@@ -50,6 +61,7 @@ export async function POST() {
     `Triggered by:    ${user.email}`,
     `Server time:     ${stamp} Africa/Lusaka`,
     `Access key tail: …${accessKey.slice(-4)}`,
+    `Key source:      ${keySource === 'admin' ? 'NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN (dedicated)' : 'NEXT_PUBLIC_WEB3FORMS_KEY (shared with contact form)'}`,
     '',
     'If you received this email, your /api/payments/manual notification',
     'pipeline is healthy. If this email never lands, check:',
