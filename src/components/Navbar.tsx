@@ -28,8 +28,14 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Hide navbar on dashboard - it has its own header
-  if (pathname?.startsWith('/dashboard')) return null
+  // Hide the public navbar on app surfaces that have their own headers.
+  // /dashboard, /admin, /docs/api, /dashboard/api-keys all carry an inline
+  // header — stacking the public marketing navbar on top of those covers
+  // their action buttons (e.g. the Test email / Refresh in /admin/payments).
+  if (
+    pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/admin')
+  ) return null
 
   return (
     <motion.nav
