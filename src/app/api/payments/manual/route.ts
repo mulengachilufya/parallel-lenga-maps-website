@@ -93,6 +93,25 @@ function formatMoney(region: Region, amount: number) {
   return region === 'zambian' ? `K${amount.toLocaleString()}` : `$${amount.toLocaleString()}`
 }
 
+/**
+ * Email notification via Web3Forms.
+ *
+ * The previous implementation fired-and-forgot — if Web3Forms returned
+ * "invalid access_key" or rate-limited us, we never knew. This version:
+ *   - Verifies the env var is set up front
+ *   - Awaits + parses the Web3Forms response
+ *   - Surfaces success/failure (with details) so the caller can log it
+ *
+ * Web3Forms quirks worth knowing:
+ *   - The destination (To:) is configured at the Web3Forms account level —
+ *     it's fixed by which `access_key` you use. To change where notifications
+ *     land, log into web3forms.com and update the email on that key (or
+ *     create a new key for a different inbox).
+ *   - The `email` field below is the customer's address; Web3Forms uses it
+ *     as Reply-To so you can hit reply and message the customer directly.
+ *   - Web3Forms emails come from `noreply@web3forms.com`. Add it to your
+ *     contacts / "not spam" list once, or expect them to land in Promotions.
+ */
 async function notifyEmail(args: {
   reference: string
   region: Region
@@ -108,11 +127,11 @@ async function notifyEmail(args: {
   txnRef: string
   screenshotUrl: string
   submittedAt: string
-}) {
+}): Promise<{ ok: boolean; error?: string; status?: number }> {
   const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
   if (!accessKey) {
-    console.warn('[ManualPayment] NEXT_PUBLIC_WEB3FORMS_KEY missing — email not sent')
-    return
+    console.error('[ManualPayment] NEXT_PUBLIC_WEB3FORMS_KEY missing — email NOT sent')
+    return { ok: false, error: 'web3forms_key_missing' }
   }
 
   const lines = [
@@ -129,23 +148,36 @@ async function notifyEmail(args: {
     '',
     `Submitted: ${args.submittedAt}`,
     `Screenshot (valid 7 days): ${args.screenshotUrl}`,
+    '',
+    `Approve at: https://www.lengamaps.com/admin/payments`,
   ].join('\n')
 
   try {
-    await fetch('https://api.web3forms.com/submit', {
+    const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         access_key: accessKey,
-        name: args.userName || args.userEmail,
-        email: args.userEmail,
-        subject: `[Lenga Maps] Manual payment ${args.reference} — ${args.amountLabel} via ${args.method.toUpperCase()}`,
-        message: lines,
-        botcheck: '',
+        from_name:  'Lenga Maps Payments',
+        name:       args.userName || args.userEmail,
+        email:      args.userEmail,
+        subject:    `[Lenga Maps] New payment ${args.reference} — ${args.amountLabel} (${args.plan}/${args.accountType})`,
+        message:    lines,
+        botcheck:   '',
       }),
     })
+    const body = await res.json().catch(() => ({} as { success?: boolean; message?: string }))
+    if (!res.ok || !body.success) {
+      // Web3Forms returned a non-success — most common cause is a wrong or
+      // revoked access_key, or the account email having bounced.
+      console.error('[ManualPayment] web3forms rejected:', res.status, body)
+      return { ok: false, status: res.status, error: body.message || `http_${res.status}` }
+    }
+    return { ok: true, status: res.status }
   } catch (err) {
-    console.error('[ManualPayment] email notify failed:', err)
+    // Network-level failure — Vercel cold start, DNS, etc.
+    console.error('[ManualPayment] email notify network error:', err)
+    return { ok: false, error: String(err) }
   }
 }
 
@@ -159,57 +191,6 @@ async function notifyWhatsApp(message: string) {
     await fetch(url, { method: 'GET' })
   } catch (err) {
     console.error('[ManualPayment] whatsapp notify failed:', err)
-  }
-}
-
-/**
- * Telegram bot notification — the most reliable of our notification channels.
- *
- * Setup (60 seconds, one-time):
- *   1. On Telegram, open @BotFather, run /newbot, follow prompts.
- *   2. Save the bot token (looks like 7234567890:AAH-xxxxxxxxxxxxxxxxxx).
- *   3. Open @userinfobot in Telegram and send any message — it replies with
- *      your numeric chat ID (e.g. 123456789).
- *   4. Send any message to YOUR new bot first (so it can DM you).
- *   5. On Vercel, set env vars:
- *        TELEGRAM_BOT_TOKEN=<the token>
- *        TELEGRAM_CHAT_ID=<your chat id>
- *   6. Redeploy.
- *
- * Why Telegram over Web3Forms email or CallMeBot WhatsApp:
- *   - Email lands in spam, requires the inbox to be open
- *   - CallMeBot is a free unofficial proxy that rate-limits and disappears
- *   - Telegram's Bot API is first-party, free, instant, and on your phone
- */
-async function notifyTelegram(message: string): Promise<{ ok: boolean; error?: string }> {
-  const token  = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
-  if (!token || !chatId) {
-    return { ok: false, error: 'telegram_not_configured' }
-  }
-
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        chat_id:    chatId,
-        text:       message,
-        parse_mode: 'HTML',
-        // disable_web_page_preview keeps the screenshot URL preview from
-        // bloating the message; the link itself is still tappable.
-        disable_web_page_preview: true,
-      }),
-    })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error('[ManualPayment] telegram non-OK:', res.status, body)
-      return { ok: false, error: `telegram_${res.status}` }
-    }
-    return { ok: true }
-  } catch (err) {
-    console.error('[ManualPayment] telegram notify failed:', err)
-    return { ok: false, error: String(err) }
   }
 }
 
@@ -363,10 +344,11 @@ export async function POST(request: NextRequest) {
     console.error('[ManualPayment] profile status update failed:', profileErr)
   }
 
-  // ─── Notifications (multi-channel, best-effort) ───────────────────────
-  // Send to email, WhatsApp, AND Telegram in parallel. The DB row is the
-  // source of truth — if every channel fails, the admin still sees it on
-  // /admin/payments via the pending-count badge in the dashboard header.
+  // ─── Notifications (email-first, WhatsApp as bonus) ───────────────────
+  // Email is the primary channel. WhatsApp via CallMeBot runs alongside it
+  // for any operator who has the env vars set up. The DB row is still the
+  // ultimate source of truth — even if both channels fail, the admin sees
+  // the pending-count badge on the dashboard header within 30 seconds.
   let screenshotUrl = ''
   try {
     screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600)
@@ -380,21 +362,6 @@ export async function POST(request: NextRequest) {
     screenshotUrl, submittedAt,
   }
 
-  // Telegram message — HTML-formatted, keeps the link clean and tappable.
-  const tgMessage = [
-    `<b>💰 New payment — ${escapeHtml(reference)}</b>`,
-    `${escapeHtml(amountLabel)} via ${escapeHtml(method.toUpperCase())} — ${escapeHtml(plan)}/${escapeHtml(accountType)}`,
-    `${escapeHtml(profileName || userEmail)}`,
-    region === 'international' && countryName ? `From: ${escapeHtml(countryName)}` : '',
-    txnRef ? `Txn: <code>${escapeHtml(txnRef)}</code>` : '',
-    senderPhone ? `Phone: ${escapeHtml(senderPhone)}` : '',
-    '',
-    screenshotUrl ? `<a href="${screenshotUrl}">View screenshot</a> · ` : '',
-    `<a href="https://www.lengamaps.com/admin/payments">Approve in admin</a>`,
-  ].filter(Boolean).join('\n')
-
-  // Run all three channels in parallel. Promise.allSettled means one failure
-  // never blocks another — we get whichever channels are working.
   const results = await Promise.allSettled([
     notifyEmail(notifyArgs),
     notifyWhatsApp(
@@ -403,26 +370,14 @@ export async function POST(request: NextRequest) {
       `${profileName || userEmail}\n` +
       (screenshotUrl ? `Screenshot: ${screenshotUrl}` : '')
     ),
-    notifyTelegram(tgMessage),
   ])
-  // Log the outcome for each channel — useful for diagnosing silent failures.
+  // Log the per-channel outcome so silent failures are diagnosable in
+  // Vercel's Functions log (look for `[ManualPayment] notifications`).
   console.log('[ManualPayment] notifications', {
     reference,
-    email:    results[0].status,
+    email:    results[0].status === 'fulfilled' ? results[0].value : 'rejected',
     whatsapp: results[1].status,
-    telegram: results[2].status === 'fulfilled' ? results[2].value : 'rejected',
   })
 
   return NextResponse.json({ reference, submitted_at: submittedAt })
-}
-
-// Tiny HTML escaper for Telegram — payments contain user-supplied strings
-// (sender_name, country_name, etc.) and Telegram's HTML parse mode chokes
-// on stray < or & characters.
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

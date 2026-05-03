@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   Loader2, CheckCircle2, XCircle, Clock, ShieldCheck, AlertCircle,
-  Phone, User, Mail, Calendar, Hash, ArrowLeft, RefreshCw,
+  Phone, User, Mail, Calendar, Hash, ArrowLeft, RefreshCw, Send,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -52,6 +52,37 @@ export default function AdminPaymentsPage() {
   const [rejectingRef, setRejectingRef] = useState<string | null>(null)
   const [rejectNote, setRejectNote] = useState('')
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [testing, setTesting] = useState(false)
+
+  /**
+   * Fire a test email through the same Web3Forms path real payments use.
+   * Surfaces the actual response (HTTP status + Web3Forms message) in the
+   * flash banner so the operator can diagnose silent failures without
+   * tailing Vercel logs.
+   */
+  const sendTestEmail = async () => {
+    setTesting(true)
+    setFlash(null)
+    try {
+      const res = await fetch('/api/admin/test-notification', { method: 'POST' })
+      const json = await res.json()
+      if (json.ok) {
+        setFlash({
+          kind: 'ok',
+          msg:  'Test email accepted by Web3Forms — check your inbox (and spam) within 30 seconds. If it never arrives, the destination email on web3forms.com may not match the inbox you are checking.',
+        })
+      } else {
+        setFlash({
+          kind: 'err',
+          msg:  `Test failed (${json.stage}): ${json.error || json.web3forms_message || 'unknown'}. ${json.hint || ''}`,
+        })
+      }
+    } catch (err) {
+      setFlash({ kind: 'err', msg: `Test failed — could not reach the test endpoint. ${String(err)}` })
+    } finally {
+      setTesting(false)
+    }
+  }
 
   const load = useCallback(async (which: PaymentStatus | 'all') => {
     setListLoading(true)
@@ -168,13 +199,24 @@ export default function AdminPaymentsPage() {
             Back to dashboard
           </Link>
           <h1 className="text-lg font-black text-navy">Manual payments</h1>
-          <button
-            onClick={() => load(tab)}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary"
-          >
-            <RefreshCw size={14} className={listLoading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={sendTestEmail}
+              disabled={testing}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary disabled:opacity-50"
+              title="Send a test notification through the same email pipeline customer payments use, so you can verify your inbox is receiving them."
+            >
+              <Send size={14} className={testing ? 'animate-pulse' : ''} />
+              {testing ? 'Sending…' : 'Test email'}
+            </button>
+            <button
+              onClick={() => load(tab)}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary"
+            >
+              <RefreshCw size={14} className={listLoading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
       </header>
 
