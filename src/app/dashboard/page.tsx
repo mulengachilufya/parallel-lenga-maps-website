@@ -582,10 +582,18 @@ function DashboardContent() {
               </motion.div>
             )}
 
-            {/* Dataset cards - each links to its own isolated view */}
+            {/* Dataset cards. Every visitor can open every card and browse
+                its file list — paywalling at the card level was wrong UX
+                ("looks like I bought a ghost dataset"). The actual gate is
+                the per-file Download button via DownloadGateContext: clicking
+                a Pro-tier file as a Basic user pops up the upgrade modal,
+                clicking ANY file as a free user pops up the pay modal.
+                Pro-only datasets get a small "Pro" badge so the user knows
+                which downloads will require an upgrade before they click. */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(SECTIONS).map(([key, sec], i) => {
-                const isProLocked = sec.tier === 'pro' && !userHasFullAccess
+                const isProTier = sec.tier === 'pro'
+                const showProBadge = isProTier && !userHasFullAccess
 
                 return (
                   <motion.div
@@ -594,31 +602,26 @@ function DashboardContent() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i * 0.06, 0.4) }}
                   >
-                    {isProLocked ? (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 opacity-60">
-                        <h3 className="text-lg font-bold text-navy mb-1">{sec.title}</h3>
-                        {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
-                        <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary font-semibold px-2 py-1 rounded-full">
-                          🔒 Pro Only
+                    <Link
+                      href={`/dashboard?section=${key}`}
+                      replace
+                      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 relative"
+                    >
+                      {showProBadge && (
+                        <span className="absolute top-4 right-4 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider bg-accent/15 text-accent font-bold px-2 py-1 rounded-full">
+                          Pro
                         </span>
+                      )}
+                      <h3 className="text-lg font-bold text-navy group-hover:text-primary transition-colors mb-1 pr-12">
+                        {sec.title}
+                      </h3>
+                      {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
+                      <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                        <Download size={14} />
+                        Browse &amp; Download
+                        <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                       </div>
-                    ) : (
-                      <Link
-                        href={`/dashboard?section=${key}`}
-                        replace
-                        className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6"
-                      >
-                        <h3 className="text-lg font-bold text-navy group-hover:text-primary transition-colors mb-1">
-                          {sec.title}
-                        </h3>
-                        {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
-                        <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
-                          <Download size={14} />
-                          Browse &amp; Download
-                          <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </Link>
-                    )}
+                    </Link>
                   </motion.div>
                 )
               })}
