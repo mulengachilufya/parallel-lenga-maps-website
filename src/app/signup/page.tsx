@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -64,6 +64,18 @@ function SignupContent() {
   const [success,         setSuccess]         = useState(false)
 
   const acctColor = ACCOUNT_COLORS[accountType]
+
+  // Already-signed-in users who land on /signup (e.g. clicked the navbar's
+  // "Get Started" before noticing they were authenticated) get bounced to
+  // their dashboard instead of seeing a confusing "create another account"
+  // form.
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled && session) router.replace('/dashboard')
+    })
+    return () => { cancelled = true }
+  }, [router])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()

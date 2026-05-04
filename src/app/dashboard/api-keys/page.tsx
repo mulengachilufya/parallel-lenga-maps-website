@@ -13,10 +13,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, KeyRound, Copy, CheckCircle2, AlertTriangle, Trash2, Loader2, BookOpen } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 
 interface ApiKeySummary {
   id:                       string
@@ -116,7 +114,7 @@ export default function ApiKeysPage() {
   if (!eligible) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <DashboardHeader />
+        <div className="h-20" />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary transition-colors mb-6">
             <ArrowLeft size={16} /> Back to dashboard
@@ -149,7 +147,7 @@ export default function ApiKeysPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader />
+      <div className="h-20" />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary transition-colors mb-6">
           <ArrowLeft size={16} /> Back to dashboard
@@ -342,22 +340,7 @@ function KeyRow({ k, onRevoke }: { k: ApiKeySummary; onRevoke: (id: string) => v
   )
 }
 
-function DashboardHeader() {
-  const [email, setEmail] = useState<string | null>(null)
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setEmail(session?.user.email ?? null)
-    })
-  }, [])
-  return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/images/branding/logo.png" alt="Lenga Maps" width={36} height={36} className="object-contain" />
-          <span className="font-bold text-navy">LENGA <span className="text-accent">MAPS</span></span>
-        </Link>
-        {email && <div className="text-sm text-gray-600 hidden sm:block">{email}</div>}
-      </div>
-    </header>
-  )
-}
+// DashboardHeader was removed: the site-wide Navbar now provides logo,
+// email pill, and Sign Out, so this component would just stack a second
+// header on top of it. The empty <div className="h-20" /> at the top of
+// each return branch reserves space for the fixed Navbar.
