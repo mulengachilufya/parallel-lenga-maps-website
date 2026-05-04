@@ -2,10 +2,9 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
+import { Download, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
 import { supabase, DATASETS, PLAN_PRICING, hasFullDatasetAccess, isPlanActive, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
@@ -199,10 +198,8 @@ function DashboardContent() {
     return () => clearInterval(interval)
   }, [isAdmin])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
+  // Sign-out moved into the global Navbar; the dashboard no longer carries
+  // its own logo/email/Sign-Out chrome.
 
   const handleDeleteRequest = async () => {
     setDeleteError('')
@@ -257,77 +254,50 @@ function DashboardContent() {
   // ── Single-section view ─────────────────────────────────────────────────
   const sectionData = section ? SECTIONS[section] : null
 
+  // Dashboard-specific action buttons (admin + API keys). The site-wide
+  // Navbar now handles logo + email + Sign Out + cross-page navigation, so
+  // we only render this bar when there's actually a dashboard-only action
+  // to surface — otherwise it'd be visually redundant.
+  const showActionBar = !!user && (isAdmin || user.accountType === 'business')
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/images/branding/logo.png"
-              alt="Lenga Maps"
-              width={36}
-              height={36}
-              className="object-contain"
-            />
-            <span className="font-bold text-navy">LENGA <span className="text-accent">MAPS</span></span>
-          </Link>
+      {/* Spacer to clear the fixed Navbar (h-20 = 80px) */}
+      <div className="h-20" />
 
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                {isAdmin && (
-                  <Link
-                    href="/admin/payments"
-                    className={`relative hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                      pendingCount > 0
-                        ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
-                        : 'bg-navy text-white hover:bg-primary'
-                    }`}
-                  >
-                    <Shield size={13} />
-                    Admin
-                    {pendingCount > 0 && (
-                      <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-5 rounded-full bg-white text-red-600 text-[11px] font-black px-1.5">
-                        {pendingCount}
-                      </span>
-                    )}
-                  </Link>
-                )}
-                {/* Business-tier perk: API keys live behind a separate page so
-                    the dashboard stays focused on browsing datasets. */}
-                {user.accountType === 'business' && (
-                  <Link
-                    href="/dashboard/api-keys"
-                    className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
-                  >
-                    <KeyRound size={13} />
-                    API keys
-                  </Link>
-                )}
-                <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
-                  <User size={14} className="text-gray-500" />
-                  <span className="text-sm text-gray-700">{user.email}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
-              </>
-            ) : (
+      {showActionBar && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-end gap-3">
+            {isAdmin && (
               <Link
-                href="/login"
-                className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                href="/admin/payments"
+                className={`relative inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                  pendingCount > 0
+                    ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+                    : 'bg-navy text-white hover:bg-primary'
+                }`}
               >
-                Sign In
+                <Shield size={13} />
+                Admin
+                {pendingCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-5 rounded-full bg-white text-red-600 text-[11px] font-black px-1.5">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {user?.accountType === 'business' && (
+              <Link
+                href="/dashboard/api-keys"
+                className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                <KeyRound size={13} />
+                API keys
               </Link>
             )}
           </div>
         </div>
-      </header>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
