@@ -98,15 +98,25 @@ export async function POST() {
   }
 
   const body: Web3FormsResponse = await res.json().catch(() => ({}))
+  // Return key_tail + key_source on both success AND failure so the operator
+  // can verify which env var got picked up and whether the value matches what
+  // they pasted into Vercel. Without these the failure is a black box.
+  const debug = {
+    key_source: keySource,
+    key_tail:   `…${accessKey.slice(-4)}`,
+    key_length: accessKey.length,
+  }
+
   if (!res.ok || !body.success) {
     return NextResponse.json({
       ok:                 false,
       stage:              'web3forms',
       http_status:        res.status,
       web3forms_message:  body.message ?? '(no message)',
+      ...debug,
       hint:               res.status === 401 || res.status === 403
-        ? 'Web3Forms rejected the access_key. Verify it on web3forms.com → Dashboard.'
-        : 'Web3Forms rejected the request. The message field above usually says why.',
+        ? `Web3Forms rejected this key. Most common causes: (a) you created the key but never clicked the verification email Web3Forms sent — open that email and click "Verify Email"; (b) the value pasted into Vercel has a leading/trailing space; (c) the key is for the wrong account. Key in use: source=${keySource}, tail=…${accessKey.slice(-4)}, length=${accessKey.length}.`
+        : `Web3Forms rejected the request (HTTP ${res.status}). Message: ${body.message ?? '(none)'}.`,
     }, { status: 502 })
   }
 
@@ -115,6 +125,7 @@ export async function POST() {
     stage:        'sent',
     http_status:  res.status,
     sent_at:      new Date().toISOString(),
-    note:         'Web3Forms accepted the request. Check the inbox configured for this access_key — it should arrive within ~30 seconds. If it does not, look in spam.',
+    ...debug,
+    note:         `Web3Forms accepted the request (key source: ${keySource}, key …${accessKey.slice(-4)}). Check the inbox configured for this access_key — it should arrive within ~30 seconds. If it does not, look in spam.`,
   })
 }

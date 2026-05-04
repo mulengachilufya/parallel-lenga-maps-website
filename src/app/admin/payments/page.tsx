@@ -66,15 +66,22 @@ export default function AdminPaymentsPage() {
     try {
       const res = await fetch('/api/admin/test-notification', { method: 'POST' })
       const json = await res.json()
+      // Build a debug suffix so the operator can see exactly which env var
+      // was picked up + the last 4 chars of the key in use. Crucial when
+      // diagnosing "I added the new env var and it's still failing" — lets
+      // them verify the redeploy actually took.
+      const dbg = json.key_source
+        ? ` [key source: ${json.key_source}${json.key_source === 'admin' ? ' (NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN)' : ' (NEXT_PUBLIC_WEB3FORMS_KEY — fallback)'}, tail: ${json.key_tail}, length: ${json.key_length}]`
+        : ''
       if (json.ok) {
         setFlash({
           kind: 'ok',
-          msg:  'Test email accepted by Web3Forms — check your inbox (and spam) within 30 seconds. If it never arrives, the destination email on web3forms.com may not match the inbox you are checking.',
+          msg:  `Test email accepted by Web3Forms — check your inbox (and spam) within 30 seconds.${dbg}`,
         })
       } else {
         setFlash({
           kind: 'err',
-          msg:  `Test failed (${json.stage}): ${json.error || json.web3forms_message || 'unknown'}. ${json.hint || ''}`,
+          msg:  `Test failed (${json.stage}, HTTP ${json.http_status ?? '?'}): ${json.error || json.web3forms_message || 'unknown'}. ${json.hint || ''}${dbg}`,
         })
       }
     } catch (err) {
