@@ -25,7 +25,10 @@ export type UserProfile = {
   id: string
   email: string
   account_type: AccountType
-  plan: PlanTier
+  // null = user has not picked / paid for any plan yet. Brand-new signups
+  // start in this state. Only set to a tier value once admin verifies
+  // payment via /api/admin/payments/verify.
+  plan: PlanTier | null
   plan_status: PlanStatus
   // When the current paid period ends. null = never set (pre-migration row
   // or comped/lifetime account). In the future (> now) = active.
@@ -47,6 +50,7 @@ export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | 
  * (Aquifer, Population, etc.)?
  *
  * The rule on the pricing page:
+ *   - No plan picked yet (plan === null): NO download access at all
  *   - Student / Professional: basic = limited datasets;  pro/max = full
  *   - Business: ANY plan level = full data access. Business basic ($75)
  *     is sold as "Everything in Max", and Business pro ($225) just adds
@@ -54,10 +58,15 @@ export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | 
  *     about which datasets they can download.
  *
  * Use this everywhere we ask "can this user access pro-tier data?"
- * — never reimplement plan==='basic' inline; it's wrong for Business.
+ * — never reimplement plan==='basic' inline; it's wrong for Business and
+ * silently coerces null to a "yes" for non-business accounts.
  */
-export function hasFullDatasetAccess(plan: PlanTier, accountType: AccountType): boolean {
-  if (accountType === 'business') return true
+export function hasFullDatasetAccess(
+  plan: PlanTier | null | undefined,
+  accountType: AccountType,
+): boolean {
+  if (accountType === 'business' && plan) return true
+  if (!plan) return false
   return plan !== 'basic'
 }
 

@@ -50,12 +50,16 @@ export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
       new Date(profile.plan_expires_at).getTime() <= Date.now()) {
     return false
   }
+  // Defense-in-depth: plan_status='active' is supposed to imply a real plan,
+  // but if the row is somehow active with a NULL plan column, deny rather
+  // than silently treating it as basic.
+  if (!profile.plan) return false
 
   // Basic-tier datasets: any active plan unlocks them. Pro-tier: depends on
   // plan AND account_type — Business gets full access at every plan level.
   if (tier === 'basic') return true
   return hasFullDatasetAccess(
-    (profile.plan ?? 'basic') as PlanTier,
+    profile.plan as PlanTier,
     (profile.account_type ?? 'student') as AccountType,
   )
 }

@@ -44,14 +44,18 @@ export async function POST() {
   }
 
   // Pull intent off user_metadata, fall back to safe defaults if anything is
-  // missing or junked.
+  // missing or junked. NOTE: we no longer pre-fill `plan` for fresh signups —
+  // a brand-new account should have NO plan until it pays + gets approved.
+  // Only an explicit, valid plan value in user_metadata gets propagated to
+  // the row (and even that only happens via the verify endpoint these days,
+  // since signup itself stopped writing plan to metadata).
   const metaPlan        = String(user.user_metadata?.plan        ?? '').trim()
   const metaAccountType = String(user.user_metadata?.account_type ?? '').trim()
   const metaFullName    = typeof user.user_metadata?.full_name === 'string'
     ? user.user_metadata.full_name.trim().slice(0, 200)
     : null
 
-  const plan        = VALID_PLANS.has(metaPlan)        ? metaPlan        : 'basic'
+  const plan        = VALID_PLANS.has(metaPlan)        ? metaPlan        : null
   const accountType = VALID_TYPES.has(metaAccountType) ? metaAccountType : 'student'
 
   // Service-role client: bypasses RLS so we can upsert into profiles regardless
@@ -72,16 +76,21 @@ export async function POST() {
 
   const updateRow: Record<string, unknown> = {
     id:           user.id,
-    plan,
     account_type: accountType,
   }
+  // Only write `plan` if user_metadata had a real value. For fresh signups
+  // metaPlan is empty — leave the column unset / NULL so the user is NOT
+  // displayed as being on any plan until they actually pay for one.
+  if (plan) updateRow.plan = plan
   if (metaFullName) updateRow.full_name = metaFullName
 
-  // Brand-new row → seed plan_status='free' (no auto-grant). If the row
-  // already existed, leave plan_status / plan_expires_at exactly as they are.
+  // Brand-new row → seed plan_status='free' (no auto-grant) and ensure the
+  // plan column is explicitly NULL so the dashboard "Current Plan" card
+  // shows "No active plan" instead of stale defaults.
   if (!existing) {
-    updateRow.plan_status = 'free'
+    updateRow.plan_status     = 'free'
     updateRow.plan_expires_at = null
+    if (!plan) updateRow.plan = null
   }
 
   const { error } = await admin

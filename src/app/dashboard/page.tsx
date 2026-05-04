@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
-import { supabase, DATASETS, PLAN_PRICING, hasFullDatasetAccess, type AccountType, type PlanStatus } from '@/lib/supabase'
+import { supabase, DATASETS, PLAN_PRICING, hasFullDatasetAccess, isPlanActive, type AccountType, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
@@ -33,7 +33,10 @@ const PLAN_BLURBS: Record<UserPlan, string> = {
 interface UserData {
   email: string
   name: string
-  plan: UserPlan
+  // null = user has not picked / paid for any plan yet. The dashboard MUST
+  // check this and not display a stale "Basic plan K25/month" before they
+  // actually paid for anything.
+  plan: UserPlan | null
   planStatus: PlanStatus
   planExpiresAt: string | null
   accountType: AccountType
@@ -151,7 +154,11 @@ function DashboardContent() {
       setUser({
         email: session.user.email || '',
         name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-        plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
+        // Crucial: do NOT fall back to 'basic'. A null plan means the user
+        // hasn't paid yet — the dashboard renders "No active plan" for that
+        // case. Coercing to 'basic' would re-introduce the bug that made
+        // free signups display as paying Basic customers.
+        plan: (profile?.plan as UserPlan | null) ?? null,
         // Default to 'free' if the column is missing so we never silently grant access.
         planStatus: (profile?.plan_status || 'free') as PlanStatus,
         planExpiresAt: (profile?.plan_expires_at as string | null) ?? null,
@@ -236,11 +243,13 @@ function DashboardContent() {
     )
   }
 
-  const userPlan        = user?.plan || 'basic'
+  const userPlan        = user?.plan ?? null
   const userAccountType = user?.accountType || 'student'
-  // hasFullAccess returns true for: pro/max plans, OR ANY business plan.
-  // Business basic ($75) is sold as "Everything in Max" so it gets every dataset.
-  const userHasFullAccess = hasFullDatasetAccess(userPlan, userAccountType)
+  // True only when the user has BOTH an active plan AND a tier that grants
+  // access. A free-tier signup (plan === null) hits the false branch and the
+  // dashboard will hide all the "you can download X of Y" stats.
+  const isPlanLive = isPlanActive(user?.planStatus ?? 'free', user?.planExpiresAt)
+  const userHasFullAccess = isPlanLive && hasFullDatasetAccess(userPlan, userAccountType)
   const accessibleDatasets = DATASETS.filter(
     (d) => userHasFullAccess || d.tier === 'basic'
   )
@@ -349,7 +358,11 @@ function DashboardContent() {
             </motion.div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              {sectionData.component(userPlan, userHasFullAccess)}
+              {/* Coerce the plan to 'basic' purely for the list-component
+                  prop signatures — those components don't actually read
+                  this anymore (they use hasFullAccess for tier decisions),
+                  it's just a passthrough kept around for backward compat. */}
+              {sectionData.component(userPlan ?? 'basic', userHasFullAccess)}
             </div>
           </>
         ) : (
@@ -377,18 +390,21 @@ function DashboardContent() {
               </p>
             </motion.div>
 
-            {/* First-time welcome banner */}
+            {/* First-time welcome banner. Honest copy: free to browse, pay
+                only when they actually click Download. No claim that they
+                are "on Basic" — they aren't, they're on no plan at all. */}
             {searchParams.get('welcome') === 'new' && user && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-5 sm:p-6"
               >
-                <h2 className="text-lg font-black text-navy mb-1">You&apos;re on the free Basic plan 🎉</h2>
+                <h2 className="text-lg font-black text-navy mb-1">Welcome to Lenga Maps 👋</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Start by downloading any of the free datasets below — no payment needed. When you&apos;re ready for
-                  more countries, more datasets, or unlimited downloads, upgrade anytime from{' '}
-                  <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>.
+                  You can browse every dataset and every country for free. When you&apos;re ready to
+                  download your first file, you&apos;ll be prompted to pick a plan — see{' '}
+                  <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>{' '}
+                  for what each tier covers.
                 </p>
               </motion.div>
             )}
@@ -479,48 +495,81 @@ function DashboardContent() {
               </motion.div>
             )}
 
-            {/* Stats Cards - only show for logged in users */}
+            {/* Stats Cards. Two completely different shapes depending on
+                whether the user has an active paid plan:
+                  · isPlanLive: show the actual plan, price, accessible datasets,
+                    countries — i.e. what they paid for.
+                  · NOT live (free / pending / expired): show a "No active
+                    plan" card prompting them to pick one, plus the count of
+                    browsable datasets (everyone can browse, downloads are
+                    gated). NEVER print a plan label or a price they didn't
+                    pay for. */}
             {user && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className={`rounded-2xl p-6 text-white ${
-                    user.plan === 'max' ? 'bg-purple-600' :
-                    user.plan === 'pro' ? 'bg-accent' :
-                    'gradient-primary'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
-                    {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
-                    {user.plan === 'max' && <Star size={16} fill="currentColor" />}
-                  </div>
-                  <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
-                  <p className="text-sm opacity-80">
-                    {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
-                  </p>
-                  <p className="text-xs opacity-60 mt-0.5 capitalize">
-                    {user.accountType} rate
-                  </p>
-                  {user.plan === 'basic' && (
+                {isPlanLive && user.plan ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={`rounded-2xl p-6 text-white ${
+                      user.plan === 'max' ? 'bg-purple-600' :
+                      user.plan === 'pro' ? 'bg-accent' :
+                      'gradient-primary'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
+                      {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
+                      {user.plan === 'max' && <Star size={16} fill="currentColor" />}
+                    </div>
+                    <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
+                    <p className="text-sm opacity-80">
+                      {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan!]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
+                    </p>
+                    <p className="text-xs opacity-60 mt-0.5 capitalize">
+                      {user.accountType} rate
+                    </p>
+                    {user.plan === 'basic' && user.accountType !== 'business' && (
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
+                      >
+                        Upgrade to Pro <ChevronRight size={12} />
+                      </Link>
+                    )}
+                    {user.plan === 'pro' && user.accountType !== 'business' && (
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
+                      >
+                        Upgrade to Max <ChevronRight size={12} />
+                      </Link>
+                    )}
+                  </motion.div>
+                ) : (
+                  /* No active plan: prompt to pick one. No fake "Basic" label,
+                     no fake price. */
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="rounded-2xl p-6 bg-white border-2 border-dashed border-gray-300"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current Plan</span>
+                    </div>
+                    <div className="text-2xl font-black text-navy mb-1">No active plan</div>
+                    <p className="text-sm text-gray-500">
+                      Free to browse. Pick a plan when you&apos;re ready to download your first file.
+                    </p>
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
+                      className="inline-flex items-center gap-1 mt-3 text-xs font-bold text-primary hover:underline"
                     >
-                      Upgrade to Pro <ChevronRight size={12} />
+                      See pricing <ChevronRight size={12} />
                     </Link>
-                  )}
-                  {user.plan === 'pro' && (
-                    <Link
-                      href="/pricing"
-                      className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
-                    >
-                      Upgrade to Max <ChevronRight size={12} />
-                    </Link>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )}
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -530,10 +579,18 @@ function DashboardContent() {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Package size={18} className="text-primary" />
-                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Datasets Available</span>
+                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                      {isPlanLive ? 'Datasets Available' : 'Datasets to Browse'}
+                    </span>
                   </div>
-                  <div className="text-3xl font-black text-navy">{accessibleDatasets.length}</div>
-                  <p className="text-sm text-gray-400 mt-1">of {DATASETS.length} total datasets</p>
+                  <div className="text-3xl font-black text-navy">
+                    {isPlanLive ? accessibleDatasets.length : DATASETS.length}
+                  </div>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {isPlanLive
+                      ? `of ${DATASETS.length} total datasets`
+                      : 'Pick a plan to download'}
+                  </p>
                 </motion.div>
 
                 <motion.div
@@ -547,17 +604,25 @@ function DashboardContent() {
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
                   </div>
                   <div className="text-3xl font-black text-navy">
-                    {userHasFullAccess ? '54' : '3'}
+                    {!isPlanLive ? '54' : userHasFullAccess ? '54' : '3'}
                   </div>
                   <p className="text-sm text-gray-400 mt-1">
-                    {userHasFullAccess ? 'All of Africa' : 'Choose any 3'}
+                    {!isPlanLive
+                      ? 'Browse all of Africa'
+                      : userHasFullAccess
+                        ? 'All of Africa'
+                        : 'Choose any 3'}
                   </p>
                 </motion.div>
               </div>
             )}
 
-            {/* Upgrade Banner (Basic only) */}
-            {user && user.plan === 'basic' && (
+            {/* Upgrade-to-Pro banner. Only for users on an ACTIVE Basic plan
+                (and only Student/Professional accounts — Business basic
+                already has full data access by design). Free / pending /
+                expired users see no upgrade prompt here; they get the
+                "No active plan" card above instead. */}
+            {user && isPlanLive && user.plan === 'basic' && user.accountType !== 'business' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

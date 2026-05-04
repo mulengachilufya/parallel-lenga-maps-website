@@ -80,17 +80,17 @@ function SignupContent() {
 
     setLoading(true)
     try {
-      // Every new account starts free: plan='basic', plan_status='free'.
-      // Customers don't pick a plan at signup — they pick when they hit the
-      // DownloadGate paywall on a real file (or when redirected to the
-      // payment page below if they came in from a pricing CTA).
+      // Every new account starts with NO plan picked. plan_status='free'
+      // (default), profiles.plan stays unset until the customer chooses,
+      // pays, and is admin-approved. We deliberately do NOT include `plan`
+      // in user_metadata — the dashboard would otherwise display them as
+      // "Basic plan K25/month" before they ever paid for anything.
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name:    name,
-            plan:         'basic',
             account_type: accountType,
           },
         },
