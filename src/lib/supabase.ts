@@ -114,6 +114,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   5:  '/dashboard?section=drought-index',
   6:  '/dashboard?section=aquifer',
   8:  '/dashboard?section=population',
+  12: '/dashboard?section=protected-areas',  // WDPA protected areas
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',
   15: '/dashboard?section=rainfall',
@@ -305,13 +306,21 @@ export const DATASETS: Dataset[] = [
     id: 12,
     name: 'Protected Areas & Wildlife',
     category: 'Conservation',
-    description: 'National parks, game reserves, Ramsar sites, and wildlife corridors',
-    source: 'WDPA / IUCN',
-    format: 'Shapefile, GeoJSON',
+    description: 'WDPA-derived protected areas: national parks, game reserves, Ramsar sites, marine protected areas, and other designated conservation areas — clipped per country across all 54 African nations.',
+    source: 'WDPA · UNEP-WCMC + IUCN',
+    format: 'Shapefile (ZIP)',
     resolution: 'Vector',
     icon: '🐘',
     tier: 'pro',
     color: '#166534',
+    sources: [
+      {
+        name: 'World Database on Protected Areas (WDPA)',
+        institution: 'UNEP-WCMC + IUCN',
+        url: 'https://www.protectedplanet.net',
+        contribution: 'Authoritative global registry of protected areas, compiled from national governments, NGOs, and academic institutions. Updated monthly. Licensed under CC-BY 4.0 — citation required.',
+      },
+    ],
   },
   {
     id: 13,

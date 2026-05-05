@@ -15,6 +15,7 @@ import RainfallClimateList from '@/components/RainfallClimateList'
 import AquiferList from '@/components/AquiferList'
 import LulcList from '@/components/LulcList'
 import PopulationList from '@/components/PopulationList'
+import ProtectedAreasList from '@/components/ProtectedAreasList'
 
 type UserPlan = 'basic' | 'pro' | 'max'
 
@@ -105,6 +106,12 @@ const SECTIONS: Record<string, {
     subtitle: 'ESA WorldCover 2021 v200 · CC BY 4.0 · EPSG:4326 · GeoTIFF (10 m) per country',
     tier: 'basic',
     component: (plan) => <LulcList userPlan={plan} />,
+  },
+  'protected-areas': {
+    title: '🐘 Protected Areas & Wildlife',
+    subtitle: 'WDPA (UNEP-WCMC + IUCN) · CC-BY 4.0 · EPSG:4326 · Shapefile (ZIP) per country',
+    tier: 'pro',
+    component: (plan, hasFullAccess) => <ProtectedAreasList userPlan={plan} hasFullAccess={hasFullAccess} />,
   },
   'population': {
     title: '🏘️ Population & Settlements',
