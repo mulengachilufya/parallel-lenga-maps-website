@@ -279,17 +279,17 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'protected-areas',
     name:        'Protected areas & wildlife',
-    description: 'WDPA-derived national parks, game reserves, Ramsar sites, marine protected areas, and other designated conservation areas per African country.',
+    description: 'National parks, game reserves, conservancies, forest reserves and other designated conservation zones per African country, extracted from OpenStreetMap (boundary=protected_area, leisure=nature_reserve).',
     category:    'environment',
     table:       'protected_areas_layers',
-    source:      'WDPA · UNEP-WCMC + IUCN · CC-BY 4.0',
+    source:      'OpenStreetMap contributors · ODbL',
     toFile: (r) => ({
       country_name: String(r.country),
       country_iso3: String(r.iso3 ?? iso3For(String(r.country))),
       r2_key:       String(r.r2_key),
       file_size_mb: Number(r.file_size_mb ?? 0),
       file_format:  String(r.file_format ?? 'Shapefile (ZIP)'),
-      source:       String(r.source ?? 'WDPA · UNEP-WCMC + IUCN'),
+      source:       String(r.source ?? 'OpenStreetMap contributors · ODbL'),
       meta: {
         feature_count:       r.feature_count,
         total_area_km2:      r.total_area_km2,

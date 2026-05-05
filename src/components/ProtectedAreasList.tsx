@@ -97,7 +97,7 @@ export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess =
       <div className="bg-emerald-50 rounded-xl p-4 mb-5 text-xs text-gray-600 grid grid-cols-3 gap-3">
         <div>
           <span className="block text-gray-400 mb-0.5">Source</span>
-          <span className="font-semibold text-navy">WDPA · UNEP-WCMC + IUCN</span>
+          <span className="font-semibold text-navy">OpenStreetMap · ODbL</span>
         </div>
         <div>
           <span className="block text-gray-400 mb-0.5">Snapshot</span>
@@ -200,7 +200,7 @@ export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess =
         <span>·</span>
         <span>{Math.round(totalAreaKm2).toLocaleString()} km²</span>
         <span>·</span>
-        <span>WDPA · CC-BY 4.0</span>
+        <span>OpenStreetMap · ODbL</span>
       </div>
     </div>
   )

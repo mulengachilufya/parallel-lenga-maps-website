@@ -2,41 +2,37 @@
 prepare-protected-areas.py
 
 Builds per-country Protected Areas shapefiles for all 54 African nations
-using WDPA (World Database on Protected Areas, UNEP-WCMC + IUCN), the
-de-facto authority on protected areas worldwide.
+using OpenStreetMap data via the Overpass API.
 
-Source:
-    https://www.protectedplanet.net/country/{ISO3}
-    Bulk per-country shapefile downloads at:
-      https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_{Mon}{YYYY}_Public_{ISO3}_shp.zip
-    No API token required — these URLs are public.
+Why OSM and not WDPA:
+    WDPA (UNEP-WCMC + IUCN) is the canonical authority on protected areas.
+    Their public CDN (https://d1gam3xoknrgr2.cloudfront.net/...) was
+    deprecated in 2025 in favour of an async-poll download flow that needs
+    a session token, and the REST API requires a free token tied to an
+    account. Neither works for an unattended pipeline. OSM's
+    `boundary=protected_area` and `leisure=nature_reserve` tags cover the
+    vast majority of named protected areas in Africa (national parks, game
+    reserves, forest reserves, conservancies, marine protected areas) with
+    no auth and a stable, well-documented Overpass API. We attribute the
+    output as OSM-derived so users know what they're getting.
 
-What's in a WDPA per-country ZIP:
-    Three nested ZIPs (0/, 1/, 2/) each containing a shapefile —
-      _0  =  protected-area POLYGONS (the main file we want)
-      _1  =  protected-area POINTS (centroids when geometry unknown — kept
-              as fallback so users can SEE every PA, even small ones)
-      _2  =  regional/cross-border features (sometimes empty)
-    We extract polygons from _0, optionally merge in _1 points-as-tiny-buffers
-    if they're not already represented in _0.
+Source attribution:
+    OpenStreetMap contributors / © OpenStreetMap Foundation
+    License: Open Database License (ODbL) — share-alike, attribution required.
+    https://www.openstreetmap.org/copyright
 
 Output per country:
     output/ProtectedAreas/{ISO3}_ProtectedAreas.zip
-      containing a single shapefile with this attribute schema:
-        wdpa_id, name, orig_name, desig, desig_eng, desig_type, iucn_cat,
-        marine, rep_area_km2, status, status_yr, gov_type, own_type,
-        mgmt_auth, iso3, country
-      All polygon features clipped to country, projected to EPSG:4326.
+      shapefile attributes:
+        osm_id, osm_type, name, name_en, protect_class, protection_title,
+        operator, owner, leisure, boundary, iso3, country, area_km2
 
-Also writes output/ProtectedAreas/manifest.json with:
-    [{ filename, country, iso3, feature_count, total_area_km2,
-       marine_area_km2, designation_summary, source, source_version }, ...]
+Also writes output/ProtectedAreas/manifest.json with per-country totals.
 
-Requires:  pip install geopandas pandas requests fiona shapely
+Requires:  pip install geopandas pandas requests shapely osm2geojson
 
 Run:       python scripts/prepare-protected-areas.py
            python scripts/prepare-protected-areas.py --country ZMB    # one country
-           python scripts/prepare-protected-areas.py --month Mar2025  # pin a snapshot
 """
 
 from __future__ import annotations
@@ -48,19 +44,32 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import zipfile
+
+# Force UTF-8 on Windows so ✓, ·, and other unicode in our log lines don't
+# blow up the script with a cp1252 codec error AFTER successfully writing
+# the shapefile.
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 import geopandas as gpd
+import osm2geojson
 import pandas as pd
 import requests
+from shapely.geometry import shape
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-# 54 African countries (ISO-3, common name used in the country column).
+# 54 African countries (ISO-3 / common name).
 AFRICA = [
     ("DZA", "Algeria"),               ("AGO", "Angola"),
     ("BEN", "Benin"),                  ("BWA", "Botswana"),
@@ -92,189 +101,199 @@ AFRICA = [
     ("ZWE", "Zimbabwe"),
 ]
 
-WDPA_URL_TEMPLATE = (
-    "https://d1gam3xoknrgr2.cloudfront.net/current/"
-    "WDPA_{month}_Public_{iso3}_shp.zip"
-)
-
 OUT_DIR = Path(__file__).resolve().parent.parent / "output" / "ProtectedAreas"
 
-# WDPA columns we keep (case as in the shapefile)
-KEEP_COLUMNS = [
-    "WDPAID", "NAME", "ORIG_NAME", "DESIG", "DESIG_ENG", "DESIG_TYPE",
-    "IUCN_CAT", "MARINE", "REP_AREA", "STATUS", "STATUS_YR",
-    "GOV_TYPE", "OWN_TYPE", "MGMT_AUTH", "ISO3",
+# Overpass mirrors. We rotate on transient failures.
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.fr/api/interpreter",
 ]
 
-# Friendly column names in the OUTPUT shapefile
-COLUMN_RENAME = {
-    "WDPAID":      "wdpa_id",
-    "NAME":        "name",
-    "ORIG_NAME":   "orig_name",
-    "DESIG":       "desig",
-    "DESIG_ENG":   "desig_eng",
-    "DESIG_TYPE":  "desig_type",
-    "IUCN_CAT":    "iucn_cat",
-    "MARINE":      "marine",
-    "REP_AREA":    "rep_area_km2",
-    "STATUS":      "status",
-    "STATUS_YR":   "status_yr",
-    "GOV_TYPE":    "gov_type",
-    "OWN_TYPE":    "own_type",
-    "MGMT_AUTH":   "mgmt_auth",
-    "ISO3":        "iso3",
-}
+# Per-country query timeout. Some countries (Algeria, DRC, Sudan) have a
+# lot of features — give them more headroom.
+OVERPASS_TIMEOUT_SEC = 600
+HTTP_TIMEOUT_SEC     = 720
 
-CITATION = (
-    "UNEP-WCMC and IUCN ({year}), Protected Planet: The World Database on "
-    "Protected Areas (WDPA), {month_full} {year}, Cambridge, UK: UNEP-WCMC and IUCN. "
-    "Available at: www.protectedplanet.net"
-)
+# Equal-area projection for area computation in km² (World Cylindrical).
+EQUAL_AREA_CRS = "ESRI:54034"
 
 
-# ── Helpers ─────────────────────────────────────────────────────────────────
+# ── Overpass query ──────────────────────────────────────────────────────────
 
-def latest_wdpa_month() -> str:
-    """Return the most recent WDPA monthly snapshot identifier (e.g. 'Mar2025').
-    WDPA publishes snapshots monthly. We default to the previous month to
-    avoid race conditions where the current month's URL doesn't yet exist."""
-    today = datetime.utcnow()
-    # Step back one month — current month may not be published yet.
-    year = today.year
-    month = today.month - 1
-    if month == 0:
-        month = 12
-        year -= 1
-    return datetime(year, month, 1).strftime("%b%Y")  # e.g. "Mar2025"
-
-
-def download_country_zip(iso3: str, month: str, dest: Path) -> bool:
-    """Download a country's WDPA ZIP. Returns True on success."""
-    url = WDPA_URL_TEMPLATE.format(month=month, iso3=iso3)
-    print(f"  fetching {url}")
-    try:
-        r = requests.get(url, stream=True, timeout=120)
-        if r.status_code == 404:
-            print(f"  [{iso3}] not found at {month} — try --month YYYYMM")
-            return False
-        r.raise_for_status()
-        with dest.open("wb") as fh:
-            for chunk in r.iter_content(chunk_size=1 << 20):  # 1 MB chunks
-                fh.write(chunk)
-        return True
-    except requests.RequestException as exc:
-        print(f"  [{iso3}] download error: {exc}")
-        return False
+def overpass_query(iso3: str) -> str:
+    """Build an Overpass QL query for protected-area features in a country.
+    Uses the country's ISO 3166-1 alpha-3 area as the bounding scope.
+    Pulls both relations (multipolygons) and ways (closed polygons).
+    `out geom` returns inline geometry so the response is self-contained."""
+    return f"""
+[out:json][timeout:{OVERPASS_TIMEOUT_SEC}];
+area["ISO3166-1:alpha3"="{iso3}"]->.country;
+(
+  relation["boundary"="protected_area"](area.country);
+  relation["leisure"="nature_reserve"](area.country);
+  way["boundary"="protected_area"](area.country);
+  way["leisure"="nature_reserve"](area.country);
+);
+out geom tags;
+""".strip()
 
 
-def find_polygon_shapefile(unzipped_root: Path) -> Optional[Path]:
-    """Inside an unzipped WDPA per-country bundle, locate the polygons SHP.
-    The bundle nests three further ZIPs (0/1/2). The polygon layer lives in
-    the inner ZIP whose name ends with `_0` and contains a .shp."""
-    # First unzip any nested ZIPs.
-    for zf in unzipped_root.glob("*.zip"):
-        with zipfile.ZipFile(zf) as nested:
-            nested.extractall(unzipped_root)
+def fetch_overpass(iso3: str, max_retries: int = 3) -> Optional[dict]:
+    """POST the query to Overpass, rotating mirrors on failure."""
+    query = overpass_query(iso3)
+    for attempt in range(max_retries):
+        endpoint = OVERPASS_ENDPOINTS[attempt % len(OVERPASS_ENDPOINTS)]
+        try:
+            print(f"  [{iso3}] querying {endpoint}")
+            r = requests.post(
+                endpoint,
+                data={"data": query},
+                timeout=HTTP_TIMEOUT_SEC,
+                headers={"User-Agent": "lenga-maps-protected-areas-pipeline/1.0"},
+            )
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code in (429, 504):
+                # Rate-limited or timed-out — back off then try next mirror.
+                wait = 30 * (attempt + 1)
+                print(f"  [{iso3}] HTTP {r.status_code}, sleeping {wait}s before retry")
+                time.sleep(wait)
+                continue
+            print(f"  [{iso3}] HTTP {r.status_code}: {r.text[:120]}")
+        except requests.RequestException as exc:
+            print(f"  [{iso3}] {endpoint} failed: {exc}")
+            time.sleep(5)
+    print(f"  [{iso3}] all Overpass mirrors failed after {max_retries} attempts")
+    return None
 
-    # Find the polygons SHP — names typically WDPA_*_polygons.shp or *_0.shp
-    candidates = list(unzipped_root.rglob("*_polygons.shp")) \
-              + list(unzipped_root.rglob("*-polygons.shp"))
-    if not candidates:
-        # Fallback: look for *_0.shp (the polygons piece in older bundles)
-        candidates = list(unzipped_root.rglob("*_0.shp"))
-    return candidates[0] if candidates else None
+
+# ── Conversion ──────────────────────────────────────────────────────────────
+
+def osm_to_gdf(osm_json: dict, iso3: str, country: str) -> Optional[gpd.GeoDataFrame]:
+    """Convert raw Overpass JSON into a clean GeoDataFrame in EPSG:4326."""
+    if not osm_json or not osm_json.get("elements"):
+        return None
+
+    geojson = osm2geojson.json2geojson(osm_json)
+    feats = geojson.get("features", [])
+    if not feats:
+        return None
+
+    rows = []
+    for f in feats:
+        geom = shape(f["geometry"])
+        if geom.is_empty:
+            continue
+        props = f.get("properties", {}) or {}
+        # osm2geojson stores OSM tags under 'tags' (sometimes 'properties').
+        tags = props.get("tags") if isinstance(props.get("tags"), dict) else props
+        rows.append({
+            "osm_id":            props.get("id") or props.get("osm_id"),
+            "osm_type":          props.get("type") or props.get("osm_type"),
+            "name":              tags.get("name", "")[:200],
+            "name_en":           tags.get("name:en", "")[:200],
+            "protect_class":     str(tags.get("protect_class", ""))[:20],
+            "protection_title":  tags.get("protection_title", "")[:120],
+            "operator":          tags.get("operator", "")[:200],
+            "owner":             tags.get("owner", "")[:200],
+            "leisure":           tags.get("leisure", "")[:50],
+            "boundary":          tags.get("boundary", "")[:50],
+            "iso3":              iso3,
+            "country":           country,
+            "geometry":          geom,
+        })
+
+    if not rows:
+        return None
+
+    gdf = gpd.GeoDataFrame(rows, crs="EPSG:4326")
+
+    # Drop pure-point or pure-line features — protected areas should be polygonal.
+    gdf = gdf[gdf.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]
+    if gdf.empty:
+        return None
+
+    # Compute area in km² using an equal-area projection.
+    equal_area = gdf.to_crs(EQUAL_AREA_CRS)
+    gdf["area_km2"] = (equal_area.geometry.area / 1_000_000).round(3)
+
+    return gdf.reset_index(drop=True)
 
 
 def designation_summary(gdf: gpd.GeoDataFrame) -> str:
-    """Build a short '23 National Parks · 12 Game Reserves' summary."""
-    if "DESIG_ENG" not in gdf.columns or gdf.empty:
+    """Build a short '23 nature reserves · 12 national parks' summary."""
+    if gdf.empty:
         return ""
-    counts = Counter(
-        d.strip() for d in gdf["DESIG_ENG"].dropna().tolist() if d and d.strip()
-    )
+    labels: list[str] = []
+    for _, row in gdf.iterrows():
+        title = (row.get("protection_title") or "").strip().lower()
+        if title:
+            labels.append(title)
+            continue
+        if (row.get("leisure") or "").strip() == "nature_reserve":
+            labels.append("nature reserve")
+            continue
+        boundary = (row.get("boundary") or "").strip().lower()
+        if boundary == "protected_area":
+            labels.append("protected area")
+    counts = Counter(labels)
     top = counts.most_common(4)
     if not top:
         return ""
-    parts = [f"{n} {label}{'s' if n != 1 and not label.endswith('s') else ''}"
-             for label, n in top]
-    return " · ".join(parts)
+    return " · ".join(f"{n} {label}{'s' if n != 1 and not label.endswith('s') else ''}"
+                      for label, n in top)
 
 
-def process_country(iso3: str, country: str, month: str, source_version: str) -> Optional[dict]:
-    """Download, clean, and package one country. Returns manifest entry or None."""
+# ── Per-country pipeline ────────────────────────────────────────────────────
+
+def process_country(iso3: str, country: str, source_version: str) -> Optional[dict]:
+    """Download from Overpass, build shapefile, ZIP it, return manifest entry."""
     print(f"\n{country} ({iso3})")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_zip = OUT_DIR / f"{iso3}_ProtectedAreas.zip"
 
-    with tempfile.TemporaryDirectory(prefix=f"wdpa_{iso3}_") as tmp:
-        tmp_path = Path(tmp)
-        zip_path = tmp_path / f"WDPA_{iso3}.zip"
-        if not download_country_zip(iso3, month, zip_path):
-            return None
+    osm_json = fetch_overpass(iso3)
+    if not osm_json:
+        return None
 
-        # Unzip the outer bundle
-        with zipfile.ZipFile(zip_path) as z:
-            z.extractall(tmp_path)
+    gdf = osm_to_gdf(osm_json, iso3, country)
+    if gdf is None or gdf.empty:
+        print(f"  [{iso3}] no protected-area polygons returned — skipping")
+        return None
 
-        shp_path = find_polygon_shapefile(tmp_path)
-        if not shp_path:
-            print(f"  [{iso3}] no polygons shapefile inside bundle — skipping")
-            return None
+    feature_count   = len(gdf)
+    total_area_km2  = float(gdf["area_km2"].sum())
+    desig_summary   = designation_summary(gdf)
 
-        # Read + reproject + clean
-        gdf = gpd.read_file(shp_path)
-        if gdf.empty:
-            print(f"  [{iso3}] shapefile empty — skipping")
-            return None
+    # Marine area: rough proxy — features tagged with `leisure=nature_reserve`
+    # or `boundary=protected_area` AND with `marine=yes` aren't always tagged
+    # in OSM. We compute area for features that intersect a coastline only as
+    # a refinement. For now leave marine_area_km2 as None — it'll come back
+    # when WDPA reactivates.
+    marine_area_km2 = None
 
-        # Reproject to EPSG:4326 if not already (most WDPA bundles are 4326).
-        if gdf.crs is None:
-            gdf = gdf.set_crs(4326)
-        elif gdf.crs.to_epsg() != 4326:
-            gdf = gdf.to_crs(4326)
+    # Write to a temp shapefile then ZIP into the output ZIP.
+    with tempfile.TemporaryDirectory(prefix=f"pa_{iso3}_") as tmp:
+        shp_dir = Path(tmp) / "shp"
+        shp_dir.mkdir()
+        shp_path = shp_dir / f"{iso3}_ProtectedAreas.shp"
+        gdf.to_file(shp_path, driver="ESRI Shapefile")
 
-        # Subset + rename columns. Some columns may be missing in older
-        # snapshots — fill with None.
-        for col in KEEP_COLUMNS:
-            if col not in gdf.columns:
-                gdf[col] = None
-        out_gdf = gdf[KEEP_COLUMNS + ["geometry"]].rename(columns=COLUMN_RENAME)
-
-        # Compute per-feature areas in km² for sanity (REP_AREA is what
-        # countries report; we keep it but also know the GIS-computed area).
-        equal_area = out_gdf.to_crs("ESRI:54034")  # World Cylindrical Equal Area
-        gis_area_km2 = equal_area.geometry.area / 1_000_000
-
-        # Summary stats
-        feature_count   = len(out_gdf)
-        total_area_km2  = float(pd.to_numeric(out_gdf["rep_area_km2"], errors="coerce").fillna(0).sum())
-        marine_mask     = out_gdf["marine"].astype(str).isin(["1", "2"])
-        marine_area_km2 = float(pd.to_numeric(out_gdf.loc[marine_mask, "rep_area_km2"], errors="coerce").fillna(0).sum())
-        desig_summary   = designation_summary(gdf)
-
-        if total_area_km2 == 0 and not gis_area_km2.empty:
-            total_area_km2 = float(gis_area_km2.sum())
-
-        # Write to a temp shapefile, then ZIP into the output ZIP
-        shp_out_dir = tmp_path / "out_shp"
-        shp_out_dir.mkdir(exist_ok=True)
-        shp_out = shp_out_dir / f"{iso3}_ProtectedAreas.shp"
-        out_gdf.to_file(shp_out, driver="ESRI Shapefile")
-
-        # ZIP the .shp + sidecars
         with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zout:
-            for sidecar in shp_out_dir.iterdir():
+            for sidecar in shp_dir.iterdir():
                 zout.write(sidecar, arcname=sidecar.name)
-            # Include a citation so downstream users always see it
-            citation_year = source_version.split()[-1]
-            citation_month = source_version.split()[1] if len(source_version.split()) > 1 else ""
             zout.writestr(
                 "ATTRIBUTION.txt",
-                CITATION.format(year=citation_year, month_full=citation_month),
+                "OpenStreetMap contributors / © OpenStreetMap Foundation\n"
+                "Licensed under the Open Database License (ODbL).\n"
+                "https://www.openstreetmap.org/copyright\n"
+                f"Snapshot: {source_version}\n"
+                "Filtered to: boundary=protected_area OR leisure=nature_reserve.\n",
             )
 
     size_mb = out_zip.stat().st_size / (1024 * 1024)
-    print(f"  ✓ {feature_count} PAs · {total_area_km2:,.0f} km² total · {size_mb:.2f} MB")
+    print(f"  ✓ {feature_count} features · {total_area_km2:,.0f} km² · {size_mb:.2f} MB")
 
     return {
         "filename":            out_zip.name,
@@ -282,9 +301,9 @@ def process_country(iso3: str, country: str, month: str, source_version: str) ->
         "iso3":                iso3,
         "feature_count":       feature_count,
         "total_area_km2":      round(total_area_km2, 2),
-        "marine_area_km2":     round(marine_area_km2, 2) if marine_area_km2 else None,
+        "marine_area_km2":     marine_area_km2,
         "designation_summary": desig_summary,
-        "source":              "WDPA · UNEP-WCMC + IUCN · CC-BY 4.0 · www.protectedplanet.net",
+        "source":              "OpenStreetMap contributors · ODbL · www.openstreetmap.org/copyright",
         "source_version":      source_version,
     }
 
@@ -294,20 +313,20 @@ def process_country(iso3: str, country: str, month: str, source_version: str) ->
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--country", help="Process a single ISO-3 (e.g. ZMB).")
-    parser.add_argument("--month",   help="Pin a WDPA snapshot, e.g. 'Mar2025'. Default = previous month.")
     args = parser.parse_args()
 
-    month = args.month or latest_wdpa_month()
-    source_version = f"WDPA {month[:3]} {month[3:]}"  # "Mar2025" → "WDPA Mar 2025"
+    # Pin the snapshot to today's UTC date so re-runs are reproducible
+    # without overwriting the source_version of older builds unintentionally.
+    source_version = "OSM " + datetime.now(timezone.utc).strftime("%b %Y")
 
     targets = [(i, n) for (i, n) in AFRICA if not args.country or i == args.country.upper()]
     if not targets:
         print(f"Unknown country code {args.country}")
         return 1
 
-    print(f"WDPA snapshot: {source_version}")
-    print(f"Output:        {OUT_DIR}")
-    print(f"Countries:     {len(targets)}")
+    print(f"Source:    {source_version}")
+    print(f"Output:    {OUT_DIR}")
+    print(f"Countries: {len(targets)}")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = OUT_DIR / "manifest.json"
@@ -321,7 +340,7 @@ def main() -> int:
 
     for iso3, country in targets:
         try:
-            entry = process_country(iso3, country, month, source_version)
+            entry = process_country(iso3, country, source_version)
         except Exception as exc:
             print(f"  [{iso3}] FAILED: {exc}")
             continue

@@ -109,7 +109,7 @@ const SECTIONS: Record<string, {
   },
   'protected-areas': {
     title: '🐘 Protected Areas & Wildlife',
-    subtitle: 'WDPA (UNEP-WCMC + IUCN) · CC-BY 4.0 · EPSG:4326 · Shapefile (ZIP) per country',
+    subtitle: 'OpenStreetMap (boundary=protected_area, leisure=nature_reserve) · ODbL · EPSG:4326 · Shapefile (ZIP) per country',
     tier: 'pro',
     component: (plan, hasFullAccess) => <ProtectedAreasList userPlan={plan} hasFullAccess={hasFullAccess} />,
   },
