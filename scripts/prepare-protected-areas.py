@@ -180,6 +180,18 @@ def osm_to_gdf(osm_json: dict, iso3: str, country: str) -> Optional[gpd.GeoDataF
     if not feats:
         return None
 
+    # Column names below all fit within the ESRI Shapefile 10-char limit so
+    # the DBF doesn't auto-truncate them (which produced ugly names like
+    # `protect_cl` and `protection` in v1 of this pipeline). Empty string is
+    # used in place of None so values land in the DBF as "" rather than "nan".
+    def _clean(v: object, max_len: int) -> str:
+        if v is None:
+            return ""
+        s = str(v).strip()
+        if s.lower() in ("none", "nan", "<na>"):
+            return ""
+        return s[:max_len]
+
     rows = []
     for f in feats:
         geom = shape(f["geometry"])
@@ -189,19 +201,19 @@ def osm_to_gdf(osm_json: dict, iso3: str, country: str) -> Optional[gpd.GeoDataF
         # osm2geojson stores OSM tags under 'tags' (sometimes 'properties').
         tags = props.get("tags") if isinstance(props.get("tags"), dict) else props
         rows.append({
-            "osm_id":            props.get("id") or props.get("osm_id"),
-            "osm_type":          props.get("type") or props.get("osm_type"),
-            "name":              tags.get("name", "")[:200],
-            "name_en":           tags.get("name:en", "")[:200],
-            "protect_class":     str(tags.get("protect_class", ""))[:20],
-            "protection_title":  tags.get("protection_title", "")[:120],
-            "operator":          tags.get("operator", "")[:200],
-            "owner":             tags.get("owner", "")[:200],
-            "leisure":           tags.get("leisure", "")[:50],
-            "boundary":          tags.get("boundary", "")[:50],
-            "iso3":              iso3,
-            "country":           country,
-            "geometry":          geom,
+            "osm_id":     props.get("id") or props.get("osm_id"),
+            "osm_type":   _clean(props.get("type") or props.get("osm_type"), 10),
+            "name":       _clean(tags.get("name"),             200),
+            "name_en":    _clean(tags.get("name:en"),          200),
+            "prot_class": _clean(tags.get("protect_class"),     20),
+            "prot_title": _clean(tags.get("protection_title"), 120),
+            "operator":   _clean(tags.get("operator"),         200),
+            "owner":      _clean(tags.get("owner"),            200),
+            "leisure":    _clean(tags.get("leisure"),           50),
+            "boundary":   _clean(tags.get("boundary"),          50),
+            "iso3":       iso3,
+            "country":    country,
+            "geometry":   geom,
         })
 
     if not rows:
@@ -290,6 +302,33 @@ def process_country(iso3: str, country: str, source_version: str) -> Optional[di
                 "https://www.openstreetmap.org/copyright\n"
                 f"Snapshot: {source_version}\n"
                 "Filtered to: boundary=protected_area OR leisure=nature_reserve.\n",
+            )
+            # Plain-English schema documentation so users know what each
+            # column means. Sits alongside the .shp/.dbf in the ZIP.
+            zout.writestr(
+                "SCHEMA.txt",
+                "Protected Areas — attribute schema\n"
+                "==================================\n\n"
+                "Each row is one protected area polygon (clipped to the country).\n"
+                "CRS: EPSG:4326 (WGS84). Geometry: Polygon / MultiPolygon.\n\n"
+                "Columns (DBF / shapefile attribute table):\n\n"
+                "  osm_id      Numeric OSM element ID (relation or way id).\n"
+                "  osm_type    'relation' or 'way' — the OSM primitive type.\n"
+                "  name        Local name of the protected area (any script).\n"
+                "  name_en     English name where OSM provides one (name:en).\n"
+                "  prot_class  IUCN-like protection class (1-99) where tagged.\n"
+                "  prot_title  Designation title, e.g. 'National Park',\n"
+                "              'Forest Reserve', 'Marine Protected Area'.\n"
+                "  operator    Managing organisation (e.g. 'Kenya Wildlife Service').\n"
+                "  owner       Land/water owner where distinct from operator.\n"
+                "  leisure     OSM leisure tag (typically 'nature_reserve').\n"
+                "  boundary    OSM boundary tag (typically 'protected_area').\n"
+                "  iso3        ISO 3166-1 alpha-3 country code (e.g. 'ZMB').\n"
+                "  country     Common country name in English.\n"
+                "  area_km2    GIS-computed area in km²\n"
+                "              (World Cylindrical Equal Area projection).\n\n"
+                "Empty cells mean the OSM source had no value for that tag.\n"
+                "OSM data quality varies by country; small/local reserves may be missing.\n",
             )
 
     size_mb = out_zip.stat().st_size / (1024 * 1024)
