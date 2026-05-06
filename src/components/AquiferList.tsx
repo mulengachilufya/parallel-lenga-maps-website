@@ -47,7 +47,7 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
   // server didn't sign a URL for this user, the gate should pop up the
   // upgrade modal. After they pay and reload, download_url will be present.
   const handleDownload = (layer: AquiferLayer) => {
-    guardDownload('pro', () => {
+    guardDownload('max', () => {
       if (!layer.download_url) return  // edge case — gate already passed but no URL: silently no-op
       setDownloading(layer.id)
       const link = document.createElement('a')

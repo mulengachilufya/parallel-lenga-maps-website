@@ -44,7 +44,7 @@ export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess =
   // the entire point of the gate: when the server didn't sign a URL for
   // this user (insufficient plan), the gate pops up the upgrade modal.
   const handleDownload = (layer: ProtectedAreasLayer) => {
-    guardDownload('pro', () => {
+    guardDownload('max', () => {
       if (!layer.download_url) return  // gate already passed, but URL missing — silently no-op
       setDownloading(layer.id)
       const link = document.createElement('a')

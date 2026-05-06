@@ -59,8 +59,10 @@ export async function GET(request: NextRequest) {
 
     let layers: LulcLayer[] = data || []
 
-    // LULC is a Basic-tier dataset; gate the URLs behind any active plan.
-    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    // LULC is a Pro-tier dataset (in the new 4/8/12+ model). Only Pro and
+    // Max plans (or any active Business plan) get download URLs. Anonymous
+    // and Basic-tier callers see the catalogue metadata but no links.
+    const allowed = includeUrl ? await callerCanDownloadTier('pro') : false
     if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {

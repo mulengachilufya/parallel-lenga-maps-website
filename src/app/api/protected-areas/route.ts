@@ -32,10 +32,10 @@ export interface ProtectedAreasLayer {
  *   - iso3:       exact ISO-3 match (e.g. ZMB)
  *   - includeUrl: include presigned download URL (default: true)
  *
- * Tier gate: Pro-tier dataset. The list metadata is public so anyone can
- * browse the catalogue, but `download_url` is only included when the
- * caller has an active plan that unlocks pro-tier datasets (Student/Pro
- * Pro, Student/Pro Max, or any active Business plan).
+ * Tier gate: Max-tier dataset (in the 4/8/12+ model). List metadata is
+ * public so anyone can browse the catalogue, but `download_url` is only
+ * included when the caller has an active plan that unlocks max-tier
+ * datasets (plan='max', or any active Business plan).
  */
 export async function GET(request: NextRequest) {
   const supabase = createClient(
@@ -65,9 +65,8 @@ export async function GET(request: NextRequest) {
 
     let layers: ProtectedAreasLayer[] = data || []
 
-    // Pro-tier dataset — only Pro / Max plans (or any active Business plan)
-    // get download URLs.
-    const allowed = includeUrl ? await callerCanDownloadTier('pro') : false
+    // Max-tier dataset — plan='max' or any active Business plan only.
+    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
     if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {

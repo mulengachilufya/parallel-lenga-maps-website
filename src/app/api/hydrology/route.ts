@@ -58,13 +58,29 @@ export async function GET(request: NextRequest) {
 
     let layers: HydrologyLayer[] = data || []
 
-    // Gate the presigned URLs behind an active basic-or-better plan. Anyone
-    // can browse the catalogue (country names, sizes, sources) but only
-    // paying users get the download link.
-    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
-    if (allowed && layers.length > 0) {
+    // PER-LAYER-TYPE TIER GATE.
+    //   rivers → BASIC tier (any active plan)
+    //   lakes  → PRO tier (pro / max / business)
+    // We resolve this row-by-row because a single GET (no layerType filter)
+    // can return a mix. The two checks fire ONCE each (then are reused),
+    // so this is no slower than the old single-tier gate.
+    let basicAllowed: boolean | null = null
+    let proAllowed:   boolean | null = null
+    if (includeUrl && layers.length > 0) {
+      // Look up only what we need. Avoids hitting the DB for tiers that
+      // aren't represented in this response.
+      const hasRivers = layers.some((l) => l.layer_type === 'rivers')
+      const hasLakes  = layers.some((l) => l.layer_type === 'lakes')
+      if (hasRivers) basicAllowed = await callerCanDownloadTier('basic')
+      if (hasLakes)  proAllowed   = await callerCanDownloadTier('pro')
+
       layers = await Promise.all(
         layers.map(async (layer) => {
+          const ok =
+            layer.layer_type === 'rivers' ? basicAllowed === true :
+            layer.layer_type === 'lakes'  ? proAllowed   === true :
+            false
+          if (!ok) return layer
           try {
             return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
           } catch {

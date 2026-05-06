@@ -46,7 +46,7 @@ export default function PopulationList({ userPlan = 'basic', hasFullAccess = fal
   // have access yet); the gate then pops up the upgrade modal. Early-
   // returning would just leave the user staring at a dead button.
   const handleDownload = (layer: PopulationSettlementsLayer) => {
-    guardDownload('pro', () => {
+    guardDownload('max', () => {
       if (!layer.download_url) return  // gate passed but no URL: edge case, no-op
       setDownloading(layer.id)
       window.open(layer.download_url, '_blank')

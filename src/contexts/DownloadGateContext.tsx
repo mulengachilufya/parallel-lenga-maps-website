@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { X, Lock, ArrowRight, Star, Zap, CreditCard, Clock } from 'lucide-react'
-import { supabase, PLAN_PRICING, isPlanActive, hasFullDatasetAccess, type AccountType, type PlanTier, type PlanStatus } from '@/lib/supabase'
+import { supabase, PLAN_PRICING, isPlanActive, canAccessDatasetTier, type AccountType, type DatasetTier, type PlanTier, type PlanStatus } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ type PayReason = 'free' | 'pending' | 'expired'
 
 interface GateModal {
   type: 'signup' | 'pay' | 'upgrade'
-  requiredTier: PlanTier
+  requiredTier: DatasetTier
   currentPlan?: PlanTier    // for 'pay' — the plan they originally selected
   payReason?: PayReason     // for 'pay' — which sub-state we're in
 }
@@ -34,29 +34,31 @@ interface GateModal {
 interface DownloadGateContextType {
   gateUser: DownloadUser | null
   gateLoading: boolean
-  guardDownload: (requiredTier: PlanTier, fn: () => void) => void
+  /** Required tier comes from the dataset, not the user. Same values as
+   *  PlanTier ('basic' | 'pro' | 'max') but means "what plan does this
+   *  file require". */
+  guardDownload: (requiredTier: DatasetTier, fn: () => void) => void
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const TIER_ORDER: Record<PlanTier, number> = { basic: 0, pro: 1, max: 2 }
-
-const TIER_COLORS: Record<PlanTier, string> = {
+const TIER_COLORS: Record<DatasetTier, string> = {
   basic: '#1E5F8E',
   pro: '#F5B800',
   max: '#7c3aed',
 }
 
-const TIER_LABELS: Record<PlanTier, string> = {
+const TIER_LABELS: Record<DatasetTier, string> = {
   basic: 'Basic',
   pro: 'Pro',
   max: 'Max',
 }
 
-const TIER_DESCS: Record<PlanTier, string> = {
+// Counts match the canonical tier model (see DATASETS in lib/supabase).
+const TIER_DESCS: Record<DatasetTier, string> = {
   basic: '4 datasets · 3 countries · 10 files/month',
-  pro: '9 datasets · all 54 countries · 25 files/month',
-  max: 'All 15+ datasets · 54 countries · unlimited downloads',
+  pro:   '8 datasets · all 54 countries · 25 files/month',
+  max:   'All 12+ datasets · 54 countries · unlimited downloads',
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────────
@@ -382,7 +384,7 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const guardDownload = (requiredTier: PlanTier, fn: () => void) => {
+  const guardDownload = (requiredTier: DatasetTier, fn: () => void) => {
     // Cascade: no session → sign up / sign in
     if (!gateUser) {
       setModal({ type: 'signup', requiredTier })
@@ -409,15 +411,11 @@ export function DownloadGateProvider({ children }: { children: ReactNode }) {
       })
       return
     }
-    // Active plan but insufficient tier for this file → upgrade.
-    // Special case: Business at any plan level has full data access (the
-    // basic→pro gradient for Business is API + on-site, not which datasets
-    // they can download). So a Business basic user trying to download a
-    // pro-tier file should NOT see the upgrade modal.
-    const insufficient = requiredTier === 'pro'
-      ? !hasFullDatasetAccess(gateUser.plan, gateUser.accountType)
-      : TIER_ORDER[gateUser.plan] < TIER_ORDER[requiredTier]
-    if (insufficient) {
+    // Active plan but insufficient tier for this file → upgrade modal.
+    // canAccessDatasetTier handles the three-tier ladder AND the Business
+    // override (Business at any plan = full max-equivalent access). Single
+    // call, no manual rank checks.
+    if (!canAccessDatasetTier(gateUser.plan, gateUser.accountType, requiredTier)) {
       setModal({ type: 'upgrade', requiredTier })
       return
     }

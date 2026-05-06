@@ -7,9 +7,16 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface RiversListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** UI hint only — Download click still routes through DownloadGate. */
+  hasAccess?: boolean
 }
 
-export default function RiversList({ userPlan = 'basic' }: RiversListProps) {
+export default function RiversList({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userPlan = 'basic',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasAccess = false,
+}: RiversListProps) {
   const { guardDownload } = useDownloadGate()
   const [rivers, setRivers]           = useState<HydrologyLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -37,11 +44,14 @@ export default function RiversList({ userPlan = 'basic' }: RiversListProps) {
     load()
   }, [filterCountry])
 
+  // ALWAYS route the click through the gate. Missing download_url means
+  // the server didn't sign one for this caller (anon / no plan / wrong
+  // tier) — guardDownload's modal is exactly what should happen then.
   const handleDownload = (river: HydrologyLayer) => {
-    if (!river.download_url) return
     guardDownload('basic', () => {
+      if (!river.download_url) return
       setDownloading(river.id)
-      window.open(river.download_url!, '_blank')
+      window.open(river.download_url, '_blank')
       setTimeout(() => setDownloading(null), 1000)
     })
   }

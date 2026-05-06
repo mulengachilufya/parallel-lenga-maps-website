@@ -39,10 +39,10 @@ const basePlans: PlanDef[] = [
     features: [
       '3 countries of your choice',
       {
-        main: '4 core datasets included',
+        main: '4 datasets included',
         subs: [
           'Administrative Boundaries',
-          'River Networks & Watersheds',
+          'River Networks',
           'Rainfall Data',
           'Temperature Data',
         ],
@@ -58,20 +58,20 @@ const basePlans: PlanDef[] = [
     id: 'pro',
     name: 'Pro',
     tagline: 'Most Popular',
-    description: 'Access to 9 datasets across all 54 countries.',
+    description: 'Access to 8 datasets across all 54 countries.',
     color: '#F5B800',
     highlight: true,
     features: [
       'All 54 African countries',
       {
-        main: '9 datasets included',
+        main: '8 datasets included',
         subs: [
-          'Admin Boundaries, Rivers, Lakes',
-          'LULC, Rainfall, Temperature',
-          'Drought Index (SPI-12), Aquifers, Population',
+          'Admin Boundaries, Rivers, Rainfall, Temperature',
+          'Lakes, LULC',
+          'Drought Index (SPI-12), Watersheds (HydroBASINS)*',
         ],
       },
-      'Watersheds (HydroBASINS) — coming soon',
+      '* Watersheds: data being processed, joining shortly',
       'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
       'Highest available resolution',
       'Priority email & WhatsApp support',
@@ -89,7 +89,15 @@ const basePlans: PlanDef[] = [
     highlight: false,
     features: [
       'All 54 African countries',
-      'All 9 Pro datasets',
+      {
+        main: 'All 12+ datasets included',
+        subs: [
+          'Everything in Pro (8 datasets)',
+          '+ Aquifers, Population & Settlements',
+          '+ Protected Areas & Wildlife',
+          '+ Roads, Wetlands, Soil, NDVI as they launch',
+        ],
+      },
       'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
       'Highest available resolution',
       'Commercial use licence included',

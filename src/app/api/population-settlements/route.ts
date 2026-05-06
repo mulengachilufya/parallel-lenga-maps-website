@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
 
     let layers: PopulationSettlementsLayer[] = data || []
 
-    // Population & Settlements is a Pro-tier dataset — only Pro and Max
-    // plans get download URLs.
-    const allowed = includeUrl ? await callerCanDownloadTier('pro') : false
+    // Population & Settlements is a Max-tier dataset (in the 4/8/12+ model).
+    // Only Max plans (or any active Business plan) get download URLs.
+    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
     if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {

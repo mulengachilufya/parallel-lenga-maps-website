@@ -8,30 +8,38 @@
  *   actual files for free. This helper fixes that: routes call it once,
  *   and only return `download_url` if it returns true.
  *
- * Tier model (single source of truth: hasFullDatasetAccess in lib/supabase):
- *   - basic-tier datasets: any active plan unlocks them (incl. Business basic)
- *   - pro-tier datasets:
- *       · Student / Professional: only plan='pro' or plan='max'
- *       · Business: ANY plan unlocks them (basic + pro both = "Everything in Max")
+ * Tier model (single source of truth: canAccessDatasetTier in lib/supabase):
+ *   basic: 4 datasets — Admin Boundaries, Rivers, Rainfall, Temperature
+ *   pro:   +4 = 8     — Lakes, LULC, Drought Index, Watersheds
+ *   max:   +rest = 12+ — Aquifers, Population, Protected Areas, …
+ *
+ * Plan / tier matrix:
+ *   plan basic       → tier=basic only
+ *   plan pro         → tier=basic + pro
+ *   plan max         → all tiers
+ *   account=business → all tiers regardless of plan (basic & pro both grant
+ *                      max-equivalent data access)
  *
  * Returning `false` means "give them metadata only, no presigned URL". The
- * client UI already handles missing download_url gracefully (the Download
- * button disables itself).
+ * client UI handles a missing download_url by routing the click through
+ * DownloadGate, which pops up the appropriate signup/pay/upgrade modal.
  */
 import { createServerSupabase } from './supabase-server'
-import { hasFullDatasetAccess, type AccountType, type PlanTier } from './supabase'
+import { canAccessDatasetTier, type AccountType, type DatasetTier, type PlanTier } from './supabase'
 
-export type Tier = 'basic' | 'pro'
+// Re-export for the route handlers' local use.
+export type Tier = DatasetTier
 
 /**
- * Check whether the caller has an active plan that unlocks this tier.
+ * Check whether the caller has an active plan that unlocks `tier`.
  *
  * Returns false for:
  *   - anonymous callers (no session)
  *   - signed-in users with no profile row
  *   - plan_status != 'active'
  *   - plan_expires_at in the past
- *   - active non-business user on plan='basic' trying to access a pro-tier dataset
+ *   - plan column NULL (defense-in-depth — a paid user should always have a plan)
+ *   - non-business user whose plan rank is below the dataset tier
  */
 export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
   const supabase = createServerSupabase()
@@ -55,11 +63,10 @@ export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
   // than silently treating it as basic.
   if (!profile.plan) return false
 
-  // Basic-tier datasets: any active plan unlocks them. Pro-tier: depends on
-  // plan AND account_type — Business gets full access at every plan level.
-  if (tier === 'basic') return true
-  return hasFullDatasetAccess(
+  // Single canonical helper handles the three-tier ladder + business override.
+  return canAccessDatasetTier(
     profile.plan as PlanTier,
     (profile.account_type ?? 'student') as AccountType,
+    tier,
   )
 }
