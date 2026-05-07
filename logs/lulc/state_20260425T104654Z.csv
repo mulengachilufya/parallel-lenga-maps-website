@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Ivory Coast,in_progress,0,,,0.0,,2026-04-25T10:46:58.473289+00:00
+Ivory Coast,done,9,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Ivory_Coast_LULC.tif,lulc/Ivory_Coast/Ivory_Coast_LULC.tif,325.055,,2026-04-25T11:11:22.558623+00:00

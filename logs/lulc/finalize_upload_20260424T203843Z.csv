@@ -1,0 +1,17 @@
+country,file,size_mb,coverage,status,warnings
+Angola,Angola_LULC.tif,1153.03,1.0,OK,
+Benin,Benin_LULC.tif,113.49,1.0,OK,
+Botswana,Botswana_LULC.tif,410.61,1.0,OK,
+Burkina Faso,Burkina_Faso_LULC.tif,212.53,1.0,UPLOAD_FAIL,"upload_error: HTTPSConnectionPool(host='flfvukuvrqeerbtyznht.supabase.co', port=443): Max retries exceeded with url: /rest/v1/lulc_layers (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))"
+Ghana,Ghana_LULC.tif,233.4,1.0,OK,
+Guinea,Guinea_LULC.tif,304.13,1.0,OK,
+Kenya,Kenya_LULC.tif,499.17,1.0,OK,
+Madagascar,Madagascar_LULC.tif,562.01,1.0,OK,
+Malawi,Malawi_LULC.tif,106.6,1.0,OK,
+Namibia,Namibia_LULC.tif,128.07,1.0,OK,
+South Africa,South_Africa_LULC.tif,857.68,0.5815150073431711,UPLOAD_FAIL,"upload_error: Connection was closed before we received a valid response from endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/South_Africa/South_Africa_LULC.tif?uploadId=AKETwRkvBxblTYz-KL8Gw3KRlEqv-H6N3w2PbYbvXj587mLuYuP_hYdTee2vzkCAG3Qo5vyDB3Iy8VBHvCbYFQvY4rgE2PNFFfa6_XTeICiKjf6EXafziiLyGOo9CT1Qm7aNoV3007Wjm4yTmVeNMw8HYG8ycZymypWYrnw-qJeIR4htVk2lITBi9TmcWLKRaQZywEk6KFGVk7cBDJaap5NkwgNY8XAAu_eI5dbP01V3YMsN4u4bUA6HRj58i2yoTM63b3F2PDCE2qaqDtbA1o7gDkwsdpnoFwyiCwqmTnC26PzXC-sluGBXHERKeelNEEwHviF5BQQksqNGxaQhiC4&partNumber=6""."
+Tanzania,Tanzania_LULC.tif,833.53,1.0,UPLOAD_FAIL,"upload_error: Connection was closed before we received a valid response from endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Tanzania/Tanzania_LULC.tif?uploads""."
+Tunisia,Tunisia_LULC.tif,127.61,1.0,UPLOAD_FAIL,"upload_error: Connection was closed before we received a valid response from endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Tunisia/Tunisia_LULC.tif?uploads""."
+Uganda,Uganda_LULC.tif,249.8,1.0,UPLOAD_FAIL,"upload_error: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Uganda/Uganda_LULC.tif?uploads"""
+Zambia,Zambia_LULC.tif,905.28,1.0,UPLOAD_FAIL,upload_error: SSL validation failed for https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Zambia/Zambia_LULC.tif?uploadId=APAqnKjy0tRAGumC727M6IOdetG1zUJfPFfmhPEvN7NdGJQDJWHkZ13yl1ZVwjnDGLHDiITqOxtgK7f7AJ7MnE2hAeZc9fGkQMCxK_ozY-YyQPtho_6fR2WwUoV1BriNZnahXz_TbkQXmonhkVS-Cwp3Eq3LHH6shK0idm8BOvBBowlR1gs69DbHNerGKB-1YiDXMj17cijJ0BifLYY3pXav0ywh2SwbfCIYzc1nE7g0D6KKFzI7UswM8KFL1VQUK66JWTlF5izGW4-b11K6X5mwqRBxiChrL9fY6TtRa-5fuR56gaNf1TwjO5t7jYd5Lgkrvbpq7RVVFI9R-g_kCMg&partNumber=3 [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)
+Zimbabwe,Zimbabwe_LULC.tif,494.7,1.0,UPLOAD_FAIL,upload_error: SSL validation failed for https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Zimbabwe/Zimbabwe_LULC.tif?uploadId=AJgMIUt8aUSMxezqP_KOVG2xIbPDpJ2EUkl0o-JPstnSqbwEJSQpbq0TASw0bdCWHIhg1yhaGUUZI7mfT3NaHZ5DayGrNAljpfHDjqLc8A9dKTJwwTqoeNGPw4PacknJ3-BO2oHVPauzrPC2lmvSZGcjvGtxpq3K7FyobrPwHTC-KFVklaCJRq25atHI7Db7ZZvqfpXdHv3kl3U2df7u738e1I6YICOrEzOb8K2-cpVh1bfef-y5kgHLuGUdtTkNVZuuO1p5mrffoae0nMMOZINqTUpAny3rKoUo1a2p2QVi_NkYUX7sSeitoCjVH_-Dxge-1gSKeswW0nfQqTi71gw&partNumber=1 [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)

@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Guinea-Bissau,in_progress,0,,,0.0,,2026-04-25T10:45:29.565612+00:00
+Guinea-Bissau,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,lulc/Guinea-Bissau/Guinea-Bissau_LULC.tif,20.9487,,2026-04-25T10:46:34.990133+00:00

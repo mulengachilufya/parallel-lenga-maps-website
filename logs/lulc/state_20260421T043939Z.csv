@@ -1,0 +1,38 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Seychelles,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Seychelles_LULC.tif,,0.0,,2026-04-21T04:39:46.105462+00:00
+Sao Tome and Principe,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sao_Tome_and_Principe_LULC.tif,,0.0,,2026-04-21T04:39:46.108681+00:00
+Comoros,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Comoros_LULC.tif,,0.0,,2026-04-21T04:39:46.110656+00:00
+Mauritius,in_progress,0,,,0.0,,2026-04-21T04:39:46.112839+00:00
+Mauritius,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-21T04:39:46.496440+00:00
+Cabo Verde,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cabo_Verde_LULC.tif,,0.0,,2026-04-21T04:39:46.499179+00:00
+Gambia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gambia_LULC.tif,,0.0,,2026-04-21T04:39:46.501560+00:00
+Eswatini,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eswatini_LULC.tif,,0.0,,2026-04-21T04:39:46.503751+00:00
+Djibouti,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,,0.0,,2026-04-21T04:39:46.505553+00:00
+Rwanda,in_progress,0,,,0.0,,2026-04-21T04:39:46.507076+00:00
+Rwanda,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-21T04:39:46.523429+00:00
+Burundi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,,0.0,,2026-04-21T04:39:46.525203+00:00
+Equatorial Guinea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Equatorial_Guinea_LULC.tif,,0.0,,2026-04-21T04:39:46.526580+00:00
+Lesotho,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Lesotho_LULC.tif,,0.0,,2026-04-21T04:39:46.528347+00:00
+Guinea-Bissau,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,,0.0,,2026-04-21T04:39:46.530090+00:00
+Togo,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Togo_LULC.tif,,0.0,,2026-04-21T04:39:46.532924+00:00
+Sierra Leone,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sierra_Leone_LULC.tif,,0.0,,2026-04-21T04:39:46.535119+00:00
+Liberia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Liberia_LULC.tif,,0.0,,2026-04-21T04:39:46.537270+00:00
+Benin,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Benin_LULC.tif,,0.0,,2026-04-21T04:39:46.538639+00:00
+Eritrea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eritrea_LULC.tif,,0.0,,2026-04-21T04:39:46.540288+00:00
+Malawi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Malawi_LULC.tif,,0.0,,2026-04-21T04:39:46.541998+00:00
+Tunisia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Tunisia_LULC.tif,,0.0,,2026-04-21T04:39:46.543737+00:00
+Senegal,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Senegal_LULC.tif,,0.0,,2026-04-21T04:39:46.545430+00:00
+Ghana,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Ghana_LULC.tif,,0.0,,2026-04-21T04:39:46.548314+00:00
+Uganda,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Uganda_LULC.tif,,0.0,,2026-04-21T04:39:46.550714+00:00
+Guinea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea_LULC.tif,,0.0,,2026-04-21T04:39:46.553259+00:00
+Gabon,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gabon_LULC.tif,,0.0,,2026-04-21T04:39:46.555310+00:00
+Burkina Faso,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burkina_Faso_LULC.tif,,0.0,,2026-04-21T04:39:46.557280+00:00
+Zambia,in_progress,0,,,0.0,,2026-04-21T04:39:46.558888+00:00
+Zambia,failed,25,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Zambia_LULC.tif,lulc/Zambia/Zambia_LULC.tif,905.2793,"r2_upload: Connection was closed before we received a valid response from endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Zambia/Zambia_LULC.tif"".",2026-04-21T06:13:59.392480+00:00
+Zimbabwe,in_progress,0,,,0.0,,2026-04-21T06:13:59.406059+00:00
+Zimbabwe,failed,12,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Zimbabwe_LULC.tif,lulc/Zimbabwe/Zimbabwe_LULC.tif,494.7042,r2_upload: SSL validation failed for https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Zimbabwe/Zimbabwe_LULC.tif EOF occurred in violation of protocol (_ssl.c:2553),2026-04-21T07:27:21.138289+00:00
+Botswana,in_progress,0,,,0.0,,2026-04-21T07:27:21.168208+00:00
+Botswana,failed,20,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Botswana_LULC.tif,lulc/Botswana/Botswana_LULC.tif,410.6057,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Botswana/Botswana_LULC.tif""",2026-04-21T07:50:14.524916+00:00
+Madagascar,in_progress,0,,,0.0,,2026-04-21T07:50:14.537542+00:00
+Madagascar,failed,15,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Madagascar_LULC.tif,lulc/Madagascar/Madagascar_LULC.tif,562.0124,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Madagascar/Madagascar_LULC.tif""",2026-04-21T08:04:13.109501+00:00
+Mozambique,in_progress,0,,,0.0,,2026-04-21T08:04:13.118029+00:00

@@ -1,0 +1,10 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Comoros,in_progress,0,,,0.0,,2026-04-25T10:37:49.289408+00:00
+Comoros,failed,0,,,0.0,"Traceback (most recent call last):
+  File ""C:\Users\Muleng Chilufy\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py"", line 464, in _make_request
+    self._validate_conn(conn)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File ""C:\Users\Muleng Chilufy\AppData\Local\Programs\Python\Python314\Lib\site-packages\urllib3\connectionpool.py"", line 1093, in _validate_conn
+    conn.connect()
+    ~~~~~~~~~~~~^^
+  File ""C:\Users\Muleng Chilufy\AppData\Local\Programs\Python\Python314\Lib",2026-04-25T10:40:03.687329+00:00

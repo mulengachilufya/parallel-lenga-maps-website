@@ -1,0 +1,346 @@
+
+── Algeria (DZA) ──
+  no COD-PS dataset on HDX — skipping
+
+── Angola (AGO) ── already prepared, skipping
+
+── Benin (BEN) ── already prepared, skipping
+
+── Botswana (BWA) ── already prepared, skipping
+
+── Burkina-Faso (BFA) ── already prepared, skipping
+
+── Burundi (BDI) ── already prepared, skipping
+
+── Cabo-Verde (CPV) ── already prepared, skipping
+
+── Cameroon (CMR) ── already prepared, skipping
+
+── Central-African-Republic (CAF) ──
+  downloading boundaries: caf_admin_boundaries.shp.zip
+  downloading population: caf_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: caf_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: caf_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Chad (TCD) ──
+  downloading boundaries: tcd_admin_boundaries.shp.zip
+  downloading population: tcd_admpop_2023.xlsx
+  trying ADM2 boundaries: tcd_admin2.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: tcd_admin1.shp
+    ADM1 join produced 0 pop (PCODE mismatch) — trying next
+  no admin level produced a valid pop join — skipping
+
+── Comoros (COM) ── already prepared, skipping
+
+── Congo (COG) ──
+  no COD-PS dataset on HDX — skipping
+
+── DR-Congo (COD) ──
+  downloading boundaries: cod_admin_boundaries.shp.zip
+  downloading population: cod_admpop_2019.xlsx
+  trying ADM2 boundaries: cod_admin2.shp
+    warning: 1 polygon(s) without population match — left as 0
+    ✓ ADM2 join: 164 features · pop 102,419,692
+  ✓ wrote DR-Congo_Population_ADM2_2020.zip  (2.50 MB · 164 features · pop 102,419,692)
+
+── Cote-dIvoire (CIV) ──
+  downloading boundaries: civ_admin_boundaries.shp.zip
+  downloading population: civ_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: civ_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: civ_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Djibouti (DJI) ── already prepared, skipping
+
+── Egypt (EGY) ──
+  downloading boundaries: egy_admin_boundaries.shp.zip
+  downloading population: egy_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: egy_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: egy_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Equatorial-Guinea (GNQ) ──
+  no COD-PS dataset on HDX — skipping
+
+── Eritrea (ERI) ──
+  downloading boundaries: eri_admin_boundaries.shp.zip
+  downloading population: eri_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: eri_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: eri_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Eswatini (SWZ) ── already prepared, skipping
+
+── Ethiopia (ETH) ──
+  downloading boundaries: eth_admin_boundaries.shp.zip
+  downloading population: eth_admpop_2023.xlsx
+  trying ADM2 boundaries: eth_admin2.shp
+  ERROR for ETH: cannot safely cast non-equivalent object to int64
+
+── Gabon (GAB) ──
+  downloading boundaries: gab_admbndp0_1m_salb.zip
+  downloading population: gab_admpop_2022.xlsx
+  no ADM1/ADM2 shapefile in archive — skipping
+
+── Gambia (GMB) ──
+  downloading boundaries: gmb_admin_boundaries.shp.zip
+  downloading population: gmb_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: gmb_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: gmb_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Ghana (GHA) ──
+  downloading boundaries: gha_admin_boundaries.shp.zip
+  downloading population: gha_admpop_2021.xlsx
+  trying ADM2 boundaries: gha_admin2.shp
+    ✓ ADM2 join: 260 features · pop 30,832,019
+  ✓ wrote Ghana_Population_ADM2_2021.zip  (0.51 MB · 260 features · pop 30,832,019)
+
+── Guinea (GIN) ──
+  downloading boundaries: gin_admin_boundaries.shp.zip
+  downloading population: gin_admpop_2024.xlsx
+  trying ADM2 boundaries: gin_admin2.shp
+    ✓ ADM2 join: 34 features · pop 13,989,788
+  ✓ wrote Guinea_Population_ADM2_2024.zip  (0.19 MB · 34 features · pop 13,989,788)
+
+── Guinea-Bissau (GNB) ──
+  no COD-PS dataset on HDX — skipping
+
+── Kenya (KEN) ──
+  downloading boundaries: ken_admin_boundaries.shp.zip
+  downloading population: ken_admpop_2019.xlsx
+  trying ADM2 boundaries: ken_admin2.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: ken_admin1.shp
+    ✓ ADM1 join: 47 features · pop 47,562,772
+  ✓ wrote Kenya_Population_ADM1_2019.zip  (1.26 MB · 47 features · pop 47,562,772)
+
+── Lesotho (LSO) ──
+  downloading boundaries: lso_adm_fao_mlgca_2019.zip
+  downloading population: lso_admpop_2022.xlsx
+  trying ADM2 boundaries: lso_admbnda_adm2_FAO_MLGCA_2019.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: lso_admbnda_adm1_FAO_MLGCA_2019.shp
+    ✓ ADM1 join: 10 features · pop 2,090,482
+  ✓ wrote Lesotho_Population_ADM1_2022.zip  (0.71 MB · 10 features · pop 2,090,482)
+
+── Liberia (LBR) ──
+  downloading boundaries: lbr_admin_boundaries.shp.zip
+  downloading population: lbr_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: lbr_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: lbr_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Libya (LBY) ──
+  no COD-PS dataset on HDX — skipping
+
+── Madagascar (MDG) ──
+  downloading boundaries: mdg_adm_bngrc_ocha_20181031_shp.zip
+  downloading population: mdg_admpop_2018.xls
+  trying ADM2 boundaries: mdg_admbnda_adm2_BNGRC_OCHA_20181031.shp
+    cannot read xlsx: File is not a zip file
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: mdg_admbnda_adm1_BNGRC_OCHA_20181031.shp
+    cannot read xlsx: File is not a zip file
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Malawi (MWI) ──
+  downloading boundaries: mwi_admin_boundaries.shp.zip
+  downloading population: mwi_adm2_pop_2023.xlsx
+  trying ADM2 boundaries: mwi_admin2.shp
+    ✓ ADM2 join: 32 features · pop 19,809,511
+  ✓ wrote Malawi_Population_ADM2_2023.zip  (5.23 MB · 32 features · pop 19,809,511)
+
+── Mali (MLI) ──
+  downloading boundaries: mli_admin_boundaries.shp.zip
+  downloading population: mli_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: mli_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: mli_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Mauritania (MRT) ──
+  downloading boundaries: mrt_admin_boundaries.shp.zip
+  downloading population: mrt_admpop_2022.xlsx
+  trying ADM2 boundaries: mrt_admin2.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: mrt_admin1.shp
+    warning: 2 polygon(s) without population match — left as 0
+    ✓ ADM1 join: 15 features · pop 4,372,038
+  ✓ wrote Mauritania_Population_ADM1_2022.zip  (0.12 MB · 15 features · pop 4,372,038)
+
+── Mauritius (MUS) ──
+  downloading boundaries: mus_adm_2020_v2_shp.zip
+  downloading population: mus_admpop_2018_2011_.xlsx
+  trying ADM1 boundaries: mus_admbnda_adm1_2020_v2.shp
+    warning: 2 polygon(s) without population match — left as 0
+    ✓ ADM1 join: 12 features · pop 1,236,817
+  ✓ wrote Mauritius_Population_ADM1_2011.zip  (0.79 MB · 12 features · pop 1,236,817)
+
+── Morocco (MAR) ──
+  downloading boundaries: mar_admin_boundaries.shp.zip
+  downloading population: mar_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: mar_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: mar_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Mozambique (MOZ) ──
+  downloading boundaries: moz_admin_boundaries.shp.zip
+  downloading population: moz_admpop_2025.xlsx
+  trying ADM2 boundaries: moz_admin2.shp
+    ✓ ADM2 join: 159 features · pop 35,163,992
+  ✓ wrote Mozambique_Population_ADM2_2025.zip  (6.91 MB · 159 features · pop 35,163,992)
+
+── Namibia (NAM) ──
+  downloading boundaries: nam_admin_boundaries.shp.zip
+  downloading population: nam_admpop_2023.xlsx
+  trying ADM2 boundaries: nam_admin2.shp
+    ✓ ADM2 join: 107 features · pop 2,777,232
+  ✓ wrote Namibia_Population_ADM2_2023.zip  (1.17 MB · 107 features · pop 2,777,232)
+
+── Niger (NER) ──
+  downloading boundaries: ner_admin_boundaries.shp.zip
+  downloading population: ner_admpop_2024.xlsx
+  trying ADM2 boundaries: ner_admin2.shp
+    ✓ ADM2 join: 67 features · pop 26,367,847
+  ✓ wrote Niger_Population_ADM2_2024.zip  (0.09 MB · 67 features · pop 26,367,847)
+
+── Nigeria (NGA) ──
+  downloading boundaries: nga_admin_boundaries.shp.zip
+  downloading population: nga_admpop_2022.xlsx
+  trying ADM2 boundaries: nga_admin2.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: nga_admin1.shp
+    ✓ ADM1 join: 37 features · pop 216,798,930
+  ✓ wrote Nigeria_Population_ADM1_2022.zip  (0.50 MB · 37 features · pop 216,798,930)
+
+── Rwanda (RWA) ──
+  downloading boundaries: rwa_adm_2006_nisr_wgs1984_20181002_shp.zip
+  downloading population: rwa_admpop_2023.xlsx
+  trying ADM2 boundaries: rwa_adm2_2006_NISR_WGS1984_20181002.shp
+    ✓ ADM2 join: 30 features · pop 13,400,541
+  ✓ wrote Rwanda_Population_ADM2_2023.zip  (2.28 MB · 30 features · pop 13,400,541)
+
+── Sao-Tome-and-Principe (STP) ──
+  downloading boundaries: stp_adm_gadm_2020_shp.zip
+  downloading population: stp_admpop_2022.xlsx
+  trying ADM2 boundaries: stp_admbnda_adm2_gadm_2020.shp
+    ✓ ADM2 join: 7 features · pop 219,577
+  ✓ wrote Sao-Tome-and-Principe_Population_ADM2_2022.zip  (0.03 MB · 7 features · pop 219,577)
+
+── Senegal (SEN) ──
+  downloading boundaries: sen_admin_boundaries.shp.zip
+  downloading population: sen_admpop_2023.xlsx
+  trying ADM2 boundaries: sen_admin2.shp
+    ADM2 join produced 0 pop (PCODE mismatch) — trying next
+  trying ADM1 boundaries: sen_admin1.shp
+    ✓ ADM1 join: 14 features · pop 17,738,795
+  ✓ wrote Senegal_Population_ADM1_2022.zip  (1.84 MB · 14 features · pop 17,738,795)
+
+── Seychelles (SYC) ──
+  downloading boundaries: syc_adm_nbs2010_shp.zip
+  downloading population: syc_admpop_nbs2019.xlsx
+  trying ADM2 boundaries: syc_admbnda_adm2_nbs2010.shp
+    ✓ ADM2 join: 8 features · pop 90,945
+  ✓ wrote Seychelles_Population_ADM2_2010.zip  (4.59 MB · 8 features · pop 90,945)
+
+── Sierra-Leone (SLE) ──
+  downloading boundaries: sle_admin_boundaries.shp.zip
+  downloading population: sle_adminboundaries_tabulardata.xlsx
+  trying ADM2 boundaries: sle_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: sle_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Somalia (SOM) ──
+  downloading boundaries: som_admin_boundaries.shp.zip
+  downloading population: copy-of-cods_working_file_population_data_v7.2-share-002.xlsx
+  trying ADM2 boundaries: som_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: som_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── South-Africa (ZAF) ──
+  downloading boundaries: zaf_admin_boundaries.shp.zip
+  downloading population: zaf_admpop_2020.xlsx
+  trying ADM2 boundaries: zaf_admin2.shp
+    ✓ ADM2 join: 52 features · pop 56,463,617
+  ✓ wrote South-Africa_Population_ADM2_2020.zip  (8.12 MB · 52 features · pop 56,463,617)
+
+── South-Sudan (SSD) ──
+  downloading boundaries: ssd_admbnda_imwg_nbs_20230829_shp.zip
+  downloading population: ssd_admpop_2022_v2.xlsx
+  trying ADM2 boundaries: ssd_admbnda_adm2_imwg_nbs_20230829.shp
+    warning: 1 polygon(s) without population match — left as 0
+    ✓ ADM2 join: 79 features · pop 12,394,970
+  ✓ wrote South-Sudan_Population_ADM2_2022.zip  (0.38 MB · 79 features · pop 12,394,970)
+
+── Sudan (SDN) ──
+  downloading boundaries: sdn_admin_boundaries.shp.zip
+  downloading population: sdn_admpop_2025.xlsx
+  ERROR for SDN: 404 Client Error: Not Found for url: https://s3.us-east-1.amazonaws.com/hdx-production-filestore/resources/dfddbc15-77c4-4875-a640-d50e37ef7b6d/sdn_admpop_2025.xlsx?AWSAccessKeyId=ASIAXYC32WNATMFVNPHW&Signature=EglWb4PZDWF3YTy2pGXzKVBMO8E%3D&x-amz-security-token=FwoGZXIvYXdzEPj%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaDGB9eWx28Cdwu4slbSLBAffMSmLibYHylXGCHgqHZv71EF5b0a84ndxtFvTgmpCfLGDVM%2ByhkcSZUTGZRE8WNG4717pMYVY93C99x0dJEl2GHsHkJMxTrDkWRr7K7GGmKoOtvjPnLH9hY7fIxJ5RmT10yL8ou%2B%2BxYC03OPRIHifPftavEP6bog4CrXa3wr36jySGC9O9lsjFAUpYBXYi7kuMdbBAhk7Unpq3t0nUoADTfIWDDZlKw%2FgFo14J2EG6HKavJq89uqYs6edrj%2ByIBM8oxcq4zwYyLc5%2F6%2B8dynGbcQqx9H93nMdbaknCfK4RXSOsdUkjDgRy2MLJjbcfVvwzNcdlUQ%3D%3D&Expires=1777215836
+
+── Tanzania (TZA) ──
+  downloading boundaries: tza_admbnda_adm0_20181019.zip
+  downloading population: tza_admpop_2020_v2.xlsx
+  no ADM1/ADM2 shapefile in archive — skipping
+
+── Togo (TGO) ──
+  downloading boundaries: tgo_admin_boundaries.shp.zip
+  downloading population: tgo_adm2_pop_2021.xlsx
+  trying ADM2 boundaries: tgo_admin2.shp
+    warning: 3 polygon(s) without population match — left as 0
+    ✓ ADM2 join: 40 features · pop 8,020,081
+  ✓ wrote Togo_Population_ADM2_2021.zip  (0.12 MB · 40 features · pop 8,020,081)
+
+── Tunisia (TUN) ──
+  downloading boundaries: tun_admin_boundaries.shp.zip
+  downloading population: tun_admpop_2020.xlsx
+  trying ADM2 boundaries: tun_admin2.shp
+    ✓ ADM2 join: 24 features · pop 11,852,020
+  ✓ wrote Tunisia_Population_ADM2_2020.zip  (2.16 MB · 24 features · pop 11,852,020)
+
+── Uganda (UGA) ──
+  downloading boundaries: uga_admin_boundaries.shp.zip
+  downloading population: uga_admpop_2023.xlsx
+  trying ADM2 boundaries: uga_admin2.shp
+    ✓ ADM2 join: 135 features · pop 46,210,758
+  ✓ wrote Uganda_Population_ADM2_2022.zip  (5.17 MB · 135 features · pop 46,210,758)
+
+── Zambia (ZMB) ──
+  downloading boundaries: zmb_admin_boundaries.shp.zip
+  downloading population: zmb_admpop_2020.xlsx
+  trying ADM2 boundaries: zmb_admin2.shp
+    no ADM2 sheet in COD-PS xlsx — trying next
+  trying ADM1 boundaries: zmb_admin1.shp
+    no ADM1 sheet in COD-PS xlsx — trying next
+  no admin level produced a valid pop join — skipping
+
+── Zimbabwe (ZWE) ──
+  downloading boundaries: zwe_admin_boundaries.shp.zip
+  downloading population: zwe_admpop_2023.xlsx
+  trying ADM2 boundaries: zwe_admin2.shp
+    ✓ ADM2 join: 91 features · pop 17,408,564
+  ✓ wrote Zimbabwe_Population_ADM2_2023.zip  (4.37 MB · 91 features · pop 17,408,564)
+
+Done. 32 countries prepared. Manifest → C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\PopulationSettlements\manifest.json

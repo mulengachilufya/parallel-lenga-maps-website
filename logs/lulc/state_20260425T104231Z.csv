@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Mauritius,in_progress,0,,,0.0,,2026-04-25T10:43:19.322483+00:00
+Mauritius,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-25T10:43:19.954809+00:00

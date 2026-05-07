@@ -321,7 +321,7 @@ export default function PricingPage() {
                     ))}
                   </ul>
                   <Link
-                    href="/contact-us?subject=business-plan"
+                    href="/contact-us/business"
                     className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-700 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     {businessPlan.cta}

@@ -1,0 +1,102 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Seychelles,in_progress,0,,,0.0,,2026-04-19T13:49:56.584812+00:00
+Seychelles,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Seychelles_LULC.tif,lulc/Seychelles/Seychelles_LULC.tif,3.9142,,2026-04-19T13:53:43.643693+00:00
+Sao Tome and Principe,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sao_Tome_and_Principe_LULC.tif,,0.0,,2026-04-19T13:53:43.815065+00:00
+Comoros,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Comoros_LULC.tif,,0.0,,2026-04-19T13:53:43.817024+00:00
+Mauritius,in_progress,0,,,0.0,,2026-04-19T13:53:43.818764+00:00
+Mauritius,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-19T13:53:43.884518+00:00
+Cabo Verde,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cabo_Verde_LULC.tif,,0.0,,2026-04-19T13:53:43.886365+00:00
+Gambia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gambia_LULC.tif,,0.0,,2026-04-19T13:53:43.888325+00:00
+Eswatini,in_progress,0,,,0.0,,2026-04-19T13:53:43.891419+00:00
+Eswatini,done,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eswatini_LULC.tif,lulc/Eswatini/Eswatini_LULC.tif,21.6081,,2026-04-19T13:55:07.915603+00:00
+Djibouti,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,,0.0,,2026-04-19T13:55:07.958506+00:00
+Rwanda,in_progress,0,,,0.0,,2026-04-19T13:55:07.960359+00:00
+Rwanda,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-19T13:55:08.007007+00:00
+Burundi,in_progress,0,,,0.0,,2026-04-19T13:55:08.009078+00:00
+Burundi,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,lulc/Burundi/Burundi_LULC.tif,14.0758,,2026-04-19T13:55:58.069048+00:00
+Equatorial Guinea,in_progress,0,,,0.0,,2026-04-19T13:55:58.102619+00:00
+Equatorial Guinea,done,8,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Equatorial_Guinea_LULC.tif,lulc/Equatorial_Guinea/Equatorial_Guinea_LULC.tif,8.5394,,2026-04-19T13:57:21.574581+00:00
+Lesotho,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Lesotho_LULC.tif,,0.0,,2026-04-19T13:57:21.794152+00:00
+Guinea-Bissau,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,,0.0,,2026-04-19T13:57:21.796165+00:00
+Togo,in_progress,0,,,0.0,,2026-04-19T13:57:21.798200+00:00
+Togo,done,6,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Togo_LULC.tif,lulc/Togo/Togo_LULC.tif,82.1115,,2026-04-19T14:05:46.517954+00:00
+Sierra Leone,in_progress,0,,,0.0,,2026-04-19T14:05:46.775796+00:00
+Sierra Leone,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sierra_Leone_LULC.tif,lulc/Sierra_Leone/Sierra_Leone_LULC.tif,23.6444,,2026-04-19T14:09:10.718209+00:00
+Liberia,in_progress,0,,,0.0,,2026-04-19T14:09:10.780070+00:00
+Liberia,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Liberia_LULC.tif,lulc/Liberia/Liberia_LULC.tif,34.8293,,2026-04-19T14:18:14.263425+00:00
+Benin,in_progress,0,,,0.0,,2026-04-19T14:18:14.266937+00:00
+Benin,done,6,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Benin_LULC.tif,lulc/Benin/Benin_LULC.tif,113.4926,,2026-04-19T14:28:34.610954+00:00
+Eritrea,in_progress,0,,,0.0,,2026-04-19T14:28:34.833331+00:00
+Eritrea,done,9,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eritrea_LULC.tif,lulc/Eritrea/Eritrea_LULC.tif,76.1011,,2026-04-19T14:34:51.689474+00:00
+Malawi,in_progress,0,,,0.0,,2026-04-19T14:34:51.960117+00:00
+Malawi,done,9,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Malawi_LULC.tif,lulc/Malawi/Malawi_LULC.tif,106.5956,,2026-04-19T15:01:31.328547+00:00
+Tunisia,in_progress,0,,,0.0,,2026-04-19T15:01:31.752059+00:00
+Tunisia,failed,6,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Tunisia_LULC.tif,lulc/Tunisia/Tunisia_LULC.tif,127.6089,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Tunisia/Tunisia_LULC.tif""",2026-04-19T15:16:35.671788+00:00
+Senegal,in_progress,0,,,0.0,,2026-04-19T15:16:35.677910+00:00
+Senegal,failed,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Senegal_LULC.tif,lulc/Senegal/Senegal_LULC.tif,53.8547,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Senegal/Senegal_LULC.tif""",2026-04-19T15:19:02.466952+00:00
+Ghana,in_progress,0,,,0.0,,2026-04-19T15:19:02.473911+00:00
+Ghana,done,7,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Ghana_LULC.tif,lulc/Ghana/Ghana_LULC.tif,233.4008,,2026-04-19T15:39:09.730216+00:00
+Uganda,in_progress,0,,,0.0,,2026-04-19T15:39:09.735777+00:00
+Uganda,done,9,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Uganda_LULC.tif,lulc/Uganda/Uganda_LULC.tif,249.8029,,2026-04-19T16:14:11.293232+00:00
+Guinea,in_progress,0,,,0.0,,2026-04-19T16:14:11.904463+00:00
+Guinea,failed,10,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea_LULC.tif,lulc/Guinea/Guinea_LULC.tif,304.1281,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Guinea/Guinea_LULC.tif""",2026-04-19T16:41:32.327032+00:00
+Gabon,in_progress,0,,,0.0,,2026-04-19T16:41:32.335091+00:00
+Gabon,failed,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gabon_LULC.tif,lulc/Gabon/Gabon_LULC.tif,7.6778,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Gabon/Gabon_LULC.tif""",2026-04-19T16:43:22.867989+00:00
+Burkina Faso,in_progress,0,,,0.0,,2026-04-19T16:43:22.875033+00:00
+Burkina Faso,failed,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burkina_Faso_LULC.tif,lulc/Burkina_Faso/Burkina_Faso_LULC.tif,212.5337,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Burkina_Faso/Burkina_Faso_LULC.tif""",2026-04-19T16:49:56.288910+00:00
+Ivory Coast,in_progress,0,,,0.0,,2026-04-19T16:49:56.295115+00:00
+Ivory Coast,failed,7,,,0.0,"clip: Unable to allocate 1.05 GiB for an array with shape (1, 36000, 31426) and data type bool",2026-04-19T16:51:55.814467+00:00
+Congo,in_progress,0,,,0.0,,2026-04-19T16:51:56.768580+00:00
+Congo,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-19T16:53:15.569046+00:00
+Zimbabwe,in_progress,0,,,0.0,,2026-04-19T16:53:15.571385+00:00
+Zimbabwe,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-19T16:54:17.815389+00:00
+Morocco,in_progress,0,,,0.0,,2026-04-19T16:54:17.816945+00:00
+Morocco,skipped,0,,,0.0,no tile data found,2026-04-19T18:38:14.282404+00:00
+Cameroon,in_progress,0,,,0.0,,2026-04-19T18:38:14.284580+00:00
+Cameroon,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cameroon_LULC.tif,lulc/Cameroon/Cameroon_LULC.tif,77.171,,2026-04-19T18:55:38.944380+00:00
+Kenya,in_progress,0,,,0.0,,2026-04-19T18:55:38.952176+00:00
+Kenya,failed,12,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Kenya_LULC.tif,lulc/Kenya/Kenya_LULC.tif,499.1694,r2_upload: SSL validation failed for https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Kenya/Kenya_LULC.tif EOF occurred in violation of protocol (_ssl.c:2553),2026-04-20T07:08:32.964329+00:00
+Botswana,in_progress,0,,,0.0,,2026-04-20T07:08:32.996774+00:00
+Botswana,failed,19,,,0.0,"clip: Unable to allocate 11.4 GiB for an array with shape (1, 109006, 112465) and data type uint8",2026-04-20T08:04:34.109714+00:00
+Madagascar,in_progress,0,,,0.0,,2026-04-20T08:04:36.826215+00:00
+Madagascar,failed,15,,,0.0,"clip: Unable to allocate 11.8 GiB for an array with shape (1, 144678, 87376) and data type uint8",2026-04-20T08:39:55.939832+00:00
+Central African Republic,in_progress,0,,,0.0,,2026-04-20T08:39:55.952557+00:00
+Central African Republic,failed,24,,,0.0,"clip: Unable to allocate 14.0 GiB for an array with shape (1, 96012, 156652) and data type uint8",2026-04-20T10:20:52.339247+00:00
+Somalia,in_progress,0,,,0.0,,2026-04-20T10:20:52.538970+00:00
+Somalia,failed,26,,,0.0,"clip: Unable to allocate 16.8 GiB for an array with shape (1, 143871, 125423) and data type uint8",2026-04-20T11:09:51.538888+00:00
+South Sudan,in_progress,0,,,0.0,,2026-04-20T11:09:52.725589+00:00
+South Sudan,failed,24,,,0.0,"clip: Unable to allocate 1.16 GiB for an array with shape (1, 36000, 34543) and data type uint8",2026-04-20T11:56:32.173400+00:00
+Zambia,in_progress,0,,,0.0,,2026-04-20T11:56:36.212058+00:00
+Zambia,failed,12,,,0.0,"clip: Unable to allocate 1.21 GiB for an array with shape (1, 36000, 36000) and data type bool",2026-04-20T12:07:43.131480+00:00
+Mozambique,in_progress,0,,,0.0,,2026-04-20T12:07:48.356973+00:00
+Mozambique,failed,11,,,0.0,"clip: Unable to allocate 449. MiB for an array with shape (1, 34325, 13705) and data type bool",2026-04-20T12:14:17.685649+00:00
+Namibia,in_progress,0,,,0.0,,2026-04-20T12:14:20.213294+00:00
+Namibia,done,14,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Namibia_LULC.tif,lulc/Namibia/Namibia_LULC.tif,128.0734,,2026-04-20T14:04:08.621430+00:00
+Nigeria,in_progress,0,,,0.0,,2026-04-20T14:04:08.629234+00:00
+Nigeria,failed,20,,,0.0,"clip: Unable to allocate 1.21 GiB for an array with shape (1, 36000, 36000) and data type bool",2026-04-20T14:33:11.871802+00:00
+Tanzania,in_progress,0,,,0.0,,2026-04-20T14:33:15.836981+00:00
+Tanzania,failed,18,,,0.0,clip: Read failed. See previous exception for details.,2026-04-20T15:06:52.088576+00:00
+Egypt,in_progress,0,,,0.0,,2026-04-20T15:06:54.435020+00:00
+Egypt,failed,9,,,0.0,"clip: Unable to allocate 1.21 GiB for an array with shape (1, 36000, 36000) and data type uint8",2026-04-20T15:27:21.104027+00:00
+Mauritania,in_progress,0,,,0.0,,2026-04-20T15:27:22.968971+00:00
+Mauritania,failed,2,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Mauritania_LULC.tif,lulc/Mauritania/Mauritania_LULC.tif,78.163,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Mauritania/Mauritania_LULC.tif""",2026-04-20T15:33:48.822537+00:00
+Ethiopia,in_progress,0,,,0.0,,2026-04-20T15:33:48.829655+00:00
+Ethiopia,failed,31,,,0.0,"clip: Unable to allocate 17.9 GiB for an array with shape (1, 106556, 179876) and data type uint8",2026-04-20T15:44:23.728049+00:00
+South Africa,in_progress,0,,,0.0,,2026-04-20T15:44:23.751654+00:00
+South Africa,failed,14,,,0.0,"clip: Unable to allocate 12.6 GiB for an array with shape (1, 94484, 142719) and data type uint8",2026-04-20T15:55:02.753347+00:00
+Mali,in_progress,0,,,0.0,,2026-04-20T15:55:02.860374+00:00
+Mali,failed,10,,,0.0,"clip: Unable to allocate 13.3 GiB for an array with shape (1, 72000, 198000) and data type uint8",2026-04-20T19:09:09.122822+00:00
+Angola,in_progress,0,,,0.0,,2026-04-20T19:09:09.212442+00:00
+Angola,failed,6,,,0.0,"clip: Unable to allocate 1.21 GiB for an array with shape (1, 36000, 36000) and data type bool",2026-04-20T19:18:21.606921+00:00
+Niger,in_progress,0,,,0.0,,2026-04-20T19:18:22.606659+00:00
+Niger,failed,11,,,0.0,"clip: Unable to allocate 11.9 GiB for an array with shape (1, 72000, 178166) and data type uint8",2026-04-20T19:30:30.719544+00:00
+Chad,in_progress,0,,,0.0,,2026-04-20T19:30:31.161236+00:00
+Chad,failed,30,,,0.0,"clip: Unable to allocate 20.4 GiB for an array with shape (1, 173338, 126426) and data type uint8",2026-04-20T19:58:44.382677+00:00
+Libya,in_progress,0,,,0.0,,2026-04-20T19:58:44.591388+00:00
+Libya,failed,34,,,0.0,"clip: Unable to allocate 25.9 GiB for an array with shape (1, 146176, 190440) and data type uint8",2026-04-20T20:56:05.774802+00:00
+Sudan,in_progress,0,,,0.0,,2026-04-20T20:56:05.806864+00:00
+Sudan,failed,36,,,0.0,"clip: Unable to allocate 29.8 GiB for an array with shape (1, 158725, 201536) and data type uint8",2026-04-20T21:18:13.316297+00:00
+Democratic Republic of the Congo,in_progress,0,,,0.0,,2026-04-20T21:18:13.374626+00:00
+Democratic Republic of the Congo,failed,23,,,0.0,"clip: Unable to allocate 24.6 GiB for an array with shape (1, 172505, 153288) and data type uint8",2026-04-20T21:26:43.440426+00:00
+Algeria,in_progress,0,,,0.0,,2026-04-20T21:26:43.487074+00:00
+Algeria,failed,16,,,0.0,"clip: Unable to allocate 12.3 GiB for an array with shape (1, 183927, 71628) and data type uint8",2026-04-20T21:32:55.988555+00:00
