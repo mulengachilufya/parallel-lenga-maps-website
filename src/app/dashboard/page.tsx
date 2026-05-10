@@ -68,7 +68,7 @@ const SECTIONS: Record<string, {
   },
   'rivers': {
     title: '🌊 River Networks',
-    subtitle: 'HydroSHEDS / FAO · EPSG:4326 · ZIP (Shapefile) per country',
+    subtitle: 'Natural Earth — Rivers (1:10m, significant) · EPSG:4326 · GeoPackage per country',
     tier: 'basic',
     component: (plan, hasAccess) => <RiversList userPlan={plan} hasAccess={hasAccess} />,
   },
@@ -301,12 +301,21 @@ function DashboardContent() {
                 }`}
               >
                 <Shield size={13} />
-                Admin
+                Payments
                 {pendingCount > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-5 rounded-full bg-white text-red-600 text-[11px] font-black px-1.5">
                     {pendingCount}
                   </span>
                 )}
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin/users"
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-navy text-white hover:bg-primary transition-colors"
+              >
+                <Shield size={13} />
+                Users
               </Link>
             )}
             {user?.accountType === 'business' && (
