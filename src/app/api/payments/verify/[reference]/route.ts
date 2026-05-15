@@ -11,6 +11,24 @@ const LENCO_BASE = process.env.LENCO_SANDBOX === 'true'
   ? 'https://sandbox.lenco.co/access/v2'
   : 'https://api.lenco.co/access/v2'
 
+const PLAN_PERIOD_DAYS = 30
+
+/** Activate a user's plan in the profiles table (the source of truth). */
+async function activateProfile(userId: string, plan: string, accountType: string) {
+  const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  const { error } = await serviceSupabase
+    .from('profiles')
+    .update({
+      plan,
+      account_type:    accountType,
+      plan_status:     'active',
+      plan_expires_at: expiresAt,
+    })
+    .eq('id', userId)
+  if (error) console.error('[verify] failed to activate profile:', error)
+  return !error
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { reference: string } }
@@ -24,7 +42,7 @@ export async function GET(
 
   const { reference } = params
 
-  // Confirm this payment belongs to the current user
+  // Ensure this reference belongs to the calling user
   const { data: payment, error: fetchError } = await serviceSupabase
     .from('payments')
     .select('*')
@@ -36,11 +54,12 @@ export async function GET(
     return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
   }
 
+  // Already confirmed (webhook got here first) — return immediately
   if (payment.status === 'successful') {
     return NextResponse.json({ status: 'successful', plan: payment.plan })
   }
 
-  // Verify with Lenco
+  // Poll Lenco for the live status
   const lencoRes = await fetch(`${LENCO_BASE}/collections/status/${reference}`, {
     headers: {
       Authorization: `Bearer ${process.env.LENCO_SECRET_KEY}`,
@@ -49,34 +68,35 @@ export async function GET(
   })
 
   if (!lencoRes.ok) {
+    console.error('[verify] Lenco returned', lencoRes.status)
     return NextResponse.json({ error: 'Lenco verification failed' }, { status: 502 })
   }
 
   const lencoData = await lencoRes.json()
-  const txStatus = lencoData?.data?.status
+  const txStatus   = lencoData?.data?.status as string | undefined
+  const mmDetails  = lencoData?.data?.mobileMoneyDetails as Record<string, string> | undefined
 
   if (txStatus !== 'successful') {
     return NextResponse.json({ status: txStatus ?? 'pending' })
   }
 
-  // Update payment record
-  await serviceSupabase
+  // ── Mark payment successful ────────────────────────────────────────────
+  const { error: payErr } = await serviceSupabase
     .from('payments')
     .update({
-      status: 'successful',
-      operator: lencoData.data?.operator ?? null,
+      status:          'successful',
+      operator:        mmDetails?.operator ?? null,
       lenco_reference: lencoData.data?.lencoReference ?? null,
     })
     .eq('reference', reference)
 
-  // Upgrade user plan in Supabase Auth metadata
-  await serviceSupabase.auth.admin.updateUserById(session.user.id, {
-    user_metadata: {
-      ...session.user.user_metadata,
-      plan: payment.plan,
-      account_type: payment.account_type,
-    },
-  })
+  if (payErr) {
+    console.error('[verify] failed to update payments row:', payErr)
+    return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  }
+
+  // ── Activate plan in profiles ──────────────────────────────────────────
+  await activateProfile(payment.user_id, payment.plan, payment.account_type)
 
   return NextResponse.json({ status: 'successful', plan: payment.plan })
 }
