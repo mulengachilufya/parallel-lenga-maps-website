@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export interface HydrologyLayer {
   id: number
   country: string
-  layer_type: 'rivers' | 'lakes'
+  layer_type: 'rivers' | 'lakes' | 'watersheds'
   r2_key: string
   file_size_mb: number
   file_format: string
@@ -58,27 +58,24 @@ export async function GET(request: NextRequest) {
 
     let layers: HydrologyLayer[] = data || []
 
-    // PER-LAYER-TYPE TIER GATE.
-    //   rivers → BASIC tier (any active plan)
-    //   lakes  → PRO tier (pro / max / business)
-    // We resolve this row-by-row because a single GET (no layerType filter)
-    // can return a mix. The two checks fire ONCE each (then are reused),
-    // so this is no slower than the old single-tier gate.
+    // PER-LAYER-TYPE TIER GATE (4/8/12+ model):
+    //   rivers     → BASIC tier (any active plan)
+    //   lakes      → PRO tier (pro / max / business)
+    //   watersheds → PRO tier (pro / max / business)
     let basicAllowed: boolean | null = null
     let proAllowed:   boolean | null = null
     if (includeUrl && layers.length > 0) {
-      // Look up only what we need. Avoids hitting the DB for tiers that
-      // aren't represented in this response.
-      const hasRivers = layers.some((l) => l.layer_type === 'rivers')
-      const hasLakes  = layers.some((l) => l.layer_type === 'lakes')
-      if (hasRivers) basicAllowed = await callerCanDownloadTier('basic')
-      if (hasLakes)  proAllowed   = await callerCanDownloadTier('pro')
+      const hasRivers     = layers.some((l) => l.layer_type === 'rivers')
+      const hasProContent = layers.some((l) => l.layer_type === 'lakes' || l.layer_type === 'watersheds')
+      if (hasRivers)     basicAllowed = await callerCanDownloadTier('basic')
+      if (hasProContent) proAllowed   = await callerCanDownloadTier('pro')
 
       layers = await Promise.all(
         layers.map(async (layer) => {
           const ok =
-            layer.layer_type === 'rivers' ? basicAllowed === true :
-            layer.layer_type === 'lakes'  ? proAllowed   === true :
+            layer.layer_type === 'rivers'     ? basicAllowed === true :
+            layer.layer_type === 'lakes'      ? proAllowed   === true :
+            layer.layer_type === 'watersheds' ? proAllowed   === true :
             false
           if (!ok) return layer
           try {
