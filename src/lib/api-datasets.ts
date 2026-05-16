@@ -387,14 +387,21 @@ export async function listFilesForDataset(
 
   if (country) {
     const trimmed = country.trim()
-    // ISO-3 path: tables that have an `iso3` column (population) or
-    // `country_code` (admin_boundaries) get exact-match. Everything else
-    // we substring-match on country name as a fallback.
+    // Tables that have an iso3 column get an exact-match on ISO-3 inputs.
+    // Tables that use country_code instead of iso3 get their own path.
+    // Everything else falls through to a case-insensitive substring match
+    // on the full country name column.
+    const ISO3_TABLES = new Set([
+      'population_settlements_layers',
+      'protected_areas_layers',
+      'road_layers',
+      'soil_layers',
+    ])
     if (/^[A-Za-z]{3}$/.test(trimmed)) {
       const upper = trimmed.toUpperCase()
-      if (spec.table === 'population_settlements_layers') q = q.eq('iso3', upper)
-      else if (spec.table === 'admin_boundaries')         q = q.eq('country_code', upper)
-      else                                                q = q.ilike('country', `%${trimmed}%`)
+      if (ISO3_TABLES.has(spec.table))       q = q.eq('iso3', upper)
+      else if (spec.table === 'admin_boundaries') q = q.eq('country_code', upper)
+      else                                    q = q.ilike('country', `%${trimmed}%`)
     } else {
       q = q.ilike('country', `%${trimmed}%`)
     }
