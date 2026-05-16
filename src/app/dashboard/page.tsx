@@ -16,6 +16,7 @@ import AquiferList from '@/components/AquiferList'
 import LulcList from '@/components/LulcList'
 import PopulationList from '@/components/PopulationList'
 import ProtectedAreasList from '@/components/ProtectedAreasList'
+import RoadsList from '@/components/RoadsList'
 
 type UserPlan = 'basic' | 'pro' | 'max'
 
@@ -112,6 +113,12 @@ const SECTIONS: Record<string, {
   },
 
   // ── MAX tier (everything beyond Pro — 12+ cumulative) ─────────────────────
+  'roads': {
+    title: '🛣️ Roads & Infrastructure',
+    subtitle: 'Natural Earth (1:10m, significant roads) · Public Domain · EPSG:4326 · GeoPackage per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <RoadsList userPlan={plan} hasAccess={hasAccess} />,
+  },
   'aquifer': {
     title: '💧 Groundwater Aquifers',
     subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
