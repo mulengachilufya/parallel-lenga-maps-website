@@ -145,6 +145,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   6:  '/dashboard?section=aquifer',
   8:  '/dashboard?section=population',
   9:  '/dashboard?section=roads',
+  11: '/dashboard?section=soil',
   12: '/dashboard?section=protected-areas',
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',

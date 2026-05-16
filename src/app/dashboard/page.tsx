@@ -17,6 +17,7 @@ import LulcList from '@/components/LulcList'
 import PopulationList from '@/components/PopulationList'
 import ProtectedAreasList from '@/components/ProtectedAreasList'
 import RoadsList from '@/components/RoadsList'
+import SoilList from '@/components/SoilList'
 
 type UserPlan = 'basic' | 'pro' | 'max'
 
@@ -118,6 +119,12 @@ const SECTIONS: Record<string, {
     subtitle: 'Natural Earth (1:10m, significant roads) · Public Domain · EPSG:4326 · GeoPackage per country',
     tier: 'max',
     component: (plan, hasAccess) => <RoadsList userPlan={plan} hasAccess={hasAccess} />,
+  },
+  'soil': {
+    title: '🌾 Soil Classification',
+    subtitle: 'ISRIC SoilGrids v2.0 — WRB Most-Probable 250m · CC BY 4.0 · EPSG:4326 · GeoTIFF per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <SoilList userPlan={plan} hasAccess={hasAccess} />,
   },
   'aquifer': {
     title: '💧 Groundwater Aquifers',
