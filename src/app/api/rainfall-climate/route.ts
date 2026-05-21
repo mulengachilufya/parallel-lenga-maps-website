@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface RainfallClimateLayer {
   id: number
@@ -63,9 +66,23 @@ export async function GET(request: NextRequest) {
 
     let layers: RainfallClimateLayer[] = data || []
 
+    // PER-LAYER-TYPE TIER GATE (4/8/12+ model):
+    //   rainfall, temperature → BASIC tier (any active plan)
+    //   drought_index         → PRO tier (pro / max / business)
+    let basicAllowed: boolean | null = null
+    let proAllowed:   boolean | null = null
     if (includeUrl && layers.length > 0) {
+      const hasBasic = layers.some((l) => l.layer_type === 'rainfall' || l.layer_type === 'temperature')
+      const hasPro   = layers.some((l) => l.layer_type === 'drought_index')
+      if (hasBasic) basicAllowed = await callerCanDownloadTier('basic')
+      if (hasPro)   proAllowed   = await callerCanDownloadTier('pro')
+
       layers = await Promise.all(
         layers.map(async (layer) => {
+          const ok =
+            layer.layer_type === 'drought_index' ? proAllowed   === true :
+                                                   basicAllowed === true
+          if (!ok) return layer
           try {
             return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
           } catch {

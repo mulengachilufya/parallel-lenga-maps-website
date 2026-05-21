@@ -8,6 +8,8 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface LulcListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** UI hint only — Download click still routes through DownloadGate. */
+  hasAccess?: boolean
 }
 
 // ESA WorldCover class descriptions shown in the info banner
@@ -24,8 +26,12 @@ const LULC_CLASSES = [
   { value: 100, label: 'Moss / lichen',        color: '#FAE6A0' },
 ]
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
+export default function LulcList({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userPlan = 'basic',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasAccess = false,
+}: LulcListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<LulcLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -64,12 +70,14 @@ export default function LulcList({ userPlan = 'basic' }: LulcListProps) {
     document.body.removeChild(a)
   }
 
+  // ALWAYS route the click through the gate. LULC is now a Pro-tier
+  // dataset (4/8/12+ model) — Basic users see the upgrade modal.
   const handleDownload = (layer: LulcLayer) => {
-    if (!layer.download_url) return
-    guardDownload('basic', () => {
+    guardDownload('pro', () => {
+      if (!layer.download_url) return
       setDownloading(layer.id)
       const tifName = layer.r2_key.split('/').pop() || 'lulc.tif'
-      triggerDownload(layer.download_url!, tifName)
+      triggerDownload(layer.download_url, tifName)
       // Trigger the sidecar a beat later — back-to-back triggers in some
       // browsers (Safari especially) collapse into a single download.
       if (layer.sidecar_url) {

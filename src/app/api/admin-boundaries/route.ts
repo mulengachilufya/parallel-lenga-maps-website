@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface AdminBoundary {
   id: number
@@ -65,10 +68,12 @@ export async function GET(request: NextRequest) {
 
     console.log(`Admin boundaries query: ${data?.length ?? 0} rows returned`)
 
-    // Add presigned download URLs if requested
+    // Add presigned download URLs ONLY if the caller has an active plan.
+    // Anonymous browsing is fine for the catalogue, but no free download URLs.
     let boundaries: AdminBoundary[] = data || []
 
-    if (includeUrl && boundaries.length > 0) {
+    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    if (allowed && boundaries.length > 0) {
       boundaries = await Promise.all(
         boundaries.map(async (boundary) => {
           try {

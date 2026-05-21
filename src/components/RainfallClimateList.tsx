@@ -61,11 +61,19 @@ interface RainfallClimateListProps {
   userPlan?: 'basic' | 'pro' | 'max'
   /** When set, fetches and displays ONLY this layer type */
   layerType?: 'rainfall' | 'temperature' | 'drought_index'
+  /** UI hint only — Download click still routes through DownloadGate. */
+  hasAccess?: boolean
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function RainfallClimateList({ userPlan = 'basic', layerType }: RainfallClimateListProps) {
+export default function RainfallClimateList({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userPlan = 'basic',
+  layerType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasAccess = false,
+}: RainfallClimateListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
@@ -96,11 +104,16 @@ export default function RainfallClimateList({ userPlan = 'basic', layerType }: R
     fetchLayers()
   }, [layerType])
 
+  // ALWAYS route the click through the gate. Required tier depends on
+  // layer_type (4/8/12+ model):
+  //   rainfall, temperature → basic
+  //   drought_index         → pro
   const handleDownload = (layer: RainfallClimateLayer) => {
-    if (!layer.download_url) return
-    guardDownload('basic', () => {
+    const tier = layer.layer_type === 'drought_index' ? 'pro' : 'basic'
+    guardDownload(tier, () => {
+      if (!layer.download_url) return
       setDownloading(layer.id)
-      window.open(layer.download_url!, '_blank')
+      window.open(layer.download_url, '_blank')
       setTimeout(() => setDownloading(null), 1000)
     })
   }

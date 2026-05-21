@@ -1,26 +1,23 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, User, AlertCircle, CheckCircle, GraduationCap, Briefcase, Building2, ArrowLeft } from 'lucide-react'
-import { supabase, PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
+import { supabase, type AccountType, type PlanTier } from '@/lib/supabase'
 
 // ── Plan definitions ──────────────────────────────────────────────────────────
-
-const PLAN_DESCS: Record<PlanTier, string> = {
-  basic: '3 countries · 4 core datasets · 10 files/month',
-  pro:   'All 54 countries · 9 datasets · 25 files/month',
-  max:   'All 54 countries · 15+ datasets · unlimited downloads',
-}
-
-const PLAN_COLORS: Record<PlanTier, string> = {
-  basic: '#1E5F8E',
-  pro:   '#F5B800',
-  max:   '#7c3aed',
-}
+//
+// Note: signup itself is free and no longer asks the user to pick a plan.
+// Every new account starts as plan='basic', plan_status='free' — they can
+// browse the catalogue immediately, and the DownloadGate prompts payment
+// only when they click Download on a real file.
+//
+// The `?plan=` URL param is still honoured: if the user came from a pricing
+// CTA ("Get Pro Access"), we remember their intent and route them to the
+// payment page after signup. Otherwise they land in the dashboard.
 
 const ACCOUNT_COLORS: Record<AccountType, string> = {
   student:      '#15803d',
@@ -33,8 +30,6 @@ const accountTypeOptions: { id: AccountType; label: string; icon: React.ReactNod
   { id: 'professional', label: 'GIS Professional',  icon: <Briefcase size={16} /> },
   { id: 'business',     label: 'Business / Company', icon: <Building2 size={16} /> },
 ]
-
-const standardPlans: PlanTier[] = ['basic', 'pro', 'max']
 
 // ── Page wrapper ──────────────────────────────────────────────────────────────
 
@@ -51,23 +46,36 @@ export default function SignupPage() {
 function SignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const defaultPlan        = (searchParams.get('plan') || 'basic') as PlanTier
+  // Captured from the URL to remember the user's *intent* if they came in
+  // from a pricing CTA — we DON'T show a plan selector at signup, but we
+  // do honour ?plan=pro by routing the user straight to /dashboard/payment
+  // after their account is created. Cold signups land in the dashboard.
+  const intendedPlan       = (searchParams.get('plan') || '') as PlanTier | ''
   const defaultAccountType = (searchParams.get('type') || 'student') as AccountType
 
   const [name,            setName]            = useState('')
   const [email,           setEmail]           = useState('')
   const [password,        setPassword]        = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [selectedPlan,    setSelectedPlan]    = useState<PlanTier>(defaultPlan)
   const [accountType,     setAccountType]     = useState<AccountType>(defaultAccountType)
   const [showPassword,    setShowPassword]    = useState(false)
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState('')
   const [success,         setSuccess]         = useState(false)
 
-  const isBusiness    = accountType === 'business'
-  const acctColor     = ACCOUNT_COLORS[accountType]
-  const effectivePlan = isBusiness ? 'basic' : selectedPlan
+  const acctColor = ACCOUNT_COLORS[accountType]
+
+  // Already-signed-in users who land on /signup (e.g. clicked the navbar's
+  // "Get Started" before noticing they were authenticated) get bounced to
+  // their dashboard instead of seeing a confusing "create another account"
+  // form.
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled && session) router.replace('/dashboard')
+    })
+    return () => { cancelled = true }
+  }, [router])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,13 +92,17 @@ function SignupContent() {
 
     setLoading(true)
     try {
+      // Every new account starts with NO plan picked. plan_status='free'
+      // (default), profiles.plan stays unset until the customer chooses,
+      // pays, and is admin-approved. We deliberately do NOT include `plan`
+      // in user_metadata — the dashboard would otherwise display them as
+      // "Basic plan K25/month" before they ever paid for anything.
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name:    name,
-            plan:         effectivePlan,
             account_type: accountType,
           },
         },
@@ -102,11 +114,27 @@ function SignupContent() {
         return
       }
 
-      // If email auto-confirmed: drop them straight into the dashboard with
-      // a first-time welcome banner. No payment pressure — they can browse
-      // free Basic datasets and upgrade later from the dashboard when ready.
+      // Decide where to land them after signup:
+      //   1. They came from a pricing CTA with a non-basic intent → take
+      //      them straight to the payment page for that plan
+      //   2. Cold signup → drop them in the dashboard with a welcome banner
+      const goToPayment =
+        intendedPlan === 'pro' || intendedPlan === 'max'
+      const destination = goToPayment
+        ? `/dashboard/payment?plan=${intendedPlan}&type=${accountType}`
+        : '/dashboard?welcome=new'
+
+      // If email auto-confirmed: sync the chosen account_type from
+      // user_metadata into the profiles row BEFORE redirecting. Without this
+      // call, Supabase's handle_new_user trigger leaves the user labelled as
+      // Basic Student regardless of the account type they picked. We swallow
+      // errors — a profile-sync failure shouldn't block the user from
+      // reaching the dashboard.
       if (data.session && data.user) {
-        router.push('/dashboard?welcome=new')
+        try {
+          await fetch('/api/account/init-profile', { method: 'POST' })
+        } catch { /* non-fatal */ }
+        router.push(destination)
       } else {
         setSuccess(true)
       }
@@ -205,7 +233,7 @@ function SignupContent() {
           </Link>
 
           <h1 className="text-3xl font-black text-white mb-1">Create your free account</h1>
-          <p className="text-blue-300 mb-8">Start on free Basic — upgrade anytime from your dashboard.</p>
+          <p className="text-blue-300 mb-8">Browse every dataset for free. You only pay when you decide to download.</p>
 
           {error && (
             <motion.div
@@ -245,76 +273,13 @@ function SignupContent() {
             </div>
           </div>
 
-          {/* ── Plan selector ─────────────────────────────────────────────── */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-blue-200 mb-3">Choose Your Plan</label>
-
-            {isBusiness ? (
-              /* Business — single fixed plan */
-              <div
-                className="p-4 rounded-xl border-2"
-                style={{ borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.12)' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-black text-white">Business</span>
-                  <div className="text-right">
-                    <span className="font-black text-lg text-purple-400">$60</span>
-                    <span className="text-xs text-blue-300">/month</span>
-                  </div>
-                </div>
-                <p className="text-xs text-blue-300">All datasets · 3 team seats · commercial rights</p>
-              </div>
-            ) : (
-              /* Student / Professional — 3 plan options */
-              <div className="space-y-2">
-                {standardPlans.map((planId) => {
-                  const isActive  = selectedPlan === planId
-                  const priceData = PLAN_PRICING[accountType]?.[planId]
-                  const color     = PLAN_COLORS[planId]
-                  return (
-                    <button
-                      key={planId}
-                      type="button"
-                      onClick={() => setSelectedPlan(planId)}
-                      style={isActive ? { borderColor: color, backgroundColor: `${color}14` } : {}}
-                      className={`w-full p-3.5 rounded-xl border-2 text-left transition-all ${
-                        isActive ? 'shadow-md' : 'border-white/20 hover:border-white/40'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-white text-sm">{planId.charAt(0).toUpperCase() + planId.slice(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {/* ZMW price */}
-                          {priceData?.zmw && (
-                            <span className="font-black text-sm" style={{ color }}>
-                              K{priceData.zmw}<span className="text-xs font-normal text-blue-300">/mo</span>
-                            </span>
-                          )}
-                          {/* USD badge */}
-                          {priceData?.usd && (
-                            <span className="inline-flex items-center gap-0.5 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                              ${priceData.usd}/mo
-                            </span>
-                          )}
-                          {/* radio dot */}
-                          <div
-                            className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                            style={{ borderColor: isActive ? color : 'rgba(255,255,255,0.3)' }}
-                          >
-                            {isActive && (
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-blue-300">{PLAN_DESCS[planId]}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+          {/* ── Free-signup reassurance ──────────────────────────────────── */}
+          <div className="mb-6 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-xs text-blue-200 leading-relaxed">
+              <span className="font-semibold text-white">Free to sign up</span> —
+              browse every dataset, every country. Pick a plan only when
+              you&apos;re ready to download.
+            </p>
           </div>
 
           {/* ── Form fields ──────────────────────────────────────────────── */}

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface LulcLayer {
   id: number
@@ -56,7 +59,11 @@ export async function GET(request: NextRequest) {
 
     let layers: LulcLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // LULC is a Pro-tier dataset (in the new 4/8/12+ model). Only Pro and
+    // Max plans (or any active Business plan) get download URLs. Anonymous
+    // and Basic-tier callers see the catalogue metadata but no links.
+    const allowed = includeUrl ? await callerCanDownloadTier('pro') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

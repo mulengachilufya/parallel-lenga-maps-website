@@ -22,6 +22,11 @@ const ADMIN_LEVEL_COLORS: Record<number, string> = {
 
 interface AdminBoundariesListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pre-computed by the dashboard: does the caller have an active plan
+   *  that unlocks this section's tier? UI hint only — the per-row click
+   *  still routes through DownloadGate so unauthorised users get the
+   *  signup/pay/upgrade modal regardless. */
+  hasAccess?: boolean
 }
 
 interface GroupedCountry {
@@ -34,6 +39,8 @@ interface GroupedCountry {
 export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userPlan = 'basic',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasAccess = false,
 }: AdminBoundariesListProps) {
   const { guardDownload } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
@@ -67,11 +74,16 @@ export default function AdminBoundariesList({
     fetchBoundaries()
   }, [])
 
+  // ALWAYS go through guardDownload — even when download_url is missing.
+  // A missing URL means the server didn't sign one for this user (no
+  // session, no plan, or wrong tier). We WANT the gate to pop up the
+  // appropriate signup/pay/upgrade modal in that case. Early-returning
+  // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-    if (!boundary.download_url) return
     guardDownload('basic', () => {
+      if (!boundary.download_url) return
       setDownloading(boundary.id)
-      window.open(boundary.download_url!, '_blank')
+      window.open(boundary.download_url, '_blank')
       setTimeout(() => setDownloading(null), 1000)
     })
   }

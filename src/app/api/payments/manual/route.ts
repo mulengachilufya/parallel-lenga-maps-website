@@ -93,6 +93,25 @@ function formatMoney(region: Region, amount: number) {
   return region === 'zambian' ? `K${amount.toLocaleString()}` : `$${amount.toLocaleString()}`
 }
 
+/**
+ * Email notification via Web3Forms.
+ *
+ * The previous implementation fired-and-forgot — if Web3Forms returned
+ * "invalid access_key" or rate-limited us, we never knew. This version:
+ *   - Verifies the env var is set up front
+ *   - Awaits + parses the Web3Forms response
+ *   - Surfaces success/failure (with details) so the caller can log it
+ *
+ * Web3Forms quirks worth knowing:
+ *   - The destination (To:) is configured at the Web3Forms account level —
+ *     it's fixed by which `access_key` you use. To change where notifications
+ *     land, log into web3forms.com and update the email on that key (or
+ *     create a new key for a different inbox).
+ *   - The `email` field below is the customer's address; Web3Forms uses it
+ *     as Reply-To so you can hit reply and message the customer directly.
+ *   - Web3Forms emails come from `noreply@web3forms.com`. Add it to your
+ *     contacts / "not spam" list once, or expect them to land in Promotions.
+ */
 async function notifyEmail(args: {
   reference: string
   region: Region
@@ -108,11 +127,16 @@ async function notifyEmail(args: {
   txnRef: string
   screenshotUrl: string
   submittedAt: string
-}) {
-  const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+}): Promise<{ ok: boolean; error?: string; status?: number }> {
+  // Prefer the dedicated payments/admin Web3Forms key — that lets payment
+  // alerts land in a separate inbox from the homepage "Leave a message"
+  // contact form. Falls back to the shared key for single-key setups.
+  const accessKey =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
   if (!accessKey) {
-    console.warn('[ManualPayment] NEXT_PUBLIC_WEB3FORMS_KEY missing — email not sent')
-    return
+    console.error('[ManualPayment] no Web3Forms key configured — email NOT sent. Set NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN.')
+    return { ok: false, error: 'web3forms_key_missing' }
   }
 
   const lines = [
@@ -129,23 +153,36 @@ async function notifyEmail(args: {
     '',
     `Submitted: ${args.submittedAt}`,
     `Screenshot (valid 7 days): ${args.screenshotUrl}`,
+    '',
+    `Approve at: https://www.lengamaps.com/admin/payments`,
   ].join('\n')
 
   try {
-    await fetch('https://api.web3forms.com/submit', {
+    const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         access_key: accessKey,
-        name: args.userName || args.userEmail,
-        email: args.userEmail,
-        subject: `[Lenga Maps] Manual payment ${args.reference} — ${args.amountLabel} via ${args.method.toUpperCase()}`,
-        message: lines,
-        botcheck: '',
+        from_name:  'Lenga Maps Payments',
+        name:       args.userName || args.userEmail,
+        email:      args.userEmail,
+        subject:    `[Lenga Maps] New payment ${args.reference} — ${args.amountLabel} (${args.plan}/${args.accountType})`,
+        message:    lines,
+        botcheck:   '',
       }),
     })
+    const body = await res.json().catch(() => ({} as { success?: boolean; message?: string }))
+    if (!res.ok || !body.success) {
+      // Web3Forms returned a non-success — most common cause is a wrong or
+      // revoked access_key, or the account email having bounced.
+      console.error('[ManualPayment] web3forms rejected:', res.status, body)
+      return { ok: false, status: res.status, error: body.message || `http_${res.status}` }
+    }
+    return { ok: true, status: res.status }
   } catch (err) {
-    console.error('[ManualPayment] email notify failed:', err)
+    // Network-level failure — Vercel cold start, DNS, etc.
+    console.error('[ManualPayment] email notify network error:', err)
+    return { ok: false, error: String(err) }
   }
 }
 
@@ -312,7 +349,11 @@ export async function POST(request: NextRequest) {
     console.error('[ManualPayment] profile status update failed:', profileErr)
   }
 
-  // ─── Notifications (best-effort) ──────────────────────────────────────
+  // ─── Notifications (email-first, WhatsApp as bonus) ───────────────────
+  // Email is the primary channel. WhatsApp via CallMeBot runs alongside it
+  // for any operator who has the env vars set up. The DB row is still the
+  // ultimate source of truth — even if both channels fail, the admin sees
+  // the pending-count badge on the dashboard header within 30 seconds.
   let screenshotUrl = ''
   try {
     screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600)
@@ -325,8 +366,8 @@ export async function POST(request: NextRequest) {
     countryName, senderPhone, senderName: profileName, txnRef,
     screenshotUrl, submittedAt,
   }
-  // Fire-and-forget, but await both so failures are logged before response
-  await Promise.allSettled([
+
+  const results = await Promise.allSettled([
     notifyEmail(notifyArgs),
     notifyWhatsApp(
       `Lenga Maps payment ${reference}\n` +
@@ -335,6 +376,13 @@ export async function POST(request: NextRequest) {
       (screenshotUrl ? `Screenshot: ${screenshotUrl}` : '')
     ),
   ])
+  // Log the per-channel outcome so silent failures are diagnosable in
+  // Vercel's Functions log (look for `[ManualPayment] notifications`).
+  console.log('[ManualPayment] notifications', {
+    reference,
+    email:    results[0].status === 'fulfilled' ? results[0].value : 'rejected',
+    whatsapp: results[1].status,
+  })
 
   return NextResponse.json({ reference, submitted_at: submittedAt })
 }

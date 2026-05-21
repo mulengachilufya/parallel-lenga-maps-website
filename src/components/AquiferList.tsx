@@ -8,9 +8,14 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface AquiferListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pre-computed by the dashboard: pro/max OR any business plan. Pass it
+   *  through here instead of recomputing from `userPlan` alone — that
+   *  recomputation will incorrectly lock out Business basic users. */
+  hasFullAccess?: boolean
 }
 
-export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function AquiferList({ userPlan = 'basic', hasFullAccess = false }: AquiferListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -35,12 +40,18 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
     fetchLayers()
   }, [])
 
+  // Always go through guardDownload — even for users without access. The
+  // gate decides whether to show the signup / pay / upgrade modal vs
+  // actually starting the download. We DON'T early-return on a missing
+  // download_url because that's the entire point of the gate: when the
+  // server didn't sign a URL for this user, the gate should pop up the
+  // upgrade modal. After they pay and reload, download_url will be present.
   const handleDownload = (layer: AquiferLayer) => {
-    if (!layer.download_url) return
-    guardDownload('pro', () => {
+    guardDownload('max', () => {
+      if (!layer.download_url) return  // edge case — gate already passed but no URL: silently no-op
       setDownloading(layer.id)
       const link = document.createElement('a')
-      link.href = layer.download_url!
+      link.href = layer.download_url
       link.download = layer.r2_key.split('/').pop() || 'aquifer.gpkg'
       document.body.appendChild(link)
       link.click()
@@ -136,9 +147,10 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
       {/* Country grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((layer, idx) => {
-          // `isLocked` = true means the user is on Basic and needs to upgrade
-          // to unlock Pro-tier datasets (aquifer). Pro and Max both have access.
-          const isLocked = userPlan === 'basic'
+          // `isLocked` = true means the user does NOT have full data access.
+          // Source of truth: hasFullAccess (computed by the dashboard from
+          // plan + account_type so Business basic correctly counts as full).
+          const isLocked = !hasFullAccess
           // Kept as `isPro` for downstream template compatibility — semantically
           // it's "user is locked out of this Pro-tier dataset".
           const isPro = isLocked
@@ -151,8 +163,7 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(idx * 0.02, 0.3) }}
-              className={`bg-white border rounded-xl p-4 flex flex-col justify-between gap-3
-                         ${isPro ? 'border-gray-100 opacity-60' : 'border-gray-100 hover:border-sky-200 hover:shadow-sm transition-all'}`}
+              className="bg-white border border-gray-100 hover:border-sky-200 hover:shadow-sm transition-all rounded-xl p-4 flex flex-col justify-between gap-3"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -177,18 +188,22 @@ export default function AquiferList({ userPlan = 'basic' }: AquiferListProps) {
                 </div>
               </div>
 
+              {/* Button is ALWAYS clickable — when the user lacks access
+                  (Pro-tier file as a Basic / free user), the click pops up
+                  the upgrade modal via DownloadGate. Disabling would just
+                  hide the upgrade path. */}
               <button
                 onClick={() => handleDownload(layer)}
-                disabled={isPro || isDownloading || !layer.download_url}
+                disabled={isDownloading}
                 className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-colors
                            ${isPro
-                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                             ? 'bg-accent/15 text-amber-800 hover:bg-accent/30'
                              : isDownloading
                                ? 'bg-green-100 text-green-700'
                                : 'bg-sky-600 hover:bg-sky-700 text-white'}`}
               >
                 {isPro ? (
-                  <>🔒 Pro Only</>
+                  <>🔒 Upgrade to download</>
                 ) : isDownloading ? (
                   <>✓ Downloading…</>
                 ) : (

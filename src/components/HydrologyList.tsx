@@ -17,16 +17,29 @@ const LAYER_COLORS: Record<string, string> = {
 
 interface HydrologyListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pin this list to a specific layer type. Pre-set when invoked from a
+   *  dashboard section (e.g. the 'lakes' section pins layerType="lakes"). */
+  layerType?: 'rivers' | 'lakes'
+  /** Pre-computed by the dashboard: does the caller have an active plan
+   *  that unlocks this section's tier? Cosmetic — clicking a Download
+   *  button still routes through DownloadGate. */
+  hasAccess?: boolean
 }
 
-export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps) {
+export default function HydrologyList({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userPlan = 'basic',
+  layerType: pinnedLayerType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasAccess = false,
+}: HydrologyListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]         = useState<HydrologyLayer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
   const [downloading, setDownloading] = useState<number | null>(null)
   const [filterCountry, setFilterCountry] = useState('')
-  const [filterType, setFilterType] = useState('')
+  const [filterType, setFilterType] = useState(pinnedLayerType ?? '')
 
   useEffect(() => {
     const fetch_ = async () => {
@@ -36,7 +49,10 @@ export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps
 
         const params = new URLSearchParams()
         if (filterCountry) params.set('country', filterCountry)
-        if (filterType)    params.set('layerType', filterType)
+        // If the parent pinned a layerType, that always wins over the local
+        // dropdown — prevents Lakes section from accidentally returning rivers.
+        const lt = pinnedLayerType ?? filterType
+        if (lt) params.set('layerType', lt)
         params.set('includeUrl', 'true')
 
         const res = await fetch(`/api/hydrology?${params}`)
@@ -52,13 +68,16 @@ export default function HydrologyList({ userPlan = 'basic' }: HydrologyListProps
     }
 
     fetch_()
-  }, [filterCountry, filterType])
+  }, [filterCountry, filterType, pinnedLayerType])
 
+  // ALWAYS go through guardDownload — even when download_url is missing.
+  // Tier required depends on layer_type: rivers=basic, lakes=pro.
   const handleDownload = (layer: HydrologyLayer) => {
-    if (!layer.download_url) return
-    guardDownload('basic', () => {
+    const tier = layer.layer_type === 'lakes' ? 'pro' : 'basic'
+    guardDownload(tier, () => {
+      if (!layer.download_url) return
       setDownloading(layer.id)
-      window.open(layer.download_url!, '_blank')
+      window.open(layer.download_url, '_blank')
       setTimeout(() => setDownloading(null), 1000)
     })
   }

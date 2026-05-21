@@ -2,11 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Download, LogOut, User, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock } from 'lucide-react'
-import { supabase, DATASETS, PLAN_PRICING, type AccountType, type PlanStatus } from '@/lib/supabase'
+import { Download, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
+import { supabase, DATASETS, PLAN_PRICING, canAccessDatasetTier, isPlanActive, type AccountType, type DatasetTier, type PlanStatus } from '@/lib/supabase'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
@@ -16,6 +15,9 @@ import RainfallClimateList from '@/components/RainfallClimateList'
 import AquiferList from '@/components/AquiferList'
 import LulcList from '@/components/LulcList'
 import PopulationList from '@/components/PopulationList'
+import ProtectedAreasList from '@/components/ProtectedAreasList'
+import RoadsList from '@/components/RoadsList'
+import SoilList from '@/components/SoilList'
 
 type UserPlan = 'basic' | 'pro' | 'max'
 
@@ -26,83 +28,121 @@ const PLAN_BLURBS: Record<UserPlan, string> = {
   pro: 'Full access',
   max: 'Maximum access',
 }
-// Pro + Max both unlock every current dataset. Only Basic is gated.
-const hasFullAccess = (p: UserPlan) => p !== 'basic'
+// Note: this is now a thin wrapper around the shared helper. Always pass
+// account_type — Business at any plan level (basic OR pro) gets full data
+// access per the pricing page ("Everything in Max" on Business basic).
 
 interface UserData {
   email: string
   name: string
-  plan: UserPlan
+  // null = user has not picked / paid for any plan yet. The dashboard MUST
+  // check this and not display a stale "Basic plan K25/month" before they
+  // actually paid for anything.
+  plan: UserPlan | null
   planStatus: PlanStatus
   planExpiresAt: string | null
   accountType: AccountType
 }
 
 // ── Section registry ────────────────────────────────────────────────────────
-// Maps URL section param → component, title, subtitle, tier
+// Maps URL section param → component, title, subtitle, tier.
+// Tier is the THREE-tier dataset model from src/lib/supabase.ts:
+//   basic: unlocked at any active plan
+//   pro:   unlocked at pro/max plans, or any business plan
+//   max:   unlocked at max plan only, or any business plan
+//
+// `component` receives the user's plan + a hasAccess flag pre-computed for
+// THIS section (true if the user can download files in this section). The
+// list components use it to show "Upgrade" labels on locked rows; the
+// per-row Download click ALWAYS goes through DownloadGate either way so
+// non-paying users see the appropriate signup/pay/upgrade modal.
 const SECTIONS: Record<string, {
   title: string
   subtitle?: string
-  tier: 'basic' | 'pro'
-  component: (plan: UserPlan) => React.ReactNode
+  tier: DatasetTier
+  component: (plan: UserPlan, hasAccess: boolean) => React.ReactNode
 }> = {
+  // ── BASIC tier (4 datasets) ───────────────────────────────────────────────
   'admin-boundaries': {
     title: '📍 Administrative Boundaries',
     tier: 'basic',
-    component: (plan) => <AdminBoundariesList userPlan={plan} />,
+    component: (plan, hasAccess) => <AdminBoundariesList userPlan={plan} hasAccess={hasAccess} />,
   },
-  'hydrology': {
-    title: '🌊 River Networks & Lakes',
+  'rivers': {
+    title: '🌊 River Networks',
+    subtitle: 'Natural Earth — Rivers (1:10m, significant) · EPSG:4326 · GeoPackage per country',
     tier: 'basic',
-    component: (plan) => <HydrologyList userPlan={plan} />,
-  },
-  'drought-index': {
-    title: '🔥 Drought Index (SPI-12)',
-    subtitle: 'CHIRPS-derived SPI · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
-    tier: 'basic',
-    component: (plan) => <RainfallClimateList userPlan={plan} layerType="drought_index" />,
+    component: (plan, hasAccess) => <RiversList userPlan={plan} hasAccess={hasAccess} />,
   },
   'rainfall': {
     title: '🌧️ Rainfall Data',
     subtitle: 'CHIRPS v2.0 · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
     tier: 'basic',
-    component: (plan) => <RainfallClimateList userPlan={plan} layerType="rainfall" />,
+    component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="rainfall" hasAccess={hasAccess} />,
   },
   'temperature': {
     title: '🌡️ Temperature Data',
     subtitle: 'WorldClim v2.1 · EPSG:4326 · GeoTIFF (ZIP) · 2.5 arc-min (~5 km)',
     tier: 'basic',
-    component: (plan) => <RainfallClimateList userPlan={plan} layerType="temperature" />,
+    component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="temperature" hasAccess={hasAccess} />,
   },
-  'rivers': {
-    title: '🌊 River Networks',
-    subtitle: 'HydroSHEDS / FAO · EPSG:4326 · ZIP (Shapefile) per country',
-    tier: 'basic',
-    component: (plan) => <RiversList userPlan={plan} />,
-  },
-  'watersheds': {
-    title: '🗺️ HydroBASINS - Watershed Boundaries',
-    subtitle: 'WWF / HydroSHEDS Level 6 v1c · CC BY 4.0 · GeoPackage per country',
-    tier: 'basic',
-    component: (plan) => <WatershedsList userPlan={plan} />,
-  },
-  'aquifer': {
-    title: '💧 Groundwater Aquifers',
-    subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
+
+  // ── PRO tier (4 more datasets — 8 cumulative) ─────────────────────────────
+  'lakes': {
+    title: '🏞️ Lakes',
+    subtitle: 'HydroLAKES · EPSG:4326 · ZIP (Shapefile) per country',
     tier: 'pro',
-    component: (plan) => <AquiferList userPlan={plan} />,
+    component: (plan, hasAccess) => <HydrologyList userPlan={plan} layerType="lakes" hasAccess={hasAccess} />,
   },
   'lulc': {
     title: '🌿 Land Use / Land Cover',
     subtitle: 'ESA WorldCover 2021 v200 · CC BY 4.0 · EPSG:4326 · GeoTIFF (10 m) per country',
-    tier: 'basic',
-    component: (plan) => <LulcList userPlan={plan} />,
+    tier: 'pro',
+    component: (plan, hasAccess) => <LulcList userPlan={plan} hasAccess={hasAccess} />,
+  },
+  'drought-index': {
+    title: '🔥 Drought Index (SPI-12)',
+    subtitle: 'CHIRPS-derived SPI · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
+    tier: 'pro',
+    component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="drought_index" hasAccess={hasAccess} />,
+  },
+  'watersheds': {
+    title: '🗺️ HydroBASINS - Watershed Boundaries',
+    subtitle: 'WWF / HydroSHEDS Level 6 v1c · CC BY 4.0 · GeoPackage per country',
+    tier: 'pro',
+    component: (plan, hasAccess) => <WatershedsList userPlan={plan} hasAccess={hasAccess} />,
+  },
+
+  // ── MAX tier (everything beyond Pro — 12+ cumulative) ─────────────────────
+  'roads': {
+    title: '🛣️ Roads & Infrastructure',
+    subtitle: 'Natural Earth (1:10m, significant roads) · Public Domain · EPSG:4326 · GeoPackage per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <RoadsList userPlan={plan} hasAccess={hasAccess} />,
+  },
+  'soil': {
+    title: '🌾 Soil Classification',
+    subtitle: 'ISRIC SoilGrids v2.0 — WRB Most-Probable 250m · CC BY 4.0 · EPSG:4326 · GeoTIFF per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <SoilList userPlan={plan} hasAccess={hasAccess} />,
+  },
+  'aquifer': {
+    title: '💧 Groundwater Aquifers',
+    subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <AquiferList userPlan={plan} hasFullAccess={hasAccess} />,
   },
   'population': {
     title: '🏘️ Population & Settlements',
     subtitle: 'HDX COD-PS (UN OCHA + national census offices) · EPSG:4326 · Shapefile (ZIP) · ADM1/ADM2',
-    tier: 'pro',
-    component: (plan) => <PopulationList userPlan={plan} />,
+    tier: 'max',
+    component: (plan, hasAccess) => <PopulationList userPlan={plan} hasFullAccess={hasAccess} />,
+  },
+  'protected-areas': {
+    title: '🐘 Protected Areas & Wildlife',
+    subtitle: 'OpenStreetMap (boundary=protected_area, leisure=nature_reserve) · ODbL · EPSG:4326 · Shapefile (ZIP) per country',
+    tier: 'max',
+    component: (plan, hasAccess) => <ProtectedAreasList userPlan={plan} hasFullAccess={hasAccess} />,
   },
 }
 
@@ -118,6 +158,12 @@ function DashboardContent() {
   const [deleteSuccess, setDeleteSuccess] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  // Admin-only: number of manual_payments rows with status='pending'. Polled
+  // every 30s so a new submission shows up as a red badge on the Admin button
+  // without the operator needing to open /admin/payments. This is the single
+  // most reliable signal — even if every notification channel silently fails,
+  // the badge appears the next time the dashboard polls.
+  const [pendingCount, setPendingCount] = useState(0)
 
   // Which section to show - null means show the overview (all sections listed as cards)
   const section = searchParams.get('section')
@@ -139,7 +185,11 @@ function DashboardContent() {
       setUser({
         email: session.user.email || '',
         name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-        plan: (profile?.plan || session.user.user_metadata?.plan || 'basic') as UserPlan,
+        // Crucial: do NOT fall back to 'basic'. A null plan means the user
+        // hasn't paid yet — the dashboard renders "No active plan" for that
+        // case. Coercing to 'basic' would re-introduce the bug that made
+        // free signups display as paying Basic customers.
+        plan: (profile?.plan as UserPlan | null) ?? null,
         // Default to 'free' if the column is missing so we never silently grant access.
         planStatus: (profile?.plan_status || 'free') as PlanStatus,
         planExpiresAt: (profile?.plan_expires_at as string | null) ?? null,
@@ -147,23 +197,41 @@ function DashboardContent() {
       })
       setLoading(false)
 
-      // Separate check (safe-fail) for admin status so the header can show
-      // the /admin/payments link. ADMIN_EMAILS lives server-side only.
+      // Single combined check: admin status + pending payment count.
+      // /api/admin/pending-count returns isAdmin AND count in one round-trip
+      // and never errors (returns count=0 for non-admins).
       try {
-        const res = await fetch('/api/admin/me', { cache: 'no-store' })
+        const res = await fetch('/api/admin/pending-count', { cache: 'no-store' })
         if (res.ok) {
           const json = await res.json()
           setIsAdmin(!!json.isAdmin)
+          setPendingCount(Number(json.count) || 0)
         }
       } catch { /* ignore — non-admins never see the link anyway */ }
     }
     getUser()
   }, [router])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
+  // Admin-only: poll the pending count every 30s while the dashboard is open.
+  // This is what makes new payments unmissable — even with email + WhatsApp
+  // + Telegram all dead, the badge will appear within 30s.
+  useEffect(() => {
+    if (!isAdmin) return
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/admin/pending-count', { cache: 'no-store' })
+        if (res.ok) {
+          const json = await res.json()
+          setPendingCount(Number(json.count) || 0)
+        }
+      } catch { /* transient — try again next tick */ }
+    }
+    const interval = setInterval(tick, 30_000)
+    return () => clearInterval(interval)
+  }, [isAdmin])
+
+  // Sign-out moved into the global Navbar; the dashboard no longer carries
+  // its own logo/email/Sign-Out chrome.
 
   const handleDeleteRequest = async () => {
     setDeleteError('')
@@ -204,65 +272,78 @@ function DashboardContent() {
     )
   }
 
-  const userPlan = user?.plan || 'basic'
-  const accessibleDatasets = DATASETS.filter(
-    (d) => hasFullAccess(userPlan) || d.tier === 'basic'
-  )
+  const userPlan        = user?.plan ?? null
+  const userAccountType = user?.accountType || 'student'
+  // True only when the user has BOTH an active plan AND a tier that grants
+  // access. A free-tier signup (plan === null) hits the false branch and the
+  // dashboard will hide all the "you can download X of Y" stats.
+  const isPlanLive = isPlanActive(user?.planStatus ?? 'free', user?.planExpiresAt)
+  // Per-tier helpers (used by the section cards to decide whether a card
+  // is "unlocked" or shows the upgrade nudge). canAccessDatasetTier already
+  // returns false when plan is null so we don't need to re-check isPlanLive,
+  // but we AND it in anyway to also catch the "expired" case (plan_expires_at
+  // in the past while plan_status is still 'active').
+  const userCanAccess = (tier: DatasetTier): boolean =>
+    isPlanLive && canAccessDatasetTier(userPlan, userAccountType, tier)
+  // For dashboard stat cards: how many of the 12+ datasets can they download?
+  const accessibleDatasets = DATASETS.filter((d) => userCanAccess(d.tier))
 
   // ── Single-section view ─────────────────────────────────────────────────
   const sectionData = section ? SECTIONS[section] : null
 
+  // Dashboard-specific action buttons (admin + API keys). The site-wide
+  // Navbar now handles logo + email + Sign Out + cross-page navigation, so
+  // we only render this bar when there's actually a dashboard-only action
+  // to surface — otherwise it'd be visually redundant.
+  const showActionBar = !!user && (isAdmin || user.accountType === 'business')
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/images/branding/logo.png"
-              alt="Lenga Maps"
-              width={36}
-              height={36}
-              className="object-contain"
-            />
-            <span className="font-bold text-navy">LENGA <span className="text-accent">MAPS</span></span>
-          </Link>
+      {/* Spacer to clear the fixed Navbar (h-20 = 80px) */}
+      <div className="h-20" />
 
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                {isAdmin && (
-                  <Link
-                    href="/admin/payments"
-                    className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-primary transition-colors"
-                  >
-                    <Shield size={13} />
-                    Admin
-                  </Link>
-                )}
-                <div className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
-                  <User size={14} className="text-gray-500" />
-                  <span className="text-sm text-gray-700">{user.email}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
-              </>
-            ) : (
+      {showActionBar && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-end gap-3">
+            {isAdmin && (
               <Link
-                href="/login"
-                className="text-sm font-medium text-primary hover:text-accent transition-colors"
+                href="/admin/payments"
+                className={`relative inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                  pendingCount > 0
+                    ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+                    : 'bg-navy text-white hover:bg-primary'
+                }`}
               >
-                Sign In
+                <Shield size={13} />
+                Payments
+                {pendingCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-5 rounded-full bg-white text-red-600 text-[11px] font-black px-1.5">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin/users"
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-navy text-white hover:bg-primary transition-colors"
+              >
+                <Shield size={13} />
+                Users
+              </Link>
+            )}
+            {user?.accountType === 'business' && (
+              <Link
+                href="/dashboard/api-keys"
+                className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                <KeyRound size={13} />
+                API keys
               </Link>
             )}
           </div>
         </div>
-      </header>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -293,7 +374,11 @@ function DashboardContent() {
             </motion.div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              {sectionData.component(userPlan)}
+              {/* hasAccess is computed for THIS section's specific tier. List
+                  components use it for cosmetic locking; the per-row Download
+                  click ALWAYS goes through DownloadGate so unauthorised users
+                  see the appropriate signup/pay/upgrade modal regardless. */}
+              {sectionData.component(userPlan ?? 'basic', userCanAccess(sectionData.tier))}
             </div>
           </>
         ) : (
@@ -321,18 +406,21 @@ function DashboardContent() {
               </p>
             </motion.div>
 
-            {/* First-time welcome banner */}
+            {/* First-time welcome banner. Honest copy: free to browse, pay
+                only when they actually click Download. No claim that they
+                are "on Basic" — they aren't, they're on no plan at all. */}
             {searchParams.get('welcome') === 'new' && user && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-5 sm:p-6"
               >
-                <h2 className="text-lg font-black text-navy mb-1">You&apos;re on the free Basic plan 🎉</h2>
+                <h2 className="text-lg font-black text-navy mb-1">Welcome to Lenga Maps 👋</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Start by downloading any of the free datasets below — no payment needed. When you&apos;re ready for
-                  more countries, more datasets, or unlimited downloads, upgrade anytime from{' '}
-                  <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>.
+                  You can browse every dataset and every country for free. When you&apos;re ready to
+                  download your first file, you&apos;ll be prompted to pick a plan — see{' '}
+                  <Link href="/pricing" className="text-primary font-semibold hover:underline">Pricing</Link>{' '}
+                  for what each tier covers.
                 </p>
               </motion.div>
             )}
@@ -423,48 +511,81 @@ function DashboardContent() {
               </motion.div>
             )}
 
-            {/* Stats Cards - only show for logged in users */}
+            {/* Stats Cards. Two completely different shapes depending on
+                whether the user has an active paid plan:
+                  · isPlanLive: show the actual plan, price, accessible datasets,
+                    countries — i.e. what they paid for.
+                  · NOT live (free / pending / expired): show a "No active
+                    plan" card prompting them to pick one, plus the count of
+                    browsable datasets (everyone can browse, downloads are
+                    gated). NEVER print a plan label or a price they didn't
+                    pay for. */}
             {user && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className={`rounded-2xl p-6 text-white ${
-                    user.plan === 'max' ? 'bg-purple-600' :
-                    user.plan === 'pro' ? 'bg-accent' :
-                    'gradient-primary'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
-                    {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
-                    {user.plan === 'max' && <Star size={16} fill="currentColor" />}
-                  </div>
-                  <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
-                  <p className="text-sm opacity-80">
-                    {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
-                  </p>
-                  <p className="text-xs opacity-60 mt-0.5 capitalize">
-                    {user.accountType} rate
-                  </p>
-                  {user.plan === 'basic' && (
+                {isPlanLive && user.plan ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={`rounded-2xl p-6 text-white ${
+                      user.plan === 'max' ? 'bg-purple-600' :
+                      user.plan === 'pro' ? 'bg-accent' :
+                      'gradient-primary'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Current Plan</span>
+                      {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
+                      {user.plan === 'max' && <Star size={16} fill="currentColor" />}
+                    </div>
+                    <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
+                    <p className="text-sm opacity-80">
+                      {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan!]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
+                    </p>
+                    <p className="text-xs opacity-60 mt-0.5 capitalize">
+                      {user.accountType} rate
+                    </p>
+                    {user.plan === 'basic' && user.accountType !== 'business' && (
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
+                      >
+                        Upgrade to Pro <ChevronRight size={12} />
+                      </Link>
+                    )}
+                    {user.plan === 'pro' && user.accountType !== 'business' && (
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
+                      >
+                        Upgrade to Max <ChevronRight size={12} />
+                      </Link>
+                    )}
+                  </motion.div>
+                ) : (
+                  /* No active plan: prompt to pick one. No fake "Basic" label,
+                     no fake price. */
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="rounded-2xl p-6 bg-white border-2 border-dashed border-gray-300"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Current Plan</span>
+                    </div>
+                    <div className="text-2xl font-black text-navy mb-1">No active plan</div>
+                    <p className="text-sm text-gray-500">
+                      Free to browse. Pick a plan when you&apos;re ready to download your first file.
+                    </p>
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
+                      className="inline-flex items-center gap-1 mt-3 text-xs font-bold text-primary hover:underline"
                     >
-                      Upgrade to Pro <ChevronRight size={12} />
+                      See pricing <ChevronRight size={12} />
                     </Link>
-                  )}
-                  {user.plan === 'pro' && (
-                    <Link
-                      href="/pricing"
-                      className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
-                    >
-                      Upgrade to Max <ChevronRight size={12} />
-                    </Link>
-                  )}
-                </motion.div>
+                  </motion.div>
+                )}
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -474,10 +595,18 @@ function DashboardContent() {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Package size={18} className="text-primary" />
-                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Datasets Available</span>
+                    <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                      {isPlanLive ? 'Datasets Available' : 'Datasets to Browse'}
+                    </span>
                   </div>
-                  <div className="text-3xl font-black text-navy">{accessibleDatasets.length}</div>
-                  <p className="text-sm text-gray-400 mt-1">of {DATASETS.length} total datasets</p>
+                  <div className="text-3xl font-black text-navy">
+                    {isPlanLive ? accessibleDatasets.length : DATASETS.length}
+                  </div>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {isPlanLive
+                      ? `of ${DATASETS.length} total datasets`
+                      : 'Pick a plan to download'}
+                  </p>
                 </motion.div>
 
                 <motion.div
@@ -491,17 +620,25 @@ function DashboardContent() {
                     <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</span>
                   </div>
                   <div className="text-3xl font-black text-navy">
-                    {hasFullAccess(user.plan) ? '54' : '3'}
+                    {!isPlanLive ? '54' : userCanAccess('pro') ? '54' : '3'}
                   </div>
                   <p className="text-sm text-gray-400 mt-1">
-                    {hasFullAccess(user.plan) ? 'All of Africa' : 'Choose any 3'}
+                    {!isPlanLive
+                      ? 'Browse all of Africa'
+                      : userCanAccess('pro')
+                        ? 'All of Africa'
+                        : 'Choose any 3'}
                   </p>
                 </motion.div>
               </div>
             )}
 
-            {/* Upgrade Banner (Basic only) */}
-            {user && user.plan === 'basic' && (
+            {/* Upgrade-to-Pro banner. Only for users on an ACTIVE Basic plan
+                (and only Student/Professional accounts — Business basic
+                already has full data access by design). Free / pending /
+                expired users see no upgrade prompt here; they get the
+                "No active plan" card above instead. */}
+            {user && isPlanLive && user.plan === 'basic' && user.accountType !== 'business' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -511,9 +648,9 @@ function DashboardContent() {
                 <div className="flex items-start gap-3">
                   <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for full access</p>
+                    <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for 4 more datasets</p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Unlock all 54 countries, 15+ datasets, and unlimited downloads from just K{PLAN_PRICING[user.accountType]?.pro?.zmw ?? PLAN_PRICING[user.accountType]?.pro?.usd}/month.
+                      Pro unlocks Lakes, LULC, Drought Index, and Watersheds across all 54 countries — from K{PLAN_PRICING[user.accountType]?.pro?.zmw ?? PLAN_PRICING[user.accountType]?.pro?.usd}/month. Or jump to Max for the full 12+ catalogue.
                     </p>
                   </div>
                 </div>
@@ -526,10 +663,22 @@ function DashboardContent() {
               </motion.div>
             )}
 
-            {/* Dataset cards - each links to its own isolated view */}
+            {/* Dataset cards. Every visitor can open every card and browse
+                its file list — paywalling at the card level was wrong UX
+                ("looks like I bought a ghost dataset"). The actual gate is
+                the per-file Download button via DownloadGateContext: clicking
+                a Pro-tier file as a Basic user pops up the upgrade modal,
+                clicking ANY file as a free user pops up the pay modal.
+                Pro-only datasets get a small "Pro" badge so the user knows
+                which downloads will require an upgrade before they click. */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(SECTIONS).map(([key, sec], i) => {
-                const isProLocked = sec.tier === 'pro' && !hasFullAccess(userPlan)
+                // Show a tier badge ("Pro" / "Max") on cards the user
+                // can't fully download from. Card is still clickable
+                // (browse-only) — the per-row Download button triggers
+                // the gate modal.
+                const showBadge = sec.tier !== 'basic' && !userCanAccess(sec.tier)
+                const badgeLabel = sec.tier === 'pro' ? 'Pro' : 'Max'
 
                 return (
                   <motion.div
@@ -538,31 +687,30 @@ function DashboardContent() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i * 0.06, 0.4) }}
                   >
-                    {isProLocked ? (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 opacity-60">
-                        <h3 className="text-lg font-bold text-navy mb-1">{sec.title}</h3>
-                        {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
-                        <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary font-semibold px-2 py-1 rounded-full">
-                          🔒 Pro Only
+                    <Link
+                      href={`/dashboard?section=${key}`}
+                      replace
+                      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 relative"
+                    >
+                      {showBadge && (
+                        <span className={`absolute top-4 right-4 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full ${
+                          sec.tier === 'max'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-accent/15 text-accent'
+                        }`}>
+                          {badgeLabel}
                         </span>
+                      )}
+                      <h3 className="text-lg font-bold text-navy group-hover:text-primary transition-colors mb-1 pr-12">
+                        {sec.title}
+                      </h3>
+                      {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
+                      <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                        <Download size={14} />
+                        Browse &amp; Download
+                        <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                       </div>
-                    ) : (
-                      <Link
-                        href={`/dashboard?section=${key}`}
-                        replace
-                        className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6"
-                      >
-                        <h3 className="text-lg font-bold text-navy group-hover:text-primary transition-colors mb-1">
-                          {sec.title}
-                        </h3>
-                        {sec.subtitle && <p className="text-xs text-gray-400 mb-3">{sec.subtitle}</p>}
-                        <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
-                          <Download size={14} />
-                          Browse &amp; Download
-                          <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </Link>
-                    )}
+                    </Link>
                   </motion.div>
                 )
               })}

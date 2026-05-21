@@ -1,0 +1,131 @@
+/**
+ * POST /api/admin/test-notification
+ *
+ * Admin-only. Sends a fake "test payment" through the same Web3Forms email
+ * path that real submissions use, so the operator can verify their inbox
+ * receives notifications without needing a customer to actually pay.
+ *
+ * Returns a detailed status object — both whether Web3Forms accepted the
+ * call and the underlying HTTP status. If this endpoint says "ok: true"
+ * but you still don't get the email, the problem is downstream:
+ *   - Check spam / Promotions tab
+ *   - Confirm the destination email on web3forms.com matches the inbox
+ *     you're checking (the To: address is fixed by access_key, not by us)
+ *   - Add `noreply@web3forms.com` to your contacts so future ones land
+ *     in Primary
+ */
+import { NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
+import { isAdminEmail } from '@/lib/admin'
+
+export const dynamic = 'force-dynamic'
+
+interface Web3FormsResponse {
+  success?: boolean
+  message?: string
+}
+
+export async function POST() {
+  // Auth — admin only.
+  const auth = createServerSupabase()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user || !isAdminEmail(user.email)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
+  // Prefer the dedicated admin/payments key. Falls back to the shared
+  // marketing key (NEXT_PUBLIC_WEB3FORMS_KEY) so single-key setups still
+  // work — but a separate _ADMIN key is recommended so payment notifications
+  // can land in a different inbox from contact-form messages.
+  const accessKey =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
+  const keySource: 'admin' | 'shared' | 'none' =
+    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ? 'admin'
+    : process.env.NEXT_PUBLIC_WEB3FORMS_KEY ? 'shared'
+    : 'none'
+
+  if (!accessKey) {
+    return NextResponse.json({
+      ok:    false,
+      stage: 'config',
+      error: 'No Web3Forms key configured. Set NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN (preferred) or NEXT_PUBLIC_WEB3FORMS_KEY on Vercel.',
+      hint:  'Add the key under Vercel → Settings → Environment Variables, then redeploy.',
+    }, { status: 500 })
+  }
+
+  const stamp = new Date().toLocaleString('en-GB', { timeZone: 'Africa/Lusaka' })
+  const message = [
+    'This is a TEST notification — no customer paid anything.',
+    '',
+    `Triggered by:    ${user.email}`,
+    `Server time:     ${stamp} Africa/Lusaka`,
+    `Access key tail: …${accessKey.slice(-4)}`,
+    `Key source:      ${keySource === 'admin' ? 'NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN (dedicated)' : 'NEXT_PUBLIC_WEB3FORMS_KEY (shared with contact form)'}`,
+    '',
+    'If you received this email, your /api/payments/manual notification',
+    'pipeline is healthy. If this email never lands, check:',
+    '  1. The "spam" / "Promotions" tab in your Gmail',
+    '  2. That the inbox configured at web3forms.com for this access_key',
+    '     matches the email you are currently checking',
+    '  3. Add noreply@web3forms.com to your contacts so future ones',
+    '     route straight to Primary',
+  ].join('\n')
+
+  let res: Response
+  try {
+    res = await fetch('https://api.web3forms.com/submit', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body:    JSON.stringify({
+        access_key: accessKey,
+        from_name:  'Lenga Maps Payments (TEST)',
+        name:       user.email ?? 'Lenga Maps Admin',
+        email:      user.email ?? 'noreply@lengamaps.com',
+        subject:    `[Lenga Maps] TEST — pipeline check at ${stamp}`,
+        message,
+        botcheck:   '',
+      }),
+    })
+  } catch (err) {
+    console.error('[test-notification] network error:', err)
+    return NextResponse.json({
+      ok:    false,
+      stage: 'network',
+      error: String(err),
+      hint:  'Could not reach api.web3forms.com — usually transient. Retry once.',
+    }, { status: 502 })
+  }
+
+  const body: Web3FormsResponse = await res.json().catch(() => ({}))
+  // Return key_tail + key_source on both success AND failure so the operator
+  // can verify which env var got picked up and whether the value matches what
+  // they pasted into Vercel. Without these the failure is a black box.
+  const debug = {
+    key_source: keySource,
+    key_tail:   `…${accessKey.slice(-4)}`,
+    key_length: accessKey.length,
+  }
+
+  if (!res.ok || !body.success) {
+    return NextResponse.json({
+      ok:                 false,
+      stage:              'web3forms',
+      http_status:        res.status,
+      web3forms_message:  body.message ?? '(no message)',
+      ...debug,
+      hint:               res.status === 401 || res.status === 403
+        ? `Web3Forms rejected this key. Most common causes: (a) you created the key but never clicked the verification email Web3Forms sent — open that email and click "Verify Email"; (b) the value pasted into Vercel has a leading/trailing space; (c) the key is for the wrong account. Key in use: source=${keySource}, tail=…${accessKey.slice(-4)}, length=${accessKey.length}.`
+        : `Web3Forms rejected the request (HTTP ${res.status}). Message: ${body.message ?? '(none)'}.`,
+    }, { status: 502 })
+  }
+
+  return NextResponse.json({
+    ok:           true,
+    stage:        'sent',
+    http_status:  res.status,
+    sent_at:      new Date().toISOString(),
+    ...debug,
+    note:         `Web3Forms accepted the request (key source: ${keySource}, key …${accessKey.slice(-4)}). Check the inbox configured for this access_key — it should arrive within ~30 seconds. If it does not, look in spam.`,
+  })
+}

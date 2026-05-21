@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface AquiferLayer {
   id: number
@@ -52,7 +55,12 @@ export async function GET(request: NextRequest) {
 
     let layers: AquiferLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // Aquifer is a Max-tier dataset (in the 4/8/12+ model). Only Max plans
+    // (or any active Business plan) get download URLs. Pro / Basic / anon
+    // see the catalogue but no presigned URLs — clicking Download in the
+    // UI pops up the upgrade modal.
+    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

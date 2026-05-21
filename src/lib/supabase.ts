@@ -25,7 +25,10 @@ export type UserProfile = {
   id: string
   email: string
   account_type: AccountType
-  plan: PlanTier
+  // null = user has not picked / paid for any plan yet. Brand-new signups
+  // start in this state. Only set to a tier value once admin verifies
+  // payment via /api/admin/payments/verify.
+  plan: PlanTier | null
   plan_status: PlanStatus
   // When the current paid period ends. null = never set (pre-migration row
   // or comped/lifetime account). In the future (> now) = active.
@@ -40,6 +43,61 @@ export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | 
   if (planStatus !== 'active') return false
   if (!expiresAt) return true
   return new Date(expiresAt).getTime() > Date.now()
+}
+
+/**
+ * Datasets are split into THREE tiers and the user's plan unlocks a
+ * specific level:
+ *
+ *   Tier "basic"  (4 datasets):  Admin Boundaries, Rivers, Rainfall, Temperature
+ *   Tier "pro"    (+4 = 8):      + Lakes, LULC, Drought Index, Watersheds
+ *   Tier "max"    (+rest = 12+): + Aquifers, Population, Protected Areas, …
+ *
+ *   Plan basic → can access tier=basic only
+ *   Plan pro   → can access tier=basic and tier=pro
+ *   Plan max   → can access everything
+ *   Business (any sub-plan) → full access (= max-equivalent), regardless of
+ *     whether they're on Business basic ($75) or Business On-site ($225).
+ *
+ * Use these helpers EVERYWHERE access is decided. Never inline `plan ===
+ * 'basic'`-style checks: those silently break Business basic users (who
+ * should have full data access despite their plan column being 'basic').
+ */
+export type DatasetTier = 'basic' | 'pro' | 'max'
+
+const _planRanks: Record<PlanTier, number> = { basic: 1, pro: 2, max: 3 }
+const _tierRanks: Record<DatasetTier, number> = { basic: 1, pro: 2, max: 3 }
+
+/** Numeric "level" the user has unlocked. 0 = none, 1 = basic, 2 = pro, 3 = max/all. */
+export function planLevel(
+  plan: PlanTier | null | undefined,
+  accountType: AccountType,
+): number {
+  if (!plan) return 0
+  if (accountType === 'business') return 3 // business at any plan = full access
+  return _planRanks[plan] ?? 0
+}
+
+/** Can a user with this (plan, account_type) download a file of `datasetTier`? */
+export function canAccessDatasetTier(
+  plan: PlanTier | null | undefined,
+  accountType: AccountType,
+  datasetTier: DatasetTier,
+): boolean {
+  return planLevel(plan, accountType) >= _tierRanks[datasetTier]
+}
+
+/**
+ * Back-compat shim. The old "hasFullDatasetAccess" answered the question
+ * "does this user unlock pro+ datasets?". Some call sites still want that
+ * boolean. We keep the function signature so existing components compile.
+ * For new code prefer canAccessDatasetTier(plan, accountType, 'max').
+ */
+export function hasFullDatasetAccess(
+  plan: PlanTier | null | undefined,
+  accountType: AccountType,
+): boolean {
+  return canAccessDatasetTier(plan, accountType, 'pro')
 }
 
 export interface PlanPrice {
@@ -59,7 +117,13 @@ export const PLAN_PRICING: Record<AccountType, Partial<Record<PlanTier, PlanPric
     max:   { zmw: 300, usd: 15 },
   },
   business: {
-    basic: { usd: 60 },
+    // Two business sub-tiers (each includes 3 team seats):
+    //   basic ($75) — manual dashboard access, no API
+    //   pro   ($225) — adds REST API + up to 2 on-site visits/year (client
+    //                  covers travel + expenses). Up from the prior $60
+    //                  business price now that the API is real.
+    basic: { usd: 75  },
+    pro:   { usd: 225 },
   },
 }
 
@@ -80,10 +144,14 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   5:  '/dashboard?section=drought-index',
   6:  '/dashboard?section=aquifer',
   8:  '/dashboard?section=population',
+  9:  '/dashboard?section=roads',
+  11: '/dashboard?section=soil',
+  12: '/dashboard?section=protected-areas',
   13: '/dashboard?section=rivers',
   14: '/dashboard?section=watersheds',
   15: '/dashboard?section=rainfall',
   16: '/dashboard?section=temperature',
+  17: '/dashboard?section=lakes',
 }
 
 export type DatasetSource = {
@@ -102,7 +170,11 @@ export type Dataset = {
   format: string
   resolution: string
   icon: string
-  tier: 'basic' | 'pro'
+  // Three-tier model. See canAccessDatasetTier() for the access rule.
+  // basic = unlocked at any active plan
+  // pro   = unlocked at plan='pro', plan='max', or any business plan
+  // max   = unlocked at plan='max' or any business plan only
+  tier: DatasetTier
   color: string
   sources?: DatasetSource[]
 }
@@ -142,7 +214,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF',
     resolution: '10m – 30m',
     icon: '🌿',
-    tier: 'basic',
+    tier: 'pro',
     color: '#16a34a',
   },
   {
@@ -154,7 +226,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF (ZIP)',
     resolution: '0.05° (~5km)',
     icon: '🔥',
-    tier: 'basic',
+    tier: 'pro',
     color: '#ea580c',
   },
   {
@@ -190,7 +262,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoPackage',
     resolution: '1:1,000,000 – 1:5,000,000',
     icon: '💧',
-    tier: 'pro',
+    tier: 'max',
     color: '#0369a1',
   },
   {
@@ -202,7 +274,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF, HDF',
     resolution: '250m – 30m',
     icon: '🌱',
-    tier: 'pro',
+    tier: 'max',
     color: '#15803d',
   },
   {
@@ -214,7 +286,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile (ZIP)',
     resolution: 'ADM1 / ADM2',
     icon: '🏘️',
-    tier: 'pro',
+    tier: 'max',
     color: '#dc2626',
     sources: [
       {
@@ -240,7 +312,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile, GeoJSON',
     resolution: 'Vector',
     icon: '🛣️',
-    tier: 'pro',
+    tier: 'max',
     color: '#ea580c',
   },
   {
@@ -252,7 +324,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF, Shapefile',
     resolution: '30m – 100m',
     icon: '🦆',
-    tier: 'pro',
+    tier: 'max',
     color: '#0891b2',
   },
   {
@@ -264,20 +336,28 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF, NetCDF',
     resolution: '250m',
     icon: '🌾',
-    tier: 'pro',
+    tier: 'max',
     color: '#a16207',
   },
   {
     id: 12,
     name: 'Protected Areas & Wildlife',
     category: 'Conservation',
-    description: 'National parks, game reserves, Ramsar sites, and wildlife corridors',
-    source: 'WDPA / IUCN',
-    format: 'Shapefile, GeoJSON',
+    description: 'National parks, game reserves, conservancies, forest reserves, marine protected areas, and other designated conservation zones — extracted from OpenStreetMap (boundary=protected_area, leisure=nature_reserve) and clipped per country across all 54 African nations.',
+    source: 'OpenStreetMap contributors',
+    format: 'Shapefile (ZIP)',
     resolution: 'Vector',
     icon: '🐘',
-    tier: 'pro',
+    tier: 'max',
     color: '#166534',
+    sources: [
+      {
+        name: 'OpenStreetMap',
+        institution: 'OpenStreetMap Foundation',
+        url: 'https://www.openstreetmap.org/copyright',
+        contribution: 'Crowdsourced global geodata, queried via the Overpass API for boundary=protected_area and leisure=nature_reserve features. Licensed under the Open Database License (ODbL) — share-alike, attribution required.',
+      },
+    ],
   },
   {
     id: 13,
@@ -300,7 +380,19 @@ export const DATASETS: Dataset[] = [
     format: 'GeoPackage, GeoJSON',
     resolution: 'Level 6 (~2,000–10,000 km²)',
     icon: '🗺️',
-    tier: 'basic',
+    tier: 'pro',
     color: '#0d9488',
+  },
+  {
+    id: 17,
+    name: 'Lakes',
+    category: 'Water & Hydrology',
+    description: 'Per-country lake polygons across Africa, derived from the HydroLAKES global database. Includes natural lakes and major reservoirs.',
+    source: 'HydroLAKES',
+    format: 'ZIP (Shapefile)',
+    resolution: 'Vector polygons',
+    icon: '🏞️',
+    tier: 'pro',
+    color: '#0ea5e9',
   },
 ]

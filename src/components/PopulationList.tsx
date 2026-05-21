@@ -8,9 +8,14 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface PopulationListProps {
   userPlan?: 'basic' | 'pro' | 'max'
+  /** Pre-computed by the dashboard: pro/max OR any business plan. Use this
+   *  instead of recomputing from `userPlan === 'basic'` — that recomputation
+   *  silently locks Business basic users out despite their pricing promise. */
+  hasFullAccess?: boolean
 }
 
-export default function PopulationList({ userPlan = 'basic' }: PopulationListProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function PopulationList({ userPlan = 'basic', hasFullAccess = false }: PopulationListProps) {
   const { guardDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<PopulationSettlementsLayer[]>([])
   const [loading, setLoading]         = useState(true)
@@ -36,11 +41,15 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
     fetchLayers()
   }, [])
 
+  // Always go through guardDownload — even when download_url is missing.
+  // Missing URL means the API didn't sign one for this user (= they don't
+  // have access yet); the gate then pops up the upgrade modal. Early-
+  // returning would just leave the user staring at a dead button.
   const handleDownload = (layer: PopulationSettlementsLayer) => {
-    if (!layer.download_url) return
-    guardDownload('pro', () => {
+    guardDownload('max', () => {
+      if (!layer.download_url) return  // gate passed but no URL: edge case, no-op
       setDownloading(layer.id)
-      window.open(layer.download_url!, '_blank')
+      window.open(layer.download_url, '_blank')
       setTimeout(() => setDownloading(null), 1000)
     })
   }
@@ -137,15 +146,21 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
                 </div>
               </div>
 
+              {/* Button stays clickable when the user lacks access — the
+                  click pops up the upgrade modal via DownloadGate. Disabling
+                  would hide the upgrade path. Distinct visual style for the
+                  locked state so the user knows ahead of clicking. */}
               <motion.button
                 onClick={() => handleDownload(layer)}
-                disabled={!layer.download_url || downloading === layer.id}
+                disabled={downloading === layer.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition ${
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   downloading === layer.id
                     ? 'bg-gray-300 text-gray-500 cursor-wait'
-                    : 'bg-red-600 hover:bg-red-700'
+                    : !hasFullAccess
+                      ? 'bg-accent/15 text-amber-800 hover:bg-accent/30'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
                 }`}
               >
                 {downloading === layer.id ? (
@@ -153,6 +168,8 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
                     <span className="animate-spin inline-block w-3 h-3 border-2 border-t-transparent border-white rounded-full" />
                     Wait…
                   </>
+                ) : !hasFullAccess ? (
+                  <>🔒 Upgrade</>
                 ) : (
                   <>
                     <Download size={12} />
@@ -169,7 +186,7 @@ export default function PopulationList({ userPlan = 'basic' }: PopulationListPro
         </div>
       )}
 
-      {userPlan === 'basic' && (
+      {!hasFullAccess && (
         <p className="text-xs text-gray-400 mt-2">
           * Population & Settlements is Pro-only. Upgrade to unlock all 54 countries.
         </p>

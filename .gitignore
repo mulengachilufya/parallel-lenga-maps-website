@@ -51,3 +51,8 @@ next-env.d.ts
 /.claude/
 
 .vercel
+
+# Pitch deck working folder — contains personal CV and photo. Generated
+# deliverables (PPTX / PDF) live here too; rebuild any time with
+# `python scripts/build-pitch-deck.py` then `powershell scripts/convert-pitch-to-pdf.ps1`.
+/pitch/

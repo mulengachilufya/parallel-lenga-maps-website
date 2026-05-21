@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,6 +22,18 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // If the user is ALREADY signed in (e.g. they clicked the navbar's
+  // "Login" link without realising they were still authenticated), bounce
+  // them straight to wherever they were going. Avoids the confusing
+  // "type password, get an error, am I logged in or not?" loop.
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled && session) router.replace(nextPath)
+    })
+    return () => { cancelled = true }
+  }, [nextPath, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

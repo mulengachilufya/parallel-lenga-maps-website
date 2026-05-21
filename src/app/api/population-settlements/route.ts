@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
+import { callerCanDownloadTier } from '@/lib/dataset-access'
+
+export const dynamic = 'force-dynamic'
 
 export interface PopulationSettlementsLayer {
   id: number
@@ -55,7 +58,10 @@ export async function GET(request: NextRequest) {
 
     let layers: PopulationSettlementsLayer[] = data || []
 
-    if (includeUrl && layers.length > 0) {
+    // Population & Settlements is a Max-tier dataset (in the 4/8/12+ model).
+    // Only Max plans (or any active Business plan) get download URLs.
+    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
+    if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {
           try {

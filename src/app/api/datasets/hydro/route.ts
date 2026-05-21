@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
 
+export const dynamic = 'force-dynamic'
+
+// Note: this route only returns simplified GeoJSON *preview* URLs (used to
+// render the catalogue map). Actual downloads happen via
+// /api/datasets/hydro/[type]/[iso3], which has its own auth + tier check.
+// Previews are intentionally public so anonymous browsers can see what the
+// data looks like before signing up.
+
 export interface HydroProduct {
   id: string
   name: string
