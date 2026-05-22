@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import LoadingScreen from "@/components/LoadingScreen";
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: "Lenga Maps - Unmasking Africa with Data and Intelligence",
@@ -26,6 +27,7 @@ export default function RootLayout({
         <LoadingScreen />
         <Navbar />
         <main>{children}</main>
+        <Analytics />
       </body>
     </html>
   );
