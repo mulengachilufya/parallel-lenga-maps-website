@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieClient = createServerSupabase()
   const { data: { session } } = await cookieClient.auth.getSession()
   if (!session) {
@@ -25,12 +25,15 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     { auth: { persistSession: false } },
   )
 
+  // Await the params Promise to get the actual params object
+  const { id } = await params
+
   // Scope the update to user_id so a user can never revoke another user's
   // key by guessing a uuid.
   const { data, error } = await admin
     .from('api_keys')
     .update({ revoked_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', session.user.id)
     .is('revoked_at', null)
     .select('id')
