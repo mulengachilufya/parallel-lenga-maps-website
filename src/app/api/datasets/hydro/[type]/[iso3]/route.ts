@@ -15,9 +15,9 @@ import { getDownloadUrl } from '@/lib/r2'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string; iso3: string } }
+  { params }: { params: Promise<{ type: string; iso3: string }> }
 ) {
-  const { type, iso3 } = params
+  const { type, iso3 } = await params
 
   if (!['rivers', 'watersheds'].includes(type)) {
     return NextResponse.json({ error: 'Invalid type. Use rivers or watersheds.' }, { status: 400 })

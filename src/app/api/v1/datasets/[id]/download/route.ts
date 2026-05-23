@@ -15,14 +15,15 @@ import { getDownloadUrl } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApiRequest(req)
   if (!auth.ok) return failureResponse(auth.failure)
 
-  const spec = findDataset(params.id)
+  const { id } = await params
+  const spec = findDataset(id)
   if (!spec) {
     return NextResponse.json(
-      { error: 'dataset_not_found', message: `No dataset with id "${params.id}".` },
+      { error: 'dataset_not_found', message: `No dataset with id "${id}".` },
       { status: 404 },
     )
   }
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(
       {
         error:    'ambiguous_match',
-        message:  `Country "${country}" matched ${matches.length} files. Call /v1/datasets/${spec.id}?country=${country} to list them.`,
+        message:  `Country "${country}" matched ${matches.length} files. Call /v1/datasets/${id}?country=${country} to list them.`,
         files:    matches,
       },
       { status: 400 },

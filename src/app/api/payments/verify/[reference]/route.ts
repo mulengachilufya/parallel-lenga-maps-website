@@ -31,7 +31,7 @@ async function activateProfile(userId: string, plan: string, accountType: string
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { reference: string } }
+  { params }: { params: Promise<{ reference: string }> }
 ) {
   const supabase = createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
@@ -40,7 +40,7 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { reference } = params
+  const { reference } = await params
 
   // Ensure this reference belongs to the calling user
   const { data: payment, error: fetchError } = await serviceSupabase
