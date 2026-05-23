@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 // client puts the session in localStorage where server route handlers cannot
 // see it — every authenticated POST (manual payment, admin, etc.) returns
 // 401 even when the user is signed in. createBrowserClient writes the
-// session into the same cookies that `createServerSupabase()` reads.
+// session into the same cookies that `await createServerSupabase()` reads.
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 export type AccountType = 'student' | 'professional' | 'business'

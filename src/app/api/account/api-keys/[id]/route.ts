@@ -13,7 +13,7 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieClient = createServerSupabase()
+  const cookieClient = await createServerSupabase()
   const { data: { session } } = await cookieClient.auth.getSession()
   if (!session) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

@@ -41,7 +41,7 @@ export async function GET(
   let resolvedUser = user
   if (!resolvedUser) {
     const { createServerSupabase } = await import('@/lib/supabase-server')
-    const cookieClient = createServerSupabase()
+    const cookieClient = await createServerSupabase()
     const { data: { user: cookieUser } } = await cookieClient.auth.getUser()
     resolvedUser = cookieUser
   }

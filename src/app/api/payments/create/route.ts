@@ -9,7 +9,7 @@ const serviceSupabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {

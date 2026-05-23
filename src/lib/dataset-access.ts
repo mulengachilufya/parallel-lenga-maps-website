@@ -42,7 +42,7 @@ export type Tier = DatasetTier
  *   - non-business user whose plan rank is below the dataset tier
  */
 export async function callerCanDownloadTier(tier: Tier): Promise<boolean> {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
 

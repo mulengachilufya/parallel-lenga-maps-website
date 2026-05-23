@@ -37,7 +37,7 @@ const VALID_TYPES = new Set(['student', 'professional', 'business'])
 
 export async function POST() {
   // Identify the caller via their session cookie.
-  const cookieClient = createServerSupabase()
+  const cookieClient = await createServerSupabase()
   const { data: { user } } = await cookieClient.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

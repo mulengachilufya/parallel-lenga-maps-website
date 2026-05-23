@@ -27,7 +27,7 @@ interface Web3FormsResponse {
 
 export async function POST() {
   // Auth — admin only.
-  const auth = createServerSupabase()
+  const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
   if (!user || !isAdminEmail(user.email)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })

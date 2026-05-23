@@ -32,7 +32,7 @@ interface ApiKeyRow {
  *  (plan='basic') gets a separate api_tier_required error so the dashboard
  *  can show a useful upgrade message instead of a generic 403. */
 async function requireBusinessUser(): Promise<{ userId: string } | NextResponse> {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

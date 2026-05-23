@@ -33,7 +33,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
 ) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {

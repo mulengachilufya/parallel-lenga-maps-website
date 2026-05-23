@@ -22,7 +22,7 @@ const service = createClient(
 )
 
 export async function GET() {
-  const auth = createServerSupabase()
+  const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
   if (!user || !isAdminEmail(user.email)) {
     return NextResponse.json({ isAdmin: false, count: 0 })

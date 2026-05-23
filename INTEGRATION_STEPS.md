@@ -123,7 +123,7 @@ User downloads .geojson / .shp files
 
 **"401 Unauthorized" error:**
 - Check that user is logged in
-- Verify `createServerSupabase()` is getting correct session
+- Verify `await createServerSupabase()` is getting correct session
 
 **"No boundaries found":**
 - Run seed script again: `npx ts-node scripts/seed-admin-boundaries.ts`

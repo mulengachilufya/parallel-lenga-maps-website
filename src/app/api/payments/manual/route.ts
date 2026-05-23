@@ -201,7 +201,7 @@ async function notifyWhatsApp(message: string) {
 
 export async function POST(request: NextRequest) {
   // ─── Auth ──────────────────────────────────────────────────────────────
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
