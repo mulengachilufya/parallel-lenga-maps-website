@@ -4,27 +4,22 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Loader2, ArrowLeft, Zap, Smartphone, CheckCircle } from 'lucide-react'
-import { supabase, type AccountType, type PlanTier, PLAN_PRICING } from '@/lib/supabase'
-import LencoPayButton from '@/components/LencoPayButton'
+import { ShieldCheck, Loader2, ArrowLeft, Smartphone, CheckCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { PLANS, PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import ManualPaymentFlow from '@/components/ManualPaymentFlow'
-
-type PaymentMode = 'choose' | 'lenco' | 'manual'
 
 function PaymentPageInner() {
   const router = useRouter()
   const params = useSearchParams()
 
-  const planParam = params.get('plan') as PlanTier | null
-  const typeParam = params.get('type') as AccountType | null
+  const planParam = params.get('plan') as TierSlug | null
 
-  const [loading,     setLoading]     = useState(true)
-  const [plan,        setPlan]        = useState<PlanTier>('basic')
-  const [accountType, setAccountType] = useState<AccountType>('student')
-  const [userEmail,   setUserEmail]   = useState('')
-  const [userName,    setUserName]    = useState('')
-  const [mode,        setMode]        = useState<PaymentMode>('choose')
-  const [paid,        setPaid]        = useState(false)
+  const [loading,   setLoading]   = useState(true)
+  const [plan,      setPlan]      = useState<TierSlug>('starter')
+  const [userEmail, setUserEmail] = useState('')
+  const [userName,  setUserName]  = useState('')
+  const [paid,      setPaid]      = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -36,30 +31,21 @@ function PaymentPageInner() {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, account_type, full_name')
+        .select('plan, full_name')
         .eq('id', session.user.id)
         .single()
 
-      const resolvedPlan = (planParam && ['basic', 'pro', 'max'].includes(planParam))
+      const resolvedPlan = (planParam && PLAN_ORDER.includes(planParam))
         ? planParam
-        : ((profile?.plan as PlanTier) || 'basic')
-      const resolvedType = (typeParam && ['student', 'professional', 'business'].includes(typeParam))
-        ? typeParam
-        : ((profile?.account_type as AccountType) || 'student')
-
-      if (!PLAN_PRICING[resolvedType]?.[resolvedPlan]) {
-        router.replace('/pricing')
-        return
-      }
+        : ((profile?.plan as TierSlug) || 'starter')
 
       setPlan(resolvedPlan)
-      setAccountType(resolvedType)
       setUserEmail(session.user.email || '')
       setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
       setLoading(false)
     }
     load()
-  }, [planParam, typeParam, router])
+  }, [planParam, router])
 
   if (loading) {
     return (
@@ -69,15 +55,9 @@ function PaymentPageInner() {
     )
   }
 
-  // Derive display info
-  const priceData = PLAN_PRICING[accountType]?.[plan]
-  const isZMW  = accountType !== 'business' && !!priceData?.zmw
-  const amount  = isZMW ? (priceData?.zmw ?? 0) : (priceData?.usd ?? 0)
-  const currency = isZMW ? 'ZMW' : 'USD'
-  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
-  const priceLabel = isZMW ? `K${amount}` : `$${amount}`
+  const planData   = PLANS[plan]
+  const priceLabel = planData.priceLabel
 
-  // ── Success screen ─────────────────────────────────────────────────────
   if (paid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -89,10 +69,10 @@ function PaymentPageInner() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={32} className="text-green-600" />
           </div>
-          <h2 className="text-2xl font-black text-navy mb-2">Payment confirmed!</h2>
+          <h2 className="text-2xl font-black text-navy mb-2">Payment submitted!</h2>
           <p className="text-gray-500 mb-6">
-            Your <strong>{planLabel}</strong> plan is now active.
-            You can download datasets straight away.
+            Your <strong>{planData.name}</strong> plan will be activated once we verify your payment —
+            usually within a few hours.
           </p>
           <Link
             href="/dashboard"
@@ -109,7 +89,6 @@ function PaymentPageInner() {
     <div className="min-h-screen bg-gray-50">
       <div className="h-20" />
 
-      {/* Trust strip */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link
@@ -120,135 +99,65 @@ function PaymentPageInner() {
             Back
           </Link>
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">
-            <ShieldCheck size={14} /> Secure payment — powered by Lenco
+            <ShieldCheck size={14} /> Secure manual payment
           </span>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        {/* Plan summary */}
+
+        {/* Plan switcher */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Paying for</p>
+          <div className="flex flex-wrap gap-2">
+            {PLAN_ORDER.map((s) => (
+              <button
+                key={s}
+                onClick={() => setPlan(s)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  s === plan
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {PLANS[s].name} — {PLANS[s].priceLabel}/mo
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">You are paying for</p>
-              <h2 className="text-2xl font-black text-navy">{planLabel} Plan</h2>
-              <p className="text-sm text-gray-500 mt-0.5 capitalize">{accountType} account · 30-day access</p>
+              <h2 className="text-2xl font-black text-navy">{planData.name} Plan</h2>
+              <p className="text-sm text-gray-500 mt-0.5">30-day access · all 54 African countries</p>
             </div>
             <div className="text-right">
               <span className="text-3xl font-black text-primary">{priceLabel}</span>
               <span className="text-sm text-gray-400">/month</span>
             </div>
           </div>
+          {/* Currency disclaimer */}
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+            <p className="text-xs text-blue-700 leading-relaxed">
+              <strong>All prices are in USD.</strong> Please convert to your local currency at
+              today's rate when making the transfer. Include your email address as the payment
+              reference so we can match your transfer to your account.
+            </p>
+          </div>
         </div>
 
-        {/* ── Method chooser ─────────────────────────────────────────────── */}
-        {mode === 'choose' && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <p className="text-sm font-semibold text-gray-700 mb-1">Choose how to pay</p>
+        {/* Manual payment flow */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Smartphone size={18} className="text-gray-500" />
+            <h3 className="font-bold text-navy">Pay via Mobile Money or Bank Transfer</h3>
+          </div>
+          <ManualPaymentFlow
+            plan={plan}
+            userEmail={userEmail}
+            userName={userName}
+            onSuccess={() => setPaid(true)}
+          />
+        </div>
 
-            {/* Lenco — primary */}
-            <button
-              onClick={() => setMode('lenco')}
-              className="w-full flex items-start gap-4 bg-white border-2 border-primary rounded-2xl p-5 hover:bg-primary/5 transition-all group text-left"
-            >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Zap size={20} className="text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-bold text-navy">Pay instantly with Lenco</span>
-                  <span className="text-[10px] font-bold bg-accent text-navy px-2 py-0.5 rounded-full uppercase tracking-wider">Recommended</span>
-                </div>
-                <p className="text-sm text-gray-500">
-                  MTN Mobile Money · Airtel Money · Card
-                </p>
-                <p className="text-xs text-green-600 font-medium mt-1">
-                  ✓ Instantly activated once payment clears
-                </p>
-              </div>
-            </button>
-
-            {/* Manual — fallback */}
-            <button
-              onClick={() => setMode('manual')}
-              className="w-full flex items-start gap-4 bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-gray-300 transition-all text-left"
-            >
-              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
-                <Smartphone size={20} className="text-gray-500" />
-              </div>
-              <div>
-                <span className="font-bold text-navy block mb-0.5">Pay manually via MoMo</span>
-                <p className="text-sm text-gray-500">
-                  Send to our number then upload your screenshot.
-                  Manually verified within a few hours.
-                </p>
-              </div>
-            </button>
-          </motion.div>
-        )}
-
-        {/* ── Lenco widget ──────────────────────────────────────────────── */}
-        {mode === 'lenco' && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
-          >
-            <div className="mb-5">
-              <h3 className="text-lg font-bold text-navy mb-1">Pay with Lenco</h3>
-              <p className="text-sm text-gray-500">
-                Click the button below to open the secure Lenco payment window.
-                You can pay with MTN Mobile Money, Airtel Money, or a bank card.
-              </p>
-            </div>
-
-            <LencoPayButton
-              plan={plan}
-              accountType={accountType}
-              amount={amount}
-              currency={currency}
-              email={userEmail}
-              name={userName}
-              onSuccess={() => setPaid(true)}
-              onClose={() => setMode('choose')}
-              className="bg-primary text-white hover:bg-navy"
-            >
-              Pay {priceLabel} with Lenco
-            </LencoPayButton>
-
-            <button
-              onClick={() => setMode('choose')}
-              className="w-full mt-3 text-sm text-gray-500 hover:text-primary py-2"
-            >
-              ← Choose a different method
-            </button>
-          </motion.div>
-        )}
-
-        {/* ── Manual flow ───────────────────────────────────────────────── */}
-        {mode === 'manual' && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <button
-              onClick={() => setMode('choose')}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary mb-4"
-            >
-              <ArrowLeft size={14} /> Choose a different method
-            </button>
-            <ManualPaymentFlow
-              plan={plan}
-              accountType={accountType}
-              userEmail={userEmail}
-              userName={userName}
-            />
-          </motion.div>
-        )}
       </div>
     </div>
   )

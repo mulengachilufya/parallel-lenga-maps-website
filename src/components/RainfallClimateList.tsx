@@ -74,7 +74,7 @@ export default function RainfallClimateList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RainfallClimateListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState<string | null>(null)
@@ -110,7 +110,7 @@ export default function RainfallClimateList({
   //   drought_index         → pro
   const handleDownload = (layer: RainfallClimateLayer) => {
     const tier = layer.layer_type === 'drought_index' ? 'pro' : 'basic'
-    guardDownload(tier, () => {
+    openGate(tier, () => {
       if (!layer.download_url) return
       setDownloading(layer.id)
       window.open(layer.download_url, '_blank')

@@ -72,9 +72,9 @@ State transitions:
 Single source of truth for all download actions. Every list component
 (`RiversList`, `PopulationList`, `AdminBoundariesList`, etc.) imports
 `useDownloadGate()` and wraps their download click with
-`guardDownload(requiredTier, () => actualDownload())`.
+`openGate(requiredTier, () => actualDownload())`.
 
-Cascade inside `guardDownload`:
+Cascade inside `openGate`:
 
 ```ts
 if (!gateUser)                               → modal: 'signup'
@@ -113,7 +113,7 @@ and CTAs point at the right next step (`/signup`, `/dashboard/payment?plan=X`,
 ### Core logic
 
 - **`src/lib/supabase.ts`** — added `PlanStatus` type (`free`|`pending`|`active`), added `plan_status` to `UserProfile`, added `LIVE_DATASET_ROUTES` shared map.
-- **`src/contexts/DownloadGateContext.tsx`** — added `planStatus` to `DownloadUser`, added `'pay'` modal branch (with pending variant), rewrote `guardDownload` cascade, upgrade modal now links directly to `/dashboard/payment?plan=X` instead of `/pricing`.
+- **`src/contexts/DownloadGateContext.tsx`** — added `planStatus` to `DownloadUser`, added `'pay'` modal branch (with pending variant), rewrote `openGate` cascade, upgrade modal now links directly to `/dashboard/payment?plan=X` instead of `/pricing`.
 - **`src/lib/admin.ts`** — `isAdminEmail()` helper reading `ADMIN_EMAILS` env var.
 
 ### API routes

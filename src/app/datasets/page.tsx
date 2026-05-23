@@ -198,7 +198,7 @@ export default function DatasetsPage() {
                             <Lock size={10} /> Pro
                           </span>
                         )}
-                        {dataset.tier === 'basic' && isLive && (
+                        {dataset.tier === 'starter' && isLive && (
                           <span className="text-xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-full">
                             Free
                           </span>

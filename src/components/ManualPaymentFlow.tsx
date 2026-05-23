@@ -1,135 +1,94 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  ArrowLeft, ArrowRight, Check, Copy, Upload, AlertCircle,
-  CheckCircle2, Flag, Globe2, Loader2,
-} from 'lucide-react'
-import { PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
-import { MtnBadge, AirtelBadge } from '@/components/PaymentProviderIcons'
+import { Upload, Check, AlertCircle, Loader2, ArrowRight, ArrowLeft, Flag, Globe2 } from 'lucide-react'
+import { PLANS, type TierSlug } from '@/lib/pricing'
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
+const RECEIVER_NAME = 'Lenga Maps'
 const MTN_NUMBER    = '+260 965 699 359'
 const AIRTEL_NUMBER = '+260 779 187 025'
-const RECEIVER_NAME = 'Mulenga Chilufya'
+
+interface Props {
+  plan:       TierSlug
+  userEmail:  string
+  userName:   string
+  onSuccess:  (ref: string) => void
+}
 
 type Region = 'zambian' | 'international'
 type Method = 'mtn' | 'airtel'
-
-interface Props {
-  plan: PlanTier
-  accountType: AccountType
-  userEmail: string
-  userName: string
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
+type Step   = 1 | 2
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false)
   return (
-    <div className="flex items-center justify-between bg-white rounded-xl border-2 border-gray-200 px-5 py-4">
-      <div className="min-w-0">
-        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-          {label}
-        </div>
-        <div className="text-xl sm:text-2xl font-black text-navy truncate select-all">
-          {value}
-        </div>
+    <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+      <div>
+        <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+        <p className="font-mono font-bold text-navy">{value}</p>
       </div>
       <button
         type="button"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(value.replace(/\s/g, ''))
-            setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
-          } catch { /* clipboard API blocked — user can long-press to copy */ }
-        }}
-        className={`ml-4 shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition ${
-          copied ? 'bg-green-600 text-white' : 'bg-navy text-white hover:bg-primary'
-        }`}
+        onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+        className="text-xs font-semibold text-primary hover:text-navy transition-colors shrink-0"
       >
-        {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy</>}
+        {copied ? '✓ Copied' : 'Copy'}
       </button>
     </div>
   )
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+export default function ManualPaymentFlow({ plan, userEmail, userName, onSuccess }: Props) {
+  const planData    = PLANS[plan]
+  const amountLabel = `${planData.priceLabel} USD`
 
-export default function ManualPaymentFlow({ plan, accountType, userEmail, userName }: Props) {
-  const price = PLAN_PRICING[accountType]?.[plan]
-
-  // Region default: if the plan has a local ZMW price, default to zambian; else international
-  const [region, setRegion] = useState<Region | null>(null)
-  const [step, setStep]     = useState<1 | 2 | 3>(1)
-
-  const [method, setMethod]         = useState<Method>('mtn')
-  const [countryName, setCountry]   = useState('')
-  const [senderPhone, setPhone]     = useState('')
-  const [senderName, setSenderName] = useState(userName || '')
-  const [txnRef, setTxnRef]         = useState('')
-  const [file, setFile]             = useState<File | null>(null)
-  const [preview, setPreview]       = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError]           = useState<string | null>(null)
-  const [done, setDone]             = useState<{ reference: string } | null>(null)
-
-  const amountLabel = useMemo(() => {
-    if (!price) return '—'
-    if (region === 'zambian' && price.zmw) return `K${price.zmw.toLocaleString()}`
-    return `$${price.usd.toLocaleString()}`
-  }, [price, region])
+  const [step,        setStep]   = useState<Step>(1)
+  const [region,      setRegion] = useState<Region | null>(null)
+  const [method,      setMethod] = useState<Method>('mtn')
+  const [countryName, setCountry] = useState('')
+  const [senderName,  setSenderName] = useState(userName)
+  const [senderPhone, setPhone]  = useState('')
+  const [txnRef,      setTxnRef] = useState('')
+  const [file,        setFile]   = useState<File | null>(null)
+  const [preview,     setPreview] = useState<string | null>(null)
+  const [submitting,  setSubmitting] = useState(false)
+  const [error,       setError]  = useState('')
+  const [done,        setDone]   = useState<{ reference: string } | null>(null)
 
   const receiverNumber = method === 'mtn' ? MTN_NUMBER : AIRTEL_NUMBER
 
-  // ── File change ───────────────────────────────────────────────────────────
-  const handleFile = (f: File | null) => {
-    if (!f) { setFile(null); setPreview(null); return }
-    if (f.size > 5 * 1024 * 1024) {
-      setError('Screenshot must be 5 MB or smaller.')
-      return
-    }
-    if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(f.type)) {
-      setError('Screenshot must be a JPG, PNG, WEBP or HEIC image.')
-      return
-    }
-    setError(null)
+  function handleFile(f: File | null) {
+    if (!f) return
     setFile(f)
-    setPreview(URL.createObjectURL(f))
+    const reader = new FileReader()
+    reader.onload = (e) => setPreview(e.target?.result as string)
+    reader.readAsDataURL(f)
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-    if (!file) { setError('Please attach the payment screenshot.'); return }
-    if (!region) { setError('Please pick your region first.'); return }
+    if (!file) { setError('Please attach your payment screenshot.'); return }
+    if (!senderName.trim()) { setError('Please enter the name on your mobile money account.'); return }
+    setSubmitting(true)
+    setError('')
 
     const fd = new FormData()
-    fd.append('plan', plan)
-    fd.append('account_type', accountType)
-    fd.append('region', region)
+    fd.append('plan',           plan)
+    fd.append('region',         region!)
     fd.append('payment_method', method)
-    fd.append('country_name', countryName)
-    fd.append('sender_phone', senderPhone)
-    fd.append('sender_name', senderName)
-    fd.append('txn_reference', txnRef)
-    fd.append('screenshot', file)
+    fd.append('country_name',   countryName)
+    fd.append('sender_name',    senderName)
+    fd.append('sender_phone',   senderPhone)
+    fd.append('txn_reference',  txnRef)
+    fd.append('screenshot',     file)
 
-    setSubmitting(true)
     try {
-      const res = await fetch('/api/payments/manual', { method: 'POST', body: fd })
+      const res  = await fetch('/api/payments/manual', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Submission failed.')
-        return
-      }
+      if (!res.ok) { setError(data.error || 'Submission failed. Please try again.'); return }
       setDone({ reference: data.reference })
+      onSuccess(data.reference)
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -137,318 +96,226 @@ export default function ManualPaymentFlow({ plan, accountType, userEmail, userNa
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Success screen
-  // ─────────────────────────────────────────────────────────────────────────
   if (done) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl border-2 border-green-200 p-8 sm:p-10 shadow-sm text-center"
-      >
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 size={42} className="text-green-600" />
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-black text-navy mb-3">Payment submitted</h2>
-        <p className="text-lg text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
-          We&apos;ve received your screenshot. Your account will be upgraded as soon as we verify the transfer
-          — usually within a few hours.
+      <div className="text-center py-6">
+        <div className="text-5xl mb-4">✅</div>
+        <h3 className="text-xl font-bold text-navy mb-2">Payment proof received</h3>
+        <p className="text-gray-500 text-sm mb-2">
+          Reference: <span className="font-mono font-bold">{done.reference}</span>
         </p>
-        <div className="inline-block bg-gray-50 border border-gray-200 rounded-xl px-6 py-3 mb-6">
-          <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">Reference</div>
-          <div className="font-mono text-xl font-bold text-navy">{done.reference}</div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/datasets"
-            className="inline-flex items-center justify-center gap-2 bg-primary text-white font-bold px-6 py-3.5 rounded-xl hover:bg-navy transition"
-          >
-            Browse datasets <ArrowRight size={18} />
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-gray-100 text-navy font-semibold px-6 py-3.5 rounded-xl hover:bg-gray-200 transition"
-          >
-            Go to dashboard
-          </Link>
-        </div>
-      </motion.div>
-    )
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Step 1 — region picker
-  // ─────────────────────────────────────────────────────────────────────────
-  if (step === 1 || !region) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-navy mb-2">Where are you paying from?</h1>
-          <p className="text-lg text-gray-500">
-            This determines which currency and transfer method you&apos;ll use.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-5">
-          <button
-            onClick={() => { setRegion('zambian'); setStep(2) }}
-            className="group text-left bg-white border-2 border-gray-200 hover:border-green-500 hover:shadow-lg transition-all rounded-2xl p-7"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                <Flag size={24} className="text-green-700" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-green-700">Zambia</span>
-            </div>
-            <h3 className="text-2xl font-black text-navy mb-2">I&apos;m in Zambia</h3>
-            <p className="text-gray-500 mb-4 leading-relaxed">
-              Pay in Zambian Kwacha using MTN Mobile Money or Airtel Money.
-            </p>
-            {price?.zmw != null && (
-              <div className="inline-block bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-                <span className="text-3xl font-black text-green-700">K{price.zmw.toLocaleString()}</span>
-                <span className="text-sm text-green-700 ml-1">/month</span>
-              </div>
-            )}
-          </button>
-
-          <button
-            onClick={() => { setRegion('international'); setStep(2) }}
-            className="group text-left bg-white border-2 border-gray-200 hover:border-primary hover:shadow-lg transition-all rounded-2xl p-7"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <Globe2 size={24} className="text-primary" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">International</span>
-            </div>
-            <h3 className="text-2xl font-black text-navy mb-2">I&apos;m outside Zambia</h3>
-            <p className="text-gray-500 mb-4 leading-relaxed">
-              Pay in US Dollars via MTN or Airtel cross-country mobile money transfer.
-            </p>
-            {price?.usd != null && (
-              <div className="inline-block bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                <span className="text-3xl font-black text-primary">${price.usd.toLocaleString()}</span>
-                <span className="text-sm text-primary ml-1">/month</span>
-              </div>
-            )}
-          </button>
-        </div>
-
-        <p className="text-xs text-gray-400 text-center pt-2">
-          Signed in as <span className="font-semibold">{userEmail}</span>.
-          Every submission is linked to your account.
+        <p className="text-gray-500 text-sm">
+          We'll verify and activate your account within 24 hours.
         </p>
       </div>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // Step 1 — region picker
+  if (step === 1 || !region) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h3 className="text-lg font-bold text-navy mb-1">Where are you paying from?</h3>
+          <p className="text-sm text-gray-500">This determines which transfer method you'll use.</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <button
+            onClick={() => { setRegion('zambian'); setStep(2) }}
+            className="text-left bg-white border-2 border-gray-200 hover:border-green-500 hover:shadow-md transition-all rounded-2xl p-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Flag size={20} className="text-green-700" />
+              <span className="text-xs font-bold uppercase tracking-wider text-green-700">Zambia</span>
+            </div>
+            <h4 className="text-lg font-black text-navy mb-1">I'm in Zambia</h4>
+            <p className="text-sm text-gray-500">Pay via MTN MoMo or Airtel Money in Zambia.</p>
+            <p className="mt-3 text-2xl font-black text-green-700">{amountLabel}</p>
+          </button>
+          <button
+            onClick={() => { setRegion('international'); setStep(2) }}
+            className="text-left bg-white border-2 border-gray-200 hover:border-primary hover:shadow-md transition-all rounded-2xl p-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Globe2 size={20} className="text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">International</span>
+            </div>
+            <h4 className="text-lg font-black text-navy mb-1">I'm outside Zambia</h4>
+            <p className="text-sm text-gray-500">
+              Convert {amountLabel} to your local currency at today's rate and transfer internationally.
+            </p>
+            <p className="mt-3 text-2xl font-black text-primary">{amountLabel}</p>
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 text-center">
+          Signed in as <span className="font-semibold">{userEmail}</span>
+        </p>
+      </div>
+    )
+  }
+
   // Step 2 — payment instructions + form
-  // ─────────────────────────────────────────────────────────────────────────
   const isIntl = region === 'international'
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Header with back */}
-      <div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setStep(1)}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary mb-3"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
         >
           <ArrowLeft size={14} /> Change region
         </button>
-        <h1 className="text-3xl sm:text-4xl font-black text-navy mb-2">
-          Pay {amountLabel}
-        </h1>
-        <p className="text-lg text-gray-500">
-          {isIntl
-            ? 'Follow the steps below to send the transfer from your country to Zambia.'
-            : 'Follow the steps below to send the transfer using your phone.'}
-        </p>
       </div>
 
-      {/* ── Amount — oversize ─────────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-navy to-primary text-white rounded-2xl p-8 text-center shadow-lg">
-        <div className="text-sm uppercase tracking-[0.2em] text-blue-200 mb-3">Amount to send</div>
-        <div className="text-6xl sm:text-7xl font-black mb-2 leading-none">{amountLabel}</div>
-        <div className="text-blue-200 text-sm">
-          Plan: <span className="text-white font-semibold capitalize">{plan}</span> ·{' '}
-          Type: <span className="text-white font-semibold capitalize">{accountType}</span>
-        </div>
+      {/* Amount */}
+      <div className="bg-gradient-to-br from-navy to-primary text-white rounded-2xl p-6 text-center">
+        <p className="text-xs uppercase tracking-widest text-blue-200 mb-2">Amount to send</p>
+        <p className="text-5xl font-black mb-2">{amountLabel}</p>
+        <p className="text-blue-200 text-sm">Plan: <span className="text-white font-semibold">{planData.name}</span></p>
+        {isIntl && (
+          <p className="text-blue-300 text-xs mt-2">
+            Convert to your local currency at today's rate. We verify the equivalent on our end.
+          </p>
+        )}
       </div>
 
-      {/* ── Method toggle ─────────────────────────────────────────────── */}
+      {/* Method toggle */}
       <div>
-        <div className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
-          Choose payment provider
-        </div>
+        <p className="text-sm font-bold text-navy mb-2">Payment provider</p>
         <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setMethod('mtn')}
-            className={`flex items-center gap-3 p-4 rounded-xl border-2 transition ${
-              method === 'mtn'
-                ? 'border-yellow-400 bg-yellow-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <MtnBadge size={44} />
-            <div className="text-left">
-              <div className="font-black text-navy text-lg">MTN</div>
-              <div className="text-xs text-gray-500">Mobile Money</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMethod('airtel')}
-            className={`flex items-center gap-3 p-4 rounded-xl border-2 transition ${
-              method === 'airtel'
-                ? 'border-red-500 bg-red-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <AirtelBadge size={44} />
-            <div className="text-left">
-              <div className="font-black text-navy text-lg">Airtel</div>
-              <div className="text-xs text-gray-500">Airtel Money</div>
-            </div>
-          </button>
+          {(['mtn', 'airtel'] as Method[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMethod(m)}
+              className={`py-3 rounded-xl border-2 font-bold text-sm transition ${
+                method === m
+                  ? m === 'mtn' ? 'border-yellow-400 bg-yellow-50 text-yellow-800' : 'border-red-400 bg-red-50 text-red-800'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {m === 'mtn' ? 'MTN MoMo' : 'Airtel Money'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── Receiver details ──────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <CopyRow label={`${method === 'mtn' ? 'MTN' : 'Airtel'} number to send to`} value={receiverNumber} />
+      {/* Receiver details */}
+      <div className="space-y-2">
+        <CopyRow label={`${method === 'mtn' ? 'MTN' : 'Airtel'} number`} value={receiverNumber} />
         <CopyRow label="Receiver name" value={RECEIVER_NAME} />
+        <CopyRow label="Payment reference (use your email)" value={userEmail} />
       </div>
 
-      {/* ── Step-by-step instructions ─────────────────────────────────── */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-        <h3 className="text-xl font-black text-navy mb-4">How to send</h3>
-        <ol className="space-y-3 text-base">
-          {(isIntl
-            ? [
-                `From your MTN MoMo / Airtel Money app, choose "Send money abroad" (or "Cross-border transfer") to Zambia.`,
-                `Enter the ${method === 'mtn' ? 'MTN' : 'Airtel'} number above and confirm the receiver name "${RECEIVER_NAME}".`,
-                `Enter the equivalent of ${amountLabel} in your local currency — your provider will quote the exact rate.`,
-                `Complete the transfer and wait for the confirmation SMS.`,
-                `Take a clear screenshot of the confirmation (showing amount, receiver, and transaction ID) and upload it below.`,
-              ]
-            : [
-                `Dial ${method === 'mtn' ? '*303#' : '*115#'} or open your ${method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'} app.`,
-                `Choose "Send money" and enter the number above.`,
-                `Enter ${amountLabel} and confirm the receiver name "${RECEIVER_NAME}".`,
-                `Complete the transfer with your PIN and wait for the confirmation SMS.`,
-                `Take a clear screenshot of the confirmation and upload it below.`,
-              ]
-          ).map((s, i) => (
+      {/* Instructions */}
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+        <h4 className="font-bold text-navy mb-3">How to send</h4>
+        <ol className="space-y-2 text-sm">
+          {(isIntl ? [
+            `From your ${method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'} app, choose "Send money abroad" to Zambia.`,
+            `Enter the number above and confirm receiver: "${RECEIVER_NAME}".`,
+            `Enter the equivalent of ${amountLabel} in your local currency — your app will show the rate.`,
+            `Use your email address (${userEmail}) as the payment reference.`,
+            `Screenshot the confirmation and upload it below.`,
+          ] : [
+            `Dial ${method === 'mtn' ? '*303#' : '*115#'} or open your ${method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'} app.`,
+            `Choose "Send money" and enter the number above.`,
+            `Enter ${amountLabel} and confirm receiver: "${RECEIVER_NAME}".`,
+            `Use your email (${userEmail}) as the reference.`,
+            `Screenshot the confirmation and upload it below.`,
+          ]).map((s, i) => (
             <li key={i} className="flex gap-3">
-              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white font-black text-sm flex items-center justify-center">
-                {i + 1}
-              </span>
-              <span className="pt-1 text-gray-700 leading-relaxed">{s}</span>
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
+              <span className="text-gray-700 pt-0.5">{s}</span>
             </li>
           ))}
         </ol>
       </div>
 
-      {/* ── Form fields ───────────────────────────────────────────────── */}
-      <div className="space-y-5">
-        <h3 className="text-xl font-black text-navy">Confirm your payment</h3>
-
+      {/* Form fields */}
+      <div className="space-y-4">
         {isIntl && (
           <div>
-            <label className="block text-sm font-bold text-navy mb-2">Your country</label>
+            <label className="block text-sm font-bold text-navy mb-1">Your country</label>
             <input
               type="text"
               value={countryName}
               onChange={(e) => setCountry(e.target.value)}
               placeholder="e.g. Kenya, Nigeria, South Africa"
-              className="w-full px-4 py-3.5 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-white text-navy"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-bold text-navy mb-2">
-            Name on your mobile-money account
-          </label>
+          <label className="block text-sm font-bold text-navy mb-1">Name on your mobile money account</label>
           <input
             type="text"
             value={senderName}
             onChange={(e) => setSenderName(e.target.value)}
             placeholder="Your full name"
-            className="w-full px-4 py-3.5 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-white text-navy"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-navy mb-2">
-            Your phone number <span className="text-gray-400 font-normal">(optional but helpful)</span>
+          <label className="block text-sm font-bold text-navy mb-1">
+            Your phone number <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             type="tel"
             value={senderPhone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. +260 97 123 4567"
-            className="w-full px-4 py-3.5 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-white text-navy"
+            placeholder="+260 97 123 4567"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-navy mb-2">
-            Transaction ID from your confirmation SMS{' '}
-            <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-bold text-navy mb-1">
+            Transaction ID <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             type="text"
             value={txnRef}
             onChange={(e) => setTxnRef(e.target.value)}
-            placeholder="e.g. MTN123ABC456 or MP240420.1234.A1234"
-            className="w-full px-4 py-3.5 text-lg border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-white text-navy font-mono"
+            placeholder="From your confirmation SMS"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy font-mono"
           />
         </div>
 
-        {/* Upload */}
+        {/* Screenshot upload */}
         <div>
-          <label className="block text-sm font-bold text-navy mb-2">
+          <label className="block text-sm font-bold text-navy mb-1">
             Payment screenshot <span className="text-red-500">*</span>
           </label>
           <label className="block cursor-pointer">
             <div className={`border-2 border-dashed rounded-xl p-6 text-center transition ${
-              preview ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-primary hover:bg-blue-50'
+              preview ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-primary hover:bg-blue-50'
             }`}>
               {preview ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview} alt="Payment screenshot" className="max-h-64 mx-auto rounded-lg shadow-sm" />
+                  <img src={preview} alt="Payment screenshot" className="max-h-48 mx-auto rounded-lg" />
                   <p className="text-sm font-semibold text-green-700">
-                    <Check size={16} className="inline mr-1" />
-                    {file?.name} — tap to replace
+                    <Check size={14} className="inline mr-1" />{file?.name} — tap to replace
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Upload size={32} className="mx-auto text-gray-400" />
-                  <p className="text-base font-semibold text-navy">Tap to upload screenshot</p>
-                  <p className="text-xs text-gray-500">JPG, PNG, WEBP or HEIC — up to 5 MB</p>
+                  <Upload size={28} className="mx-auto text-gray-400" />
+                  <p className="text-sm font-semibold text-navy">Tap to upload screenshot</p>
+                  <p className="text-xs text-gray-400">JPG, PNG, WEBP or HEIC — max 5MB</p>
                 </div>
               )}
             </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFile(e.target.files?.[0] || null)}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
           </label>
         </div>
       </div>
 
-      {/* ── Error ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -457,28 +324,22 @@ export default function ManualPaymentFlow({ plan, accountType, userEmail, userNa
             exit={{ opacity: 0 }}
             className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
           >
-            <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
             <span>{error}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Submit ────────────────────────────────────────────────────── */}
       <button
         type="submit"
         disabled={submitting || !file}
-        className="w-full bg-primary text-white font-black text-xl py-5 rounded-2xl shadow-md hover:shadow-lg hover:bg-navy transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-primary text-white font-black text-lg py-4 rounded-2xl hover:bg-navy transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {submitting ? (
-          <><Loader2 className="animate-spin" size={20} /> Submitting…</>
-        ) : (
-          <>Submit {amountLabel} payment <ArrowRight size={20} /></>
-        )}
+        {submitting
+          ? <><Loader2 className="animate-spin" size={18} /> Submitting…</>
+          : <>Submit payment proof <ArrowRight size={18} /></>
+        }
       </button>
-
-      <p className="text-xs text-gray-400 text-center">
-        Signed in as <span className="font-semibold">{userEmail}</span>. Submission is linked to your account.
-      </p>
     </form>
   )
 }

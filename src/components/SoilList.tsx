@@ -13,7 +13,7 @@ interface SoilListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SoilList({ userPlan = 'basic', hasAccess = false }: SoilListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate } = useDownloadGate()
   const [layers,      setLayers]      = useState<SoilLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -37,7 +37,7 @@ export default function SoilList({ userPlan = 'basic', hasAccess = false }: Soil
   }, [])
 
   const handleDownload = (layer: SoilLayer) => {
-    guardDownload('max', () => {
+    openGate('max', () => {
       if (!layer.download_url) return
       setDownloading(layer.id)
       window.open(layer.download_url, '_blank')

@@ -16,7 +16,7 @@ interface AquiferListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AquiferList({ userPlan = 'basic', hasFullAccess = false }: AquiferListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -40,14 +40,14 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
     fetchLayers()
   }, [])
 
-  // Always go through guardDownload — even for users without access. The
+  // Always go through openGate — even for users without access. The
   // gate decides whether to show the signup / pay / upgrade modal vs
   // actually starting the download. We DON'T early-return on a missing
   // download_url because that's the entire point of the gate: when the
   // server didn't sign a URL for this user, the gate should pop up the
   // upgrade modal. After they pay and reload, download_url will be present.
   const handleDownload = (layer: AquiferLayer) => {
-    guardDownload('max', () => {
+    openGate('max', () => {
       if (!layer.download_url) return  // edge case — gate already passed but no URL: silently no-op
       setDownloading(layer.id)
       const link = document.createElement('a')

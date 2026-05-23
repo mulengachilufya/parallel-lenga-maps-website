@@ -42,7 +42,7 @@ export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,13 +74,13 @@ export default function AdminBoundariesList({
     fetchBoundaries()
   }, [])
 
-  // ALWAYS go through guardDownload — even when download_url is missing.
+  // ALWAYS go through openGate — even when download_url is missing.
   // A missing URL means the server didn't sign one for this user (no
   // session, no plan, or wrong tier). We WANT the gate to pop up the
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-    guardDownload('basic', () => {
+    openGate('basic', () => {
       if (!boundary.download_url) return
       setDownloading(boundary.id)
       window.open(boundary.download_url, '_blank')
