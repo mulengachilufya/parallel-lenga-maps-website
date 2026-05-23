@@ -24,38 +24,6 @@ import { PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
  *   screenshot     File — jpeg/png/webp, ≤ 5 MB
  *
  * ─────────────────────────────────────────────────────────────────────────
- * SUPABASE TABLE (run once in SQL editor):
- *
- *   CREATE TABLE manual_payments (
- *     id              bigserial PRIMARY KEY,
- *     user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
- *     user_email      varchar(320)  NOT NULL,
- *     user_name       varchar(255),
- *     reference       varchar(32)   UNIQUE NOT NULL,
- *     region          varchar(20)   NOT NULL,
- *     country_name    varchar(120),
- *     plan            varchar(20)   NOT NULL,
- *     account_type    varchar(20)   NOT NULL,
- *     amount_zmw      integer,
- *     amount_usd      integer,
- *     currency        varchar(4)    NOT NULL,
- *     payment_method  varchar(10)   NOT NULL,
- *     sender_phone    varchar(40),
- *     sender_name     varchar(255),
- *     txn_reference   varchar(120),
- *     screenshot_key  varchar(1024) NOT NULL,
- *     status          varchar(20)   NOT NULL DEFAULT 'pending',
- *     admin_note      text,
- *     submitted_at    timestamptz   NOT NULL DEFAULT now(),
- *     verified_at     timestamptz,
- *     verified_by     uuid REFERENCES auth.users(id)
- *   );
- *   CREATE INDEX idx_mp_user      ON manual_payments(user_id);
- *   CREATE INDEX idx_mp_status    ON manual_payments(status);
- *   CREATE INDEX idx_mp_submitted ON manual_payments(submitted_at DESC);
- *
- * ─────────────────────────────────────────────────────────────────────────
- */
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

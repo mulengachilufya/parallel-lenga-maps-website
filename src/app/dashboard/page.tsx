@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Download, Package, ChevronRight, Star, AlertCircle, ArrowLeft, Trash2, X, Clock, Shield, CalendarClock, KeyRound } from 'lucide-react'
-import { supabase, DATASETS, PLAN_PRICING, canAccessDatasetTier, isPlanActive, type AccountType, type DatasetTier, type PlanStatus } from '@/lib/supabase'
+import { supabase, DATASETS, isPlanActive, type DatasetTier, type PlanStatus } from '@/lib/supabase'
+import { getUserState, formatTrialCountdown, trialMsRemaining, getTierLabel, PLANS, PLAN_ORDER, type UserState, type TierSlug } from '@/lib/pricing'
 import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
 import AdminBoundariesList from '@/components/AdminBoundariesList'
 import HydrologyList from '@/components/HydrologyList'
@@ -19,29 +20,20 @@ import ProtectedAreasList from '@/components/ProtectedAreasList'
 import RoadsList from '@/components/RoadsList'
 import SoilList from '@/components/SoilList'
 
-type UserPlan = 'basic' | 'pro' | 'max'
+type UserPlan = TierSlug
 
-// Label + description shown in the "Current Plan" card.
-const PLAN_LABELS: Record<UserPlan, string> = { basic: 'Basic', pro: 'Pro', max: 'Max' }
-const PLAN_BLURBS: Record<UserPlan, string> = {
-  basic: 'Core access',
-  pro: 'Full access',
-  max: 'Maximum access',
-}
 // Note: this is now a thin wrapper around the shared helper. Always pass
 // account_type — Business at any plan level (basic OR pro) gets full data
 // access per the pricing page ("Everything in Max" on Business basic).
 
 interface UserData {
-  email: string
-  name: string
-  // null = user has not picked / paid for any plan yet. The dashboard MUST
-  // check this and not display a stale "Basic plan K25/month" before they
-  // actually paid for anything.
-  plan: UserPlan | null
-  planStatus: PlanStatus
-  planExpiresAt: string | null
-  accountType: AccountType
+  email:           string
+  name:            string
+  plan:            UserPlan | null
+  planStatus:      PlanStatus
+  planExpiresAt:   string | null
+  trialStartedAt:  string | null
+  userState:       UserState
 }
 
 // ── Section registry ────────────────────────────────────────────────────────
@@ -59,65 +51,64 @@ interface UserData {
 const SECTIONS: Record<string, {
   title: string
   subtitle?: string
-  tier: DatasetTier
+  tier: TierSlug
   component: (plan: UserPlan, hasAccess: boolean) => React.ReactNode
 }> = {
-  // ── BASIC tier (4 datasets) ───────────────────────────────────────────────
+
   'admin-boundaries': {
     title: '📍 Administrative Boundaries',
-    tier: 'basic',
+    tier: 'starter',
     component: (plan, hasAccess) => <AdminBoundariesList userPlan={plan} hasAccess={hasAccess} />,
   },
   'rivers': {
     title: '🌊 River Networks',
     subtitle: 'Natural Earth — Rivers (1:10m, significant) · EPSG:4326 · GeoPackage per country',
-    tier: 'basic',
+    tier: 'pro',
     component: (plan, hasAccess) => <RiversList userPlan={plan} hasAccess={hasAccess} />,
   },
   'rainfall': {
     title: '🌧️ Rainfall Data',
     subtitle: 'CHIRPS v2.0 · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
-    tier: 'basic',
+    tier: 'starter',
     component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="rainfall" hasAccess={hasAccess} />,
   },
   'temperature': {
     title: '🌡️ Temperature Data',
     subtitle: 'WorldClim v2.1 · EPSG:4326 · GeoTIFF (ZIP) · 2.5 arc-min (~5 km)',
-    tier: 'basic',
+    tier: 'max',
     component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="temperature" hasAccess={hasAccess} />,
   },
 
-  // ── PRO tier (4 more datasets — 8 cumulative) ─────────────────────────────
   'lakes': {
     title: '🏞️ Lakes',
     subtitle: 'HydroLAKES · EPSG:4326 · ZIP (Shapefile) per country',
-    tier: 'pro',
+    tier: 'max',
     component: (plan, hasAccess) => <HydrologyList userPlan={plan} layerType="lakes" hasAccess={hasAccess} />,
   },
   'lulc': {
     title: '🌿 Land Use / Land Cover',
     subtitle: 'ESA WorldCover 2021 v200 · CC BY 4.0 · EPSG:4326 · GeoTIFF (10 m) per country',
-    tier: 'pro',
+    tier: 'max',
     component: (plan, hasAccess) => <LulcList userPlan={plan} hasAccess={hasAccess} />,
   },
   'drought-index': {
     title: '🔥 Drought Index (SPI-12)',
     subtitle: 'CHIRPS-derived SPI · EPSG:4326 · GeoTIFF (ZIP) · 0.05° (~5 km)',
-    tier: 'pro',
+    tier: 'starter',
     component: (plan, hasAccess) => <RainfallClimateList userPlan={plan} layerType="drought_index" hasAccess={hasAccess} />,
   },
   'watersheds': {
-    title: '🗺️ HydroBASINS - Watershed Boundaries',
+    title: '🗺️ Watersheds & Catchments',
     subtitle: 'WWF / HydroSHEDS Level 6 v1c · CC BY 4.0 · GeoPackage per country',
     tier: 'pro',
     component: (plan, hasAccess) => <WatershedsList userPlan={plan} hasAccess={hasAccess} />,
   },
 
-  // ── MAX tier (everything beyond Pro — 12+ cumulative) ─────────────────────
+
   'roads': {
     title: '🛣️ Roads & Infrastructure',
     subtitle: 'Natural Earth (1:10m, significant roads) · Public Domain · EPSG:4326 · GeoPackage per country',
-    tier: 'max',
+    tier: 'pro',
     component: (plan, hasAccess) => <RoadsList userPlan={plan} hasAccess={hasAccess} />,
   },
   'soil': {
@@ -129,19 +120,19 @@ const SECTIONS: Record<string, {
   'aquifer': {
     title: '💧 Groundwater Aquifers',
     subtitle: 'IGRAC GGIS · CC BY 4.0 · EPSG:4326 · GeoPackage per country',
-    tier: 'max',
+    tier: 'starter',
     component: (plan, hasAccess) => <AquiferList userPlan={plan} hasFullAccess={hasAccess} />,
   },
   'population': {
     title: '🏘️ Population & Settlements',
     subtitle: 'HDX COD-PS (UN OCHA + national census offices) · EPSG:4326 · Shapefile (ZIP) · ADM1/ADM2',
-    tier: 'max',
+    tier: 'pro',
     component: (plan, hasAccess) => <PopulationList userPlan={plan} hasFullAccess={hasAccess} />,
   },
   'protected-areas': {
     title: '🐘 Protected Areas & Wildlife',
     subtitle: 'OpenStreetMap (boundary=protected_area, leisure=nature_reserve) · ODbL · EPSG:4326 · Shapefile (ZIP) per country',
-    tier: 'max',
+    tier: 'starter',
     component: (plan, hasAccess) => <ProtectedAreasList userPlan={plan} hasFullAccess={hasAccess} />,
   },
 }
@@ -179,21 +170,22 @@ function DashboardContent() {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, plan_status, plan_expires_at, account_type, full_name')
+        .select('plan, plan_status, plan_expires_at, trial_started_at, full_name')
         .eq('id', session.user.id)
         .single()
+      const userState = getUserState(
+        profile?.plan,
+        profile?.trial_started_at,
+        profile?.plan_status,
+      )
       setUser({
-        email: session.user.email || '',
-        name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-        // Crucial: do NOT fall back to 'basic'. A null plan means the user
-        // hasn't paid yet — the dashboard renders "No active plan" for that
-        // case. Coercing to 'basic' would re-introduce the bug that made
-        // free signups display as paying Basic customers.
-        plan: (profile?.plan as UserPlan | null) ?? null,
-        // Default to 'free' if the column is missing so we never silently grant access.
-        planStatus: (profile?.plan_status || 'free') as PlanStatus,
-        planExpiresAt: (profile?.plan_expires_at as string | null) ?? null,
-        accountType: (profile?.account_type || session.user.user_metadata?.account_type || 'student') as AccountType,
+        email:          session.user.email || '',
+        name:           profile?.full_name || session.user.user_metadata?.full_name || 'User',
+        plan:           (profile?.plan as UserPlan | null) ?? null,
+        planStatus:     (profile?.plan_status || 'free') as PlanStatus,
+        planExpiresAt:  (profile?.plan_expires_at as string | null) ?? null,
+        trialStartedAt: (profile?.trial_started_at as string | null) ?? null,
+        userState,
       })
       setLoading(false)
 
@@ -248,7 +240,6 @@ function DashboardContent() {
           userEmail:   user?.email,
           userId:      (await supabase.auth.getSession()).data.session?.user.id,
           plan:        user?.plan,
-          accountType: user?.accountType,
           isPaid:      false,
         }),
       })
@@ -272,21 +263,18 @@ function DashboardContent() {
     )
   }
 
-  const userPlan        = user?.plan ?? null
-  const userAccountType = user?.accountType || 'student'
-  // True only when the user has BOTH an active plan AND a tier that grants
-  // access. A free-tier signup (plan === null) hits the false branch and the
-  // dashboard will hide all the "you can download X of Y" stats.
-  const isPlanLive = isPlanActive(user?.planStatus ?? 'free', user?.planExpiresAt)
-  // Per-tier helpers (used by the section cards to decide whether a card
-  // is "unlocked" or shows the upgrade nudge). canAccessDatasetTier already
-  // returns false when plan is null so we don't need to re-check isPlanLive,
-  // but we AND it in anyway to also catch the "expired" case (plan_expires_at
-  // in the past while plan_status is still 'active').
-  const userCanAccess = (tier: DatasetTier): boolean =>
-    isPlanLive && canAccessDatasetTier(userPlan, userAccountType, tier)
-  // For dashboard stat cards: how many of the 12+ datasets can they download?
-  const accessibleDatasets = DATASETS.filter((d) => userCanAccess(d.tier))
+  const userPlan    = user?.plan ?? null
+  const userState   = user?.userState ?? 'free'
+  const isPlanLive  = isPlanActive(user?.planStatus ?? 'free', user?.planExpiresAt)
+  const isTrial     = userState === 'free_trial'
+  const msLeft      = trialMsRemaining(user?.trialStartedAt)
+
+  const userCanAccess = (tier: TierSlug): boolean => {
+    if (isTrial) return true
+    if (!isPlanLive || !userPlan) return false
+    return PLAN_ORDER.indexOf(userPlan) >= PLAN_ORDER.indexOf(tier)
+  }
+  const accessibleDatasets = DATASETS.filter((d) => userCanAccess(d.tier as TierSlug))
 
   // ── Single-section view ─────────────────────────────────────────────────
   const sectionData = section ? SECTIONS[section] : null
@@ -295,7 +283,7 @@ function DashboardContent() {
   // Navbar now handles logo + email + Sign Out + cross-page navigation, so
   // we only render this bar when there's actually a dashboard-only action
   // to surface — otherwise it'd be visually redundant.
-  const showActionBar = !!user && (isAdmin || user.accountType === 'business')
+  const showActionBar = !!user && (isAdmin || userState === 'max' || userState === 'enterprise')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -332,7 +320,7 @@ function DashboardContent() {
                 Users
               </Link>
             )}
-            {user?.accountType === 'business' && (
+            {(userState === 'max' || userState === 'enterprise') && (
               <Link
                 href="/dashboard/api-keys"
                 className="inline-flex items-center gap-1.5 text-xs font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
@@ -491,6 +479,35 @@ function DashboardContent() {
                 submitted a manual payment but it hasn't been verified yet.
                 Surfaces the status outside the DownloadGate modal so they
                 don't have to click Download to see we're processing it. */}
+
+                {/* Trial active banner */}
+            {user && isTrial && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 bg-[#F5B800]/10 border border-[#F5B800]/40 rounded-2xl p-5 flex items-start gap-4"
+              >
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-[#F5B800]/20 flex items-center justify-center">
+                  <Clock size={20} className="text-[#F5B800]" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-black text-navy mb-1">Free trial active</h2>
+                  <p className="text-sm text-gray-700">
+                    Full access to all datasets for <strong>{formatTrialCountdown(user.trialStartedAt)}</strong> more.
+                    {msLeft < 24 * 60 * 60 * 1000 && ' Your trial expires soon — choose a plan to keep access.'}
+                  </p>
+                </div>
+                {msLeft < 24 * 60 * 60 * 1000 && (
+                  <Link
+                    href="/pricing"
+                    className="shrink-0 self-center bg-[#F5B800] text-[#0D2B45] text-xs font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors whitespace-nowrap"
+                  >
+                    Choose a plan
+                  </Link>
+                )}
+              </motion.div>
+            )}
+
             {user?.planStatus === 'pending' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -528,8 +545,10 @@ function DashboardContent() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     className={`rounded-2xl p-6 text-white ${
-                      user.plan === 'max' ? 'bg-purple-600' :
-                      user.plan === 'pro' ? 'bg-accent' :
+                      userState === 'free_trial' ? 'bg-[#F5B800]' :
+                      userState === 'max'        ? 'bg-purple-600' :
+                      userState === 'enterprise' ? 'bg-purple-800' :
+                      userState === 'pro'        ? 'bg-accent' :
                       'gradient-primary'
                     }`}
                   >
@@ -538,27 +557,21 @@ function DashboardContent() {
                       {user.plan === 'pro' && <Star size={16} fill="currentColor" />}
                       {user.plan === 'max' && <Star size={16} fill="currentColor" />}
                     </div>
-                    <div className="text-3xl font-black mb-1">{PLAN_LABELS[user.plan]}</div>
+                    <div className="text-3xl font-black mb-1">{getTierLabel(userState)}</div>
                     <p className="text-sm opacity-80">
-                      {(() => { const p = PLAN_PRICING[user.accountType]?.[user.plan!]; return p ? `K${p.zmw ?? p.usd}` : '—' })()}/month - {PLAN_BLURBS[user.plan]}
+                      {user.plan ? `${PLANS[user.plan as TierSlug]?.priceLabel}/month` : '—'}
                     </p>
-                    <p className="text-xs opacity-60 mt-0.5 capitalize">
-                      {user.accountType} rate
-                    </p>
-                    {user.plan === 'basic' && user.accountType !== 'business' && (
-                      <Link
-                        href="/pricing"
-                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-accent hover:underline"
-                      >
-                        Upgrade to Pro <ChevronRight size={12} />
-                      </Link>
+                    {isTrial && (
+                      <p className="text-xs opacity-80 mt-1">
+                        ⏱ {formatTrialCountdown(user.trialStartedAt)} remaining
+                      </p>
                     )}
-                    {user.plan === 'pro' && user.accountType !== 'business' && (
+                    {user.plan && PLAN_ORDER.indexOf(user.plan) < PLAN_ORDER.length - 1 && (
                       <Link
                         href="/pricing"
                         className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-white hover:underline"
                       >
-                        Upgrade to Max <ChevronRight size={12} />
+                        Upgrade to {getTierLabel(PLAN_ORDER[PLAN_ORDER.indexOf(user.plan) + 1])} <ChevronRight size={12} />
                       </Link>
                     )}
                   </motion.div>
@@ -633,12 +646,8 @@ function DashboardContent() {
               </div>
             )}
 
-            {/* Upgrade-to-Pro banner. Only for users on an ACTIVE Basic plan
-                (and only Student/Professional accounts — Business basic
-                already has full data access by design). Free / pending /
-                expired users see no upgrade prompt here; they get the
-                "No active plan" card above instead. */}
-            {user && isPlanLive && user.plan === 'basic' && user.accountType !== 'business' && (
+          
+            {user && isPlanLive && userPlan && PLAN_ORDER.indexOf(userPlan) < PLAN_ORDER.length - 1 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -648,9 +657,11 @@ function DashboardContent() {
                 <div className="flex items-start gap-3">
                   <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-semibold text-amber-800">Upgrade to Pro for 4 more datasets</p>
+                    <p className="text-sm font-semibold text-amber-800">
+                      Upgrade to {getTierLabel(PLAN_ORDER[PLAN_ORDER.indexOf(userPlan) + 1])} for more datasets
+                    </p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Pro unlocks Lakes, LULC, Drought Index, and Watersheds across all 54 countries — from K{PLAN_PRICING[user.accountType]?.pro?.zmw ?? PLAN_PRICING[user.accountType]?.pro?.usd}/month. Or jump to Max for the full 12+ catalogue.
+                      {PLANS[PLAN_ORDER[PLAN_ORDER.indexOf(userPlan) + 1]]?.features[0]}
                     </p>
                   </div>
                 </div>
