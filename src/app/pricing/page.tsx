@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Download, ArrowRight, ShieldCheck, Star, GraduationCap, Briefcase, Building2, Copy } from 'lucide-react'
+import { Check, Download, ArrowRight, ShieldCheck, Star, Copy } from 'lucide-react'
 import { MtnBadge, AirtelBadge } from '@/components/PaymentProviderIcons'
 import Footer from '@/components/Footer'
-import { supabase, PLAN_PRICING, type AccountType, type PlanPrice } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { PLANS, type TierSlug } from '@/lib/pricing'
 
 // Real mobile-money destinations — kept in sync with ManualPaymentFlow.tsx.
 // These are shown publicly on the pricing page so customers can see exactly
@@ -30,86 +31,58 @@ type PlanDef = {
 
 const basePlans: PlanDef[] = [
   {
-    id: 'basic',
-    name: 'Basic',
-    tagline: 'Starter',
-    description: 'Core African spatial data for your everyday mapping needs.',
+    id: 'starter',
+    name: 'Starter',
+    tagline: 'Perfect Starting Point',
+    description: 'Core environmental datasets for mapping and analysis across Africa.',
     color: '#1E5F8E',
     highlight: false,
     features: [
-      '3 countries of your choice',
-      {
-        main: '4 datasets included',
-        subs: [
-          'Administrative Boundaries',
-          'River Networks',
-          'Rainfall Data',
-          'Temperature Data',
-        ],
-      },
-      'Shapefile & GeoJSON formats',
-      'Standard resolution data',
+      '5 Core Datasets:',
+      '• Administrative Boundaries',
+      '• Aquifers (Groundwater)',
+      '• Drought Index (SPI-12)',
+      '• Rainfall Data',
+      '• Protected Areas',
+      '20 downloads per month',
+      'All 54 African countries',
+      'Shapefile, GeoJSON & GeoTIFF formats',
       'Email support',
-      'Download up to 10 files/month',
     ],
-    cta: 'Get Basic Access',
+    cta: 'Get Starter',
   },
   {
     id: 'pro',
     name: 'Pro',
     tagline: 'Most Popular',
-    description: 'Access to 8 datasets across all 54 countries.',
+    description: 'Expanded access with hydrology, population and infrastructure data.',
     color: '#F5B800',
     highlight: true,
     features: [
+      '9 Datasets Total:',
+      '• Everything in Starter',
+      '• Watersheds & Catchments',
+      '• Population & Settlements',
+      '• River Networks',
+      '• Roads',
+      '80 downloads per month',
       'All 54 African countries',
-      {
-        main: '8 datasets included',
-        subs: [
-          'Admin Boundaries, Rivers, Rainfall, Temperature',
-          'Lakes, LULC',
-          'Drought Index (SPI-12), Watersheds (HydroBASINS)*',
-        ],
-      },
-      '* Watersheds: data being processed, joining shortly',
-      'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
-      'Highest available resolution',
-      'Priority email & WhatsApp support',
-      '25 file downloads/month',
-      'New datasets as they launch',
+      'All formats + priority support',
     ],
-    cta: 'Get Pro Access',
+    cta: 'Get Pro',
   },
   {
     id: 'max',
     name: 'Max',
-    tagline: 'Maximum Power',
-    description: 'Every dataset, every country, unlimited downloads, commercial rights.',
+    tagline: 'Full Power',
+    description: 'Every dataset, unlimited downloads, and API access.',
     color: '#7c3aed',
     highlight: false,
-    features: [
-      'All 54 African countries',
-      {
-        main: 'All 12+ datasets included',
-        subs: [
-          'Everything in Pro (8 datasets)',
-          '+ Aquifers, Population & Settlements',
-          '+ Protected Areas & Wildlife',
-          '+ Roads, Wetlands, Soil, NDVI as they launch',
-        ],
-      },
-      'All formats: Shapefile, GeoJSON, GeoTIFF, KML',
-      'Highest available resolution',
-      'Commercial use licence included',
-      'Bulk & batch download tools',
-      'Unlimited file downloads',
-      'Priority data request queue',
-      'Dedicated WhatsApp support line',
-      'Early access to new datasets',
-    ],
-    cta: 'Get Max Access',
+    features: PLANS.max.features,
+    cta: 'Get Max',
   },
 ]
+
 
 // Two business sub-tiers. Both include 3 team seats and everything in Max.
 //   · Business ($75) — manual dashboard access, no programmatic API
