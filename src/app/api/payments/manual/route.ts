@@ -37,9 +37,6 @@ function extFromMime(mime: string): string {
   return map[mime] ?? 'bin'
 }
 
-function formatMoney(region: Region, usd: number): string {
-  return region === 'zambian' ? `$${usd} USD` : `$${usd}`
-}
 
 async function notifyEmail(args: {
   reference:     string

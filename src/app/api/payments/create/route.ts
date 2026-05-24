@@ -16,21 +16,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { plan, account_type, amount_zmw } = await request.json()
-
-  if (!plan || !account_type) {
-    return NextResponse.json({ error: 'Missing plan or account_type' }, { status: 400 })
+  const { plan } = await request.json()
+  if (!plan) {
+    return NextResponse.json({ error: 'Missing plan' }, { status: 400 })
   }
-
+  if (!['starter','pro','max','enterprise'].includes(plan)) {
+    return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+  }
   const reference = `lm-${randomUUID().replace(/-/g, '').slice(0, 16)}`
-
   const { error } = await serviceSupabase.from('payments').insert({
-    user_id: session.user.id,
+    user_id:  session.user.id,
     reference,
     plan,
-    account_type,
-    amount_zmw: amount_zmw ?? null,
-    status: 'pending',
+    status:   'pending',
   })
 
   if (error) {

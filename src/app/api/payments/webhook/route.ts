@@ -106,7 +106,6 @@ export async function POST(request: NextRequest) {
     .from('profiles')
     .update({
       plan:            payment.plan,
-      account_type:    payment.account_type,
       plan_status:     'active',
       plan_expires_at: expiresAt,
     })

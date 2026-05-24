@@ -13,14 +13,12 @@ const LENCO_BASE = process.env.LENCO_SANDBOX === 'true'
 
 const PLAN_PERIOD_DAYS = 30
 
-/** Activate a user's plan in the profiles table (the source of truth). */
-async function activateProfile(userId: string, plan: string, accountType: string) {
+async function activateProfile(userId: string, plan: string) {
   const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const { error } = await serviceSupabase
     .from('profiles')
     .update({
       plan,
-      account_type:    accountType,
       plan_status:     'active',
       plan_expires_at: expiresAt,
     })
@@ -42,7 +40,6 @@ export async function GET(
 
   const { reference } = await params
 
-  // Ensure this reference belongs to the calling user
   const { data: payment, error: fetchError } = await serviceSupabase
     .from('payments')
     .select('*')
@@ -54,12 +51,10 @@ export async function GET(
     return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
   }
 
-  // Already confirmed (webhook got here first) — return immediately
   if (payment.status === 'successful') {
     return NextResponse.json({ status: 'successful', plan: payment.plan })
   }
 
-  // Poll Lenco for the live status
   const lencoRes = await fetch(`${LENCO_BASE}/collections/status/${reference}`, {
     headers: {
       Authorization: `Bearer ${process.env.LENCO_SECRET_KEY}`,
@@ -73,14 +68,13 @@ export async function GET(
   }
 
   const lencoData = await lencoRes.json()
-  const txStatus   = lencoData?.data?.status as string | undefined
-  const mmDetails  = lencoData?.data?.mobileMoneyDetails as Record<string, string> | undefined
+  const txStatus  = lencoData?.data?.status as string | undefined
+  const mmDetails = lencoData?.data?.mobileMoneyDetails as Record<string, string> | undefined
 
   if (txStatus !== 'successful') {
     return NextResponse.json({ status: txStatus ?? 'pending' })
   }
 
-  // ── Mark payment successful ────────────────────────────────────────────
   const { error: payErr } = await serviceSupabase
     .from('payments')
     .update({
@@ -95,8 +89,7 @@ export async function GET(
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
-  // ── Activate plan in profiles ──────────────────────────────────────────
-  await activateProfile(payment.user_id, payment.plan, payment.account_type)
+  await activateProfile(payment.user_id, payment.plan)
 
   return NextResponse.json({ status: 'successful', plan: payment.plan })
 }
