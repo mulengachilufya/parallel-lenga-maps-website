@@ -21,7 +21,7 @@ const ADMIN_LEVEL_COLORS: Record<number, string> = {
 }
 
 interface AdminBoundariesListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: 'starter' | 'pro' | 'max' | 'enterprise'
   /** Pre-computed by the dashboard: does the caller have an active plan
    *  that unlocks this section's tier? UI hint only — the per-row click
    *  still routes through DownloadGate so unauthorised users get the
@@ -38,7 +38,7 @@ interface GroupedCountry {
 
 export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'enterprise',
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
@@ -80,13 +80,9 @@ export default function AdminBoundariesList({
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-    openGate('basic', () => {
-      if (!boundary.download_url) return
-      setDownloading(boundary.id)
-      window.open(boundary.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+    const handleDownload = (boundary: AdminBoundary) => {
+  // @ts-ignore
+  openGate('starter', () => {
 
   // Group boundaries by country
   const grouped: GroupedCountry[] = Object.values(
