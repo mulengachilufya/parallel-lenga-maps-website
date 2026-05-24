@@ -9,7 +9,7 @@ export default function PricingPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-3 gap-6 items-start">
           {Object.values(PLANS).map((plan, i) => {
-            const priceData = PLANS[plan.id]
+            
 
             return (
               <motion.div
