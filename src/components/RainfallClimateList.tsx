@@ -58,7 +58,7 @@ const GIS_META: Record<string, { source: string; units: string; resolution: stri
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface RainfallClimateListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** When set, fetches and displays ONLY this layer type */
   layerType?: 'rainfall' | 'temperature' | 'drought_index'
   /** UI hint only — Download click still routes through DownloadGate. */
@@ -69,12 +69,12 @@ interface RainfallClimateListProps {
 
 export default function RainfallClimateList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'starter',
   layerType,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RainfallClimateListProps) {
-  const { openGate } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState<string | null>(null)
@@ -109,13 +109,16 @@ export default function RainfallClimateList({
   //   rainfall, temperature → basic
   //   drought_index         → pro
   const handleDownload = (layer: RainfallClimateLayer) => {
-    const tier = layer.layer_type === 'drought_index' ? 'pro' : 'basic'
-    openGate(tier, () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
+    const slug = layer.layer_type === 'drought_index' ? 'drought-index' :
+                 layer.layer_type === 'temperature'   ? 'temperature' : 'rainfall'
+    if (!checkAccess(slug)) {
+      openGate(slug)
+      return
+    }
+    if (!layer.download_url) { openGate(slug); return }
+    setDownloading(layer.id)
+    window.open(layer.download_url, '_blank')
+    setTimeout(() => setDownloading(null), 1000)
   }
 
   const filtered = searchQuery
@@ -234,12 +237,6 @@ export default function RainfallClimateList({
             {filtered.length} file{filtered.length !== 1 ? 's' : ''} shown
           </p>
         </div>
-      )}
-
-      {userPlan === 'basic' && (
-        <p className="text-xs text-gray-400 mt-2">
-          * Upgrade to Pro to unlock all 54 countries and full download access.
-        </p>
       )}
     </div>
   )

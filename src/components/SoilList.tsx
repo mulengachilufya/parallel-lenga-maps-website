@@ -7,13 +7,13 @@ import type { SoilLayer } from '@/app/api/soil/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface SoilListProps {
-  userPlan?:  'basic' | 'pro' | 'max'
+  userPlan?:  string
   hasAccess?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function SoilList({ userPlan = 'basic', hasAccess = false }: SoilListProps) {
-  const { openGate } = useDownloadGate()
+export default function SoilList({ userPlan = 'starter', hasAccess = false }: SoilListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers,      setLayers]      = useState<SoilLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -37,13 +37,12 @@ export default function SoilList({ userPlan = 'basic', hasAccess = false }: Soil
   }, [])
 
   const handleDownload = (layer: SoilLayer) => {
-    openGate('max', () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+  if (!checkAccess('soil')) { openGate('soil'); return }
+  if (!layer.download_url) { openGate('soil'); return }
+  setDownloading(layer.id)
+  window.open(layer.download_url, '_blank')
+  setTimeout(() => setDownloading(null), 1000)
+}
 
   const filtered = searchQuery
     ? layers.filter(l => l.country.toLowerCase().includes(searchQuery.toLowerCase()))

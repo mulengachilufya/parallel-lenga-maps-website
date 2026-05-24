@@ -6,18 +6,18 @@ import type { HydrologyLayer } from '@/app/api/hydrology/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface RiversListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** UI hint only — Download click still routes through DownloadGate. */
   hasAccess?: boolean
 }
 
 export default function RiversList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'starter',
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RiversListProps) {
-  const { openGate } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [rivers, setRivers]           = useState<HydrologyLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -48,13 +48,12 @@ export default function RiversList({
   // the server didn't sign one for this caller (anon / no plan / wrong
   // tier) — openGate's modal is exactly what should happen then.
   const handleDownload = (river: HydrologyLayer) => {
-    openGate('basic', () => {
-      if (!river.download_url) return
-      setDownloading(river.id)
-      window.open(river.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+  if (!checkAccess('rivers')) { openGate('rivers'); return }
+  if (!river.download_url) { openGate('rivers'); return }
+  setDownloading(river.id)
+  window.open(river.download_url, '_blank')
+  setTimeout(() => setDownloading(null), 1000)
+}
 
   const allCountries = Array.from(new Set(rivers.map(r => r.country))).sort()
 
@@ -156,7 +155,7 @@ export default function RiversList({
         </>
       )}
 
-      {userPlan === 'basic' && (
+      {userPlan === 'starter' && (
         <p className="text-xs text-gray-400 mt-2">
           * Upgrade to Pro to unlock all 50 countries and unlimited downloads.
         </p>

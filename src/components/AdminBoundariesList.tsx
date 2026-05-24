@@ -42,7 +42,7 @@ export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
-  const { openGate } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -80,14 +80,15 @@ export default function AdminBoundariesList({
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-  // @ts-expect-error fnvfkvm
-  openGate('starter', () => {
-    if (!boundary.download_url) return
+    if (!checkAccess('admin-boundaries')) {
+      openGate('admin-boundaries')
+      return
+    }
+    if (!boundary.download_url) { openGate('admin-boundaries'); return }
     setDownloading(boundary.id)
     window.open(boundary.download_url, '_blank')
     setTimeout(() => setDownloading(null), 2000)
-  })
-}
+  }
 
   // Group boundaries by country
   const grouped: GroupedCountry[] = Object.values(

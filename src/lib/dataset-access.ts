@@ -88,7 +88,7 @@ export async function callerCanDownloadDataset(slug: DatasetSlug): Promise<boole
  * New routes should call callerCanDownloadDataset(slug) directly.
  */
 export async function callerCanDownloadTier(
-  tier: 'basic' | 'pro' | 'max'
+  tier: string
 ): Promise<boolean> {
   const map: Record<string, DatasetSlug> = {
     basic: 'admin-boundaries',

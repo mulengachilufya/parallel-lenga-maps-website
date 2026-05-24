@@ -7,13 +7,13 @@ import type { RoadLayer } from '@/app/api/roads/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface RoadsListProps {
-  userPlan?:  'basic' | 'pro' | 'max'
+  userPlan?:  string
   hasAccess?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function RoadsList({ userPlan = 'basic', hasAccess = false }: RoadsListProps) {
-  const { openGate } = useDownloadGate()
+export default function RoadsList({ userPlan = 'starter', hasAccess = false }: RoadsListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers,      setLayers]      = useState<RoadLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -37,13 +37,12 @@ export default function RoadsList({ userPlan = 'basic', hasAccess = false }: Roa
   }, [])
 
   const handleDownload = (layer: RoadLayer) => {
-    openGate('max', () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+  if (!checkAccess('roads')) { openGate('roads'); return }
+  if (!layer.download_url) { openGate('roads'); return }
+  setDownloading(layer.id)
+  window.open(layer.download_url, '_blank')
+  setTimeout(() => setDownloading(null), 1000)
+}
 
   const filtered = searchQuery
     ? layers.filter(l =>

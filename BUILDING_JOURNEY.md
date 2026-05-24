@@ -877,7 +877,7 @@ const handleSubmit = async (e) => {
 ### Pattern 3: Tier-Based Access Control
 
 ```typescript
-type UserPlan = 'basic' | 'pro'
+type userPlan = 'starter' | 'pro'
 
 interface AccessControl {
   plan: UserPlan
