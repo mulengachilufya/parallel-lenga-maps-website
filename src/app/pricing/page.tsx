@@ -8,12 +8,12 @@ export default function PricingPage() {
     <section className="py-20 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-3 gap-6 items-start">
-          {Object.values(PLANS).map((plan, i) => {
+          {Object.entries(PLANS).map(([id, plan], i) => {
             
 
             return (
               <motion.div
-                key={plan.id}
+                key={id}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.12 }}
