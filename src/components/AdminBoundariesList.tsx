@@ -80,9 +80,14 @@ export default function AdminBoundariesList({
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-    const handleDownload = (boundary: AdminBoundary) => {
-  // @ts-ignore
+  // @ts-expect-error fnvfkvm
   openGate('starter', () => {
+    if (!boundary.download_url) return
+    setDownloading(boundary.id)
+    window.open(boundary.download_url, '_blank')
+    setTimeout(() => setDownloading(null), 2000)
+  })
+}
 
   // Group boundaries by country
   const grouped: GroupedCountry[] = Object.values(
