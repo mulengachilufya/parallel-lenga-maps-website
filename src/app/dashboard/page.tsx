@@ -222,7 +222,23 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {DATASETS.map((dataset, i) => {
             const isLive = dataset.id in LIVE_DATASET_ROUTES
-            const datasetSlug = dataset.slug as import('@/lib/pricing').DatasetSlug | undefined
+            const ID_TO_SLUG: Record<number, import('@/lib/pricing').DatasetSlug> = {
+  1:  'admin-boundaries',
+  3:  'rivers',
+  4:  'lulc',
+  5:  'drought-index',
+  6:  'aquifer',
+  8:  'population',
+  9:  'roads',
+  11: 'soil',
+  12: 'protected-areas',
+  13: 'rivers',
+  14: 'watersheds',
+  15: 'rainfall',
+  16: 'temperature',
+  17: 'lakes',
+}
+            const datasetSlug = ID_TO_SLUG[dataset.id]
             const minTier = datasetSlug ? DATASET_MIN_TIER[datasetSlug] : null
             const userTier = (!isTrial && !isFree) ? (userState as TierSlug) : isTrial ? 'max' : null
             const hasAccess = isLive && (
