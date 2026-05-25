@@ -213,7 +213,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Datasets section — reuses existing DatasetsPage content inline */}
+        {/* Datasets section */}
         <div className="mb-6">
           <h2 className="text-lg font-bold text-navy mb-1">Browse & Download Datasets</h2>
           <p className="text-sm text-gray-500">Click any dataset to explore country-level files.</p>
@@ -222,6 +222,15 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {DATASETS.map((dataset, i) => {
             const isLive = dataset.id in LIVE_DATASET_ROUTES
+            const datasetSlug = dataset.slug as import('@/lib/pricing').DatasetSlug | undefined
+            const minTier = datasetSlug ? DATASET_MIN_TIER[datasetSlug] : null
+            const userTier = (!isTrial && !isFree) ? (userState as TierSlug) : isTrial ? 'max' : null
+            const hasAccess = isLive && (
+              isTrial ||
+              (userTier !== null && minTier !== null &&
+                PLAN_ORDER.indexOf(userTier) >= PLAN_ORDER.indexOf(minTier))
+            )
+
             return (
               <motion.div
                 key={dataset.id}
@@ -229,7 +238,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.04, 0.4) }}
               >
-                {isLive ? (
+                {hasAccess ? (
                   <Link
                     href={LIVE_DATASET_ROUTES[dataset.id]}
                     className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full"
@@ -249,22 +258,12 @@ export default function DashboardPage() {
                     </div>
                   </Link>
                 ) : (
-                  <div className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full opacity-60">
-                    <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: `${dataset.color}15` }}>
-                          {dataset.icon}
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
-                          <h3 className="text-sm font-bold text-navy leading-tight">{dataset.name}</h3>
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500 leading-relaxed">{dataset.description}</p>
-                      <span className="inline-block mt-3 text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-full">Coming soon</span>
-                    </div>
-                  </div>
+                  <LockedDatasetCard
+                    dataset={dataset}
+                    isLive={isLive}
+                    minTier={minTier}
+                    userState={userState}
+                  />
                 )}
               </motion.div>
             )
