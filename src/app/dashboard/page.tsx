@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [userState,       setUserState]       = useState<UserState>('free')
   const [trialStartedAt,  setTrialStartedAt]  = useState<string | null>(null)
   const [userName,        setUserName]        = useState('')
+  const [userEmail,       setUserEmail]       = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -65,6 +66,7 @@ export default function DashboardPage() {
       setUserState(getUserState(profile?.plan, profile?.trial_started_at, profile?.plan_status))
       setTrialStartedAt(profile?.trial_started_at ?? null)
       setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
+      setUserEmail(session.user.email || '')
       setLoading(false)
     }
     load()
@@ -100,6 +102,17 @@ export default function DashboardPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">All 54 African countries · 15 datasets</p>
         </div>
+
+{userEmail === 'cmulenga672@gmail.com' && (
+  <div className="mb-6">
+    <Link
+      href="/admin"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#1a1a1a', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+    >
+      Admin panel
+    </Link>
+  </div>
+)}
 
         {/* Top row: current plan + upgrade */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
