@@ -290,3 +290,105 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+// ─── Locked dataset card + modal ──────────────────────────────
+const TIER_NAMES: Record<string, string> = {
+  starter:    'Starter ($5/mo)',
+  pro:        'Pro ($12/mo)',
+  max:        'Max ($20/mo)',
+  enterprise: 'Enterprise ($75/mo)',
+}
+
+function isFreeState(state: string) {
+  return state === 'free' || state === 'free_trial'
+}
+
+function LockedDatasetCard({
+  dataset, isLive, minTier, userState,
+}: {
+  dataset: { id: number; icon: string; color: string; category: string; name: string; description: string }
+  isLive: boolean
+  minTier: string | null
+  userState: string
+}) {
+  const [open, setOpen] = useState(false)
+  const showUpgrade = isLive && userState !== 'enterprise'
+  const upgradePlan = minTier ?? 'starter'
+  const message = !isLive
+    ? 'This dataset is coming soon.'
+    : isFreeState(userState)
+      ? `This dataset requires the ${TIER_NAMES[minTier ?? 'starter']} plan or higher.`
+      : `Your current plan doesn't include this dataset. It requires the ${TIER_NAMES[minTier ?? 'starter']} plan.`
+
+  return (
+    <>
+      <button
+        onClick={() => isLive && setOpen(true)}
+        className="group w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full transition-all duration-200 hover:shadow-md"
+        style={{ cursor: isLive ? 'pointer' : 'default' }}
+      >
+        <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 opacity-50" style={{ backgroundColor: `${dataset.color}15` }}>
+              {dataset.icon}
+            </div>
+            <div className="flex-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
+              <h3 className="text-sm font-bold text-navy leading-tight">{dataset.name}</h3>
+            </div>
+            {isLive && minTier && (
+              <span style={{ fontSize: '11px', fontWeight: 600, background: PLAN_STYLE[minTier]?.bg ?? '#f3f4f6', color: PLAN_STYLE[minTier]?.nameColor ?? '#555', border: `1px solid ${PLAN_STYLE[minTier]?.border ?? '#ddd'}`, borderRadius: '20px', padding: '2px 8px', flexShrink: 0 }}>
+                {minTier.charAt(0).toUpperCase() + minTier.slice(1)}+
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 leading-relaxed">{dataset.description}</p>
+          {!isLive
+            ? <span className="inline-block mt-3 text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-full">Coming soon</span>
+            : <span className="inline-block mt-3 text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-full">Locked — tap to upgrade</span>
+          }
+        </div>
+      </button>
+
+      {open && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setOpen(false)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: '16px', padding: '2rem', maxWidth: '380px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '22px', marginBottom: '0.75rem' }}>{dataset.icon}</div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.5rem' }}>{dataset.name}</h3>
+            <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.6, marginBottom: '1.25rem' }}>{message}</p>
+            {minTier && (
+              <div style={{ background: PLAN_STYLE[minTier]?.bg, border: `1px solid ${PLAN_STYLE[minTier]?.border}`, borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: PLAN_STYLE[minTier]?.nameColor, marginBottom: '2px' }}>Required plan</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: PLAN_STYLE[minTier]?.priceColor }}>{TIER_NAMES[minTier]}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {showUpgrade && (
+                <Link
+                  href={`/dashboard/payment?plan=${upgradePlan}`}
+                  style={{ flex: 1, background: PLAN_STYLE[upgradePlan]?.btnBg ?? '#1a1a1a', color: '#fff', borderRadius: '10px', padding: '10px 0', textAlign: 'center', fontSize: '13px', fontWeight: 600, textDecoration: 'none', display: 'block' }}
+                  onClick={() => setOpen(false)}
+                >
+                  Upgrade now
+                </Link>
+              )}
+              <button
+                onClick={() => setOpen(false)}
+                style={{ flex: showUpgrade ? '0 0 auto' : 1, background: '#f3f4f6', color: '#555', borderRadius: '10px', padding: '10px 16px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
