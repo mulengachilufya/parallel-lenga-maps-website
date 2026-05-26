@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
-  PLANS, PLAN_ORDER, getUserState, formatTrialCountdown,
+  PLANS, PLAN_ORDER, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
