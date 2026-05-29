@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { DownloadGateProvider } from '@/contexts/DownloadGateContext'
+import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
   PLANS, PLAN_ORDER, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
   type TierSlug, type UserState
