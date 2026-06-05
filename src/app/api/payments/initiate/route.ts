@@ -31,6 +31,7 @@ function normalisePhone(raw: string): string {
   const digits = raw.replace(/[\s\-().+]/g, '')
   if (digits.startsWith('260')) return digits
   if (digits.startsWith('0') && digits.length === 10) return `26${digits}`
+  if (/^[67]\d{8}$/.test(digits)) return `260${digits}` // 9-digit without leading 0
   return digits
 }
 

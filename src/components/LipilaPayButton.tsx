@@ -37,10 +37,16 @@ type Phase =
 const MAX_POLL_ATTEMPTS = 40   // 40 × 3 s = 2 minutes
 const POLL_INTERVAL_MS  = 3000
 
-/** Basic Zambian phone validation. Accepts 09xxxxxxxx or 260[6|7]xxxxxxxx. */
+/**
+ * Zambian phone validation.
+ * UI shows +260 prefix, so users type the local part without a leading 0.
+ * Accepts:  779187025 (9 digits, no leading 0 — most common)
+ *           0779187025 (10 digits with leading 0)
+ *           260779187025 (full international without +)
+ */
 function isValidPhone(v: string): boolean {
   const d = v.replace(/[\s\-().+]/g, '')
-  return /^(260[67]\d{8}|0[67]\d{8})$/.test(d)
+  return /^(260[67]\d{8}|0[67]\d{8}|[67]\d{8})$/.test(d)
 }
 
 export default function LipilaPayButton({
