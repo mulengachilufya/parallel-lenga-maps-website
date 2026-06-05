@@ -2,7 +2,7 @@
  * GET /api/admin/users/list?status=active|free|pending|expired|all
  *
  * Admin-only. Returns the full user roster joined with profile data
- * (plan, plan_status, plan_expires_at, account_type) plus the email
+ * (plan, plan_status, plan_expires_at, trial_started_at) plus the email
  * from auth.users — the piece the Supabase Auth dashboard alone won't
  * show side-by-side with their plan.
  *
@@ -22,7 +22,7 @@ const service = createClient(
 )
 
 export async function GET(req: NextRequest) {
-  const auth = createServerSupabase()
+  const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
   if (!user || !isAdminEmail(user.email)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   // complexity yet — re-run when the table tops 5k.
   const { data: profiles, error: profErr } = await service
     .from('profiles')
-    .select('id, full_name, account_type, plan, plan_status, plan_expires_at, created_at')
+    .select('id, full_name, plan, plan_status, plan_expires_at, trial_started_at, created_at')
     .order('created_at', { ascending: false })
     .limit(2000)
   if (profErr) {
@@ -74,7 +74,6 @@ export async function GET(req: NextRequest) {
       id:               p.id,
       email,
       full_name:        p.full_name,
-      account_type:     p.account_type,
       plan:             p.plan,
       plan_status:      p.plan_status,
       effective_status,
@@ -95,8 +94,7 @@ export async function GET(req: NextRequest) {
       (r.email || '').toLowerCase().includes(search) ||
       (r.full_name || '').toLowerCase().includes(search) ||
       (r.plan || '').toLowerCase().includes(search) ||
-      (r.account_type || '').toLowerCase().includes(search),
-    )
+   '')
   }
 
   // Summary counts (across all rows, not the filtered slice)

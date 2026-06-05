@@ -9,7 +9,7 @@ import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
 import type { DatasetSource } from '@/lib/supabase'
 
 const DATASET_TIPS: Record<number, string> = {
-  1: 'Ideal for base maps, census planning, and jurisdiction analysis. Use in QGIS or ArcGIS for boundary overlays.',
+  1: 'Ideal for base maps, census planning, and jurisdiction analysis.',
   3: 'Filter by Strahler order to isolate major rivers. Pairs well with rainfall and aquifer data for watershed and flood-risk analysis.',
   4: 'Clipped to exact country boundaries from ESA WorldCover 2021 (10m). Open in QGIS and apply a paletted renderer on the uint8 band — 10 classes from tree cover to built-up. Ideal for change detection, land degradation mapping, and carbon stock assessment.',
   5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
@@ -198,7 +198,7 @@ export default function DatasetsPage() {
                             <Lock size={10} /> Pro
                           </span>
                         )}
-                        {dataset.tier === 'basic' && isLive && (
+                        {dataset.tier === 'starter' && isLive && (
                           <span className="text-xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-full">
                             Free
                           </span>

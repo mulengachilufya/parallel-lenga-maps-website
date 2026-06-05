@@ -7,13 +7,13 @@ import type { HydrologyLayer } from '@/app/api/hydrology/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface WatershedsListProps {
-  userPlan?:  'basic' | 'pro' | 'max'
+  userPlan?:  string
   hasAccess?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function WatershedsList({ userPlan = 'basic', hasAccess = false }: WatershedsListProps) {
-  const { guardDownload } = useDownloadGate()
+export default function WatershedsList({ userPlan = 'starter', hasAccess = false }: WatershedsListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers,      setLayers]      = useState<HydrologyLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -37,14 +37,13 @@ export default function WatershedsList({ userPlan = 'basic', hasAccess = false }
     load()
   }, [])
 
-  const handleDownload = (layer: HydrologyLayer) => {
-    guardDownload('pro', () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+  const handleDownload = (river: HydrologyLayer) => {
+  if (!checkAccess('rivers')) { openGate('rivers'); return }
+  if (!river.download_url) { openGate('rivers'); return }
+  setDownloading(river.id)
+  window.open(river.download_url, '_blank')
+  setTimeout(() => setDownloading(null), 1000)
+}
 
   const filtered = searchQuery
     ? layers.filter(l => l.country.toLowerCase().includes(searchQuery.toLowerCase()))

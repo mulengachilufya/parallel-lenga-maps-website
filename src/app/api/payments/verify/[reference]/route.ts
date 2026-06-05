@@ -26,13 +26,12 @@ const serviceSupabase = createClient(
 const PLAN_PERIOD_DAYS = 30
 
 /** Activate the user's plan (idempotent — safe to call more than once). */
-async function activateProfile(userId: string, plan: string, accountType: string) {
+async function activateProfile(userId: string, plan: string) {
   const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const { error } = await serviceSupabase
     .from('profiles')
     .update({
       plan,
-      account_type:    accountType,
       plan_status:     'active',
       plan_expires_at: expiresAt,
     })
@@ -43,13 +42,13 @@ async function activateProfile(userId: string, plan: string, accountType: string
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { reference: string } }
+  { params }: { params: Promise<{ reference: string }> }
 ) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { reference } = params
+  const { reference } = await params
 
   // Fetch the payment record — must belong to the calling user
   const { data: payment, error: fetchError } = await serviceSupabase
@@ -75,7 +74,7 @@ export async function GET(
   if (payment.status === 'successful') {
     // Webhook may have updated payments but not yet profiles (edge case on
     // server restart). Re-apply the plan activation as a safety net.
-    await activateProfile(payment.user_id, payment.plan, payment.account_type)
+    await activateProfile(payment.user_id, payment.plan)
     return NextResponse.json({ status: 'successful', plan: payment.plan })
   }
 

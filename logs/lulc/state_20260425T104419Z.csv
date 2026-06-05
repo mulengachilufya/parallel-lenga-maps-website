@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Gambia,in_progress,0,,,0.0,,2026-04-25T10:44:24.962538+00:00
+Gambia,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-25T10:44:25.084151+00:00

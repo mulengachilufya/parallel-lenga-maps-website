@@ -4,7 +4,7 @@ create table if not exists payments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   reference text not null unique,          -- unique ID sent to Lenco per transaction
-  plan text not null,                      -- 'basic' | 'pro' | 'max'
+  plan text not null,                      -- string
   account_type text not null,              -- 'student' | 'professional' | 'business'
   amount_zmw numeric(10, 2),
   status text not null default 'pending',  -- 'pending' | 'successful' | 'failed'

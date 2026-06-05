@@ -1,0 +1,43 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Seychelles,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Seychelles_LULC.tif,,0.0,,2026-04-21T14:02:58.160775+00:00
+Sao Tome and Principe,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sao_Tome_and_Principe_LULC.tif,,0.0,,2026-04-21T14:02:58.176802+00:00
+Comoros,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Comoros_LULC.tif,,0.0,,2026-04-21T14:02:58.179120+00:00
+Mauritius,in_progress,0,,,0.0,,2026-04-21T14:02:58.194631+00:00
+Mauritius,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-21T14:03:01.927618+00:00
+Cabo Verde,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Cabo_Verde_LULC.tif,,0.0,,2026-04-21T14:03:01.929319+00:00
+Gambia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gambia_LULC.tif,,0.0,,2026-04-21T14:03:02.110424+00:00
+Eswatini,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eswatini_LULC.tif,,0.0,,2026-04-21T14:03:03.724225+00:00
+Djibouti,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,,0.0,,2026-04-21T14:03:03.727201+00:00
+Rwanda,in_progress,0,,,0.0,,2026-04-21T14:03:03.729317+00:00
+Rwanda,skipped,0,,,0.0,no valid data after per-tile clip,2026-04-21T14:03:03.827910+00:00
+Burundi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burundi_LULC.tif,,0.0,,2026-04-21T14:03:03.829398+00:00
+Equatorial Guinea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Equatorial_Guinea_LULC.tif,,0.0,,2026-04-21T14:03:03.845281+00:00
+Lesotho,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Lesotho_LULC.tif,,0.0,,2026-04-21T14:03:03.861376+00:00
+Guinea-Bissau,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea-Bissau_LULC.tif,,0.0,,2026-04-21T14:03:03.877421+00:00
+Togo,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Togo_LULC.tif,,0.0,,2026-04-21T14:03:03.882657+00:00
+Sierra Leone,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Sierra_Leone_LULC.tif,,0.0,,2026-04-21T14:03:03.885147+00:00
+Liberia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Liberia_LULC.tif,,0.0,,2026-04-21T14:03:03.900041+00:00
+Benin,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Benin_LULC.tif,,0.0,,2026-04-21T14:03:03.906266+00:00
+Eritrea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Eritrea_LULC.tif,,0.0,,2026-04-21T14:03:03.908858+00:00
+Malawi,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Malawi_LULC.tif,,0.0,,2026-04-21T14:03:03.933790+00:00
+Tunisia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Tunisia_LULC.tif,,0.0,,2026-04-21T14:03:05.129322+00:00
+Senegal,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Senegal_LULC.tif,,0.0,,2026-04-21T14:03:05.145751+00:00
+Ghana,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Ghana_LULC.tif,,0.0,,2026-04-21T14:03:05.176783+00:00
+Uganda,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Uganda_LULC.tif,,0.0,,2026-04-21T14:03:05.428524+00:00
+Guinea,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Guinea_LULC.tif,,0.0,,2026-04-21T14:03:05.479115+00:00
+Gabon,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Gabon_LULC.tif,,0.0,,2026-04-21T14:03:05.511977+00:00
+Burkina Faso,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Burkina_Faso_LULC.tif,,0.0,,2026-04-21T14:03:05.524759+00:00
+Zambia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Zambia_LULC.tif,,0.0,,2026-04-21T14:03:06.935651+00:00
+Zimbabwe,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Zimbabwe_LULC.tif,,0.0,,2026-04-21T14:03:06.948044+00:00
+Botswana,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Botswana_LULC.tif,,0.0,,2026-04-21T14:03:06.952043+00:00
+Madagascar,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Madagascar_LULC.tif,,0.0,,2026-04-21T14:03:06.954591+00:00
+Mozambique,in_progress,0,,,0.0,,2026-04-21T14:03:06.956260+00:00
+Mozambique,failed,21,,,0.0,clip: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Muleng Chilufy\\Documents\\My VSCode personal worksace for Lenga Maps\\parallel-lenga-maps-website\\data\\lulc_tiles\\S21E033.clip_tmp.tif',2026-04-21T15:28:48.689751+00:00
+Namibia,skipped,0,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Namibia_LULC.tif,,0.0,,2026-04-21T15:28:48.912593+00:00
+Tanzania,in_progress,0,,,0.0,,2026-04-21T15:28:48.922896+00:00
+Tanzania,done,20,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Tanzania_LULC.tif,lulc/Tanzania/Tanzania_LULC.tif,833.5332,,2026-04-21T16:13:28.915978+00:00
+South Africa,in_progress,0,,,0.0,,2026-04-21T16:13:28.932171+00:00
+South Africa,done,26,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\South_Africa_LULC.tif,lulc/South_Africa/South_Africa_LULC.tif,857.676,,2026-04-21T20:15:29.898829+00:00
+Angola,in_progress,0,,,0.0,,2026-04-21T20:15:29.909481+00:00
+Angola,done,32,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Angola_LULC.tif,lulc/Angola/Angola_LULC.tif,1153.027,,2026-04-22T00:22:00.147515+00:00
+Democratic Republic of the Congo,in_progress,0,,,0.0,,2026-04-22T00:22:00.158279+00:00

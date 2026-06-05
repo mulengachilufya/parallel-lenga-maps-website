@@ -1,0 +1,406 @@
+[16:02:13] =================================================================
+[16:02:13]   Africa LULC Pipeline — ESA WorldCover 2021 v200 (10m)
+[16:02:13]   54 African countries | processing order: smallest → largest
+[16:02:13] =================================================================
+[16:02:13]   Tile cache : C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\data\lulc_tiles
+[16:02:13]   Output dir : C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC
+[16:02:13] 
+Step 1: Loading Africa country boundaries (Natural Earth 10m) ...
+[16:02:13]   [cache hit] Natural Earth countries
+[16:02:54]   Resolved 54 of 54 African countries from Natural Earth
+[16:02:56] 
+Step 2: Processing 54 countries (smallest → largest) ...
+[16:02:56]   State log: C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\logs\lulc\state_20260421T140133Z.csv
+[16:02:56] -----------------------------------------------------------------
+[16:02:57] 
+[01/54] Seychelles
+[16:02:57]     SKIP (resume): Seychelles_LULC.tif already exists
+[16:02:58] 
+[02/54] Sao Tome and Principe
+[16:02:58]     SKIP (resume): Sao_Tome_and_Principe_LULC.tif already exists
+[16:02:58] 
+[03/54] Comoros
+[16:02:58]     SKIP (resume): Comoros_LULC.tif already exists
+[16:02:58] 
+[04/54] Mauritius
+[16:02:58]     bbox [56.52, -20.52, 63.49, -10.32]
+[16:02:58]     tiles to check: 16
+[16:02:58]     tiles with data: 1
+[16:03:01]     NOTE: no valid land pixels found for Mauritius — skipping
+[16:03:01] 
+[05/54] Cabo Verde
+[16:03:01]     SKIP (resume): Cabo_Verde_LULC.tif already exists
+[16:03:02] 
+[06/54] Gambia
+[16:03:02]     SKIP (resume): Gambia_LULC.tif already exists
+[16:03:03] 
+[07/54] Eswatini
+[16:03:03]     SKIP (resume): Eswatini_LULC.tif already exists
+[16:03:03] 
+[08/54] Djibouti
+[16:03:03]     SKIP (resume): Djibouti_LULC.tif already exists
+[16:03:03] 
+[09/54] Rwanda
+[16:03:03]     bbox [28.86, -2.83, 30.89, -1.06]
+[16:03:03]     tiles to check: 2
+[16:03:03]     tiles with data: 2
+[16:03:03]     NOTE: no valid land pixels found for Rwanda — skipping
+[16:03:03] 
+[10/54] Burundi
+[16:03:03]     SKIP (resume): Burundi_LULC.tif already exists
+[16:03:03] 
+[11/54] Equatorial Guinea
+[16:03:03]     SKIP (resume): Equatorial_Guinea_LULC.tif already exists
+[16:03:03] 
+[12/54] Lesotho
+[16:03:03]     SKIP (resume): Lesotho_LULC.tif already exists
+[16:03:03] 
+[13/54] Guinea-Bissau
+[16:03:03]     SKIP (resume): Guinea-Bissau_LULC.tif already exists
+[16:03:03] 
+[14/54] Togo
+[16:03:03]     SKIP (resume): Togo_LULC.tif already exists
+[16:03:03] 
+[15/54] Sierra Leone
+[16:03:03]     SKIP (resume): Sierra_Leone_LULC.tif already exists
+[16:03:03] 
+[16/54] Liberia
+[16:03:03]     SKIP (resume): Liberia_LULC.tif already exists
+[16:03:03] 
+[17/54] Benin
+[16:03:03]     SKIP (resume): Benin_LULC.tif already exists
+[16:03:03] 
+[18/54] Eritrea
+[16:03:03]     SKIP (resume): Eritrea_LULC.tif already exists
+[16:03:03] 
+[19/54] Malawi
+[16:03:03]     SKIP (resume): Malawi_LULC.tif already exists
+[16:03:03] 
+[20/54] Tunisia
+[16:03:03]     SKIP (resume): Tunisia_LULC.tif already exists
+[16:03:05] 
+[21/54] Senegal
+[16:03:05]     SKIP (resume): Senegal_LULC.tif already exists
+[16:03:05] 
+[22/54] Ghana
+[16:03:05]     SKIP (resume): Ghana_LULC.tif already exists
+[16:03:05] 
+[23/54] Uganda
+[16:03:05]     SKIP (resume): Uganda_LULC.tif already exists
+[16:03:05] 
+[24/54] Guinea
+[16:03:05]     SKIP (resume): Guinea_LULC.tif already exists
+[16:03:05] 
+[25/54] Gabon
+[16:03:05]     SKIP (resume): Gabon_LULC.tif already exists
+[16:03:05] 
+[26/54] Burkina Faso
+[16:03:05]     SKIP (resume): Burkina_Faso_LULC.tif already exists
+[16:03:06] 
+[27/54] Zambia
+[16:03:06]     SKIP (resume): Zambia_LULC.tif already exists
+[16:03:06] 
+[28/54] Zimbabwe
+[16:03:06]     SKIP (resume): Zimbabwe_LULC.tif already exists
+[16:03:06] 
+[29/54] Botswana
+[16:03:06]     SKIP (resume): Botswana_LULC.tif already exists
+[16:03:06] 
+[30/54] Madagascar
+[16:03:06]     SKIP (resume): Madagascar_LULC.tif already exists
+[16:03:06] 
+[31/54] Mozambique
+[16:03:06]     bbox [30.21, -26.86, 40.85, -10.47]
+[16:03:06]     tiles to check: 28
+[16:04:47]       tile S27E036: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:07:10]       tile S27E036: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:09:13]       WARNING: tile S27E036 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E036_Map.tif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+[16:11:41]       tile S27E039: attempt 1 failed (SSLError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E039_Map.tif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))) — retry in 2s
+[16:14:36]       tile S27E039: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:17:20]       WARNING: tile S27E039 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E039_Map.tif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))
+[16:18:37]       tile S24E033: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:20:01]       tile S24E033: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:21:05]       WARNING: tile S24E033 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[16:21:41]       tile S24E036: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:22:06]       tile S24E036: ocean/no-data (404) — .null cached
+[16:22:35]       tile S24E039: downloaded (2.1 MB)
+[16:23:40]       tile S21E036: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:24:15]       tile S21E036: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:24:56]       WARNING: tile S21E036 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[16:25:36]       tile S21E039: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:26:05]       tile S21E039: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:26:35]       WARNING: tile S21E039 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[16:27:03]       tile S18E036: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[16:27:30]       tile S18E036: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[16:34:07]       tile S18E036: downloaded (139.8 MB)
+[16:34:48]       tile S18E039: attempt 1 failed (SSLError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S18E039_Map.tif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))) — retry in 2s
+[16:35:15]       tile S18E039: attempt 2 failed (SSLError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S18E039_Map.tif (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)')))) — retry in 4s
+[16:35:49]       WARNING: tile S18E039 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[16:37:45]       tile S12E039: downloaded (58.6 MB)
+[16:37:45]     tiles with data: 21
+[16:41:48]               tile S27E030: clipped (13705×34325 px)
+[16:42:59]               tile S27E033: clipped (29975×17558 px)
+[16:43:57]               tile S24E030: clipped (20652×36000 px)
+[16:44:18]               tile S21E030: clipped (6588×36000 px)
+[16:47:38]               tile S21E033: clipped (36000×36000 px)
+[16:49:29]               tile S18E030: clipped (33403×36000 px)
+[16:51:22]               tile S18E033: clipped (36000×36000 px)
+[16:52:51]               tile S18E036: clipped (36000×36000 px)
+[16:53:14]               tile S15E030: clipped (33436×11025 px)
+[16:56:32]               tile S15E033: clipped (36000×36000 px)
+[16:58:26]               tile S15E036: clipped (36000×36000 px)
+[16:59:20]               tile S15E039: clipped (22178×36000 px)
+[16:59:27]               tile S12E033: clipped (18602×7040 px)
+[16:59:43]               tile S12E036: clipped (36000×10081 px)
+[17:00:00]               tile S12E039: clipped (19861×18374 px)
+[17:28:48]               merged: 127614×196699 px
+[17:28:48]     ERROR: clip-mosaic failed — [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Muleng Chilufy\\Documents\\My VSCode personal worksace for Lenga Maps\\parallel-lenga-maps-website\\data\\lulc_tiles\\S21E033.clip_tmp.tif'
+[17:28:48] 
+[32/54] Namibia
+[17:28:48]     SKIP (resume): Namibia_LULC.tif already exists
+[17:28:48] 
+[33/54] Tanzania
+[17:28:48]     bbox [29.32, -11.73, 40.45, -0.99]
+[17:28:48]     tiles to check: 20
+[17:34:09]       tile S06E036: downloaded (116.0 MB)
+[17:35:19]       tile S06E039: downloaded (24.1 MB)
+[17:35:19]     tiles with data: 20
+[17:35:23]               tile S09E027: clipped (6288×9827 px)
+[17:37:48]               tile S09E030: clipped (36000×36000 px)
+[17:39:42]               tile S09E033: clipped (36000×36000 px)
+[17:41:43]               tile S09E036: clipped (36000×36000 px)
+[17:42:20]               tile S09E039: clipped (10933×36000 px)
+[17:42:48]               tile S06E027: clipped (8149×20718 px)
+[17:48:14]               tile S06E030: clipped (36000×36000 px)
+[17:50:21]               tile S06E033: clipped (36000×36000 px)
+[17:52:21]               tile S06E036: clipped (36000×36000 px)
+[17:52:32]               tile S06E039: clipped (10540×17519 px)
+[17:53:27]               tile S03E030: clipped (31056×24172 px)
+[17:54:24]               tile S03E033: clipped (36000×23977 px)
+[17:54:33]               tile S03E036: clipped (18752×10469 px)
+[18:03:05]               merged: 127082×96172 px
+[18:03:06]     clipped shape: 127082×96172 px
+[18:13:28]     COG finalized → Tanzania_LULC.tif
+[18:13:28]     COG size: 833.53 MB
+[18:13:28]     [skip-r2] R2 upload skipped → lulc/Tanzania/Tanzania_LULC.tif
+[18:13:28]     [dry-run] Supabase: Tanzania
+[18:13:28] 
+[34/54] South Africa
+[18:13:28]     bbox [16.47, -46.97, 37.98, -22.13]
+[18:13:28]     tiles to check: 72
+[18:13:33]       tile S45E015: ocean/no-data (404) — .null cached
+[18:13:35]       tile S45E018: ocean/no-data (404) — .null cached
+[18:13:37]       tile S45E021: ocean/no-data (404) — .null cached
+[18:13:40]       tile S45E024: ocean/no-data (404) — .null cached
+[18:13:42]       tile S45E027: ocean/no-data (404) — .null cached
+[18:13:44]       tile S45E030: ocean/no-data (404) — .null cached
+[18:13:47]       tile S45E033: ocean/no-data (404) — .null cached
+[18:13:49]       tile S45E036: ocean/no-data (404) — .null cached
+[18:13:52]       tile S42E015: ocean/no-data (404) — .null cached
+[18:13:54]       tile S42E018: ocean/no-data (404) — .null cached
+[18:13:56]       tile S42E021: ocean/no-data (404) — .null cached
+[18:13:59]       tile S42E024: ocean/no-data (404) — .null cached
+[18:14:01]       tile S42E027: ocean/no-data (404) — .null cached
+[18:14:04]       tile S42E030: ocean/no-data (404) — .null cached
+[18:14:06]       tile S42E033: ocean/no-data (404) — .null cached
+[18:14:09]       tile S42E036: ocean/no-data (404) — .null cached
+[18:14:11]       tile S39E015: ocean/no-data (404) — .null cached
+[18:14:13]       tile S39E018: ocean/no-data (404) — .null cached
+[18:14:15]       tile S39E021: ocean/no-data (404) — .null cached
+[18:14:18]       tile S39E024: ocean/no-data (404) — .null cached
+[18:14:20]       tile S39E027: ocean/no-data (404) — .null cached
+[18:14:23]       tile S39E030: ocean/no-data (404) — .null cached
+[18:14:25]       tile S39E033: ocean/no-data (404) — .null cached
+[18:14:27]       tile S39E036: ocean/no-data (404) — .null cached
+[18:14:32]       tile S36E015: downloaded (2.0 MB)
+[18:15:06]       tile S36E018: downloaded (58.2 MB)
+[18:15:51]       tile S36E021: downloaded (51.8 MB)
+[18:16:20]       tile S36E024: downloaded (36.3 MB)
+[18:16:31]       tile S36E027: downloaded (5.8 MB)
+[18:16:33]       tile S36E030: ocean/no-data (404) — .null cached
+[18:16:36]       tile S36E033: ocean/no-data (404) — .null cached
+[18:16:38]       tile S36E036: ocean/no-data (404) — .null cached
+[18:16:51]       tile S33E015: downloaded (9.4 MB)
+[18:18:40]       tile S33E018: downloaded (109.3 MB)
+[18:20:28]       tile S33E021: downloaded (131.8 MB)
+[18:23:42]       tile S33E024: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Read timed out.) — retry in 2s
+[18:24:35]       tile S33E024: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:25:27]       WARNING: tile S33E024 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:26:15]       tile S33E027: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:27:07]       tile S33E027: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:28:06]       WARNING: tile S33E027 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:28:57]       tile S33E030: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:29:50]       tile S33E030: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:30:42]       WARNING: tile S33E030 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:31:30]       tile S33E033: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:32:23]       tile S33E033: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:33:18]       WARNING: tile S33E033 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:34:10]       tile S33E036: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:35:24]       tile S33E036: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:36:17]       WARNING: tile S33E036 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:37:12]       tile S30E015: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:38:07]       tile S30E015: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:38:59]       WARNING: tile S30E015 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:39:52]       tile S30E018: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:40:42]       tile S30E018: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:41:41]       WARNING: tile S30E018 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:42:35]       tile S30E021: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:43:25]       tile S30E021: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:44:14]       WARNING: tile S30E021 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:45:08]       tile S30E024: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:45:57]       tile S30E024: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:46:51]       WARNING: tile S30E024 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:47:40]       tile S30E030: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:48:37]       tile S30E030: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:49:33]       WARNING: tile S30E030 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:50:21]       tile S30E033: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[18:51:20]       tile S30E033: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:51:43]       tile S30E033: ocean/no-data (404) — .null cached
+[18:51:44]       tile S30E036: ocean/no-data (404) — .null cached
+[18:53:47]       tile S27E015: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Read timed out.) — retry in 2s
+[18:54:45]       tile S27E015: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[18:55:42]       WARNING: tile S27E015 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[18:55:42]       tile S27E036: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 2s
+[18:55:44]       tile S27E036: attempt 2 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 4s
+[18:55:48]       WARNING: tile S27E036 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S27E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))
+[18:55:48]       tile S24E015: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 2s
+[18:55:50]       tile S24E015: attempt 2 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 4s
+[18:55:54]       WARNING: tile S24E015 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))
+[18:55:54]       tile S24E033: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E033_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 2s
+[18:55:56]       tile S24E033: attempt 2 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E033_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 4s
+[18:56:00]       WARNING: tile S24E033 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S24E033_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))
+[18:56:00]       tile S21E015: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 2s
+[18:56:02]       tile S21E015: attempt 2 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 4s
+[18:56:06]       WARNING: tile S21E015 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E015_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))
+[18:56:06]       tile S21E036: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 2s
+[18:56:08]       tile S21E036: attempt 2 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))) — retry in 4s
+[18:56:12]       WARNING: tile S21E036 failed after 3 attempts — HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Max retries exceeded with url: /v200/2021/map/ESA_WorldCover_10m_2021_v200_S21E036_Map.tif (Caused by NameResolutionError("HTTPSConnection(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Failed to resolve 'esa-worldcover.s3.eu-central-1.amazonaws.com' ([Errno 11001] getaddrinfo failed)"))
+[18:56:12]     tiles with data: 26
+[18:56:13]               tile S36E015: clipped (1348×1839 px)
+[18:57:09]               tile S36E018: clipped (36000×21865 px)
+[18:57:46]               tile S36E021: clipped (36000×17097 px)
+[18:58:10]               tile S36E024: clipped (36000×14470 px)
+[18:58:14]               tile S36E027: clipped (11147×6761 px)
+[18:58:29]               tile S33E015: clipped (10081×36000 px)
+[19:00:07]               tile S33E018: clipped (36000×36000 px)
+[19:01:42]               tile S33E021: clipped (36000×36000 px)
+[21:48:24]               tile S30E027: clipped (36000×36000 px)
+[21:48:48]               tile S27E018: clipped (12224×26972 px)
+[21:49:24]               tile S27E021: clipped (36000×20834 px)
+[21:50:57]               tile S27E024: clipped (36000×36000 px)
+[21:52:15]               tile S27E027: clipped (36000×36000 px)
+[21:53:40]               tile S27E030: clipped (34719×36000 px)
+[21:53:45]               tile S24E024: clipped (1183×4135 px)
+[21:54:17]               tile S24E027: clipped (36000×22484 px)
+[21:54:38]               tile S24E030: clipped (22298×21348 px)
+[22:05:35]               merged: 188800×152349 px
+[22:05:36]     clipped shape: 188800×152349 px
+[22:15:29]     COG finalized → South_Africa_LULC.tif
+[22:15:29]     COG size: 857.68 MB
+[22:15:29]     [skip-r2] R2 upload skipped → lulc/South_Africa/South_Africa_LULC.tif
+[22:15:29]     [dry-run] Supabase: South Africa
+[22:15:29] 
+[35/54] Angola
+[22:15:29]     bbox [11.67, -18.03, 24.06, -4.39]
+[22:15:29]     tiles to check: 36
+[22:15:39]       tile S18E009: downloaded (2.5 MB)
+[22:18:52]       tile S18E012: downloaded (71.1 MB)
+[22:24:56]       tile S18E015: downloaded (119.0 MB)
+[22:24:58]       tile S15E009: ocean/no-data (404) — .null cached
+[22:28:55]       tile S15E012: downloaded (99.6 MB)
+[22:34:38]       tile S15E015: downloaded (136.2 MB)
+[22:34:40]       tile S12E009: ocean/no-data (404) — .null cached
+[22:38:14]       tile S12E012: downloaded (55.2 MB)
+[22:47:03]       tile S12E015: downloaded (137.1 MB)
+[22:53:18]       tile S12E018: downloaded (99.4 MB)
+[22:53:23]       tile S09E009: ocean/no-data (404) — .null cached
+[22:55:58]       tile S09E012: downloaded (59.4 MB)
+[23:02:16]       tile S09E015: downloaded (101.0 MB)
+[23:07:27]       tile S09E018: downloaded (99.3 MB)
+[23:08:07]       tile S06E009: downloaded (8.7 MB)
+[23:11:54]       tile S06E012: downloaded (75.8 MB)
+[23:16:15]       tile S06E015: downloaded (98.5 MB)
+[23:18:39]       tile S06E018: attempt 1 failed (ConnectionError: HTTPSConnectionPool(host='esa-worldcover.s3.eu-central-1.amazonaws.com', port=443): Read timed out.) — retry in 2s
+[23:19:34]       tile S06E018: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[23:21:08]       WARNING: tile S06E018 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[23:22:47]       tile S03E009: downloaded (16.4 MB)
+[23:23:35]       tile S03E012: downloaded (20.8 MB)
+[23:26:02]       tile S03E015: downloaded (42.4 MB)
+[23:26:17]       tile S03E018: downloaded (9.6 MB)
+[23:26:24]       tile S03E021: downloaded (5.4 MB)
+[23:26:37]       tile S03E024: downloaded (10.6 MB)
+[23:26:37]     tiles with data: 32
+[23:26:50]               tile S18E009: clipped (3969×19954 px)
+[23:28:48]               tile S18E012: clipped (36000×29085 px)
+[00:58:36]               tile S18E015: clipped (36000×28671 px)
+[01:00:58]               tile S18E018: clipped (36000×36000 px)
+[01:02:31]               tile S18E021: clipped (28589×36000 px)
+[01:06:15]               tile S15E012: clipped (34184×36000 px)
+[01:10:08]               tile S15E015: clipped (36000×36000 px)
+[01:12:54]               tile S15E018: clipped (36000×36000 px)
+[01:16:13]               tile S15E021: clipped (36000×36000 px)
+[01:16:15]               tile S15E024: clipped (371×9058 px)
+[01:17:30]               tile S12E012: clipped (24093×36000 px)
+[01:20:11]               tile S12E015: clipped (36000×36000 px)
+[01:22:34]               tile S12E018: clipped (36000×36000 px)
+[01:25:05]               tile S12E021: clipped (36000×36000 px)
+[01:25:14]               tile S12E024: clipped (742×6910 px)
+[01:26:55]               tile S09E012: clipped (32701×36000 px)
+[01:29:46]               tile S09E015: clipped (36000×36000 px)
+[01:31:22]               tile S09E018: clipped (36000×25010 px)
+[01:31:41]               tile S09E021: clipped (11329×20609 px)
+[01:32:44]               tile S06E012: clipped (35886×19307 px)
+[01:32:48]               tile S06E015: clipped (19177×1746 px)
+[02:10:53]               merged: 148711×163307 px
+[02:10:54]     clipped shape: 148711×163307 px
+[02:21:59]     COG finalized → Angola_LULC.tif
+[02:22:00]     COG size: 1153.03 MB
+[02:22:00]     [skip-r2] R2 upload skipped → lulc/Angola/Angola_LULC.tif
+[02:22:00]     [dry-run] Supabase: Angola
+[02:22:00] 
+[36/54] Democratic Republic of the Congo
+[02:22:00]     bbox [12.21, -13.46, 31.28, 5.38]
+[02:22:00]     tiles to check: 49
+[02:22:54]       tile S06E018: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:23:43]       tile S06E018: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:24:39]       WARNING: tile S06E018 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:25:30]       tile N00E012: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:26:43]       tile N00E012: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:27:59]       WARNING: tile N00E012 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:28:48]       tile N00E015: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:29:34]       tile N00E015: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:30:27]       WARNING: tile N00E015 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:31:11]       tile N00E018: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:32:01]       tile N00E018: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:33:11]       WARNING: tile N00E018 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:34:01]       tile N00E021: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:34:54]       tile N00E021: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:36:10]       WARNING: tile N00E021 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:36:59]       tile N00E024: attempt 1 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 2s
+[02:37:46]       tile N00E024: attempt 2 failed (ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))) — retry in 4s
+[02:38:41]       WARNING: tile N00E024 failed after 3 attempts — ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+[02:38:41]     tiles with data: 43
+[02:39:13]               tile S12E021: clipped (26498×26996 px)
+[02:40:32]               tile S12E024: clipped (36000×36000 px)
+[02:41:09]               tile S12E027: clipped (21025×36000 px)
+[02:41:11]               tile S09E012: clipped (3351×625 px)
+[02:41:30]               tile S09E015: clipped (16826×25314 px)
+[02:42:13]               tile S09E018: clipped (36000×25337 px)
+[02:43:30]               tile S09E021: clipped (36000×36000 px)
+[02:44:53]               tile S09E024: clipped (36000×36000 px)
+[02:46:16]               tile S09E027: clipped (36000×36000 px)
+[02:46:23]               tile S09E030: clipped (9027×17878 px)
+[02:46:52]               tile S06E012: clipped (33475×20676 px)
+[02:48:13]               tile S06E015: clipped (36000×36000 px)
+[02:49:35]               tile S06E021: clipped (36000×36000 px)
+[02:50:53]               tile S06E024: clipped (36000×36000 px)
+[02:51:54]               tile S06E027: clipped (31351×36000 px)
+[02:52:40]               tile S03E015: clipped (21903×36000 px)
+[02:53:48]               tile S03E018: clipped (36000×36000 px)
+[02:55:03]               tile S03E021: clipped (36000×36000 px)
+[02:56:14]               tile S03E024: clipped (36000×36000 px)
+[02:57:41]               tile S03E027: clipped (32574×36000 px)
+[02:59:05]               tile N00E027: clipped (36000×36000 px)
+[02:59:23]               tile N00E030: clipped (15367×25663 px)
+[03:00:03]               tile N03E018: clipped (29921×25864 px)
+[03:00:39]               tile N03E021: clipped (36000×22451 px)

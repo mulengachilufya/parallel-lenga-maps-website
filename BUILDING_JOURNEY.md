@@ -121,7 +121,7 @@ JWT token in httpOnly cookie
   ↓
 Middleware refreshes on every request
   ↓
-createServerSupabase() for server routes
+await createServerSupabase() for server routes
 ```
 
 ### Database: Supabase PostgreSQL
@@ -272,7 +272,7 @@ User clicks download → Direct R2 → Browser
    if (!session) return redirect('/login')
    ↓
 7. API routes verify session:
-   const { session } = await createServerSupabase()
+   const { session } = await await createServerSupabase()
    if (!session) return 401
 ```
 
@@ -413,7 +413,7 @@ export type UserProfile = {
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
-export function createServerSupabase() {
+export function await createServerSupabase() {
   const cookieStore = cookies()
 
   return createServerClient(
@@ -473,7 +473,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { getDownloadUrl } from '@/lib/r2'
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {
@@ -809,7 +809,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
   // 1. Create server instance (handles cookies)
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
 
   // 2. Check authentication
   const { data: { session } } = await supabase.auth.getSession()
@@ -877,7 +877,7 @@ const handleSubmit = async (e) => {
 ### Pattern 3: Tier-Based Access Control
 
 ```typescript
-type UserPlan = 'basic' | 'pro'
+type userPlan = 'starter' | 'pro'
 
 interface AccessControl {
   plan: UserPlan

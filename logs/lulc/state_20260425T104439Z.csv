@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Djibouti,in_progress,0,,,0.0,,2026-04-25T10:44:42.949861+00:00
+Djibouti,done,4,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Djibouti_LULC.tif,lulc/Djibouti/Djibouti_LULC.tif,3.1925,,2026-04-25T10:45:01.542540+00:00

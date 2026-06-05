@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Loader2, ArrowLeft, Zap, Smartphone, CheckCircle } from 'lucide-react'
-import { supabase, type AccountType, type PlanTier, PLAN_PRICING } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
+import { PLANS, PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import LipilaPayButton from '@/components/LipilaPayButton'
 import ManualPaymentFlow from '@/components/ManualPaymentFlow'
 
@@ -15,16 +16,14 @@ function PaymentPageInner() {
   const router = useRouter()
   const params = useSearchParams()
 
-  const planParam = params.get('plan') as PlanTier | null
-  const typeParam = params.get('type') as AccountType | null
+  const planParam = params.get('plan') as TierSlug | null
 
-  const [loading,     setLoading]     = useState(true)
-  const [plan,        setPlan]        = useState<PlanTier>('basic')
-  const [accountType, setAccountType] = useState<AccountType>('student')
-  const [userEmail,   setUserEmail]   = useState('')
-  const [userName,    setUserName]    = useState('')
-  const [mode,        setMode]        = useState<PaymentMode>('choose')
-  const [paid,        setPaid]        = useState(false)
+  const [loading,   setLoading]   = useState(true)
+  const [plan,      setPlan]      = useState<TierSlug>('starter')
+  const [userEmail, setUserEmail] = useState('')
+  const [userName,  setUserName]  = useState('')
+  const [mode,      setMode]      = useState<PaymentMode>('choose')
+  const [paid,      setPaid]      = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -36,30 +35,21 @@ function PaymentPageInner() {
       }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('plan, account_type, full_name')
+        .select('plan, full_name')
         .eq('id', session.user.id)
         .single()
 
-      const resolvedPlan = (planParam && ['basic', 'pro', 'max'].includes(planParam))
+      const resolvedPlan = (planParam && PLAN_ORDER.includes(planParam))
         ? planParam
-        : ((profile?.plan as PlanTier) || 'basic')
-      const resolvedType = (typeParam && ['student', 'professional', 'business'].includes(typeParam))
-        ? typeParam
-        : ((profile?.account_type as AccountType) || 'student')
-
-      if (!PLAN_PRICING[resolvedType]?.[resolvedPlan]) {
-        router.replace('/pricing')
-        return
-      }
+        : ((profile?.plan as TierSlug) || 'starter')
 
       setPlan(resolvedPlan)
-      setAccountType(resolvedType)
       setUserEmail(session.user.email || '')
       setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
       setLoading(false)
     }
     load()
-  }, [planParam, typeParam, router])
+  }, [planParam, router])
 
   if (loading) {
     return (
@@ -69,12 +59,8 @@ function PaymentPageInner() {
     )
   }
 
-  // Derive display info
-  const priceData  = PLAN_PRICING[accountType]?.[plan]
-  const isZMW      = accountType !== 'business' && !!priceData?.zmw
-  const amount     = isZMW ? (priceData?.zmw ?? 0) : (priceData?.usd ?? 0)
-  const planLabel  = plan.charAt(0).toUpperCase() + plan.slice(1)
-  const priceLabel = isZMW ? `K${amount}` : `$${amount}`
+  const planData   = PLANS[plan]
+  const priceLabel = planData.priceLabel
 
   // ── Success screen ─────────────────────────────────────────────────────
   if (paid) {
@@ -90,7 +76,7 @@ function PaymentPageInner() {
           </div>
           <h2 className="text-2xl font-black text-navy mb-2">Payment confirmed!</h2>
           <p className="text-gray-500 mb-6">
-            Your <strong>{planLabel}</strong> plan is now active.
+            Your <strong>{planData.name}</strong> plan is now active.
             You can download datasets straight away.
           </p>
           <Link
@@ -125,17 +111,32 @@ function PaymentPageInner() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        {/* Plan summary */}
+        {/* Plan switcher */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Paying for</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {PLAN_ORDER.map((s) => (
+              <button
+                key={s}
+                onClick={() => setPlan(s)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  s === plan
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {PLANS[s].name} — {PLANS[s].priceLabel}/mo
+              </button>
+            ))}
+          </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">You are paying for</p>
-              <h2 className="text-2xl font-black text-navy">{planLabel} Plan</h2>
-              <p className="text-sm text-gray-500 mt-0.5 capitalize">{accountType} account · 30-day access</p>
+              <h2 className="text-2xl font-black text-navy">{planData.name} Plan</h2>
+              <p className="text-sm text-gray-500 mt-0.5">30-day access · all 54 African countries</p>
             </div>
             <div className="text-right">
               <span className="text-3xl font-black text-primary">{priceLabel}</span>
-              <span className="text-sm text-gray-400">/month</span>
+              <span className="text-sm text-gray-400"> USD/month</span>
             </div>
           </div>
         </div>
@@ -207,8 +208,8 @@ function PaymentPageInner() {
 
             <LipilaPayButton
               plan={plan}
-              accountType={accountType}
-              amountLabel={priceLabel}
+              accountType="individual"
+              amountLabel={`${priceLabel} USD`}
               email={userEmail}
               onSuccess={() => setPaid(true)}
               onClose={() => setMode('choose')}
@@ -238,9 +239,9 @@ function PaymentPageInner() {
             </button>
             <ManualPaymentFlow
               plan={plan}
-              accountType={accountType}
               userEmail={userEmail}
               userName={userName}
+              onSuccess={() => setPaid(true)}
             />
           </motion.div>
         )}

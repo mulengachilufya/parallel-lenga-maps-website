@@ -20,14 +20,15 @@ import { findDataset, listFilesForDataset, signAll, totalBytes } from '@/lib/api
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApiRequest(req)
   if (!auth.ok) return failureResponse(auth.failure)
 
-  const spec = findDataset(params.id)
+  const { id } = await params
+  const spec = findDataset(id)
   if (!spec) {
     return NextResponse.json(
-      { error: 'dataset_not_found', message: `No dataset with id "${params.id}".` },
+      { error: 'dataset_not_found', message: `No dataset with id "${id}".` },
       { status: 404 },
     )
   }

@@ -89,6 +89,8 @@ export default function Footer() {
               { href: '/pricing', label: 'Download GIS Data' },
               { href: '/contact-us', label: 'Contact Us' },
               { href: '/login', label: 'Login' },
+              { href: '/terms', label: 'Terms & Conditions' },
+              { href: '/refund-policy', label: 'Refund & Delivery Policy' },
             ].map((link) => (
               <Link
                 key={link.href}

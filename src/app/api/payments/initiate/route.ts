@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
-import { PLAN_PRICING, type AccountType, type PlanTier } from '@/lib/supabase'
+import { PLANS, type TierSlug } from '@/lib/pricing'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +35,7 @@ function normalisePhone(raw: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -65,16 +65,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
   }
 
-  // Derive amount from plan + account_type server-side (never trust client amounts)
-  const pricing = PLAN_PRICING[payment.account_type as AccountType]?.[payment.plan as PlanTier]
-  if (!pricing) {
-    return NextResponse.json({ error: 'Unrecognised plan / account_type' }, { status: 400 })
+  // Derive amount from plan server-side (never trust client amounts)
+  const planData = PLANS[payment.plan as TierSlug]
+  if (!planData) {
+    return NextResponse.json({ error: 'Unrecognised plan' }, { status: 400 })
   }
 
-  // Zambian users pay in ZMW; international in USD
-  const hasZMW   = !!pricing.zmw
-  const amount   = hasZMW ? pricing.zmw! : pricing.usd
-  const currency = hasZMW ? 'ZMW' : 'USD'
+  // All prices are in USD
+  const amount   = planData.price
+  const currency = 'USD'
 
   const normPhone = normalisePhone(phone)
 

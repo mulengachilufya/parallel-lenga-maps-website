@@ -8,11 +8,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 // client puts the session in localStorage where server route handlers cannot
 // see it — every authenticated POST (manual payment, admin, etc.) returns
 // 401 even when the user is signed in. createBrowserClient writes the
-// session into the same cookies that `createServerSupabase()` reads.
+// session into the same cookies that `await createServerSupabase()` reads.
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
-export type AccountType = 'student' | 'professional' | 'business'
-export type PlanTier = 'basic' | 'pro' | 'max'
+export type PlanTier = 'starter' | 'pro' | 'max' | 'enterprise'
 
 // plan_status is independent of plan:
 //   - 'free'    : user has an account but has not paid for any plan yet (default)
@@ -22,21 +21,14 @@ export type PlanTier = 'basic' | 'pro' | 'max'
 export type PlanStatus = 'free' | 'pending' | 'active'
 
 export type UserProfile = {
-  id: string
-  email: string
-  account_type: AccountType
-  // null = user has not picked / paid for any plan yet. Brand-new signups
-  // start in this state. Only set to a tier value once admin verifies
-  // payment via /api/admin/payments/verify.
-  plan: PlanTier | null
-  plan_status: PlanStatus
-  // When the current paid period ends. null = never set (pre-migration row
-  // or comped/lifetime account). In the future (> now) = active.
-  // In the past (<= now) = expired — gate treats them as if they never paid.
-  plan_expires_at: string | null
-  created_at: string
+  id:               string
+  email:            string
+  plan:             PlanTier | null
+  plan_status:      PlanStatus
+  plan_expires_at:  string | null
+  trial_started_at: string | null
+  created_at:       string
 }
-
 // Shared helper: is this plan still within its paid window?
 // null expiry means "no expiry set" — treat as valid (e.g. lifetime/comped accounts).
 export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | undefined): boolean {
@@ -53,86 +45,42 @@ export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | 
  *   Tier "pro"    (+4 = 8):      + Lakes, LULC, Drought Index, Watersheds
  *   Tier "max"    (+rest = 12+): + Aquifers, Population, Protected Areas, …
  *
- *   Plan basic → can access tier=basic only
- *   Plan pro   → can access tier=basic and tier=pro
- *   Plan max   → can access everything
- *   Business (any sub-plan) → full access (= max-equivalent), regardless of
- *     whether they're on Business basic ($75) or Business On-site ($225).
- *
- * Use these helpers EVERYWHERE access is decided. Never inline `plan ===
- * 'basic'`-style checks: those silently break Business basic users (who
- * should have full data access despite their plan column being 'basic').
+ *   Plan starter → starter datasets only
+ *   Plan pro     → starter + pro datasets
+ *   Plan max     → all datasets
+ *   Plan enterprise → all datasets + custom sub-country
  */
-export type DatasetTier = 'basic' | 'pro' | 'max'
+export type DatasetTier = 'starter' | 'pro' | 'max' | 'enterprise'
 
-const _planRanks: Record<PlanTier, number> = { basic: 1, pro: 2, max: 3 }
-const _tierRanks: Record<DatasetTier, number> = { basic: 1, pro: 2, max: 3 }
+// Access helpers moved to src/lib/pricing.ts — import from there.
+// These shims keep old call sites compiling during migration.
+import { canAccessDataset, PLAN_ORDER, type TierSlug } from './pricing'
 
-/** Numeric "level" the user has unlocked. 0 = none, 1 = basic, 2 = pro, 3 = max/all. */
-export function planLevel(
-  plan: PlanTier | null | undefined,
-  accountType: AccountType,
-): number {
+export function planLevel(plan: PlanTier | null | undefined): number {
   if (!plan) return 0
-  if (accountType === 'business') return 3 // business at any plan = full access
-  return _planRanks[plan] ?? 0
+  return PLAN_ORDER.indexOf(plan as TierSlug) + 1
 }
 
-/** Can a user with this (plan, account_type) download a file of `datasetTier`? */
 export function canAccessDatasetTier(
   plan: PlanTier | null | undefined,
-  accountType: AccountType,
+  _accountType: unknown,
   datasetTier: DatasetTier,
 ): boolean {
-  return planLevel(plan, accountType) >= _tierRanks[datasetTier]
+  if (!plan) return false
+  const tierToSlug: Record<string, import('./pricing').DatasetSlug> = {
+    starter: 'admin-boundaries',
+    pro:     'watersheds',
+    max:     'lulc',
+    enterprise: 'lulc',
+  }
+  return canAccessDataset(plan as TierSlug, tierToSlug[datasetTier] ?? 'admin-boundaries')
 }
 
-/**
- * Back-compat shim. The old "hasFullDatasetAccess" answered the question
- * "does this user unlock pro+ datasets?". Some call sites still want that
- * boolean. We keep the function signature so existing components compile.
- * For new code prefer canAccessDatasetTier(plan, accountType, 'max').
- */
-export function hasFullDatasetAccess(
-  plan: PlanTier | null | undefined,
-  accountType: AccountType,
-): boolean {
-  return canAccessDatasetTier(plan, accountType, 'pro')
+export function hasFullDatasetAccess(plan: PlanTier | null | undefined): boolean {
+  return canAccessDatasetTier(plan, null, 'pro')
 }
 
-export interface PlanPrice {
-  zmw?: number
-  usd: number
-}
 
-export const PLAN_PRICING: Record<AccountType, Partial<Record<PlanTier, PlanPrice>>> = {
-  student: {
-    basic: { zmw: 25,  usd: 1  },
-    pro:   { zmw: 75,  usd: 4  },
-    max:   { zmw: 200, usd: 10 },
-  },
-  professional: {
-    basic: { zmw: 50,  usd: 3  },
-    pro:   { zmw: 100, usd: 7  },
-    max:   { zmw: 300, usd: 15 },
-  },
-  business: {
-    // Two business sub-tiers (each includes 3 team seats):
-    //   basic ($75) — manual dashboard access, no API
-    //   pro   ($225) — adds REST API + up to 2 on-site visits/year (client
-    //                  covers travel + expenses). Up from the prior $60
-    //                  business price now that the API is real.
-    basic: { usd: 75  },
-    pro:   { usd: 225 },
-  },
-}
-
-export function formatPrice(accountType: AccountType, plan: PlanTier): string {
-  const price = PLAN_PRICING[accountType]?.[plan]
-  if (!price) return '—'
-  if (price.zmw) return `K${price.zmw}`
-  return `$${price.usd}`
-}
 
 // Map of dataset id → dashboard section URL. A dataset appearing here means
 // it has live data the user can actually browse (even without signing in).
@@ -189,7 +137,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile, GeoJSON, KML',
     resolution: '1:50,000 – 1:250,000',
     icon: '🗺️',
-    tier: 'basic',
+    tier: 'starter',
     color: '#1E5F8E',
   },
 
@@ -202,7 +150,7 @@ export const DATASETS: Dataset[] = [
     format: 'ZIP (Shapefile)',
     resolution: '90m hydrological',
     icon: '🌊',
-    tier: 'basic',
+    tier: 'pro',
     color: '#0ea5e9',
   },
   {
@@ -214,7 +162,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF',
     resolution: '10m – 30m',
     icon: '🌿',
-    tier: 'pro',
+    tier: 'max',
     color: '#16a34a',
   },
   {
@@ -226,7 +174,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF (ZIP)',
     resolution: '0.05° (~5km)',
     icon: '🔥',
-    tier: 'pro',
+    tier: 'starter',
     color: '#ea580c',
   },
   {
@@ -238,7 +186,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF (ZIP)',
     resolution: '0.05° (~5km)',
     icon: '🌧️',
-    tier: 'basic',
+    tier: 'starter',
     color: '#2563eb',
   },
   {
@@ -250,7 +198,7 @@ export const DATASETS: Dataset[] = [
     format: 'GeoTIFF (ZIP)',
     resolution: '2.5 arc-min (~5km)',
     icon: '🌡️',
-    tier: 'basic',
+    tier: 'max',
     color: '#dc2626',
   },
   {
@@ -262,21 +210,10 @@ export const DATASETS: Dataset[] = [
     format: 'GeoPackage',
     resolution: '1:1,000,000 – 1:5,000,000',
     icon: '💧',
-    tier: 'max',
+    tier: 'starter',
     color: '#0369a1',
   },
-  {
-    id: 7,
-    name: 'Vegetation & NDVI',
-    category: 'Environment & Climate',
-    description: 'NDVI time series, vegetation health indices, and biomass estimation layers',
-    source: 'MODIS / Landsat',
-    format: 'GeoTIFF, HDF',
-    resolution: '250m – 30m',
-    icon: '🌱',
-    tier: 'max',
-    color: '#15803d',
-  },
+ 
   {
     id: 8,
     name: 'Population & Settlements',
@@ -286,7 +223,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile (ZIP)',
     resolution: 'ADM1 / ADM2',
     icon: '🏘️',
-    tier: 'max',
+    tier: 'pro',
     color: '#dc2626',
     sources: [
       {
@@ -312,7 +249,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile, GeoJSON',
     resolution: 'Vector',
     icon: '🛣️',
-    tier: 'max',
+    tier: 'pro',
     color: '#ea580c',
   },
   {
@@ -348,7 +285,7 @@ export const DATASETS: Dataset[] = [
     format: 'Shapefile (ZIP)',
     resolution: 'Vector',
     icon: '🐘',
-    tier: 'max',
+    tier: 'starter',
     color: '#166534',
     sources: [
       {
@@ -368,12 +305,12 @@ export const DATASETS: Dataset[] = [
     format: 'GeoPackage, GeoJSON',
     resolution: '15 arc-second (~500 m)',
     icon: '🌊',
-    tier: 'basic',
+    tier: 'max',
     color: '#0ea5e9',
   },
   {
     id: 14,
-    name: 'HydroBASINS - Watershed Boundaries',
+    name: 'Watersheds & Catchments',
     category: 'Water & Hydrology',
     description: 'Level 6 watershed polygon delineations for all African countries averaging 2,000–10,000 km² per basin. Per-country GeoPackage files from HydroBASINS v1c.',
     source: 'WWF / HydroSHEDS',
@@ -392,7 +329,7 @@ export const DATASETS: Dataset[] = [
     format: 'ZIP (Shapefile)',
     resolution: 'Vector polygons',
     icon: '🏞️',
-    tier: 'pro',
+    tier: 'max',
     color: '#0ea5e9',
   },
 ]

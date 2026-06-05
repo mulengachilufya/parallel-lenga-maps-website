@@ -7,7 +7,7 @@ import type { ProtectedAreasLayer } from '@/app/api/protected-areas/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface ProtectedAreasListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** Pre-computed by the dashboard: pro/max OR any business plan. We rely
    *  on this rather than rederiving from userPlan, so Business basic users
    *  (who get full data access despite plan='basic') aren't wrongly locked. */
@@ -15,8 +15,8 @@ interface ProtectedAreasListProps {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess = false }: ProtectedAreasListProps) {
-  const { guardDownload } = useDownloadGate()
+export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess = false }: ProtectedAreasListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers,      setLayers]      = useState<ProtectedAreasLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -40,21 +40,23 @@ export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess =
     fetchLayers()
   }, [])
 
-  // Always go through guardDownload — even for users without access. That's
+  // Always go through openGate — even for users without access. That's
   // the entire point of the gate: when the server didn't sign a URL for
   // this user (insufficient plan), the gate pops up the upgrade modal.
   const handleDownload = (layer: ProtectedAreasLayer) => {
-    guardDownload('max', () => {
-      if (!layer.download_url) return  // gate already passed, but URL missing — silently no-op
-      setDownloading(layer.id)
-      const link = document.createElement('a')
-      link.href     = layer.download_url
-      link.download = layer.r2_key.split('/').pop() || 'protected-areas.zip'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setTimeout(() => setDownloading(null), 2000)
-    })
+    if (!checkAccess('protected-areas')) {
+      openGate('protected-areas')
+      return
+    }
+    if (!layer.download_url) { openGate('protected-areas'); return }
+    setDownloading(layer.id)
+    const link = document.createElement('a')
+    link.href     = layer.download_url
+    link.download = layer.r2_key.split('/').pop() || 'protected-areas.zip'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => setDownloading(null), 2000)
   }
 
   const filtered = layers.filter(
@@ -129,7 +131,7 @@ export default function ProtectedAreasList({ userPlan = 'basic', hasFullAccess =
       {/* Country grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((layer, idx) => {
-          const isPro         = !hasFullAccess
+          const isPro = !checkAccess('protected-areas')
           const isDownloading = downloading === layer.id
           const isMarineHeavy = (layer.marine_area_km2 ?? 0) > 0
 

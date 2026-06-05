@@ -7,16 +7,12 @@ import type { AquiferLayer } from '@/app/api/aquifer/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface AquiferListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
-  /** Pre-computed by the dashboard: pro/max OR any business plan. Pass it
-   *  through here instead of recomputing from `userPlan` alone — that
-   *  recomputation will incorrectly lock out Business basic users. */
+  userPlan?: string
   hasFullAccess?: boolean
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function AquiferList({ userPlan = 'basic', hasFullAccess = false }: AquiferListProps) {
-  const { guardDownload } = useDownloadGate()
+export default function AquiferList({ }: AquiferListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -40,31 +36,29 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
     fetchLayers()
   }, [])
 
-  // Always go through guardDownload — even for users without access. The
-  // gate decides whether to show the signup / pay / upgrade modal vs
-  // actually starting the download. We DON'T early-return on a missing
-  // download_url because that's the entire point of the gate: when the
-  // server didn't sign a URL for this user, the gate should pop up the
-  // upgrade modal. After they pay and reload, download_url will be present.
   const handleDownload = (layer: AquiferLayer) => {
-    guardDownload('max', () => {
-      if (!layer.download_url) return  // edge case — gate already passed but no URL: silently no-op
-      setDownloading(layer.id)
-      const link = document.createElement('a')
-      link.href = layer.download_url
-      link.download = layer.r2_key.split('/').pop() || 'aquifer.gpkg'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setTimeout(() => setDownloading(null), 2000)
-    })
+    if (!checkAccess('aquifer')) {
+      openGate('aquifer')
+      return
+    }
+    if (!layer.download_url) {
+      openGate('aquifer')
+      return
+    }
+    setDownloading(layer.id)
+    const link = document.createElement('a')
+    link.href = layer.download_url
+    link.download = layer.r2_key.split('/').pop() || 'aquifer.gpkg'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => setDownloading(null), 2000)
   }
 
   const filtered = layers.filter(
     (l) => l.country.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-3 py-12">
@@ -74,7 +68,6 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
     )
   }
 
-  // ── Error state ────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
@@ -83,22 +76,20 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
     )
   }
 
-  // ── Empty state ────────────────────────────────────────────────────────────
   if (layers.length === 0) {
     return (
       <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-center text-sm text-gray-500">
-        Aquifer data is being processed - check back soon.
+        Aquifer data is being processed — check back soon.
       </div>
     )
   }
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
   const totalFeatures  = layers.reduce((s, l) => s + (l.feature_count || 0), 0)
   const totalConflicts = layers.reduce((s, l) => s + (l.conflict_count || 0), 0)
+  const hasAccess      = checkAccess('aquifer')
 
   return (
     <div>
-      {/* GIS metadata banner */}
       <div className="bg-sky-50 rounded-xl p-4 mb-5 text-xs text-gray-600 grid grid-cols-3 gap-3">
         <div>
           <span className="block text-gray-400 mb-0.5">Source</span>
@@ -114,20 +105,17 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
         </div>
       </div>
 
-      {/* Conflict info */}
       {totalConflicts > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 flex items-start gap-3">
           <AlertTriangle size={16} className="text-amber-600 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-800">
             <span className="font-semibold">{totalConflicts.toLocaleString()}</span> features have source
             conflicts flagged in the <code className="bg-amber-100 px-1 rounded">source_conflict</code> field.
-            These are not errors - they indicate where institutions disagree. Check{' '}
-            <code className="bg-amber-100 px-1 rounded">conflict_notes</code> for details.
+            Check <code className="bg-amber-100 px-1 rounded">conflict_notes</code> for details.
           </p>
         </div>
       )}
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
@@ -135,27 +123,17 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
           placeholder="Search by country name…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl
-                     focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400
-                     placeholder:text-gray-400"
+          className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400 placeholder:text-gray-400"
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
           {filtered.length} of {layers.length}
         </span>
       </div>
 
-      {/* Country grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((layer, idx) => {
-          // `isLocked` = true means the user does NOT have full data access.
-          // Source of truth: hasFullAccess (computed by the dashboard from
-          // plan + account_type so Business basic correctly counts as full).
-          const isLocked = !hasFullAccess
-          // Kept as `isPro` for downstream template compatibility — semantically
-          // it's "user is locked out of this Pro-tier dataset".
-          const isPro = isLocked
           const isDownloading = downloading === layer.id
-          const hasConflicts = (layer.conflict_count || 0) > 0
+          const hasConflicts  = (layer.conflict_count || 0) > 0
 
           return (
             <motion.div
@@ -188,29 +166,23 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
                 </div>
               </div>
 
-              {/* Button is ALWAYS clickable — when the user lacks access
-                  (Pro-tier file as a Basic / free user), the click pops up
-                  the upgrade modal via DownloadGate. Disabling would just
-                  hide the upgrade path. */}
               <button
                 onClick={() => handleDownload(layer)}
                 disabled={isDownloading}
-                className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-colors
-                           ${isPro
-                             ? 'bg-accent/15 text-amber-800 hover:bg-accent/30'
-                             : isDownloading
-                               ? 'bg-green-100 text-green-700'
-                               : 'bg-sky-600 hover:bg-sky-700 text-white'}`}
+                className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-colors ${
+                  !hasAccess
+                    ? 'bg-accent/15 text-amber-800 hover:bg-accent/30'
+                    : isDownloading
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-sky-600 hover:bg-sky-700 text-white'
+                }`}
               >
-                {isPro ? (
-                  <>🔒 Upgrade to download</>
+                {!hasAccess ? (
+                  <>🔒 Subscribe to download</>
                 ) : isDownloading ? (
                   <>✓ Downloading…</>
                 ) : (
-                  <>
-                    <Download size={13} />
-                    Download .gpkg
-                  </>
+                  <><Download size={13} /> Download .gpkg</>
                 )}
               </button>
             </motion.div>
@@ -218,13 +190,12 @@ export default function AquiferList({ userPlan = 'basic', hasFullAccess = false 
         })}
       </div>
 
-      {/* Stats footer */}
       <div className="mt-5 flex flex-wrap gap-4 justify-center text-[11px] text-gray-400">
         <span>{layers.length} countries</span>
         <span>·</span>
         <span>{totalFeatures.toLocaleString()} total features</span>
         <span>·</span>
-        <span>IGRAC GGIS - CC BY 4.0</span>
+        <span>IGRAC GGIS — CC BY 4.0</span>
       </div>
     </div>
   )

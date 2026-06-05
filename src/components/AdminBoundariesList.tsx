@@ -21,7 +21,7 @@ const ADMIN_LEVEL_COLORS: Record<number, string> = {
 }
 
 interface AdminBoundariesListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: 'starter' | 'pro' | 'max' | 'enterprise'
   /** Pre-computed by the dashboard: does the caller have an active plan
    *  that unlocks this section's tier? UI hint only — the per-row click
    *  still routes through DownloadGate so unauthorised users get the
@@ -38,11 +38,11 @@ interface GroupedCountry {
 
 export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'enterprise',
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,18 +74,20 @@ export default function AdminBoundariesList({
     fetchBoundaries()
   }, [])
 
-  // ALWAYS go through guardDownload — even when download_url is missing.
+  // ALWAYS go through openGate — even when download_url is missing.
   // A missing URL means the server didn't sign one for this user (no
   // session, no plan, or wrong tier). We WANT the gate to pop up the
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
   const handleDownload = (boundary: AdminBoundary) => {
-    guardDownload('basic', () => {
-      if (!boundary.download_url) return
-      setDownloading(boundary.id)
-      window.open(boundary.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
+    if (!checkAccess('admin-boundaries')) {
+      openGate('admin-boundaries')
+      return
+    }
+    if (!boundary.download_url) { openGate('admin-boundaries'); return }
+    setDownloading(boundary.id)
+    window.open(boundary.download_url, '_blank')
+    setTimeout(() => setDownloading(null), 2000)
   }
 
   // Group boundaries by country

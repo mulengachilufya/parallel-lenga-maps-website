@@ -91,7 +91,7 @@ async function notifyCustomer(
 }
 
 export async function POST(req: NextRequest) {
-  const auth = createServerSupabase()
+  const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
   if (!user || !isAdminEmail(user.email)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })

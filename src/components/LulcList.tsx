@@ -7,7 +7,7 @@ import type { LulcLayer } from '@/app/api/lulc/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface LulcListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** UI hint only — Download click still routes through DownloadGate. */
   hasAccess?: boolean
 }
@@ -28,11 +28,11 @@ const LULC_CLASSES = [
 
 export default function LulcList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'starter',
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: LulcListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers, setLayers]           = useState<LulcLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -73,19 +73,16 @@ export default function LulcList({
   // ALWAYS route the click through the gate. LULC is now a Pro-tier
   // dataset (4/8/12+ model) — Basic users see the upgrade modal.
   const handleDownload = (layer: LulcLayer) => {
-    guardDownload('pro', () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      const tifName = layer.r2_key.split('/').pop() || 'lulc.tif'
-      triggerDownload(layer.download_url, tifName)
-      // Trigger the sidecar a beat later — back-to-back triggers in some
-      // browsers (Safari especially) collapse into a single download.
-      if (layer.sidecar_url) {
-        setTimeout(() => triggerDownload(layer.sidecar_url!, `${tifName}.aux.xml`), 600)
-      }
-      setTimeout(() => setDownloading(null), 2500)
-    })
+  if (!checkAccess('lulc')) { openGate('lulc'); return }
+  if (!layer.download_url) { openGate('lulc'); return }
+  setDownloading(layer.id)
+  const tifName = layer.r2_key.split('/').pop() || 'lulc.tif'
+  triggerDownload(layer.download_url, tifName)
+  if (layer.sidecar_url) {
+    setTimeout(() => triggerDownload(layer.sidecar_url!, `${tifName}.aux.xml`), 600)
   }
+  setTimeout(() => setDownloading(null), 2500)
+}
 
   const filtered = layers.filter(
     (l) => l.country.toLowerCase().includes(searchQuery.toLowerCase())

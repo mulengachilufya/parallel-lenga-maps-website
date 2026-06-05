@@ -16,7 +16,7 @@ const LAYER_COLORS: Record<string, string> = {
 }
 
 interface HydrologyListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** Pin this list to a specific layer type. Pre-set when invoked from a
    *  dashboard section (e.g. the 'lakes' section pins layerType="lakes"). */
   layerType?: 'rivers' | 'lakes'
@@ -28,12 +28,12 @@ interface HydrologyListProps {
 
 export default function HydrologyList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userPlan = 'basic',
+  userPlan = 'starter',
   layerType: pinnedLayerType,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: HydrologyListProps) {
-  const { guardDownload } = useDownloadGate()
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers, setLayers]         = useState<HydrologyLayer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
@@ -70,16 +70,18 @@ export default function HydrologyList({
     fetch_()
   }, [filterCountry, filterType, pinnedLayerType])
 
-  // ALWAYS go through guardDownload — even when download_url is missing.
+  // ALWAYS go through openGate — even when download_url is missing.
   // Tier required depends on layer_type: rivers=basic, lakes=pro.
   const handleDownload = (layer: HydrologyLayer) => {
-    const tier = layer.layer_type === 'lakes' ? 'pro' : 'basic'
-    guardDownload(tier, () => {
-      if (!layer.download_url) return
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
+    const slug = layer.layer_type === 'lakes' ? 'lakes' : 'rivers'
+    if (!checkAccess(slug)) {
+      openGate(slug)
+      return
+    }
+    if (!layer.download_url) { openGate(slug); return }
+    setDownloading(layer.id)
+    window.open(layer.download_url, '_blank')
+    setTimeout(() => setDownloading(null), 1000)
   }
 
   const uniqueCountries = Array.from(new Set(layers.map(l => l.country))).sort()
@@ -203,7 +205,7 @@ export default function HydrologyList({
         </div>
       )}
 
-      {userPlan === 'basic' && (
+      {userPlan === 'starter' && (
         <p className="text-xs text-gray-400 mt-2">
           * Upgrade to Pro to unlock all 54 countries and full download access.
         </p>

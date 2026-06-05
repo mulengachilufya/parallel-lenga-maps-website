@@ -1,0 +1,3 @@
+country,status,tiles_downloaded,output_file,r2_key,size_mb,error,timestamp
+Mozambique,in_progress,0,,,0.0,,2026-04-25T13:58:50.661646+00:00
+Mozambique,failed,21,C:\Users\Muleng Chilufy\Documents\My VSCode personal worksace for Lenga Maps\parallel-lenga-maps-website\output\LULC\Mozambique_LULC.tif,lulc/Mozambique/Mozambique_LULC.tif,981.1033,"r2_upload: Could not connect to the endpoint URL: ""https://2d7d8cc536086b35e2800be940b02d62.r2.cloudflarestorage.com/gis-data-lenga-maps/lulc/Mozambique/Mozambique_LULC.tif?uploads""",2026-04-25T14:22:10.190001+00:00

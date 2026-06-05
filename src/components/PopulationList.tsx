@@ -7,16 +7,16 @@ import type { PopulationSettlementsLayer } from '@/app/api/population-settlement
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 interface PopulationListProps {
-  userPlan?: 'basic' | 'pro' | 'max'
+  userPlan?: string
   /** Pre-computed by the dashboard: pro/max OR any business plan. Use this
-   *  instead of recomputing from `userPlan === 'basic'` — that recomputation
+   *  instead of recomputing from `userPlan === 'starter'` — that recomputation
    *  silently locks Business basic users out despite their pricing promise. */
   hasFullAccess?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function PopulationList({ userPlan = 'basic', hasFullAccess = false }: PopulationListProps) {
-  const { guardDownload } = useDownloadGate()
+export default function PopulationList({ userPlan = 'starter', hasFullAccess = false }: PopulationListProps) {
+  const { openGate, checkAccess } = useDownloadGate()
   const [layers, setLayers]           = useState<PopulationSettlementsLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -41,18 +41,17 @@ export default function PopulationList({ userPlan = 'basic', hasFullAccess = fal
     fetchLayers()
   }, [])
 
-  // Always go through guardDownload — even when download_url is missing.
+  // Always go through openGate — even when download_url is missing.
   // Missing URL means the API didn't sign one for this user (= they don't
   // have access yet); the gate then pops up the upgrade modal. Early-
   // returning would just leave the user staring at a dead button.
   const handleDownload = (layer: PopulationSettlementsLayer) => {
-    guardDownload('max', () => {
-      if (!layer.download_url) return  // gate passed but no URL: edge case, no-op
-      setDownloading(layer.id)
-      window.open(layer.download_url, '_blank')
-      setTimeout(() => setDownloading(null), 1000)
-    })
-  }
+  if (!checkAccess('population')) { openGate('population'); return }
+  if (!layer.download_url) { openGate('population'); return }
+  setDownloading(layer.id)
+  window.open(layer.download_url, '_blank')
+  setTimeout(() => setDownloading(null), 1000)
+}
 
   const filtered = searchQuery
     ? layers.filter((l) =>

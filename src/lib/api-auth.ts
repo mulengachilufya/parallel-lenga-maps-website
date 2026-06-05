@@ -99,14 +99,14 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
   // even if a key was minted before the tier split.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at, account_type')
+    .select('plan, plan_status, plan_expires_at')
     .eq('id', key.user_id)
     .single()
 
-  if (!profile)                                return { ok: false, failure: { type: 'plan-inactive' } }
-  if (profile.plan_status !== 'active')        return { ok: false, failure: { type: 'plan-inactive' } }
-  if (profile.account_type !== 'business')     return { ok: false, failure: { type: 'plan-inactive' } }
-  if (profile.plan !== 'pro' && profile.plan !== 'max') {
+  if (!profile)                         return { ok: false, failure: { type: 'plan-inactive' } }
+  if (profile.plan_status !== 'active') return { ok: false, failure: { type: 'plan-inactive' } }
+  // API access requires max or enterprise plan
+  if (!['max', 'enterprise'].includes(profile.plan ?? '')) {
     return { ok: false, failure: { type: 'plan-inactive' } }
   }
   if (profile.plan_expires_at &&
@@ -119,7 +119,7 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
     caller: {
       keyId:                 key.id,
       userId:                key.user_id,
-      plan:                  profile.plan ?? 'business',
+      plan:                  profile.plan ?? 'max',
       scopes:                key.scopes ?? [],
       requestsThisMonth:     key.requests_this_month,
       egressBytesThisMonth:  key.egress_bytes_this_month,
@@ -192,7 +192,7 @@ function failureBody(failure: AuthFailure) {
       return {
         status: 403,
         error:  'plan_inactive',
-        message: 'API access requires the active Business — On-site tier ($225/mo). See https://lenga-maps.com/pricing.',
+        message: 'API access requires an active Max or Enterprise plan. See https://lenga-maps.com/pricing.',
       }
     case 'quota-exceeded':
       return {

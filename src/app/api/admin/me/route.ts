@@ -11,7 +11,7 @@ import { isAdminEmail } from '@/lib/admin'
  * can't check it from the browser without this endpoint.
  */
 export async function GET() {
-  const auth = createServerSupabase()
+  const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
   return NextResponse.json({
     isAdmin: !!user && isAdminEmail(user.email),
