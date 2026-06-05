@@ -65,10 +65,21 @@ export default function Navbar() {
   }, [])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    // Optimistic logout: flip the navbar and leave the dashboard NOW so there's
+    // no perceptible lag. The previous version awaited a default (global) signOut
+    // — a network round-trip that revokes the session server-side — before
+    // touching the UI, so on a slow connection the user appeared still signed in
+    // until they refreshed. `scope: 'local'` clears the stored session
+    // immediately (no server round-trip that can hang), and we don't block the
+    // UI on it.
     setEmail(null)
     setMenuOpen(false)
-    router.push('/')
+    router.replace('/')
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch {
+      // Session is already cleared locally; ignore any network error.
+    }
   }
 
   // Hide on /admin (own header). Allowed on /dashboard now.
