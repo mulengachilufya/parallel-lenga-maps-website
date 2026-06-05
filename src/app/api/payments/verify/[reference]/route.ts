@@ -1,3 +1,19 @@
+/**
+ * GET /api/payments/verify/[reference]
+ *
+ * Checks the status of a Lipila payment by looking up our own DB record,
+ * which is updated by the Lipila webhook at /api/payments/webhook.
+ *
+ * Lipila is webhook-first ("your application will only receive a callback
+ * when a transaction succeeds or fails") so we don't poll their API here —
+ * we just read what the webhook already wrote.
+ *
+ * Responses:
+ *   { status: 'pending' }                     — waiting for customer to approve
+ *   { status: 'successful', plan: string }     — plan activated; safe to redirect
+ *   { status: 'failed' }                       — customer rejected / timed out
+ *   { status: 'not_initiated' }                — /initiate was never called
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
@@ -7,13 +23,9 @@ const serviceSupabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const LENCO_BASE = process.env.LENCO_SANDBOX === 'true'
-  ? 'https://sandbox.lenco.co/access/v2'
-  : 'https://api.lenco.co/access/v2'
-
 const PLAN_PERIOD_DAYS = 30
 
-/** Activate a user's plan in the profiles table (the source of truth). */
+/** Activate the user's plan (idempotent — safe to call more than once). */
 async function activateProfile(userId: string, plan: string, accountType: string) {
   const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const { error } = await serviceSupabase
@@ -35,14 +47,11 @@ export async function GET(
 ) {
   const supabase = createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { reference } = params
 
-  // Ensure this reference belongs to the calling user
+  // Fetch the payment record — must belong to the calling user
   const { data: payment, error: fetchError } = await serviceSupabase
     .from('payments')
     .select('*')
@@ -54,49 +63,22 @@ export async function GET(
     return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
   }
 
-  // Already confirmed (webhook got here first) — return immediately
+  // If Lipila was never called we can report that explicitly
+  if (!payment.lipila_reference && payment.status === 'pending') {
+    return NextResponse.json({ status: 'not_initiated' })
+  }
+
+  if (payment.status === 'failed') {
+    return NextResponse.json({ status: 'failed' })
+  }
+
   if (payment.status === 'successful') {
+    // Webhook may have updated payments but not yet profiles (edge case on
+    // server restart). Re-apply the plan activation as a safety net.
+    await activateProfile(payment.user_id, payment.plan, payment.account_type)
     return NextResponse.json({ status: 'successful', plan: payment.plan })
   }
 
-  // Poll Lenco for the live status
-  const lencoRes = await fetch(`${LENCO_BASE}/collections/status/${reference}`, {
-    headers: {
-      Authorization: `Bearer ${process.env.LENCO_SECRET_KEY}`,
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!lencoRes.ok) {
-    console.error('[verify] Lenco returned', lencoRes.status)
-    return NextResponse.json({ error: 'Lenco verification failed' }, { status: 502 })
-  }
-
-  const lencoData = await lencoRes.json()
-  const txStatus   = lencoData?.data?.status as string | undefined
-  const mmDetails  = lencoData?.data?.mobileMoneyDetails as Record<string, string> | undefined
-
-  if (txStatus !== 'successful') {
-    return NextResponse.json({ status: txStatus ?? 'pending' })
-  }
-
-  // ── Mark payment successful ────────────────────────────────────────────
-  const { error: payErr } = await serviceSupabase
-    .from('payments')
-    .update({
-      status:          'successful',
-      operator:        mmDetails?.operator ?? null,
-      lenco_reference: lencoData.data?.lencoReference ?? null,
-    })
-    .eq('reference', reference)
-
-  if (payErr) {
-    console.error('[verify] failed to update payments row:', payErr)
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
-  }
-
-  // ── Activate plan in profiles ──────────────────────────────────────────
-  await activateProfile(payment.user_id, payment.plan, payment.account_type)
-
-  return NextResponse.json({ status: 'successful', plan: payment.plan })
+  // Still pending — client should keep polling
+  return NextResponse.json({ status: 'pending' })
 }

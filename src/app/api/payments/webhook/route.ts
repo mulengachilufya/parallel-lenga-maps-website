@@ -1,105 +1,123 @@
+/**
+ * POST /api/payments/webhook
+ *
+ * Lipila Callback endpoint.
+ *
+ * Lipila fires this URL (passed as the `callbackUrl` header when the
+ * collection is initiated) whenever a payment transitions to a terminal
+ * state — "Successful" or "Failed".
+ *
+ * Payload shape:
+ * {
+ *   referenceId:   string  — Lipila-generated transaction GUID
+ *   currency:      string  — e.g. "ZMW"
+ *   amount:        number
+ *   accountNumber: string  — customer's mobile number
+ *   status:        string  — "Successful" | "Failed"
+ *   paymentType:   string  — "AirtelMoney" | "MTNMoney" | "ZamtelKwacha" | "Card"
+ *   type:          string  — "Collection" | "Disbursement"
+ *   ipAddress:     string
+ *   identifier:    string  — our internal reference (what we sent as `referenceId`)
+ *   message:       string
+ *   externalId?:   string  — MNO transaction ID
+ *   referenceData?:string  — narration
+ * }
+ *
+ * We match on `identifier` (our reference), update the payments row,
+ * then activate the user's plan in profiles.
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createHmac, createHash } from 'crypto'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Lenco signature: SHA256(secret_key) → HMAC-SHA512(payload, hash_key)
-function verifySignature(payload: string, signature: string): boolean {
-  const secret = process.env.LENCO_SECRET_KEY
-  if (!secret) {
-    console.error('[webhook] LENCO_SECRET_KEY not set')
-    return false
-  }
-  const hashKey = createHash('sha256').update(secret).digest('hex')
-  const computed = createHmac('sha512', hashKey).update(payload).digest('hex')
-  return computed === signature
-}
-
 const PLAN_PERIOD_DAYS = 30
 
 export async function POST(request: NextRequest) {
-  const rawBody = await request.text()
-  const signature = request.headers.get('x-lenco-signature') ?? ''
-
-  // Always verify in production. In sandbox, Lenco may not send a valid
-  // signature on every test event — log the mismatch but still process
-  // if sandbox mode is on so manual tests work.
-  const sigOk = verifySignature(rawBody, signature)
-  if (!sigOk) {
-    const isSandbox = process.env.LENCO_SANDBOX === 'true'
-    if (!isSandbox) {
-      console.warn('[webhook] invalid signature — rejecting')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
-    console.warn('[webhook] invalid signature but LENCO_SANDBOX=true — processing anyway')
-  }
-
-  let event: Record<string, unknown>
+  let payload: Record<string, unknown>
   try {
-    event = JSON.parse(rawBody)
+    payload = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const eventName = event.event as string
-  console.log('[webhook] received event:', eventName)
+  const {
+    referenceId:   lipilaReferenceId,
+    identifier:    ourReference,
+    status:        rawStatus,
+    paymentType,
+    externalId,
+    amount,
+    currency,
+  } = payload as Record<string, unknown>
 
-  // Accept both event names Lenco uses for successful collections
-  if (eventName !== 'collection.successful' && eventName !== 'transaction.successful') {
+  console.log('[webhook] Lipila callback received:', {
+    lipilaReferenceId,
+    ourReference,
+    rawStatus,
+    paymentType,
+    amount,
+    currency,
+  })
+
+  if (!ourReference) {
+    // Lipila may send test pings with no identifier — acknowledge silently
+    console.log('[webhook] no identifier in payload — ignoring')
     return NextResponse.json({ received: true })
   }
 
-  const data = (event.data ?? {}) as Record<string, unknown>
-  const reference       = data.reference as string | undefined
-  const lencoReference  = data.lencoReference as string | undefined
-  const status          = data.status as string | undefined
-  const operator        = (data.mobileMoneyDetails as Record<string, unknown>)?.operator as string | undefined
+  // Normalise status: Lipila uses "Successful" / "Failed" (title case)
+  const statusNorm = String(rawStatus ?? '').toLowerCase()
 
-  if (!reference || status !== 'successful') {
-    console.log('[webhook] skipping — no reference or non-successful status:', status)
+  if (statusNorm !== 'successful' && statusNorm !== 'failed') {
+    console.log('[webhook] ignoring intermediate status:', rawStatus)
     return NextResponse.json({ received: true })
   }
 
-  // Fetch the pending payment record
+  // Look up the payment record by our reference
   const { data: payment, error: fetchErr } = await serviceSupabase
     .from('payments')
     .select('*')
-    .eq('reference', reference)
+    .eq('reference', ourReference)
     .single()
 
   if (fetchErr || !payment) {
-    console.error('[webhook] payment not found for reference:', reference)
+    console.error('[webhook] payment not found for identifier:', ourReference)
+    // Acknowledge anyway so Lipila doesn't keep retrying for a record we'll never have
     return NextResponse.json({ received: true })
   }
 
   if (payment.status === 'successful') {
-    console.log('[webhook] already processed, skipping duplicate')
+    console.log('[webhook] already processed, skipping duplicate for:', ourReference)
     return NextResponse.json({ received: true })
   }
 
-  // ── 1. Update the payments row ──────────────────────────────────────────
+  const newStatus = statusNorm === 'successful' ? 'successful' : 'failed'
+
+  // ── 1. Update payments row ───────────────────────────────────────────────
   const { error: payErr } = await serviceSupabase
     .from('payments')
     .update({
-      status:          'successful',
-      operator:        operator ?? null,
-      lenco_reference: lencoReference ?? null,
+      status:           newStatus,
+      operator:         paymentType ?? null,
+      lipila_reference: lipilaReferenceId ?? null,
     })
-    .eq('reference', reference)
+    .eq('reference', ourReference)
 
   if (payErr) {
     console.error('[webhook] failed to update payments row:', payErr)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
-  // ── 2. Activate the user's plan in profiles ─────────────────────────────
-  // This is the source of truth the dashboard reads. updateUserById only
-  // writes to auth.users.user_metadata which is NOT what gateDownload or
-  // callerCanDownloadTier checks — they all read profiles.
+  if (newStatus !== 'successful') {
+    console.log('[webhook] payment failed for:', ourReference, '| externalId:', externalId)
+    return NextResponse.json({ received: true })
+  }
+
+  // ── 2. Activate the user's plan in profiles ──────────────────────────────
   const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
   const { error: profErr } = await serviceSupabase
@@ -114,10 +132,16 @@ export async function POST(request: NextRequest) {
 
   if (profErr) {
     console.error('[webhook] failed to update profiles:', profErr)
-    // Don't return 500 — the payments row is already updated. We'll rely
-    // on the verify endpoint to backfill profiles if the user polls it.
+    // Don't return 500 — payments row is already marked successful.
+    // The verify endpoint will re-apply activation on next poll.
   } else {
-    console.log('[webhook] plan activated for user:', payment.user_id, '| plan:', payment.plan)
+    console.log('[webhook] plan activated:', {
+      userId:  payment.user_id,
+      plan:    payment.plan,
+      type:    payment.account_type,
+      via:     paymentType,
+      mno_ref: externalId ?? 'n/a',
+    })
   }
 
   return NextResponse.json({ received: true })
