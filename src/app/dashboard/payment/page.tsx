@@ -211,6 +211,7 @@ function PaymentPageInner() {
               accountType="individual"
               amountLabel={`${priceLabel} USD`}
               email={userEmail}
+              name={userName}
               onSuccess={() => setPaid(true)}
               onClose={() => setMode('choose')}
               className="bg-primary text-white hover:bg-navy"

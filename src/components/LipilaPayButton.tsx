@@ -3,46 +3,43 @@
 /**
  * LipilaPayButton
  *
- * Handles the full Lipila Mobile Money payment flow:
- *   1. Collects the customer's phone number
- *   2. POST /api/payments/create → get a unique reference
- *   3. POST /api/payments/initiate (with phone) → Lipila STK push sent to phone
- *   4. Shows "Check your phone" holding screen while polling
- *   5. Polls /api/payments/verify/{reference} every 3 s
- *   6. On confirmed → calls onSuccess()
+ * Two payment methods in one component:
  *
- * Unlike Lenco there is no external widget script — everything is server-side.
+ * MoMo tab:
+ *   1. Phone number form
+ *   2. POST /api/payments/create → POST /api/payments/initiate (STK push)
+ *   3. Poll /api/payments/verify until confirmed
+ *
+ * Card tab (Visa / Mastercard):
+ *   1. POST /api/payments/create → POST /api/payments/initiate-card
+ *   2. Redirect to Lipila's hosted card page (cardRedirectionUrl)
+ *   3. Lipila redirects back to /dashboard/payment/complete after payment
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { Loader2, Smartphone, AlertCircle } from 'lucide-react'
+import { Loader2, Smartphone, CreditCard, AlertCircle } from 'lucide-react'
 
 interface LipilaPayButtonProps {
   plan:        string
   accountType: string
-  /** Display-only amount label e.g. "K50" or "$15" */
   amountLabel: string
   email:       string
+  name?:       string
   onSuccess:   () => void
   onClose?:    () => void
   className?:  string
 }
 
-type Phase =
-  | 'idle'      // showing phone form
-  | 'loading'   // creating record + calling Lipila
-  | 'polling'   // STK push sent, waiting for customer
-  | 'error'     // something went wrong
+type Tab   = 'momo' | 'card'
+type Phase = 'idle' | 'loading' | 'polling' | 'error'
 
-const MAX_POLL_ATTEMPTS = 40   // 40 × 3 s = 2 minutes
+const MAX_POLL_ATTEMPTS = 40
 const POLL_INTERVAL_MS  = 3000
 
 /**
  * Zambian phone validation.
- * UI shows +260 prefix, so users type the local part without a leading 0.
- * Accepts:  779187025 (9 digits, no leading 0 — most common)
- *           0779187025 (10 digits with leading 0)
- *           260779187025 (full international without +)
+ * UI shows +260 prefix, so users type without a leading 0.
+ * Accepts: 779187025 (9 digits) | 0779187025 (10 digits) | 260779187025 (12 digits)
  */
 function isValidPhone(v: string): boolean {
   const d = v.replace(/[\s\-().+]/g, '')
@@ -53,28 +50,35 @@ export default function LipilaPayButton({
   plan,
   accountType,
   amountLabel,
+  email,
+  name = '',
   onSuccess,
   onClose,
   className = '',
 }: LipilaPayButtonProps) {
+  const [tab,      setTab]      = useState<Tab>('momo')
   const [phase,    setPhase]    = useState<Phase>('idle')
   const [phone,    setPhone]    = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const pollRef  = useRef<NodeJS.Timeout | null>(null)
   const phoneRef = useRef<HTMLInputElement>(null)
 
-  // Cleanup polling on unmount
   useEffect(() => () => {
     if (pollRef.current) clearTimeout(pollRef.current)
   }, [])
 
-  // ── Polling ─────────────────────────────────────────────────────────────
+  // Reset state when switching tabs
+  function switchTab(t: Tab) {
+    setTab(t)
+    setPhase('idle')
+    setErrorMsg('')
+  }
+
+  // ── MoMo polling ────────────────────────────────────────────────────────
   function startPolling(reference: string, attempt = 0) {
     if (attempt >= MAX_POLL_ATTEMPTS) {
       setPhase('error')
-      setErrorMsg(
-        'Verification timed out. If you approved the payment it will activate within a few minutes — check your dashboard.'
-      )
+      setErrorMsg('Verification timed out. If you approved, it will activate within a few minutes — check your dashboard.')
       return
     }
     pollRef.current = setTimeout(async () => {
@@ -95,8 +99,25 @@ export default function LipilaPayButton({
     }, POLL_INTERVAL_MS)
   }
 
-  // ── Submit handler ───────────────────────────────────────────────────────
-  async function handleSubmit(e: React.FormEvent) {
+  // ── Create payment record (shared) ──────────────────────────────────────
+  async function createRecord(): Promise<string | null> {
+    try {
+      const res = await fetch('/api/payments/create', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ plan, account_type: accountType }),
+      })
+      if (!res.ok) throw new Error('create failed')
+      return (await res.json()).reference as string
+    } catch {
+      setPhase('error')
+      setErrorMsg('Could not start payment. Please try again.')
+      return null
+    }
+  }
+
+  // ── MoMo submit ─────────────────────────────────────────────────────────
+  async function handleMomoSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!isValidPhone(phone)) {
       setErrorMsg('Please enter a valid Zambian mobile number (MTN or Airtel).')
@@ -107,30 +128,16 @@ export default function LipilaPayButton({
     setPhase('loading')
     setErrorMsg('')
 
-    // Step 1 — create a pending payment record
-    let reference: string
-    try {
-      const res = await fetch('/api/payments/create', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ plan, account_type: accountType }),
-      })
-      if (!res.ok) throw new Error('create failed')
-      reference = (await res.json()).reference as string
-    } catch {
-      setPhase('error')
-      setErrorMsg('Could not start payment. Please try again.')
-      return
-    }
+    const reference = await createRecord()
+    if (!reference) return
 
-    // Step 2 — trigger STK push via Lipila
     try {
-      const res = await fetch('/api/payments/initiate', {
+      const res  = await fetch('/api/payments/initiate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ reference, phone }),
       })
-      const data = await res.json() as { status?: string; error?: string }
+      const data = await res.json() as { error?: string }
       if (!res.ok || data.error) {
         setPhase('error')
         setErrorMsg(data.error ?? 'Could not send payment request. Check your number and try again.')
@@ -142,12 +149,43 @@ export default function LipilaPayButton({
       return
     }
 
-    // Step 3 — wait for customer approval
     setPhase('polling')
     startPolling(reference)
   }
 
-  // ── Polling / waiting screen ─────────────────────────────────────────────
+  // ── Card submit ──────────────────────────────────────────────────────────
+  async function handleCardClick() {
+    setPhase('loading')
+    setErrorMsg('')
+
+    const reference = await createRecord()
+    if (!reference) return
+
+    try {
+      const res  = await fetch('/api/payments/initiate-card', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ reference, name }),
+      })
+      const data = await res.json() as { cardRedirectionUrl?: string; error?: string }
+      if (!res.ok || data.error) {
+        setPhase('error')
+        setErrorMsg(data.error ?? 'Could not start card payment. Please try again.')
+        return
+      }
+      if (data.cardRedirectionUrl) {
+        window.location.href = data.cardRedirectionUrl
+        return
+      }
+      setPhase('error')
+      setErrorMsg('No redirect URL returned. Please try again.')
+    } catch {
+      setPhase('error')
+      setErrorMsg('Could not reach payment provider. Check your connection and try again.')
+    }
+  }
+
+  // ── Polling screen (MoMo only) ───────────────────────────────────────────
   if (phase === 'polling') {
     return (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
@@ -162,14 +200,12 @@ export default function LipilaPayButton({
             Approve it to activate your plan.
           </p>
         </div>
-        <p className="text-xs text-gray-400 mt-1">
-          Waiting for confirmation — this usually takes under 30 seconds…
-        </p>
+        <p className="text-xs text-gray-400 mt-1">Waiting for confirmation — usually under 30 seconds…</p>
       </div>
     )
   }
 
-  // ── Error screen ─────────────────────────────────────────────────────────
+  // ── Error screen ──────────────────────────────────────────────────────────
   if (phase === 'error') {
     return (
       <div className="flex flex-col gap-3">
@@ -184,10 +220,7 @@ export default function LipilaPayButton({
           Try again
         </button>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="w-full text-sm text-gray-500 hover:text-primary py-1"
-          >
+          <button onClick={onClose} className="w-full text-sm text-gray-500 hover:text-primary py-1">
             ← Choose a different method
           </button>
         )}
@@ -195,56 +228,109 @@ export default function LipilaPayButton({
     )
   }
 
-  // ── Phone form (idle / loading) ──────────────────────────────────────────
+  // ── Tab selector + forms ──────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div>
-        <label htmlFor="lipila-phone" className="block text-sm font-semibold text-gray-700 mb-1.5">
-          Mobile money number
-        </label>
-        <div className="flex items-center gap-2 border-2 border-gray-200 focus-within:border-primary rounded-xl px-4 py-3 transition-colors bg-white">
-          <span className="text-sm font-medium text-gray-500 shrink-0">+260</span>
-          <input
-            id="lipila-phone"
-            ref={phoneRef}
-            type="tel"
-            inputMode="numeric"
-            placeholder="97 123 4567"
-            value={phone}
-            onChange={(e) => { setPhone(e.target.value); setErrorMsg('') }}
-            disabled={phase === 'loading'}
-            className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400 disabled:opacity-50"
-            autoComplete="tel"
-          />
-        </div>
-        {errorMsg && (
-          <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
-            <AlertCircle size={12} />
-            {errorMsg}
-          </p>
-        )}
-        <p className="text-xs text-gray-400 mt-1.5">
-          MTN or Airtel Money — you&apos;ll get a prompt to approve on your phone
-        </p>
+    <div className="flex flex-col gap-4">
+      {/* Tab switcher */}
+      <div className="flex rounded-xl border border-gray-200 overflow-hidden text-sm font-semibold">
+        <button
+          type="button"
+          onClick={() => switchTab('momo')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 transition-colors ${
+            tab === 'momo'
+              ? 'bg-primary text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <Smartphone size={15} /> Mobile Money
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('card')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 transition-colors border-l border-gray-200 ${
+            tab === 'card'
+              ? 'bg-primary text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <CreditCard size={15} /> Visa / Mastercard
+        </button>
       </div>
 
-      <button
-        type="submit"
-        disabled={phase === 'loading' || !phone.trim()}
-        className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 ${className}`}
-      >
-        {phase === 'loading' ? (
-          <>
-            <Loader2 size={18} className="animate-spin" />
-            Sending payment request…
-          </>
-        ) : (
-          <>
-            <Smartphone size={18} />
-            Pay {amountLabel} with MoMo
-          </>
-        )}
-      </button>
-    </form>
+      {/* MoMo form */}
+      {tab === 'momo' && (
+        <form onSubmit={handleMomoSubmit} className="flex flex-col gap-3">
+          <div>
+            <label htmlFor="lipila-phone" className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Mobile money number
+            </label>
+            <div className="flex items-center gap-2 border-2 border-gray-200 focus-within:border-primary rounded-xl px-4 py-3 transition-colors bg-white">
+              <span className="text-sm font-medium text-gray-500 shrink-0">+260</span>
+              <input
+                id="lipila-phone"
+                ref={phoneRef}
+                type="tel"
+                inputMode="numeric"
+                placeholder="97 123 4567"
+                value={phone}
+                onChange={(e) => { setPhone(e.target.value); setErrorMsg('') }}
+                disabled={phase === 'loading'}
+                className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400 disabled:opacity-50"
+                autoComplete="tel"
+              />
+            </div>
+            {errorMsg && (
+              <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+                <AlertCircle size={12} /> {errorMsg}
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-1.5">
+              MTN or Airtel Money — you&apos;ll get a prompt on your phone
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={phase === 'loading' || !phone.trim()}
+            className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 ${className}`}
+          >
+            {phase === 'loading' ? (
+              <><Loader2 size={18} className="animate-spin" /> Sending payment request…</>
+            ) : (
+              <><Smartphone size={18} /> Pay {amountLabel} with MoMo</>
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* Card form */}
+      {tab === 'card' && (
+        <div className="flex flex-col gap-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+            <p className="text-sm text-blue-700">
+              You&apos;ll be redirected to a secure card payment page.
+              Visa and Mastercard accepted.
+            </p>
+          </div>
+          {errorMsg && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{errorMsg}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleCardClick}
+            disabled={phase === 'loading'}
+            className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 ${className}`}
+          >
+            {phase === 'loading' ? (
+              <><Loader2 size={18} className="animate-spin" /> Preparing card payment…</>
+            ) : (
+              <><CreditCard size={18} /> Pay {amountLabel} with Card</>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
