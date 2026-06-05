@@ -82,6 +82,54 @@ export const PLANS: Record<TierSlug, Plan> = {
 
 export const PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max', 'enterprise']
 
+// ─── Plan card UI ─────────────────────────────────────────────
+// Shared visual tokens + copy for the pricing blocks.
+// Consumed by both /pricing and /dashboard so the two never drift.
+
+export interface PlanCardUI {
+  bg:           string
+  border:       string
+  nameColor:    string
+  priceColor:   string
+  dotColor:     string
+  btnBg:        string
+  dividerColor: string
+  tagline:      string
+  count:        string
+  datasets:     string[]
+}
+
+export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
+  starter: {
+    bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A',
+    dotColor: '#3B6D11', btnBg: '#639922', dividerColor: '#3B6D11',
+    tagline: 'Core environmental layers to get you mapping.',
+    count: '5 datasets',
+    datasets: ['Administrative Boundaries', 'Groundwater Aquifers', 'Drought Index (SPI-12)', 'Rainfall Data', 'Protected Areas & Wildlife'],
+  },
+  pro: {
+    bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C',
+    dotColor: '#185FA5', btnBg: '#185FA5', dividerColor: '#185FA5',
+    tagline: 'Everything in Starter, plus hydrology and infrastructure.',
+    count: '9 datasets',
+    datasets: ['Everything in Starter', 'Watersheds & Catchments', 'Population & Settlements', 'River Networks', 'Roads & Infrastructure'],
+  },
+  max: {
+    bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
+    dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
+    tagline: 'The full platform — every layer we have.',
+    count: '15 datasets',
+    datasets: ['Everything in Pro', 'Temperature Data', 'HydroRIVERS', 'Land Use / Land Cover', 'Lakes', 'Soil Classification', 'Wetlands & Floodplains'],
+  },
+  enterprise: {
+    bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806',
+    dotColor: '#854F0B', btnBg: '#854F0B', dividerColor: '#854F0B',
+    tagline: 'Max, plus custom sub-country datasets and team access.',
+    count: 'Everything in Max, plus',
+    datasets: ['3 team seats included', 'Custom sub-country datasets', 'Priority support', 'API access'],
+  },
+}
+
 // ─── Datasets ─────────────────────────────────────────────────
 // Slugs match the id field in api-datasets.ts EXACTLY — do not change
 

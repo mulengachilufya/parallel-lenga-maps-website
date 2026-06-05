@@ -1,49 +1,19 @@
 'use client'
 
 import Link from "next/link"
+import { PLANS, PLAN_ORDER, PLAN_CARD_UI, type TierSlug } from "@/lib/pricing"
 
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: '$5',
-    tagline: 'Core environmental layers to get you mapping.',
-    count: '5 datasets',
-    datasets: ['Administrative Boundaries','Groundwater Aquifers','Drought Index (SPI-12)','Rainfall Data','Protected Areas & Wildlife'],
-    bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A',
-    dotColor: '#3B6D11', btnBg: '#639922', dividerColor: '#3B6D11', cta: 'Get started',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '$12',
-    tagline: 'Everything in Starter, plus hydrology and infrastructure.',
-    count: '9 datasets',
-    datasets: ['Everything in Starter','Watersheds & Catchments','Population & Settlements','River Networks','Roads & Infrastructure'],
-    bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C',
-    dotColor: '#185FA5', btnBg: '#185FA5', dividerColor: '#185FA5', cta: 'Get started',
-  },
-  {
-    id: 'max',
-    name: 'Max',
-    price: '$20',
-    tagline: 'The full platform — every layer we have.',
-    count: '15 datasets',
-    datasets: ['Everything in Pro','Temperature Data','HydroRIVERS','Land Use / Land Cover','Lakes','Soil Classification','Wetlands & Floodplains'],
-    bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
-    dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7', cta: 'Get started',
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: '$75',
-    tagline: 'Max, plus custom sub-country datasets and team access.',
-    count: 'Everything in Max, plus',
-    datasets: ['3 team seats included','Custom sub-country datasets','Priority support','API access'],
-    bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806',
-    dotColor: '#854F0B', btnBg: '#854F0B', dividerColor: '#854F0B', cta: 'Contact us',
-  },
-]
+const CTA: Record<TierSlug, string> = {
+  starter: 'Get started', pro: 'Get started', max: 'Get started', enterprise: 'Contact us',
+}
+
+const plans = PLAN_ORDER.map((slug) => ({
+  id:    slug,
+  name:  PLANS[slug].name,
+  price: PLANS[slug].priceLabel,
+  cta:   CTA[slug],
+  ...PLAN_CARD_UI[slug],
+}))
 
 export default function PricingPage() {
   return (

@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
-  PLANS, PLAN_ORDER, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
+  PLANS, PLAN_ORDER, PLAN_CARD_UI, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
@@ -137,6 +137,99 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'lakes':            'lakes',
 }
 
+// ─── Pricing-style plan card ──────────────────────────────────
+// Same look as the /pricing blocks (shared colours via PLAN_CARD_UI),
+// just more compact for the dashboard. Clickable when `href` is set.
+function PlanCard({
+  eyebrow, title, hero, heroUnit, ui, tagline, note, count, datasets,
+  cta, href, current = false, delay = 0,
+}: {
+  eyebrow:   string
+  title:     string
+  hero:      string
+  heroUnit?: string
+  ui: {
+    bg: string; border: string; nameColor: string; priceColor: string
+    dotColor: string; btnBg: string; dividerColor: string
+  }
+  tagline?:  string
+  note?:     string | null
+  count?:    string
+  datasets?: string[]
+  cta:       string
+  href?:     string
+  current?:  boolean
+  delay?:    number
+}) {
+  const MAX_ITEMS = 5
+  const shown = datasets?.slice(0, MAX_ITEMS) ?? []
+  const extra = (datasets?.length ?? 0) - shown.length
+
+  const body = (
+    <>
+      <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ui.nameColor, marginBottom: '0.5rem' }}>
+        {eyebrow} · {title}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '0.6rem' }}>
+        <span style={{ fontSize: '40px', lineHeight: 1, fontWeight: 400, color: ui.priceColor }}>{hero}</span>
+        {heroUnit && <span style={{ fontSize: '12px', color: '#555' }}>{heroUnit}</span>}
+      </div>
+      {tagline && <p style={{ fontSize: '12.5px', color: '#444', margin: '0 0 0.75rem', lineHeight: 1.5 }}>{tagline}</p>}
+      {note && (
+        <div style={{ fontSize: '12px', color: ui.nameColor, background: '#fff', border: `1px solid ${ui.border}`, borderRadius: '8px', padding: '6px 10px', marginBottom: '0.85rem', display: 'inline-block' }}>
+          {note}
+        </div>
+      )}
+      {(count || shown.length > 0) && (
+        <>
+          <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 0.75rem' }} />
+          {count && (
+            <div style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#444', marginBottom: '0.5rem' }}>
+              {count}
+            </div>
+          )}
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+            {shown.map((d) => (
+              <li key={d} style={{ fontSize: '12px', color: '#1a1a1a', padding: '2.5px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ui.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
+                {d}
+              </li>
+            ))}
+            {extra > 0 && (
+              <li style={{ fontSize: '12px', color: ui.nameColor, fontWeight: 500, padding: '2.5px 0 2.5px 12px' }}>
+                + {extra} more
+              </li>
+            )}
+          </ul>
+        </>
+      )}
+      <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+        <div style={{
+          width: '100%', padding: '9px 0', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, textAlign: 'center',
+          background: current ? 'transparent' : ui.btnBg,
+          color:      current ? ui.nameColor : '#fff',
+          border:     current ? `1px solid ${ui.border}` : '1px solid transparent',
+        }}>
+          {cta}
+        </div>
+      </div>
+    </>
+  )
+
+  const cardStyle: React.CSSProperties = {
+    background: ui.bg, border: `1px solid ${ui.border}`, borderRadius: '16px',
+    padding: '1.25rem', display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none',
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+      {href
+        ? <Link href={href} className="dash-plan-card" style={cardStyle}>{body}</Link>
+        : <div style={cardStyle}>{body}</div>}
+    </motion.div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────
 
 function DashboardContent() {
@@ -183,7 +276,6 @@ function DashboardContent() {
     )
   }
 
-  const style     = PLAN_STYLE[userState] ?? PLAN_STYLE.free
   const isTrial   = userState === 'free_trial'
   const isFree    = userState === 'free'
   const planLabel = isTrial ? 'Free Trial' : isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
@@ -296,63 +388,56 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Plan cards row */}
+        {/* Plan cards row — pricing-style blocks (shared look with /pricing) */}
+        <style>{`
+          .dash-plan-card { transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+          .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
+          .dash-plan-card:active { transform: scale(.98); }
+        `}</style>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
           {/* Current plan */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            style={{ background: style.bg, border: `1px solid ${style.border}`, borderRadius: '16px', padding: '1.5rem' }}
-          >
-            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: style.nameColor, marginBottom: '0.4rem' }}>
-              Current plan
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1, color: style.priceColor }}>{planLabel}</span>
-              {planPrice && <span style={{ fontSize: '14px', color: '#555' }}>{planPrice}/mo</span>}
-            </div>
-            {isTrial && trialStartedAt && (
-              <div style={{ fontSize: '13px', color: style.nameColor, background: '#fff', border: `1px solid ${style.border}`, borderRadius: '8px', padding: '6px 12px', display: 'inline-block' }}>
-                {formatTrialCountdown(trialStartedAt)} remaining · Full access
-              </div>
-            )}
-            {isFree && (
-              <p style={{ fontSize: '13px', color: '#888' }}>No active plan. Subscribe to download datasets.</p>
-            )}
-            {!isTrial && !isFree && (
-              <p style={{ fontSize: '13px', color: style.nameColor }}>
-                {PLANS[userState as TierSlug]?.description}
-              </p>
-            )}
-          </motion.div>
+          <PlanCard
+            current
+            delay={0.05}
+            eyebrow="Current plan"
+            title={planLabel}
+            ui={
+              isTrial
+                ? PLAN_CARD_UI.max
+                : isFree
+                ? { ...PLAN_STYLE.free, dotColor: PLAN_STYLE.free.nameColor, dividerColor: PLAN_STYLE.free.nameColor }
+                : PLAN_CARD_UI[userState as TierSlug]
+            }
+            hero={isTrial || isFree ? 'Free' : planPrice ?? ''}
+            heroUnit={isTrial || isFree ? undefined : '/month'}
+            tagline={
+              isTrial
+                ? 'Full access to every dataset during your trial.'
+                : isFree
+                ? 'No active plan — subscribe to download datasets.'
+                : PLAN_CARD_UI[userState as TierSlug].tagline
+            }
+            note={isTrial && trialStartedAt ? `${formatTrialCountdown(trialStartedAt)} remaining · Full access` : null}
+            count={isTrial ? PLAN_CARD_UI.max.count : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].count}
+            datasets={isTrial ? PLAN_CARD_UI.max.datasets : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].datasets}
+            cta={isTrial ? 'Trial active' : isFree ? 'Browsing only' : '✓ Your current plan'}
+          />
 
-          {/* Upgrade card */}
+          {/* Upgrade / Subscribe */}
           {nextPlan && PLANS[nextPlan] && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Link
-                href={`/dashboard/payment?plan=${nextPlan}`}
-                style={{ background: PLAN_STYLE[nextPlan]?.bg, border: `1px solid ${PLAN_STYLE[nextPlan]?.border}`, borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none' }}
-              >
-                <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: PLAN_STYLE[nextPlan]?.nameColor, marginBottom: '0.4rem' }}>
-                  {isTrial || isFree ? 'Subscribe now' : 'Upgrade to'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1, color: PLAN_STYLE[nextPlan]?.priceColor }}>{PLANS[nextPlan].name}</span>
-                  <span style={{ fontSize: '14px', color: '#555' }}>{PLANS[nextPlan].priceLabel}/mo</span>
-                </div>
-                <p style={{ fontSize: '13px', color: '#555', marginBottom: '1rem', lineHeight: 1.5 }}>
-                  {PLANS[nextPlan].description}
-                </p>
-                <div style={{ marginTop: 'auto', background: PLAN_STYLE[nextPlan]?.btnBg, color: '#fff', borderRadius: '10px', padding: '10px 0', textAlign: 'center', fontSize: '13px', fontWeight: 600 }}>
-                  {isTrial || isFree ? `Subscribe · ${PLANS[nextPlan].priceLabel}/mo` : `Upgrade · ${PLANS[nextPlan].priceLabel}/mo`}
-                </div>
-              </Link>
-            </motion.div>
+            <PlanCard
+              delay={0.1}
+              eyebrow={isTrial || isFree ? 'Subscribe now' : 'Upgrade to'}
+              title={PLANS[nextPlan].name}
+              ui={PLAN_CARD_UI[nextPlan]}
+              hero={PLANS[nextPlan].priceLabel}
+              heroUnit="/month"
+              tagline={PLAN_CARD_UI[nextPlan].tagline}
+              count={PLAN_CARD_UI[nextPlan].count}
+              datasets={PLAN_CARD_UI[nextPlan].datasets}
+              cta={`${isTrial || isFree ? 'Subscribe' : 'Upgrade'} · ${PLANS[nextPlan].priceLabel}/mo`}
+              href={`/dashboard/payment?plan=${nextPlan}`}
+            />
           )}
         </div>
 
