@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Loader2, Smartphone, CreditCard, AlertCircle } from 'lucide-react'
+import { MtnBadge, AirtelBadge, VisaBadge, MastercardBadge } from '@/components/PaymentProviderIcons'
 
 interface LipilaPayButtonProps {
   plan:        string
@@ -39,11 +40,13 @@ const POLL_INTERVAL_MS  = 3000
 /**
  * Zambian phone validation.
  * UI shows +260 prefix, so users type without a leading 0.
- * Accepts: 779187025 (9 digits) | 0779187025 (10 digits) | 260779187025 (12 digits)
+ * Zambian mobile numbers start 7 (Airtel 77 / MTN 76 / Zamtel 75) or
+ * 9 (MTN 96 / Airtel 97 / Zamtel 95).
+ * Accepts: 970000000 (9 digits) | 0970000000 (10 digits) | 260970000000 (12 digits)
  */
 function isValidPhone(v: string): boolean {
   const d = v.replace(/[\s\-().+]/g, '')
-  return /^(260[67]\d{8}|0[67]\d{8}|[67]\d{8})$/.test(d)
+  return /^(260[79]\d{8}|0[79]\d{8}|[79]\d{8})$/.test(d)
 }
 
 export default function LipilaPayButton({
@@ -232,28 +235,40 @@ export default function LipilaPayButton({
   return (
     <div className="flex flex-col gap-4">
       {/* Tab switcher */}
-      <div className="flex rounded-xl border border-gray-200 overflow-hidden text-sm font-semibold">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => switchTab('momo')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 transition-colors ${
+          className={`flex flex-col items-center gap-2 rounded-2xl border-2 px-3 py-3 transition-all ${
             tab === 'momo'
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
+              ? 'border-primary bg-primary/5 shadow-sm'
+              : 'border-gray-200 bg-white hover:border-gray-300'
           }`}
         >
-          <Smartphone size={15} /> Mobile Money
+          <div className="flex items-center gap-1">
+            <MtnBadge size={30} />
+            <AirtelBadge size={30} />
+          </div>
+          <span className={`text-xs font-bold ${tab === 'momo' ? 'text-primary' : 'text-gray-600'}`}>
+            Mobile Money
+          </span>
         </button>
         <button
           type="button"
           onClick={() => switchTab('card')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 transition-colors border-l border-gray-200 ${
+          className={`flex flex-col items-center gap-2 rounded-2xl border-2 px-3 py-3 transition-all ${
             tab === 'card'
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
+              ? 'border-primary bg-primary/5 shadow-sm'
+              : 'border-gray-200 bg-white hover:border-gray-300'
           }`}
         >
-          <CreditCard size={15} /> Visa / Mastercard
+          <div className="flex items-center gap-1">
+            <VisaBadge size={30} />
+            <MastercardBadge size={30} />
+          </div>
+          <span className={`text-xs font-bold ${tab === 'card' ? 'text-primary' : 'text-gray-600'}`}>
+            Debit / Credit Card
+          </span>
         </button>
       </div>
 
@@ -305,7 +320,11 @@ export default function LipilaPayButton({
       {/* Card form */}
       {tab === 'card' && (
         <div className="flex flex-col gap-3">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <VisaBadge size={34} />
+              <MastercardBadge size={34} />
+            </div>
             <p className="text-sm text-blue-700">
               You&apos;ll be redirected to a secure card payment page.
               Visa and Mastercard accepted.

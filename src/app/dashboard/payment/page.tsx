@@ -4,11 +4,12 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Loader2, ArrowLeft, Zap, Smartphone, CheckCircle } from 'lucide-react'
+import { ShieldCheck, Loader2, ArrowLeft, Smartphone, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PLANS, PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import LipilaPayButton from '@/components/LipilaPayButton'
 import ManualPaymentFlow from '@/components/ManualPaymentFlow'
+import { MtnBadge, AirtelBadge, VisaBadge, MastercardBadge } from '@/components/PaymentProviderIcons'
 
 type PaymentMode = 'choose' | 'lipila' | 'manual'
 
@@ -150,25 +151,30 @@ function PaymentPageInner() {
           >
             <p className="text-sm font-semibold text-gray-700 mb-1">Choose how to pay</p>
 
-            {/* Lipila MoMo — primary */}
+            {/* Lipila — primary (MoMo + Card) */}
             <button
               onClick={() => setMode('lipila')}
               className="w-full flex items-start gap-4 bg-white border-2 border-primary rounded-2xl p-5 hover:bg-primary/5 transition-all group text-left"
             >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Zap size={20} className="text-primary" />
+              <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                <MtnBadge size={34} />
+                <AirtelBadge size={34} />
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-bold text-navy">Pay instantly with Mobile Money</span>
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <span className="font-bold text-navy">Pay instantly online</span>
                   <span className="text-[10px] font-bold bg-accent text-navy px-2 py-0.5 rounded-full uppercase tracking-wider">Recommended</span>
                 </div>
                 <p className="text-sm text-gray-500">
-                  MTN Mobile Money · Airtel Money
+                  MTN · Airtel Money · Visa · Mastercard
                 </p>
                 <p className="text-xs text-green-600 font-medium mt-1">
                   ✓ Instantly activated once payment clears
                 </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-1 shrink-0 mt-0.5">
+                <VisaBadge size={34} />
+                <MastercardBadge size={34} />
               </div>
             </button>
 
