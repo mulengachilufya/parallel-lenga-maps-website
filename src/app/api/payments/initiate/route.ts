@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { PLANS, type TierSlug } from '@/lib/pricing'
+import { usdToZmw } from '@/lib/fx'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,9 +73,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unrecognised plan' }, { status: 400 })
   }
 
-  // All prices are in USD
-  const amount   = planData.price
-  const currency = 'USD'
+  // Mobile money is a ZMW-only rail — convert the USD list price to Kwacha
+  // server-side and charge ZMW. The customer only ever sees this Kwacha
+  // figure on their MNO prompt (their network's own currency); the site
+  // itself stays USD.
+  const { zmw: amount, rate, baseRate } = await usdToZmw(planData.price)
+  const currency = 'ZMW'
+  console.log('[initiate] USD→ZMW', { usd: planData.price, zmw: amount, baseRate, rate })
+
+  // Record the Kwacha amount charged for bookkeeping/reconciliation.
+  serviceSupabase
+    .from('payments')
+    .update({ amount_zmw: amount })
+    .eq('reference', reference)
+    .then(({ error }) => { if (error) console.error('[initiate] amount_zmw update failed:', error) })
 
   const normPhone = normalisePhone(phone)
 
