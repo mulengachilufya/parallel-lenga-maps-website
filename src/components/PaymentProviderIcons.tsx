@@ -1,101 +1,103 @@
-// Polished, brand-inspired payment badges rendered as inline SVG so they
-// scale cleanly and need no image assets. Each has a subtle gloss gradient
-// for a "shiny" finish. These are distinctive marks (colour + wordmark /
-// iconic shape) rather than pixel-exact trademarked logos.
+'use client'
 
-interface BadgeProps {
+/**
+ * Payment brand marks — authentic logos only.
+ *
+ * Visa & Mastercard come from `react-svg-credit-card-payment-icons` —
+ *   a well-maintained package of vendor-accurate brand SVGs.
+ * MTN & Airtel come from official Wikimedia Commons SVG files served from
+ *   /public/payment-logos. Use of these brand marks here is purely as
+ *   trust signals indicating which networks are accepted at checkout
+ *   (standard nominative use for payment acceptance).
+ */
+
+import {
+  VisaFlatRoundedIcon,
+  MastercardFlatRoundedIcon,
+} from 'react-svg-credit-card-payment-icons'
+
+interface BrandProps {
+  /** Width in pixels. The aspect ratio is preserved for every logo. */
   size?: number
-  /** Rounded-square corner radius as a fraction of size. */
-  radius?: number
+  className?: string
 }
 
-/** Shared gloss overlay — a soft top-light sheen. */
-function Gloss({ id }: { id: string }) {
+// ── Card brands ────────────────────────────────────────────────────────────
+// Use the flatRounded variant — proper brand colours, soft corners, the
+// look every premium checkout uses (Stripe, Paddle, Apple Pay).
+
+export function VisaBadge({ size = 56, className = '' }: BrandProps) {
+  return <VisaFlatRoundedIcon width={size} className={className} />
+}
+
+export function MastercardBadge({ size = 56, className = '' }: BrandProps) {
+  return <MastercardFlatRoundedIcon width={size} className={className} />
+}
+
+// ── Mobile money brands ────────────────────────────────────────────────────
+// Wikimedia SVG files. We render them in a tinted brand-coloured tile so
+// they have the same visual weight as the card icons (which already come
+// with a rounded card-shaped chrome). Without the tile MTN's "MTN" wordmark
+// floats unanchored on white.
+
+export function MtnBadge({ size = 56, className = '' }: BrandProps) {
+  const h = Math.round(size * 0.66) // ~card aspect
   return (
-    <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-      <stop offset="45%" stopColor="#ffffff" stopOpacity="0.05" />
-      <stop offset="100%" stopColor="#000000" stopOpacity="0.08" />
-    </linearGradient>
+    <span
+      aria-label="MTN Mobile Money"
+      role="img"
+      className={`inline-flex items-center justify-center rounded-md ${className}`}
+      style={{
+        width: size,
+        height: h,
+        background: '#FFCB05', // MTN brand yellow
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/payment-logos/mtn.svg"
+        alt=""
+        width={Math.round(size * 0.7)}
+        height={Math.round(h * 0.7)}
+        style={{ objectFit: 'contain', display: 'block' }}
+      />
+    </span>
   )
 }
 
-export function MtnBadge({ size = 44 }: BadgeProps) {
+export function AirtelBadge({ size = 56, className = '' }: BrandProps) {
+  const h = Math.round(size * 0.66)
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
-      viewBox="0 0 80 80" role="img" aria-label="MTN Mobile Money">
-      <defs><Gloss id="mtnGloss" /></defs>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="#FFCB05" />
-      {/* MTN's signature blue oval mark */}
-      <ellipse cx="40" cy="40" rx="30" ry="20" fill="none" stroke="#00549F" strokeWidth="3.5" />
-      <text x="40" y="47" textAnchor="middle"
-        fontFamily="Inter, Helvetica, Arial, sans-serif" fontWeight={900}
-        fontSize={22} fill="#00549F" letterSpacing={-1}>MTN</text>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#mtnGloss)" />
-    </svg>
+    <span
+      aria-label="Airtel Money"
+      role="img"
+      className={`inline-flex items-center justify-center rounded-md bg-white ${className}`}
+      style={{
+        width: size,
+        height: h,
+        border: '1px solid #E6EAF0',
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/payment-logos/airtel.svg"
+        alt=""
+        width={Math.round(size * 0.78)}
+        height={Math.round(h * 0.78)}
+        style={{ objectFit: 'contain', display: 'block' }}
+      />
+    </span>
   )
 }
 
-export function AirtelBadge({ size = 44 }: BadgeProps) {
+/** Compact horizontal strip — small "we accept these" trust signal. */
+export function PaymentBadgeRow({ size = 40, className = '' }: BrandProps) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
-      viewBox="0 0 80 80" role="img" aria-label="Airtel Money">
-      <defs>
-        <Gloss id="airtelGloss" />
-        <linearGradient id="airtelRed" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FF1A1A" />
-          <stop offset="100%" stopColor="#C40000" />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#airtelRed)" />
-      {/* Airtel's swoosh curl */}
-      <path d="M22 52 A20 20 0 1 1 58 40 A12 12 0 1 0 40 51"
-        fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#airtelGloss)" />
-    </svg>
-  )
-}
-
-export function VisaBadge({ size = 44 }: BadgeProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
-      viewBox="0 0 80 80" role="img" aria-label="Visa">
-      <defs><Gloss id="visaGloss" /></defs>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="#ffffff" stroke="#E6EAF0" strokeWidth="1.5" />
-      <rect x="0" y="0" width="80" height="22" rx="16" fill="#1A1F71" />
-      <rect x="0" y="58" width="80" height="22" rx="16" fill="#F7B600" />
-      <rect x="0" y="14" width="80" height="52" fill="#ffffff" />
-      <text x="40" y="50" textAnchor="middle"
-        fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic"
-        fontWeight={700} fontSize={26} fill="#1A1F71" letterSpacing={0.5}>VISA</text>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#visaGloss)" />
-    </svg>
-  )
-}
-
-export function MastercardBadge({ size = 44 }: BadgeProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
-      viewBox="0 0 80 80" role="img" aria-label="Mastercard">
-      <defs><Gloss id="mcGloss" /></defs>
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="#fff" stroke="#E6EAF0" strokeWidth="1.5" />
-      {/* Iconic overlapping circles */}
-      <circle cx="32" cy="40" r="18" fill="#EB001B" />
-      <circle cx="48" cy="40" r="18" fill="#F79E1B" />
-      <path d="M40 26 a18 18 0 0 1 0 28 a18 18 0 0 1 0 -28" fill="#FF5F00" />
-      <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#mcGloss)" />
-    </svg>
-  )
-}
-
-/** Horizontal row of all four provider badges. */
-export function PaymentBadgeRow({ size = 36 }: BadgeProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <MtnBadge size={size} />
-      <AirtelBadge size={size} />
+    <div className={`flex items-center gap-2 ${className}`}>
       <VisaBadge size={size} />
       <MastercardBadge size={size} />
+      <MtnBadge size={size} />
+      <AirtelBadge size={size} />
     </div>
   )
 }

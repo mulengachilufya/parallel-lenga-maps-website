@@ -1,33 +1,20 @@
 /**
  * POST /api/payments/webhook
  *
- * Lipila Callback endpoint.
+ * Lipila callback endpoint.
  *
- * Lipila fires this URL (passed as the `callbackUrl` header when the
- * collection is initiated) whenever a payment transitions to a terminal
- * state — "Successful" or "Failed".
- *
- * Payload shape:
- * {
- *   referenceId:   string  — Lipila-generated transaction GUID
- *   currency:      string  — e.g. "ZMW"
- *   amount:        number
- *   accountNumber: string  — customer's mobile number
- *   status:        string  — "Successful" | "Failed"
- *   paymentType:   string  — "AirtelMoney" | "MTNMoney" | "ZamtelKwacha" | "Card"
- *   type:          string  — "Collection" | "Disbursement"
- *   ipAddress:     string
- *   identifier:    string  — our internal reference (what we sent as `referenceId`)
- *   message:       string
- *   externalId?:   string  — MNO transaction ID
- *   referenceData?:string  — narration
- * }
- *
- * We match on `identifier` (our reference), update the payments row,
- * then activate the user's plan in profiles.
+ * Lipila POSTs here when a transaction reaches a terminal state. We:
+ *   1. Verify the HMAC signature against LIPILA_WEBHOOK_SECRET (fail-open
+ *      while we capture the first real header in logs — see notes below).
+ *   2. Match the payment row by reference OR lipila_reference, against
+ *      both `identifier` and `referenceId` in the payload (Lipila echoes
+ *      our ref back inconsistently across flows).
+ *   3. Mark the payment row, activate the user's plan (resets cancellation
+ *      state and re-enables auto-renew), and bump the period.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,20 +23,98 @@ const serviceSupabase = createClient(
 
 const PLAN_PERIOD_DAYS = 30
 
+// ────────────────────────────────────────────────────────────────────────
+// Signature verification
+//
+// Lipila's dashboard generates a Base64 webhook secret, which strongly
+// suggests HMAC with a base64-decoded key. The docs don't specify the
+// header name or digest format, so we accept several common patterns:
+//
+//   header names tried: x-signature, x-webhook-signature,
+//                       x-lipila-signature, signature, x-callback-signature
+//   key bytes tried:    base64-decoded secret, AND raw UTF-8 secret
+//   digests tried:      hex AND base64
+//
+// If LIPILA_WEBHOOK_SECRET is unset → verification is skipped (dev mode).
+// If set and a signature header is present:
+//   - any scheme matching ⇒ accept
+//   - none matching       ⇒ reject 401 (real attack OR misconfig)
+// If set and NO signature header is present → log + accept (fail-open).
+//   This lets us bring HMAC online without breaking activation while we
+//   capture the actual header name from a real call. Once we see it in
+//   logs we tighten this to reject unsigned calls.
+// ────────────────────────────────────────────────────────────────────────
+
+const SIGNATURE_HEADERS = [
+  'x-signature',
+  'x-webhook-signature',
+  'x-lipila-signature',
+  'x-callback-signature',
+  'signature',
+]
+
+function eq(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf8')
+  const bb = Buffer.from(b, 'utf8')
+  if (ab.length !== bb.length) return false
+  return timingSafeEqual(ab, bb)
+}
+
+function computeHmac(rawBody: string, keyBuf: Buffer): { hex: string; b64: string } {
+  const h1 = createHmac('sha256', keyBuf).update(rawBody).digest('hex')
+  const h2 = createHmac('sha256', keyBuf).update(rawBody).digest('base64')
+  return { hex: h1, b64: h2 }
+}
+
+function verifySignature(rawBody: string, headers: Headers): { ok: boolean; reason: string } {
+  const secret = process.env.LIPILA_WEBHOOK_SECRET
+  if (!secret) return { ok: true, reason: 'no_secret_configured' }
+
+  let providedSig: string | undefined
+  let providedHeader = ''
+  for (const name of SIGNATURE_HEADERS) {
+    const v = headers.get(name)
+    if (v) { providedSig = v.trim(); providedHeader = name; break }
+  }
+  if (!providedSig) return { ok: true, reason: 'no_signature_header_yet (fail-open)' }
+
+  // Try both key encodings (base64-decoded vs raw utf-8)
+  const keyBufs: Buffer[] = []
+  try { keyBufs.push(Buffer.from(secret, 'base64')) } catch { /* ignore */ }
+  keyBufs.push(Buffer.from(secret, 'utf8'))
+
+  for (const key of keyBufs) {
+    const { hex, b64 } = computeHmac(rawBody, key)
+    if (eq(providedSig, hex)) return { ok: true, reason: `match:${providedHeader}:hex` }
+    if (eq(providedSig, b64)) return { ok: true, reason: `match:${providedHeader}:base64` }
+    // Some providers prefix with the algo: "sha256=..."
+    const stripped = providedSig.replace(/^sha256=/i, '')
+    if (eq(stripped, hex)) return { ok: true, reason: `match:${providedHeader}:sha256=hex` }
+    if (eq(stripped, b64)) return { ok: true, reason: `match:${providedHeader}:sha256=base64` }
+  }
+  return { ok: false, reason: `mismatch:${providedHeader}` }
+}
+
 export async function POST(request: NextRequest) {
-  // TEMP DIAGNOSTIC: log all incoming headers so the first real Lipila
-  // callback reveals (a) that delivery is working and (b) the name of the
-  // signature header — which we currently can't get from the docs. Once we
-  // see it we can add HMAC verification and remove this. Header values are
-  // low-risk to log here (no card data); the signature itself is over the
-  // body so logging the header name/value doesn't weaken anything.
+  // We need the raw body to verify HMAC, then we re-parse the JSON.
+  const rawBody = await request.text()
+
+  // DIAGNOSTIC: log header names so the first real Lipila callback reveals
+  // its signature header. Remove once we see it. Values are over-the-body
+  // signatures, low-risk to log.
   const hdrs: Record<string, string> = {}
   request.headers.forEach((v, k) => { hdrs[k] = v })
   console.log('[webhook] incoming headers:', JSON.stringify(hdrs))
 
+  const sig = verifySignature(rawBody, request.headers)
+  console.log('[webhook] signature check:', sig.reason)
+  if (!sig.ok) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
   let payload: Record<string, unknown>
   try {
-    payload = await request.json()
+    payload = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -73,29 +138,21 @@ export async function POST(request: NextRequest) {
     currency,
   })
 
-  // Our reference can arrive in EITHER field depending on Lipila's flow:
-  // - `identifier` is documented as "the identifier your system provided"
-  // - but in practice Lipila echoes our `referenceId` back under `referenceId`
-  // Collect every candidate so we match regardless of which field carries it.
-  // Sanitise to our own ref charset (alnum/dash/underscore) — these values
-  // feed a PostgREST .or() filter, so reject anything that isn't ref-shaped.
+  // Sanitise ref candidates — they feed a PostgREST .or() filter.
   const candidates = [identifier, lipilaReferenceId]
     .filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9_-]+$/.test(x))
 
   if (candidates.length === 0) {
-    console.log('[webhook] no identifier/referenceId in payload — ignoring (likely a test ping)')
+    console.log('[webhook] no identifier/referenceId — ignoring (likely a test ping)')
     return NextResponse.json({ received: true })
   }
 
-  // Normalise status: Lipila uses "Successful" / "Failed" (title case)
   const statusNorm = String(rawStatus ?? '').toLowerCase()
-
   if (statusNorm !== 'successful' && statusNorm !== 'failed') {
     console.log('[webhook] ignoring intermediate status:', rawStatus)
     return NextResponse.json({ received: true })
   }
 
-  // Look up the payment by reference OR lipila_reference, against any candidate.
   const orFilter = candidates
     .flatMap((c) => [`reference.eq.${c}`, `lipila_reference.eq.${c}`])
     .join(',')
@@ -109,12 +166,11 @@ export async function POST(request: NextRequest) {
 
   if (fetchErr || !payment) {
     console.error('[webhook] payment not found for candidates:', candidates, fetchErr?.message)
-    // Acknowledge anyway so Lipila doesn't keep retrying for a record we'll never have
     return NextResponse.json({ received: true })
   }
 
   if (payment.status === 'successful') {
-    console.log('[webhook] already processed, skipping duplicate for:', ourReference)
+    console.log('[webhook] already processed, skipping duplicate:', ourReference)
     return NextResponse.json({ received: true })
   }
 
@@ -136,33 +192,49 @@ export async function POST(request: NextRequest) {
   }
 
   if (newStatus !== 'successful') {
-    console.log('[webhook] payment failed for:', ourReference, '| externalId:', externalId)
+    console.log('[webhook] payment failed:', ourReference, '| externalId:', externalId)
     return NextResponse.json({ received: true })
   }
 
-  // ── 2. Activate the user's plan in profiles ──────────────────────────────
-  const expiresAt = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  // ── 2. Activate / renew the user's plan ──────────────────────────────────
+  // If they're already active, extend from the existing expiry; otherwise
+  // start a fresh 30-day window from now. Renewals reset cancellation state
+  // and the reminder-sent timestamp.
+  const { data: currentProfile } = await serviceSupabase
+    .from('profiles')
+    .select('plan_status, plan_expires_at')
+    .eq('id', payment.user_id)
+    .maybeSingle()
+
+  const now = Date.now()
+  const baseTime =
+    currentProfile?.plan_status === 'active' &&
+    currentProfile?.plan_expires_at &&
+    new Date(currentProfile.plan_expires_at).getTime() > now
+      ? new Date(currentProfile.plan_expires_at).getTime()
+      : now
+  const expiresAt = new Date(baseTime + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
   const { error: profErr } = await serviceSupabase
     .from('profiles')
     .update({
-      plan:            payment.plan,
-      plan_status:     'active',
-      plan_expires_at: expiresAt,
+      plan:                payment.plan,
+      plan_status:         'active',
+      plan_expires_at:     expiresAt,
+      auto_renew_enabled:  true,
+      cancelled_at:        null,
+      renewal_reminded_at: null,
     })
     .eq('id', payment.user_id)
 
   if (profErr) {
     console.error('[webhook] failed to update profiles:', profErr)
-    // Don't return 500 — payments row is already marked successful.
-    // The verify endpoint will re-apply activation on next poll.
   } else {
     console.log('[webhook] plan activated:', {
       userId:  payment.user_id,
       plan:    payment.plan,
-      type:    payment.account_type,
       via:     paymentType,
-      mno_ref: externalId ?? 'n/a',
+      expires: expiresAt,
     })
   }
 
