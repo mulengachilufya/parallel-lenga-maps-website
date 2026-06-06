@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
+import { TRIAL_DURATION_MS } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,13 +64,37 @@ export async function GET(req: NextRequest) {
     const email = emailById.get(p.id) ?? ''
     const expiresAt = p.plan_expires_at ? new Date(p.plan_expires_at).getTime() : null
     const isExpired = expiresAt !== null && expiresAt <= now
-    // Compose an "effective" status that captures expiry too — the raw
-    // plan_status='active' with a past expires_at is misleading on its own.
-    let effective_status: 'active' | 'pending' | 'free' | 'expired' = (p.plan_status ?? 'free') as 'active' | 'pending' | 'free'
+    // Compose an "effective" status that captures expiry AND the automatic
+    // 3-day free trial — the raw plan_status='active' with a past expires_at
+    // is misleading on its own, and plan_status='free' on a brand-new user
+    // hides that they currently have Max access via their trial window.
+    let effective_status: 'active' | 'pending' | 'free' | 'expired' | 'trial' =
+      (p.plan_status ?? 'free') as 'active' | 'pending' | 'free'
     if (effective_status === 'active' && isExpired) effective_status = 'expired'
-    const days_left = expiresAt !== null
-      ? Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000))
+
+    // Trial detection: only override the "free" bucket. Pending users stay
+    // pending (admin needs to verify their manual payment) and active/expired
+    // users stay where they are (a real paid plan beats the trial).
+    let trialExpiresAt: number | null = null
+    if (effective_status === 'free' && p.trial_started_at) {
+      const trialEnd = new Date(p.trial_started_at).getTime() + TRIAL_DURATION_MS
+      if (trialEnd > now) {
+        effective_status = 'trial'
+        trialExpiresAt = trialEnd
+      }
+    }
+
+    // For the Expires column: trial users get a virtual expiry (trial end);
+    // everyone else uses the real plan_expires_at column. days_left mirrors
+    // whichever source is in play so the UI's "Xd left" works for both.
+    const displayExpiresMs = trialExpiresAt ?? expiresAt
+    const displayExpiresAt = trialExpiresAt
+      ? new Date(trialExpiresAt).toISOString()
+      : p.plan_expires_at
+    const days_left = displayExpiresMs !== null
+      ? Math.ceil((displayExpiresMs - now) / (24 * 60 * 60 * 1000))
       : null
+
     return {
       id:               p.id,
       email,
@@ -77,7 +102,7 @@ export async function GET(req: NextRequest) {
       plan:             p.plan,
       plan_status:      p.plan_status,
       effective_status,
-      plan_expires_at:  p.plan_expires_at,
+      plan_expires_at:  displayExpiresAt,
       days_left,
       created_at:       p.created_at,
     }
@@ -104,7 +129,7 @@ export async function GET(req: NextRequest) {
       acc[r.effective_status] = (acc[r.effective_status] ?? 0) + 1
       return acc
     },
-    { total: 0, active: 0, pending: 0, free: 0, expired: 0 } as Record<string, number>,
+    { total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 } as Record<string, number>,
   )
 
   return NextResponse.json({

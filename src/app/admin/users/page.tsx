@@ -20,7 +20,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, RefreshCw, Search, ShieldCheck, XCircle, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
-type EffectiveStatus = 'active' | 'pending' | 'free' | 'expired'
+type EffectiveStatus = 'active' | 'pending' | 'trial' | 'free' | 'expired'
 
 interface UserRow {
   id:                string
@@ -39,6 +39,7 @@ interface Summary {
   total:   number
   active:  number
   pending: number
+  trial:   number
   free:    number
   expired: number
 }
@@ -49,6 +50,7 @@ const TABS: { value: TabValue; label: string }[] = [
   { value: 'all',     label: 'All' },
   { value: 'active',  label: 'Active' },
   { value: 'pending', label: 'Pending' },
+  { value: 'trial',   label: 'Free trial' },
   { value: 'free',    label: 'Free (no plan)' },
   { value: 'expired', label: 'Expired' },
 ]
@@ -56,14 +58,25 @@ const TABS: { value: TabValue; label: string }[] = [
 const STATUS_CHIP: Record<EffectiveStatus, string> = {
   active:  'bg-green-100 text-green-700',
   pending: 'bg-amber-100 text-amber-700',
+  // Trial = Max access for 72h — use the Max plan's purple to make that read
+  // instantly against an active paid plan (green).
+  trial:   'bg-violet-100 text-violet-700',
   free:    'bg-gray-100 text-gray-600',
   expired: 'bg-red-100 text-red-700',
+}
+
+const STATUS_LABEL: Record<EffectiveStatus, string> = {
+  active:  'active',
+  pending: 'pending',
+  trial:   'free trial',
+  free:    'free',
+  expired: 'expired',
 }
 
 export default function AdminUsersPage() {
   const [authState, setAuthState] = useState<'loading' | 'anon' | 'forbidden' | 'ok'>('loading')
   const [users,    setUsers]      = useState<UserRow[]>([])
-  const [summary,  setSummary]    = useState<Summary>({ total: 0, active: 0, pending: 0, free: 0, expired: 0 })
+  const [summary,  setSummary]    = useState<Summary>({ total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 })
   const [tab,      setTab]        = useState<TabValue>('all')
   const [q,        setQ]          = useState('')
   const [loading,  setLoading]    = useState(false)
@@ -79,7 +92,7 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setUsers(json.users || [])
-      setSummary(json.summary || { total: 0, active: 0, pending: 0, free: 0, expired: 0 })
+      setSummary(json.summary || { total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 })
       setAuthState('ok')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load users')
@@ -109,11 +122,12 @@ export default function AdminUsersPage() {
 
   const formattedSummary = useMemo(() => (
     [
-      { label: 'Total',     value: summary.total,   color: 'text-navy' },
-      { label: 'Active',    value: summary.active,  color: 'text-green-700' },
-      { label: 'Pending',   value: summary.pending, color: 'text-amber-700' },
-      { label: 'Free',      value: summary.free,    color: 'text-gray-600' },
-      { label: 'Expired',   value: summary.expired, color: 'text-red-700' },
+      { label: 'Total',      value: summary.total,   color: 'text-navy' },
+      { label: 'Active',     value: summary.active,  color: 'text-green-700' },
+      { label: 'Pending',    value: summary.pending, color: 'text-amber-700' },
+      { label: 'Free trial', value: summary.trial,   color: 'text-violet-700' },
+      { label: 'Free',       value: summary.free,    color: 'text-gray-600' },
+      { label: 'Expired',    value: summary.expired, color: 'text-red-700' },
     ]
   ), [summary])
 
@@ -178,7 +192,7 @@ export default function AdminUsersPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {/* Summary chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {formattedSummary.map((s) => (
             <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 text-center">
               <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
@@ -250,11 +264,18 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-gray-700">
                       {u.plan
                         ? <span className="capitalize font-semibold">{u.plan}</span>
-                        : <span className="text-gray-300">—</span>}
+                        : u.effective_status === 'trial'
+                          ? (
+                            <span className="font-semibold text-violet-700">
+                              Free trial
+                              <span className="block text-[10px] font-normal text-violet-500/80">Max access</span>
+                            </span>
+                          )
+                          : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_CHIP[u.effective_status]}`}>
-                        {u.effective_status}
+                        {STATUS_LABEL[u.effective_status]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
@@ -263,8 +284,10 @@ export default function AdminUsersPage() {
                           <>
                             {new Date(u.plan_expires_at).toLocaleDateString()}
                             {u.days_left !== null && (
-                              <span className={`block text-[10px] mt-0.5 ${u.days_left >= 0 ? 'text-gray-400' : 'text-red-500'}`}>
-                                {u.days_left >= 0 ? `${u.days_left}d left` : `${Math.abs(u.days_left)}d ago`}
+                              <span className={`block text-[10px] mt-0.5 ${u.days_left >= 0 ? (u.effective_status === 'trial' ? 'text-violet-500' : 'text-gray-400') : 'text-red-500'}`}>
+                                {u.days_left >= 0
+                                  ? `${u.days_left}d ${u.effective_status === 'trial' ? 'trial left' : 'left'}`
+                                  : `${Math.abs(u.days_left)}d ago`}
                               </span>
                             )}
                           </>
