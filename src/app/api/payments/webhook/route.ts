@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const {
     referenceId:   lipilaReferenceId,
-    identifier:    ourReference,
+    identifier,
     status:        rawStatus,
     paymentType,
     externalId,
@@ -56,16 +56,24 @@ export async function POST(request: NextRequest) {
 
   console.log('[webhook] Lipila callback received:', {
     lipilaReferenceId,
-    ourReference,
+    identifier,
     rawStatus,
     paymentType,
     amount,
     currency,
   })
 
-  if (!ourReference) {
-    // Lipila may send test pings with no identifier — acknowledge silently
-    console.log('[webhook] no identifier in payload — ignoring')
+  // Our reference can arrive in EITHER field depending on Lipila's flow:
+  // - `identifier` is documented as "the identifier your system provided"
+  // - but in practice Lipila echoes our `referenceId` back under `referenceId`
+  // Collect every candidate so we match regardless of which field carries it.
+  // Sanitise to our own ref charset (alnum/dash/underscore) — these values
+  // feed a PostgREST .or() filter, so reject anything that isn't ref-shaped.
+  const candidates = [identifier, lipilaReferenceId]
+    .filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9_-]+$/.test(x))
+
+  if (candidates.length === 0) {
+    console.log('[webhook] no identifier/referenceId in payload — ignoring (likely a test ping)')
     return NextResponse.json({ received: true })
   }
 
@@ -77,15 +85,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
-  // Look up the payment record by our reference
+  // Look up the payment by reference OR lipila_reference, against any candidate.
+  const orFilter = candidates
+    .flatMap((c) => [`reference.eq.${c}`, `lipila_reference.eq.${c}`])
+    .join(',')
   const { data: payment, error: fetchErr } = await serviceSupabase
     .from('payments')
     .select('*')
-    .eq('reference', ourReference)
-    .single()
+    .or(orFilter)
+    .maybeSingle()
+
+  const ourReference = payment?.reference ?? candidates[0]
 
   if (fetchErr || !payment) {
-    console.error('[webhook] payment not found for identifier:', ourReference)
+    console.error('[webhook] payment not found for candidates:', candidates, fetchErr?.message)
     // Acknowledge anyway so Lipila doesn't keep retrying for a record we'll never have
     return NextResponse.json({ received: true })
   }
