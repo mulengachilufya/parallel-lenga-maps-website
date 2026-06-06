@@ -37,6 +37,16 @@ const serviceSupabase = createClient(
 const PLAN_PERIOD_DAYS = 30
 
 export async function POST(request: NextRequest) {
+  // TEMP DIAGNOSTIC: log all incoming headers so the first real Lipila
+  // callback reveals (a) that delivery is working and (b) the name of the
+  // signature header — which we currently can't get from the docs. Once we
+  // see it we can add HMAC verification and remove this. Header values are
+  // low-risk to log here (no card data); the signature itself is over the
+  // body so logging the header name/value doesn't weaken anything.
+  const hdrs: Record<string, string> = {}
+  request.headers.forEach((v, k) => { hdrs[k] = v })
+  console.log('[webhook] incoming headers:', JSON.stringify(hdrs))
+
   let payload: Record<string, unknown>
   try {
     payload = await request.json()
