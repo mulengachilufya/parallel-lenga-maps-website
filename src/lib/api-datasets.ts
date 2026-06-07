@@ -429,6 +429,36 @@ export function totalBytes(files: ApiFile[]): number {
   return files.reduce((acc, f) => acc + Math.round(f.file_size_mb * 1024 * 1024), 0)
 }
 
+/**
+ * QGIS symbology assets that pair with paletted / categorical datasets.
+ * The key is the dataset slug; the value is the R2 object key(s) we look
+ * for, in order of preference. Empty list = no symbology planned (the
+ * dataset uses default GIS styling).
+ *
+ * We list `.qml` first (QGIS-native, richest information including label
+ * field, transparency, blending) and `.sld` as a fallback (interoperable
+ * with QGIS, ArcGIS, GeoServer, MapServer).
+ *
+ * The actual files live in R2 — this just lists what to look for. The
+ * symbology endpoint 404s gracefully when an asset is planned but not yet
+ * uploaded, so we can ship the route ahead of the .qml files.
+ */
+const SYMBOLOGY_BY_DATASET: Record<string, string[]> = {
+  'lulc':          ['symbology/lulc.qml',          'symbology/lulc.sld'],
+  'drought-index': ['symbology/drought-index.qml', 'symbology/drought-index.sld'],
+  'soil':          ['symbology/soil.qml',          'symbology/soil.sld'],
+  'rainfall':      ['symbology/rainfall.qml',      'symbology/rainfall.sld'],
+  'temperature':   ['symbology/temperature.qml',   'symbology/temperature.sld'],
+}
+
+export function listSymbology(datasetId: string): string[] {
+  return SYMBOLOGY_BY_DATASET[datasetId.toLowerCase()] ?? []
+}
+
+export function hasSymbology(datasetId: string): boolean {
+  return listSymbology(datasetId).length > 0
+}
+
 /** Public-shape summary list (no row leak). */
 export async function summariseDatasets(): Promise<ApiDatasetSummary[]> {
   return Promise.all(DATASETS.map(async (spec) => {

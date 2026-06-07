@@ -16,7 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateApiRequest, recordUsage, failureResponse, MAX_EGRESS_BYTES_PER_MONTH } from '@/lib/api-auth'
-import { findDataset, listFilesForDataset, signAll, totalBytes } from '@/lib/api-datasets'
+import { findDataset, listFilesForDataset, signAll, totalBytes, hasSymbology } from '@/lib/api-datasets'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,6 +61,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   recordUsage(auth.caller.keyId, bytes).catch(() => {})
 
+  // Categorical/paletted layers ship with QGIS symbology so QGIS doesn't
+  // open them as a grey gradient. Point clients at /symbology when they
+  // exist — saves the "why does this look wrong?" round-trip.
+  const symbologyHint = hasSymbology(spec.id)
+    ? { symbology_endpoint: `/api/v1/datasets/${spec.id}/symbology` }
+    : null
+
   return NextResponse.json({
     dataset: {
       id:         spec.id,
@@ -71,6 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       total_size_mb:       Math.round(bytes / (1024 * 1024)),
       download_expires_in: 3600,
       files:               signed,
+      ...symbologyHint,
     },
   })
 }
