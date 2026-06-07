@@ -17,9 +17,9 @@ import { track } from '@/lib/analytics'
 // below the hero.
 const heroImage      = '/images/branding/river-aerial.jpg'
 const satelliteImage = 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=1600&q=80'
-// Local file — see /public/images/branding/ground-story.jpg
-// (drop the African-village-pump photo there before deploy).
-const villageImage   = '/images/branding/ground-story.jpg'
+// Local file — the African-village-pump photo lives at
+// /public/images/branding/ground-story.jpeg.
+const villageImage   = '/images/branding/ground-story.jpeg'
 
 const services = [
   {
