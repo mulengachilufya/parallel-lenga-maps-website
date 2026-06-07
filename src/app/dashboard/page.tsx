@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Loader2, ArrowLeft, Globe2, FileDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -498,15 +499,38 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="h-20" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-        {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-navy">
-            {userName ? `Welcome back, ${userName.split(' ')[0]}` : 'Your dashboard'}
+      {/* Thin satellite banner — same orbit visual as the landing page,
+          so the brand story doesn't end at sign-in. Sits below the navbar
+          and above the greeting; subtle dark gradient keeps the welcome
+          text readable on top. */}
+      <div className="relative h-[180px] sm:h-[220px] overflow-hidden border-b border-gray-100">
+        <Image
+          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2400&q=80"
+          alt="Earth from orbit — Africa visible"
+          fill
+          priority
+          className="object-cover brightness-[0.55] saturate-[1.1]"
+          unoptimized
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a121c]/85 via-[#0a121c]/50 to-[#0a121c]/15" />
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-7 h-0.5 bg-gold" />
+            <span className="text-[0.66rem] font-bold tracking-[0.22em] text-gold uppercase">
+              Dashboard
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+            {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">All 54 African countries · 15 datasets</p>
+          <p className="text-white/70 text-sm mt-1.5">
+            54 African countries · 15 datasets · harmonised to EPSG:4326
+          </p>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
         {/* Admin link — only shown if /api/admin/me confirmed this user is
             on the server-side ADMIN_EMAILS allowlist. Adding a new admin

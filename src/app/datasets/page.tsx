@@ -209,12 +209,14 @@ const LIVE_DATASETS = LIVE_DATASET_ROUTES
 export default function DatasetsPage() {
   return (
     <>
-      {/* Hero */}
+      {/* Hero — same satellite/orbit visual as the landing page so the
+          story is consistent end-to-end. Higher opacity (15%) than other
+          surfaces so the imagery is felt without competing with the H1. */}
       <section className="relative pt-32 pb-16 overflow-hidden gradient-primary">
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-[0.15]">
           <Image
-            src="/images/branding/river-aerial.jpg"
-            alt="GIS data overview"
+            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2400&q=80"
+            alt="Satellite view of Africa from orbit"
             fill
             className="object-cover"
             unoptimized
