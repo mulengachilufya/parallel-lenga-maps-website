@@ -57,7 +57,10 @@ function InlineSignup() {
         options: {
           data: {
             full_name: name,
-            plan: 'basic',
+            // Same shape as /signup — init-profile reads these. The legacy
+            // `plan: 'basic'` literal was not a valid slug and caused
+            // homepage signups to land as `free` instead of `free_trial`.
+            trial_started_at: new Date().toISOString(),
           },
         },
       })
