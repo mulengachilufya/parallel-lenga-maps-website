@@ -21,12 +21,7 @@ const config: Config = {
         "dark-deep": "#070e16",
       },
       fontFamily: {
-        // Loaded via next/font in src/app/layout.tsx and exposed as CSS
-        // variables. Falls back to system fonts if the variable isn't
-        // available (legacy server contexts, no-script, etc.).
-        sans:  ["var(--font-sans)",  "Inter",  "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Spectral", "Georgia", "Cambria",
-                "Times New Roman", "Times", "serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
       animation: {
         "spin-slow": "spin 20s linear infinite",
