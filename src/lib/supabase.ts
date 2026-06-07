@@ -56,6 +56,31 @@ export type DatasetTier = 'starter' | 'pro' | 'max' | 'enterprise'
 // These shims keep old call sites compiling during migration.
 import { canAccessDataset, PLAN_ORDER, type TierSlug } from './pricing'
 
+// Display order for the catalogue. Starter first (cheapest tier), then Pro,
+// then Max — so users scrolling through the grid see what's included in
+// their own tier (or the cheapest entry point) before what they'd need to
+// upgrade for. Investors flagged the previous mixed order as a credibility
+// hit on both /datasets and /dashboard.
+const TIER_RANK: Record<DatasetTier, number> = {
+  starter:    0,
+  pro:        1,
+  max:        2,
+  enterprise: 3,
+}
+
+/** Sort by tier (starter → pro → max), then by dataset id within each
+ *  tier to keep the order deterministic between renders. */
+export function sortDatasetsByTier<T extends { tier: DatasetTier; id: number }>(
+  list: readonly T[],
+): T[] {
+  return [...list].sort((a, b) => {
+    const ta = TIER_RANK[a.tier] ?? 99
+    const tb = TIER_RANK[b.tier] ?? 99
+    if (ta !== tb) return ta - tb
+    return a.id - b.id
+  })
+}
+
 export function planLevel(plan: PlanTier | null | undefined): number {
   if (!plan) return 0
   return PLAN_ORDER.indexOf(plan as TierSlug) + 1

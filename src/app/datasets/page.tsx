@@ -8,8 +8,11 @@ import {
   ArrowRight, Download, Lock, Clock, ExternalLink, ChevronDown,
 } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
+import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import type { Dataset, DatasetSource } from '@/lib/supabase'
+
+// Order: Starter → Pro → Max, deterministic within each tier.
+const ORDERED_DATASETS = sortDatasetsByTier(DATASETS)
 
 /**
  * Compact "show details" panel that replaces the old per-card tip box and
@@ -273,7 +276,7 @@ export default function DatasetsPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {DATASETS.map((dataset, i) => {
+            {ORDERED_DATASETS.map((dataset, i) => {
               const isLive = dataset.id in LIVE_DATASETS
 
               return (

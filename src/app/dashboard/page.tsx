@@ -12,7 +12,7 @@ import {
   TRIAL_DOWNLOAD_CAP, planCardCount,
   type TierSlug, type UserState
 } from '@/lib/pricing'
-import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
+import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
 // Dataset section components
@@ -571,7 +571,7 @@ function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {DATASETS.map((dataset, i) => {
+          {sortDatasetsByTier(DATASETS).map((dataset, i) => {
             const isLive = dataset.id in LIVE_DATASET_ROUTES
 
             const ID_TO_SLUG: Record<number, import('@/lib/pricing').DatasetSlug> = {

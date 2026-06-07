@@ -8,7 +8,7 @@ import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye,
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
-import { supabase, DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
+import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
 const heroImage = '/images/branding/river-aerial.jpg'
@@ -314,7 +314,7 @@ export default function HomePage() {
 
           {/* Dataset cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {DATASETS.map((dataset, i) => (
+            {sortDatasetsByTier(DATASETS).map((dataset, i) => (
               <DatasetCard
                 key={dataset.id}
                 dataset={dataset}
