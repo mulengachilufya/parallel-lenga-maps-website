@@ -267,10 +267,10 @@ export default function HomePage() {
                 Download GIS Data
               </Link>
               <Link
-                href="/services"
+                href="/signup"
                 className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
               >
-                Explore Services
+                Get Started
               </Link>
             </motion.div>
           </motion.div>
