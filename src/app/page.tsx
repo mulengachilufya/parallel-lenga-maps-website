@@ -12,17 +12,11 @@ import HomeContactForm from '@/components/HomeContactForm'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
-// External imagery (Unsplash) replaces the old in-repo river-aerial. Tells
-// the satellite-over-Africa story the brand is built on: orbital data
-// sources fused with the lived African context they describe.
-//
-//   heroImage       — Earth's atmosphere seen from orbit (deep blue,
-//                     hint of cloud cover, the satellite POV)
-//   satelliteImage  — ISS-era satellite glinting against Earth's curve
-//                     (used in the dual-image story section)
-//   villageImage    — high-quality African landscape with traditional
-//                     rural settlement in frame (savanna context)
-const heroImage      = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2400&q=80'
+// Hero stays on the in-repo river-aerial — the green pasture / curvy
+// stream shot the brand already had. Story imagery (orbital satellite +
+// African landscape) is used in the dedicated "Orbit × Ground" section
+// below the hero.
+const heroImage      = '/images/branding/river-aerial.jpg'
 const satelliteImage = 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=1600&q=80'
 const villageImage   = 'https://images.unsplash.com/photo-1535991137197-67bc3f6e9fb1?w=1600&q=80'
 
