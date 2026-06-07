@@ -170,7 +170,7 @@ export const DATASETS: Dataset[] = [
     resolution: '1:50,000 – 1:250,000',
     icon: '🗺️',
     tier: 'starter',
-    color: '#1E5F8E',
+    color: '#1E3A5C', // deep oceanic navy — admin / boundary
     epsg: 'EPSG:4326',
     licence: 'GADM (non-commercial) / ODbL',
     last_update: 'GADM v4.1 · 2022',
@@ -187,7 +187,7 @@ export const DATASETS: Dataset[] = [
     resolution: '90 m hydrological',
     icon: '🌊',
     tier: 'pro',
-    color: '#0ea5e9',
+    color: '#0E7C8C', // deep teal — water bodies
     epsg: 'EPSG:4326',
     licence: 'HydroSHEDS (free with attribution)',
     last_update: '2023',
@@ -203,7 +203,7 @@ export const DATASETS: Dataset[] = [
     resolution: '10 m',
     icon: '🌿',
     tier: 'max',
-    color: '#16a34a',
+    color: '#1F6B3A', // pine / forest green
     epsg: 'EPSG:4326',
     licence: 'CC BY 4.0',
     last_update: 'WorldCover v200 · 2021',
@@ -219,7 +219,7 @@ export const DATASETS: Dataset[] = [
     resolution: '0.05° (~5 km)',
     icon: '🔥',
     tier: 'starter',
-    color: '#ea580c',
+    color: '#9A4E2D', // burnt sienna — drought / drylands
     epsg: 'EPSG:4326',
     licence: 'Public domain (USGS/UCSB)',
     last_update: 'CHIRPS v2.0',
@@ -235,7 +235,7 @@ export const DATASETS: Dataset[] = [
     resolution: '0.05° (~5 km)',
     icon: '🌧️',
     tier: 'starter',
-    color: '#2563eb',
+    color: '#1F3A8A', // storm / rain indigo
     epsg: 'EPSG:4326',
     licence: 'Public domain (USGS/UCSB)',
     last_update: 'CHIRPS v2.0',
@@ -251,7 +251,7 @@ export const DATASETS: Dataset[] = [
     resolution: '2.5 arc-min (~5 km)',
     icon: '🌡️',
     tier: 'max',
-    color: '#dc2626',
+    color: '#9F1239', // deep crimson — temperature / heat
     epsg: 'EPSG:4326',
     licence: 'CC BY 4.0',
     last_update: 'WorldClim v2.1 · 2020',
@@ -267,7 +267,7 @@ export const DATASETS: Dataset[] = [
     resolution: '1:1M – 1:5M',
     icon: '💧',
     tier: 'starter',
-    color: '#0369a1',
+    color: '#155E75', // deep cyan — groundwater
     epsg: 'EPSG:4326',
     licence: 'IGRAC open data',
     last_update: 'WHYMAP 2015 · GGIS rolling',
@@ -284,7 +284,7 @@ export const DATASETS: Dataset[] = [
     resolution: 'ADM1 / ADM2',
     icon: '🏘️',
     tier: 'pro',
-    color: '#dc2626',
+    color: '#7C2D12', // rich rust — settlements
     epsg: 'EPSG:4326',
     licence: 'CC BY 3.0 IGO (varies)',
     last_update: 'COD-PS rolling',
@@ -314,7 +314,7 @@ export const DATASETS: Dataset[] = [
     resolution: 'Vector',
     icon: '🛣️',
     tier: 'pro',
-    color: '#ea580c',
+    color: '#A16207', // dark amber / bronze — infrastructure
     epsg: 'EPSG:4326',
     licence: 'ODbL (OSM)',
     last_update: 'OSM rolling',
@@ -330,7 +330,7 @@ export const DATASETS: Dataset[] = [
     resolution: '30–100 m',
     icon: '🦆',
     tier: 'max',
-    color: '#0891b2',
+    color: '#155E63', // dusty teal — wetlands
     epsg: 'EPSG:4326',
     licence: 'CC BY 4.0',
     last_update: '2023',
@@ -346,7 +346,7 @@ export const DATASETS: Dataset[] = [
     resolution: '250 m',
     icon: '🌾',
     tier: 'max',
-    color: '#a16207',
+    color: '#92400E', // warm earth — soil / agriculture
     epsg: 'EPSG:4326 (reprojected from Homolosine)',
     licence: 'CC BY 4.0',
     last_update: 'SoilGrids v2.0 · 2020',
@@ -362,7 +362,7 @@ export const DATASETS: Dataset[] = [
     resolution: 'Vector',
     icon: '🐘',
     tier: 'starter',
-    color: '#166534',
+    color: '#14532D', // deep emerald — conservation / wildlife
     epsg: 'EPSG:4326',
     licence: 'ODbL (OSM)',
     last_update: 'OSM rolling',
@@ -386,7 +386,7 @@ export const DATASETS: Dataset[] = [
     resolution: '15 arc-second (~500 m)',
     icon: '🌊',
     tier: 'max',
-    color: '#0ea5e9',
+    color: '#075985', // ocean blue — large-river network
     epsg: 'EPSG:4326',
     licence: 'HydroSHEDS (free with attribution)',
     last_update: 'HydroRIVERS v10',
@@ -402,7 +402,7 @@ export const DATASETS: Dataset[] = [
     resolution: 'Level 6 (~2k–10k km²)',
     icon: '🗺️',
     tier: 'pro',
-    color: '#0d9488',
+    color: '#115E59', // dark teal — watershed basins
     epsg: 'EPSG:4326',
     licence: 'HydroSHEDS (free with attribution)',
     last_update: 'HydroBASINS v1c',
@@ -418,7 +418,7 @@ export const DATASETS: Dataset[] = [
     resolution: 'Vector polygons',
     icon: '🏞️',
     tier: 'max',
-    color: '#0ea5e9',
+    color: '#1E40AF', // royal lake blue
     epsg: 'EPSG:4326',
     licence: 'HydroSHEDS (free with attribution)',
     last_update: 'HydroLAKES v1.0',

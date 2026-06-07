@@ -2,7 +2,11 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Lock } from 'lucide-react'
+import {
+  Lock, Map, Waves, Trees, Flame, Droplets, Users, Route, CloudRain,
+  Mountain, Sprout, Bird, Thermometer, Anchor,
+  type LucideIcon,
+} from 'lucide-react'
 
 interface Dataset {
   id: number
@@ -28,7 +32,60 @@ interface DatasetCardProps {
   href?: string
 }
 
+/**
+ * Considered lineart icons per dataset id — replaces the emoji on the
+ * legacy card. Drawn from lucide-react so they all share a 1.5px stroke,
+ * keep the same visual weight, and inherit the dataset's richer accent
+ * colour. Subtle by design — no two-tone fills, no decorative flourishes.
+ */
+const DATASET_ICON: Record<number, LucideIcon> = {
+  1:  Map,         // Administrative Boundaries
+  3:  Waves,       // River Networks
+  4:  Trees,       // Land Use / Land Cover
+  5:  Flame,       // Drought Index (SPI-12)
+  6:  Droplets,    // Groundwater Aquifers
+  8:  Users,       // Population & Settlements
+  9:  Route,       // Roads & Infrastructure
+  10: CloudRain,   // Wetlands & Floodplains
+  11: Sprout,      // Soil Classification
+  12: Bird,        // Protected Areas & Wildlife
+  13: Waves,       // HydroRIVERS
+  14: Mountain,    // Watersheds & Catchments
+  15: CloudRain,   // Rainfall
+  16: Thermometer, // Temperature
+  17: Anchor,      // Lakes
+}
+
+/**
+ * Plan-tier badge text. Replaces the legacy "Basic & Pro" / "Pro Only"
+ * binary which was hardcoded against an old slug ('basic') the new tier
+ * model never returns — so every card on the live site read "Pro Only"
+ * regardless of dataset.
+ */
+function tierBadgeText(tier: string): string {
+  switch (tier) {
+    case 'starter':    return 'Starter+'
+    case 'pro':        return 'Pro+'
+    case 'max':        return 'Max'
+    case 'enterprise': return 'Enterprise'
+    default:           return 'Starter+'
+  }
+}
+
+function tierBadgeStyle(tier: string): string {
+  switch (tier) {
+    case 'starter':    return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/60'
+    case 'pro':        return 'bg-amber-50 text-amber-900 ring-1 ring-amber-300/60'
+    case 'max':        return 'bg-violet-50 text-violet-900 ring-1 ring-violet-300/60'
+    case 'enterprise': return 'bg-rose-50 text-rose-900 ring-1 ring-rose-200/60'
+    default:           return 'bg-gray-100 text-gray-700 ring-1 ring-gray-200'
+  }
+}
+
 export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
+  const Icon = DATASET_ICON[dataset.id] ?? Map
+  const accent = dataset.color // richer per-dataset accent (set in DATASETS)
+
   const card = (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -41,15 +98,20 @@ export default function DatasetCard({ dataset, index, href }: DatasetCardProps) 
         {/* Front */}
         <div className="flip-card-front rounded-2xl bg-white border border-gray-100 shadow-md hover:shadow-lg p-6 flex flex-col justify-between">
           <div>
+            {/* Icon tile — lineart Lucide, not emoji. Background uses a
+                richer shade of the dataset accent. */}
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
-              style={{ backgroundColor: `${dataset.color}15` }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+              style={{
+                background: `linear-gradient(135deg, ${accent}1a 0%, ${accent}33 100%)`,
+                color: accent,
+              }}
             >
-              {dataset.icon}
+              <Icon size={22} strokeWidth={1.6} />
             </div>
             <span
               className="text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded-full"
-              style={{ backgroundColor: `${dataset.color}15`, color: dataset.color }}
+              style={{ backgroundColor: `${accent}15`, color: accent }}
             >
               {dataset.category}
             </span>
@@ -57,28 +119,26 @@ export default function DatasetCard({ dataset, index, href }: DatasetCardProps) 
             <p className="mt-2 text-gray-500 text-sm leading-relaxed line-clamp-2">{dataset.description}</p>
           </div>
           <div className="flex items-center justify-between mt-4">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              dataset.tier === 'basic'
-                ? 'bg-green-50 text-green-700'
-                : 'bg-primary/10 text-primary'
-            }`}>
-              {dataset.tier === 'basic' ? 'Basic & Pro' : 'Pro Only'}
+            <span
+              className={`text-xs font-semibold px-2 py-1 rounded-full ${tierBadgeStyle(dataset.tier)}`}
+            >
+              {tierBadgeText(dataset.tier)}
             </span>
-            <span className="text-xs text-gray-400">Hover to see details →</span>
+            <span className="text-xs text-gray-400">Hover for details</span>
           </div>
         </div>
 
         {/* Back */}
         <div
           className="flip-card-back rounded-2xl p-6 flex flex-col justify-between text-white"
-          style={{ background: `linear-gradient(135deg, ${dataset.color} 0%, #0D2B45 100%)` }}
+          style={{ background: `linear-gradient(135deg, ${accent} 0%, #0D2B45 100%)` }}
         >
           <div>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl">{dataset.icon}</span>
-              {dataset.tier === 'pro' && (
+              <Icon size={22} strokeWidth={1.6} className="text-white/90" />
+              {(dataset.tier === 'pro' || dataset.tier === 'max') && (
                 <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
-                  <Lock size={10} /> Pro Only
+                  <Lock size={10} /> {tierBadgeText(dataset.tier)}
                 </span>
               )}
             </div>
