@@ -260,7 +260,22 @@ function DashboardContent() {
         fetch('/api/admin/me').then(r => r.ok ? r.json() : { isAdmin: false })
           .catch(() => ({ isAdmin: false })),
       ])
-      const profile = profileRes.data
+      let profile = profileRes.data
+
+      // Self-heal: if a fresh signup is missing trial_started_at (init-profile
+      // didn't run or failed), call it now and re-read. Keeps the user out
+      // of the "stuck on free" trap permanently.
+      if (profile && !profile.trial_started_at && !profile.plan) {
+        try {
+          await fetch('/api/account/init-profile', { method: 'POST' })
+          const retry = await supabase
+            .from('profiles')
+            .select('plan, plan_status, trial_started_at, full_name')
+            .eq('id', session.user.id)
+            .single()
+          if (retry.data) profile = retry.data
+        } catch { /* non-fatal — UI just shows 'free' until next visit */ }
+      }
 
       setUserState(getUserState(
         profile?.plan,
