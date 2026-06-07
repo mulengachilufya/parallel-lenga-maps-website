@@ -32,9 +32,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="h-20" />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+    <div className="bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
         <h1 className="text-2xl font-bold text-navy mb-2">Admin</h1>
         <p className="text-gray-500 text-sm mb-10">Lenga Maps internal tools.</p>
 

@@ -22,6 +22,12 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resending, setResending] = useState(false)
+  const [resendOk,  setResendOk]  = useState(false)
+  // Surfaces the "Resend verification" link only after a failed sign-in
+  // that smells like "email not confirmed". Avoids showing it to every
+  // visitor before they've even tried to log in.
+  const showResend = /not confirmed|verify/i.test(error)
 
   // If the user is ALREADY signed in (e.g. they clicked the navbar's
   // "Login" link without realising they were still authenticated), bounce
@@ -34,6 +40,27 @@ function LoginForm() {
     })
     return () => { cancelled = true }
   }, [nextPath, router])
+
+  const handleResend = async () => {
+    if (!email) { setError('Enter your email above first.'); return }
+    setResending(true); setResendOk(false)
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+      if (resendErr) {
+        setError(resendErr.message)
+      } else {
+        setResendOk(true)
+        setError('')
+      }
+    } catch {
+      setError('Could not resend. Try again in a minute.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -98,10 +125,32 @@ function LoginForm() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm"
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm"
             >
-              <AlertCircle size={16} />
-              {error}
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+              {showResend && (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="mt-2 ml-6 text-xs font-semibold text-red-800 underline hover:text-red-900 disabled:opacity-60"
+                >
+                  {resending ? 'Sending…' : 'Resend verification email'}
+                </button>
+              )}
+            </motion.div>
+          )}
+
+          {resendOk && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl mb-6 text-sm"
+            >
+              <span>Verification email sent. Check your inbox (and spam).</span>
             </motion.div>
           )}
 
