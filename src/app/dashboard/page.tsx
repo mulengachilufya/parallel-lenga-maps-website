@@ -242,18 +242,25 @@ function DashboardContent() {
   const [userState,      setUserState]      = useState<UserState>('free')
   const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null)
   const [userName,       setUserName]       = useState('')
-  const [userEmail,      setUserEmail]      = useState('')
+  const [isAdmin,        setIsAdmin]        = useState(false)
 
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.replace('/login'); return }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan, plan_status, trial_started_at, full_name')
-        .eq('id', session.user.id)
-        .single()
+      // Profile + admin check in parallel — admin is server-checked
+      // against ADMIN_EMAILS, NOT a hardcoded email in this client bundle.
+      const [profileRes, adminRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('plan, plan_status, trial_started_at, full_name')
+          .eq('id', session.user.id)
+          .single(),
+        fetch('/api/admin/me').then(r => r.ok ? r.json() : { isAdmin: false })
+          .catch(() => ({ isAdmin: false })),
+      ])
+      const profile = profileRes.data
 
       setUserState(getUserState(
         profile?.plan,
@@ -262,7 +269,7 @@ function DashboardContent() {
       ))
       setTrialStartedAt(profile?.trial_started_at ?? null)
       setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
-      setUserEmail(session.user.email || '')
+      setIsAdmin(Boolean(adminRes?.isAdmin))
       setLoading(false)
     }
     load()
@@ -342,8 +349,10 @@ function DashboardContent() {
           <p className="text-gray-500 text-sm mt-1">All 54 African countries · 15 datasets</p>
         </div>
 
-        {/* Admin link */}
-        {userEmail === 'cmulenga672@gmail.com' && (
+        {/* Admin link — only shown if /api/admin/me confirmed this user is
+            on the server-side ADMIN_EMAILS allowlist. Adding a new admin
+            now means editing one env var, no code change. */}
+        {isAdmin && (
           <div className="mb-6">
             <Link
               href="/admin"
