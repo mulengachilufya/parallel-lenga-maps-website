@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2, ArrowLeft, Globe2, FileDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
@@ -230,6 +230,82 @@ function PlanCard({
   )
 }
 
+// ─── Continental bundle CTA ───────────────────────────────────
+// Visible only to Max / Enterprise users on a section page. Hits the
+// cookie-auth bundle endpoint and downloads the resulting manifest as a
+// JSON file the user can pipe into wget/curl/python-requests. We
+// intentionally don't spawn 54 browser downloads — it triggers permission
+// prompts and dies on rate-limited connections. A manifest is what a real
+// GIS workflow wants.
+function ContinentalBundle({ datasetSlug }: { datasetSlug: string }) {
+  const [busy,   setBusy]   = useState(false)
+  const [error,  setError]  = useState('')
+  const [result, setResult] = useState<{ file_count: number; size_mb: number } | null>(null)
+
+  async function fetchBundle() {
+    setBusy(true); setError(''); setResult(null)
+    try {
+      const res = await fetch(`/api/datasets/${datasetSlug}/bundle`)
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(body.message || body.error || `Bundle failed (HTTP ${res.status})`)
+        return
+      }
+
+      const blob = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `${datasetSlug}-africa-bundle.json`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+
+      setResult({
+        file_count: body.dataset?.file_count ?? 0,
+        size_mb:    body.bundle?.total_size_mb ?? 0,
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unexpected error.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mb-4 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+          <Globe2 size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-navy">
+            Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">Max</span>
+          </p>
+          <p className="text-xs text-gray-600 leading-snug mt-0.5">
+            Download presigned URLs for every country in one JSON manifest — feed it straight to wget, curl, or your Python pipeline.
+          </p>
+          {result && (
+            <p className="text-xs text-green-700 mt-2 font-medium">
+              ✓ Manifest saved · {result.file_count} files · ~{result.size_mb.toLocaleString()} MB total
+            </p>
+          )}
+          {error && (
+            <p className="text-xs text-red-700 mt-2 font-medium">{error}</p>
+          )}
+        </div>
+        <button
+          onClick={fetchBundle}
+          disabled={busy}
+          className="shrink-0 inline-flex items-center gap-1.5 bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-60 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+        >
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
+          {busy ? 'Building…' : 'Get bundle'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────
 
 function DashboardContent() {
@@ -341,6 +417,12 @@ function DashboardContent() {
               </div>
             )}
           </div>
+
+          {/* Continental bundle — Max / Enterprise only, on live datasets
+              whose section key matches an API slug. */}
+          {(userState === 'max' || userState === 'enterprise') && sectionKey && (
+            <ContinentalBundle datasetSlug={sectionKey} />
+          )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             {sectionData.component()}
