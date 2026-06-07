@@ -2,11 +2,11 @@
 
 import {
   createContext, useContext, useCallback,
-  useEffect, useRef, useState,
+  useEffect, useState,
 } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
-  getUserState, canAccessFiles, DATASET_MIN_TIER, PLAN_ORDER,
+  getUserState, DATASET_MIN_TIER, PLAN_ORDER,
   PLANS, PLAN_ORDER as TIERS, getTierLabel,
   type UserState, type TierSlug, type DatasetSlug,
 } from '@/lib/pricing'
@@ -82,8 +82,29 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
 
   useEffect(() => {
     load()
+
+    // Refresh on auth changes (sign-in / sign-out in any tab).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load())
-    return () => subscription.unsubscribe()
+
+    // Refresh when the tab regains focus. Catches the case where a user
+    // leaves a dashboard tab open while admin verifies their payment in
+    // another tab, or while their trial ticks past expiry.
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') load()
+    })
+
+    // Slow background poll for users who keep the tab focused for hours
+    // (e.g., browsing through 54 countries). 5 minutes is the longest
+    // anyone should be looking at stale gate state.
+    const interval = setInterval(load, 5 * 60_000)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('focus', onFocus)
+      clearInterval(interval)
+    }
   }, [load])
 
   function checkAccess(slug: DatasetSlug): boolean {
