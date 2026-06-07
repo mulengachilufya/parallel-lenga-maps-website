@@ -67,8 +67,10 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
   // expiry — a stalled refresh-token exchange (the classic returning-user
   // failure mode) can't keep the gate in `loading: true` forever and
   // silently break the download buttons.
-  const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
-    Promise.race([
+  // PromiseLike (not Promise) so we can pass Supabase query builders
+  // directly — they're thenable but not true Promises until awaited.
+  const withTimeout = <T,>(p: PromiseLike<T>, ms: number): Promise<T | null> =>
+    Promise.race<T | null>([
       p,
       new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
     ])

@@ -339,11 +339,12 @@ function DashboardContent() {
     // timeouts, so any stall = infinite spinner.
     let cancelled = false
 
-    // Race the promise against a timeout. On timeout returns null; the
+    // Race the value against a timeout. On timeout returns null; the
     // caller treats null the same as "we got nothing useful, render the
-    // safe defaults". No type gymnastics required.
-    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
-      Promise.race([
+    // safe defaults". PromiseLike (not Promise) so we can pass Supabase
+    // query builders directly — they're thenable but not true Promises.
+    const withTimeout = <T,>(p: PromiseLike<T>, ms: number): Promise<T | null> =>
+      Promise.race<T | null>([
         p,
         new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
       ])
