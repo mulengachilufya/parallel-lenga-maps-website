@@ -151,7 +151,7 @@ function PaywallModal({
             return (
               <Link
                 key={slug}
-                href={`/manual-payment?plan=${slug}`}
+                href={`/dashboard/payment?plan=${slug}`}
                 onClick={onClose}
                 className={`block rounded-xl border p-4 text-center transition-colors hover:border-[#F5B800]/60 group ${
                   isRequired
