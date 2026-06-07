@@ -7,11 +7,24 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
+import GlobeAnimation from '@/components/animations/GlobeAnimation'
 import HomeContactForm from '@/components/HomeContactForm'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
-const heroImage = '/images/branding/river-aerial.jpg'
+// External imagery (Unsplash) replaces the old in-repo river-aerial. Tells
+// the satellite-over-Africa story the brand is built on: orbital data
+// sources fused with the lived African context they describe.
+//
+//   heroImage       — Earth's atmosphere seen from orbit (deep blue,
+//                     hint of cloud cover, the satellite POV)
+//   satelliteImage  — ISS-era satellite glinting against Earth's curve
+//                     (used in the dual-image story section)
+//   villageImage    — high-quality African landscape with traditional
+//                     rural settlement in frame (savanna context)
+const heroImage      = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2400&q=80'
+const satelliteImage = 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=1600&q=80'
+const villageImage   = 'https://images.unsplash.com/photo-1535991137197-67bc3f6e9fb1?w=1600&q=80'
 
 const services = [
   {
@@ -205,63 +218,145 @@ export default function HomePage() {
         </motion.div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-24">
-          <motion.div style={{ y: textY }} className="max-w-[680px]">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex items-center gap-3.5 mb-7"
-            >
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                Geospatial Intelligence
-              </span>
+          <div className="grid lg:grid-cols-[1fr_auto] items-center gap-12">
+            <motion.div style={{ y: textY }} className="max-w-[680px]">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center gap-3.5 mb-7"
+              >
+                <div className="w-9 h-0.5 bg-gold" />
+                <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
+                  Geospatial Intelligence
+                </span>
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
+              >
+                Unmasking{' '}
+                <span className="text-gold">Africa</span> with
+                <br />
+                <span className="text-gold">Data</span> and Intelligence.
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="text-[1.05rem] leading-[1.7] text-white/80 max-w-[520px] mb-12"
+              >
+                Building Africa&apos;s largest and most centralized environmental GIS
+                database. We fuse satellite-grade observation with the lived African
+                context to solve real geospatial challenges.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="flex flex-wrap gap-4"
+              >
+                <Link
+                  href="/datasets"
+                  className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+                >
+                  <Download size={18} />
+                  Download GIS Data
+                </Link>
+                <Link
+                  href="/services"
+                  className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
+                >
+                  Explore Services
+                </Link>
+              </motion.div>
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
-            >
-              Unmasking{' '}
-              <span className="text-gold">Africa</span> with
-              <br />
-              <span className="text-gold">Data</span> and Intelligence.
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="text-[1.05rem] leading-[1.7] text-white/80 max-w-[520px] mb-12"
-            >
-              Building Africa&apos;s largest and most centralized environmental GIS
-              database. We fuse GIS software and programming to solve complex
-              geospatial challenges across emerging markets.
-            </motion.p>
-
+            {/* Spinning globe — the literal "spinning thing" the brand
+                already had built. Restored to the hero so the satellite
+                / orbital intelligence story has a visible artifact, not
+                just a background photo. Hidden on small screens to keep
+                the hero body readable. */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="flex flex-wrap gap-4"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="hidden lg:flex justify-center items-center w-[380px] h-[380px] shrink-0"
             >
-              <Link
-                href="/datasets"
-                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
-              >
-                <Download size={18} />
-                Download GIS Data
-              </Link>
-              <Link
-                href="/services"
-                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
-              >
-                Explore Services
-              </Link>
+              <GlobeAnimation />
             </motion.div>
-          </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── ORBIT × GROUND STORY ──────────────────────────── */}
+      {/* Tells the brand story in two photographs: a satellite glinting
+          over Earth on one side, an African landscape with traditional
+          settlement on the other. The Lenga thesis in a single section. */}
+      <section className="relative bg-dark border-t border-white/[0.06] overflow-hidden">
+        <div className="grid lg:grid-cols-2">
+          {/* Orbit */}
+          <div className="relative h-[420px] lg:h-[560px] overflow-hidden">
+            <Image
+              src={satelliteImage}
+              alt="Satellite in Earth orbit"
+              fill
+              className="object-cover brightness-[0.7] saturate-[1.1]"
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#0a121c]/70" />
+            <div className="absolute inset-0 flex items-end p-8 lg:p-14">
+              <div>
+                <div className="flex items-center gap-3.5 mb-4">
+                  <div className="w-9 h-0.5 bg-gold" />
+                  <span className="text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
+                    From Orbit
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
+                  Satellite-grade<br/>observation.
+                </h3>
+                <p className="mt-3 text-white/70 text-[0.92rem] leading-relaxed max-w-md">
+                  Curated from NASA, ESA, USGS, HydroSHEDS, ISRIC and HDX —
+                  the same data sources powering global environmental research.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ground */}
+          <div className="relative h-[420px] lg:h-[560px] overflow-hidden">
+            <Image
+              src={villageImage}
+              alt="African landscape with traditional settlement"
+              fill
+              className="object-cover brightness-[0.62] saturate-[1.05]"
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-transparent to-[#0a121c]/70" />
+            <div className="absolute inset-0 flex items-end p-8 lg:p-14">
+              <div>
+                <div className="flex items-center gap-3.5 mb-4">
+                  <div className="w-9 h-0.5 bg-gold" />
+                  <span className="text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
+                    On the Ground
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
+                  Built for the<br/>African context.
+                </h3>
+                <p className="mt-3 text-white/70 text-[0.92rem] leading-relaxed max-w-md">
+                  Every dataset is clipped to a country, joined to local boundaries,
+                  and harmonised to EPSG:4326 — ready for QGIS, not for a research paper.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
