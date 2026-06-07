@@ -62,32 +62,55 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
   const [loading, setLoading] = useState(true)
   const [modal, setModal]     = useState<ModalState>({ open: false, requiredTier: 'starter', datasetSlug: null })
 
+  // Defensive load: wrapped in try/finally so setLoading(false) ALWAYS
+  // runs. Profile query gets a 6 s race so a stalled refresh-token
+  // exchange (the classic returning-user failure mode) can't keep the
+  // gate in `loading: true` forever and silently break the download
+  // buttons.
   const load = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { setUser(null); setLoading(false); return }
+    try {
+      const sessionRes = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>), 5_000),
+        ),
+      ])
+      const session = sessionRes.data.session
+      if (!session) { setUser(null); return }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan, plan_status, plan_expires_at, trial_started_at')
-      .eq('id', session.user.id)
-      .single()
+      const profileRes = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('plan, plan_status, plan_expires_at, trial_started_at')
+          .eq('id', session.user.id)
+          .single(),
+        new Promise<{ data: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null }), 6_000),
+        ),
+      ])
+      const profile = profileRes.data
 
-    if (!profile) { setUser(null); setLoading(false); return }
+      if (!profile) { setUser(null); return }
 
-    const userState = getUserState(
-      profile.plan,
-      profile.trial_started_at,
-      profile.plan_status,
-    )
+      const userState = getUserState(
+        profile.plan,
+        profile.trial_started_at,
+        profile.plan_status,
+      )
 
-    setUser({
-      plan:           profile.plan as TierSlug | null,
-      planStatus:     profile.plan_status,
-      planExpiresAt:  profile.plan_expires_at,
-      trialStartedAt: profile.trial_started_at,
-      userState,
-    })
-    setLoading(false)
+      setUser({
+        plan:           profile.plan as TierSlug | null,
+        planStatus:     profile.plan_status,
+        planExpiresAt:  profile.plan_expires_at,
+        trialStartedAt: profile.trial_started_at,
+        userState,
+      })
+    } catch (err) {
+      console.error('[gate] load failed:', err)
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {

@@ -325,50 +325,110 @@ function DashboardContent() {
   const [isAdmin,        setIsAdmin]        = useState(false)
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.replace('/login'); return }
+    // Defensive load pattern. Three rules:
+    //   1. setLoading(false) MUST run no matter what — try/catch/finally.
+    //   2. No single network call can stall the page forever — each await
+    //      is racing an 8s timeout, defaulting to a safe value on timeout.
+    //   3. A returning-user with a stale-but-non-expired session that the
+    //      Supabase client decides to refresh in the background can't make
+    //      Promise.all stall; admin check runs in parallel but its failure
+    //      is silently absorbed.
+    //
+    // Real-world cause for "stuck on spinner": a user away for weeks whose
+    // refresh-token handshake stalls, or /api/admin/me being slow during
+    // a Supabase Auth blip. The old code awaited Promise.all with no
+    // timeouts, so any stall = infinite spinner.
+    let cancelled = false
 
-      // Profile + admin check in parallel — admin is server-checked
-      // against ADMIN_EMAILS, NOT a hardcoded email in this client bundle.
-      const [profileRes, adminRes] = await Promise.all([
-        supabase
+    const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ])
+
+    // Hard failsafe: 10 s after the page mounts, render with whatever we
+    // have. Better to show 'free' UI than an eternal spinner.
+    const failsafe = setTimeout(() => {
+      if (!cancelled) setLoading(false)
+    }, 10_000)
+
+    const load = async () => {
+      try {
+        const sessionRes = await withTimeout(
+          supabase.auth.getSession(),
+          5_000,
+          { data: { session: null } as { session: { user: { id: string; email: string | null; user_metadata?: { full_name?: string } } } | null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+        )
+        const session = sessionRes.data.session
+        if (cancelled) return
+        if (!session) { router.replace('/login'); return }
+
+        const profilePromise = supabase
           .from('profiles')
           .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
           .eq('id', session.user.id)
-          .single(),
-        fetch('/api/admin/me').then(r => r.ok ? r.json() : { isAdmin: false })
-          .catch(() => ({ isAdmin: false })),
-      ])
-      let profile = profileRes.data
+          .single()
+          .then((r) => r)
 
-      // Self-heal: if a fresh signup is missing trial_started_at (init-profile
-      // didn't run or failed), call it now and re-read. Keeps the user out
-      // of the "stuck on free" trap permanently.
-      if (profile && !profile.trial_started_at && !profile.plan) {
-        try {
-          await fetch('/api/account/init-profile', { method: 'POST' })
-          const retry = await supabase
-            .from('profiles')
-            .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
-            .eq('id', session.user.id)
-            .single()
-          if (retry.data) profile = retry.data
-        } catch { /* non-fatal — UI just shows 'free' until next visit */ }
+        const adminPromise = fetch('/api/admin/me')
+          .then((r) => r.ok ? r.json() : { isAdmin: false })
+          .catch(() => ({ isAdmin: false }))
+
+        const [profileRes, adminRes] = await Promise.all([
+          withTimeout(profilePromise, 8_000, { data: null, error: null } as Awaited<typeof profilePromise>),
+          withTimeout(adminPromise,   3_000, { isAdmin: false }),
+        ])
+        if (cancelled) return
+        let profile = profileRes.data
+
+        // Self-heal: only attempt if we actually got a row back. We don't
+        // want a slow profile query to also stall the self-heal calls.
+        if (profile && !profile.trial_started_at && !profile.plan) {
+          try {
+            await withTimeout(
+              fetch('/api/account/init-profile', { method: 'POST' }),
+              3_000,
+              undefined as unknown as Response,
+            )
+            const retry = await withTimeout(
+              supabase
+                .from('profiles')
+                .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
+                .eq('id', session.user.id)
+                .single(),
+              3_000,
+              { data: null, error: null } as Awaited<ReturnType<typeof profilePromise>>,
+            )
+            if (retry.data) profile = retry.data
+          } catch { /* non-fatal — UI just shows 'free' until next visit */ }
+        }
+        if (cancelled) return
+
+        setUserState(getUserState(
+          profile?.plan,
+          profile?.trial_started_at,
+          profile?.plan_status,
+        ))
+        setTrialStartedAt(profile?.trial_started_at ?? null)
+        setTrialUsed(profile?.trial_downloads_used ?? 0)
+        setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
+        setIsAdmin(Boolean(adminRes?.isAdmin))
+      } catch (err) {
+        // Last-ditch: log and render whatever defaults are in state. The
+        // user can always navigate to /login → /dashboard to retry.
+        console.error('[dashboard] load failed:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+        clearTimeout(failsafe)
       }
-
-      setUserState(getUserState(
-        profile?.plan,
-        profile?.trial_started_at,
-        profile?.plan_status,
-      ))
-      setTrialStartedAt(profile?.trial_started_at ?? null)
-      setTrialUsed(profile?.trial_downloads_used ?? 0)
-      setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
-      setIsAdmin(Boolean(adminRes?.isAdmin))
-      setLoading(false)
     }
+
     load()
+
+    return () => {
+      cancelled = true
+      clearTimeout(failsafe)
+    }
   }, [router])
 
   if (loading) {
