@@ -1,8 +1,9 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Lock } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 
 interface Dataset {
   id: number
@@ -28,91 +29,112 @@ interface DatasetCardProps {
   href?: string
 }
 
-export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
-  const card = (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      viewport={{ once: true }}
-      className={`flip-card h-64 ${href ? 'cursor-pointer' : ''}`}
-    >
-      <div className="flip-card-inner h-full rounded-2xl">
-        {/* Front */}
-        <div className="flip-card-front rounded-2xl bg-white border border-gray-100 shadow-md hover:shadow-lg p-6 flex flex-col justify-between">
-          <div>
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
-              style={{ backgroundColor: `${dataset.color}15` }}
-            >
-              {dataset.icon}
-            </div>
-            <span
-              className="text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded-full"
-              style={{ backgroundColor: `${dataset.color}15`, color: dataset.color }}
-            >
-              {dataset.category}
-            </span>
-            <h3 className="mt-3 font-bold text-navy text-lg leading-tight">{dataset.name}</h3>
-            <p className="mt-2 text-gray-500 text-sm leading-relaxed line-clamp-2">{dataset.description}</p>
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              dataset.tier === 'basic'
-                ? 'bg-green-50 text-green-700'
-                : 'bg-primary/10 text-primary'
-            }`}>
-              {dataset.tier === 'basic' ? 'Basic & Pro' : 'Pro Only'}
-            </span>
-            <span className="text-xs text-gray-400">Hover to see details →</span>
-          </div>
-        </div>
+/**
+ * Maps every dataset id to a real image from the brand library. Avoids
+ * emoji + tinted-rectangle "AI demo" look on the homepage. The mapping is
+ * by id rather than by category so visually similar datasets (rivers vs
+ * watersheds vs lakes) get different photography.
+ */
+const DATASET_IMAGE: Record<number, string> = {
+  1:  '/images/africa-topography.webp',       // admin boundaries
+  3:  '/images/branding/river-aerial.jpg',    // rivers
+  4:  '/images/branding/forest.jpg',          // lulc
+  5:  '/images/branding/deforestation.jpg',   // drought index
+  6:  '/images/branding/flood.jpg',           // aquifer
+  8:  '/images/branding/city-map.jpg',        // population
+  9:  '/images/branding/satellite-orbit.jpg', // roads
+  10: '/images/branding/flood.jpg',           // wetlands
+  11: '/images/branding/soil.jpg',            // soil
+  12: '/images/branding/hippos.jpg',          // protected areas
+  13: '/images/branding/ocean.jpg',           // hydrorivers
+  14: '/images/branding/river-aerial.jpg',    // watersheds
+  15: '/images/branding/river-aerial.jpg',    // rainfall
+  16: '/images/branding/satellite.jpg',       // temperature
+  17: '/images/branding/ocean.jpg',           // lakes
+}
 
-        {/* Back */}
-        <div
-          className="flip-card-back rounded-2xl p-6 flex flex-col justify-between text-white"
-          style={{ background: `linear-gradient(135deg, ${dataset.color} 0%, #0D2B45 100%)` }}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-2xl">{dataset.icon}</span>
-              {dataset.tier === 'pro' && (
-                <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
-                  <Lock size={10} /> Pro Only
-                </span>
-              )}
-            </div>
-            <h3 className="font-bold text-lg mb-4">{dataset.name}</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-white/70">Source</span>
-                <span className="font-medium text-right text-xs">{dataset.source}</span>
-              </div>
-              <div className="w-full h-px bg-white/20" />
-              <div className="flex justify-between text-sm">
-                <span className="text-white/70">Format</span>
-                <span className="font-medium text-xs">{dataset.format}</span>
-              </div>
-              <div className="w-full h-px bg-white/20" />
-              <div className="flex justify-between text-sm">
-                <span className="text-white/70">Resolution</span>
-                <span className="font-medium text-xs">{dataset.resolution}</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <button className="w-full py-2 bg-accent text-navy font-semibold rounded-lg text-sm hover:bg-yellow-400 transition-colors">
-              {href ? 'Browse Dataset' : 'View Dataset'}
-            </button>
-          </div>
+const FALLBACK_IMAGE = '/images/branding/hero-landscape.jpg'
+
+/**
+ * Tier label shown on the card. Editorial-quiet: small all-caps text in a
+ * muted tone, not a coloured pill. Tier model is the new one (starter / pro
+ * / max / enterprise) — the previous card hardcoded 'basic' and labelled
+ * every card "Pro Only" because nothing matched.
+ */
+function tierLabel(tier: string): string {
+  switch (tier) {
+    case 'starter':    return 'Starter and above'
+    case 'pro':        return 'Pro and above'
+    case 'max':        return 'Max'
+    case 'enterprise': return 'Enterprise'
+    default:           return ''
+  }
+}
+
+export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
+  const imageSrc = DATASET_IMAGE[dataset.id] ?? FALLBACK_IMAGE
+
+  const card = (
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.3) }}
+      viewport={{ once: true, margin: '-40px' }}
+      className="group h-full flex flex-col bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden transition-all duration-300 hover:bg-white/[0.04] hover:border-white/20"
+    >
+      {/* Image */}
+      <div className="relative aspect-[5/3] overflow-hidden bg-[#0a121c]">
+        <Image
+          src={imageSrc}
+          alt={dataset.name}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 25vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          unoptimized
+        />
+        {/* Gentle vignette so the image always reads against the surface
+            colour, regardless of which photo lands here. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 flex flex-col p-6">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-gold/80">
+          {dataset.category}
+        </p>
+
+        <h3 className="mt-3 font-serif text-[1.35rem] leading-[1.15] text-white font-medium tracking-tight">
+          {dataset.name}
+        </h3>
+
+        <p className="mt-3 text-[0.92rem] leading-relaxed text-white/60 line-clamp-2">
+          {dataset.description}
+        </p>
+
+        <div className="mt-auto pt-6 flex items-end justify-between gap-3">
+          <span className="text-[10px] uppercase tracking-[0.14em] text-white/35">
+            {tierLabel(dataset.tier)}
+          </span>
+          {href && (
+            <span className="inline-flex items-center gap-1 text-[0.82rem] text-white/80 group-hover:text-gold transition-colors">
+              Browse
+              <ArrowUpRight
+                size={14}
+                className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </span>
+          )}
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   )
 
   if (href) {
     return (
-      <Link href={href} className="block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-2xl">
+      <Link
+        href={href}
+        className="block h-full focus:outline-none focus:ring-1 focus:ring-gold/40 rounded-sm"
+      >
         {card}
       </Link>
     )
