@@ -227,10 +227,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not record submission.' }, { status: 500 })
   }
 
-  // Update profile to pending
+  // Record the requested plan as pending — do NOT overwrite the user's
+  // current `plan` or `plan_status`. A Pro user submitting payment for Max
+  // must keep Pro access until admin verifies. Admin verify route promotes
+  // pending_plan → plan atomically.
   const { error: profileErr } = await service
     .from('profiles')
-    .update({ plan, plan_status: 'pending' })
+    .update({ pending_plan: plan })
     .eq('id', userId)
   if (profileErr) {
     console.error('[ManualPayment] profile update failed:', profileErr)

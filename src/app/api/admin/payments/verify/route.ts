@@ -143,6 +143,9 @@ export async function POST(req: NextRequest) {
     }
 
     const expiresAt = new Date(Date.now() + ACTIVE_PERIOD_MS).toISOString()
+    // Promote pending → active in one write. Clear pending_plan so the
+    // user's profile stops advertising a pending upgrade. account_type is
+    // kept for back-compat with older payment rows.
     const { error: profErr } = await service
       .from('profiles')
       .update({
@@ -150,6 +153,7 @@ export async function POST(req: NextRequest) {
         account_type:    payment.account_type,
         plan_status:     'active',
         plan_expires_at: expiresAt,
+        pending_plan:    null,
       })
       .eq('id', payment.user_id)
     if (profErr) {
@@ -177,10 +181,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
   }
 
-  // Drop the user back to 'free' so they can resubmit.
+  // On reject: clear the pending request only. Don't touch the user's
+  // current plan or plan_status — they keep whatever access they had
+  // before submitting. If they had no plan, they remain on the free trial
+  // (or expired-trial 'free') exactly as before.
   await service
     .from('profiles')
-    .update({ plan_status: 'free' })
+    .update({ pending_plan: null })
     .eq('id', payment.user_id)
 
   notifyCustomer('reject', payment.user_email, payment.user_name, payment.plan, note)
