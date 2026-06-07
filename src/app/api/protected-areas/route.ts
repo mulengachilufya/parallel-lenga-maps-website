@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadTier } from '@/lib/dataset-access'
+import { callerCanDownloadDataset } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,10 +32,14 @@ export interface ProtectedAreasLayer {
  *   - iso3:       exact ISO-3 match (e.g. ZMB)
  *   - includeUrl: include presigned download URL (default: true)
  *
- * Tier gate: Max-tier dataset (in the 4/8/12+ model). List metadata is
- * public so anyone can browse the catalogue, but `download_url` is only
- * included when the caller has an active plan that unlocks max-tier
- * datasets (plan='max', or any active Business plan).
+ * Tier gate: Starter-tier dataset per DATASET_MIN_TIER. List metadata is
+ * public so anyone can browse the catalogue; `download_url` is included
+ * for any active plan (starter and above) or active free trial.
+ *
+ * History note: this route used to call callerCanDownloadTier('max'), which
+ * silently broke every paying Starter user — they could see protected-areas
+ * but never download. Now uses callerCanDownloadDataset('protected-areas')
+ * so the gate matches the pricing page.
  */
 export async function GET(request: NextRequest) {
   const supabase = createClient(
@@ -65,8 +69,8 @@ export async function GET(request: NextRequest) {
 
     let layers: ProtectedAreasLayer[] = data || []
 
-    // Max-tier dataset — plan='max' or any active Business plan only.
-    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
+    // Starter-tier dataset — any active paid plan or trial.
+    const allowed = includeUrl ? await callerCanDownloadDataset('protected-areas') : false
     if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (layer) => {

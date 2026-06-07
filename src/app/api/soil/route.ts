@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadTier } from '@/lib/dataset-access'
+import { callerCanDownloadDataset } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
 
     let layers: SoilLayer[] = data || []
 
-    const allowed = includeUrl ? await callerCanDownloadTier('max') : false
+    // Max-tier dataset per DATASET_MIN_TIER.
+    const allowed = includeUrl ? await callerCanDownloadDataset('soil') : false
     if (allowed && layers.length > 0) {
       layers = await Promise.all(
         layers.map(async (l) => {
