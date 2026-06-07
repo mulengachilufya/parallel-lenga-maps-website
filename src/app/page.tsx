@@ -304,7 +304,7 @@ export default function HomePage() {
                 <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
                   Satellite-grade<br/>observation.
                 </h3>
-                <p className="mt-3 text-white/70 text-[0.92rem] leading-relaxed max-w-md">
+                <p className="mt-4 text-white/85 text-[1.3rem] leading-[1.55] font-medium max-w-xl">
                   Our GIS datasets are carefully geoprocessed from NASA, ESA,
                   USGS, HydroSHEDS, among others. These are the same data sources
                   powering global environmental research.
@@ -334,9 +334,10 @@ export default function HomePage() {
                 <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
                   Built for the<br/>African context.
                 </h3>
-                <p className="mt-3 text-white/70 text-[0.92rem] leading-relaxed max-w-md">
-                  Every dataset is clipped to a country, joined to local boundaries,
-                  and harmonised to EPSG:4326 — ready for QGIS, not for a research paper.
+                <p className="mt-4 text-white/85 text-[1.3rem] leading-[1.55] font-medium max-w-xl">
+                  Innovation strives in Chaos. Our datasets are used to fight floods,
+                  drainage failure, air pollution, among others, directly confronting
+                  chaos with solid Innovation.
                 </p>
               </div>
             </div>
