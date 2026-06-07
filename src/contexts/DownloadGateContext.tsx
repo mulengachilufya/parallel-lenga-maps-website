@@ -11,6 +11,7 @@ import {
   type UserState, type TierSlug, type DatasetSlug,
 } from '@/lib/pricing'
 import Link from 'next/link'
+import { track } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -117,6 +118,11 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
 
   function openGate(slug: DatasetSlug) {
     const requiredTier = DATASET_MIN_TIER[slug]
+    track('paywall_shown', {
+      dataset: slug,
+      required_tier: requiredTier,
+      user_state: user?.userState ?? 'anonymous',
+    })
     setModal({ open: true, requiredTier, datasetSlug: slug })
   }
 
@@ -173,7 +179,10 @@ function PaywallModal({
               <Link
                 key={slug}
                 href={`/dashboard/payment?plan=${slug}`}
-                onClick={onClose}
+                onClick={() => {
+                  track('paywall_cta_clicked', { plan: slug, required_tier: requiredTier })
+                  onClose()
+                }}
                 className={`block rounded-xl border p-4 text-center transition-colors hover:border-[#F5B800]/60 group ${
                   isRequired
                     ? 'border-[#F5B800]/50 bg-[#1a3a5c]'

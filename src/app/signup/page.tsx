@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { track } from '@/lib/analytics'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -18,6 +19,8 @@ export default function SignupPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    track('signup_started', { source: 'signup_page' })
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
@@ -37,6 +40,7 @@ export default function SignupPage() {
       return
     }
 
+    track('trial_started', { source: 'signup_page' })
     router.push('/dashboard')
   }
 

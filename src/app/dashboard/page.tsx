@@ -12,6 +12,7 @@ import {
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
+import { track } from '@/lib/analytics'
 
 // Dataset section components
 import AdminBoundariesList  from '@/components/AdminBoundariesList'
@@ -244,6 +245,7 @@ function ContinentalBundle({ datasetSlug }: { datasetSlug: string }) {
 
   async function fetchBundle() {
     setBusy(true); setError(''); setResult(null)
+    track('continental_bundle_requested', { dataset: datasetSlug })
     try {
       const res = await fetch(`/api/datasets/${datasetSlug}/bundle`)
       const body = await res.json().catch(() => ({}))

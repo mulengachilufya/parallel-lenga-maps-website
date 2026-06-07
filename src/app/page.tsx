@@ -9,6 +9,7 @@ import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
+import { track } from '@/lib/analytics'
 
 const heroImage = '/images/branding/river-aerial.jpg'
 
@@ -50,6 +51,7 @@ function InlineSignup() {
     }
 
     setLoading(true)
+    track('signup_started', { source: 'home_inline' })
     try {
       const { error: authError } = await supabase.auth.signUp({
         email,
@@ -70,6 +72,7 @@ function InlineSignup() {
         setLoading(false)
         return
       }
+      track('trial_started', { source: 'home_inline' })
       setSuccess(true)
     } catch {
       setError('An unexpected error occurred. Please try again.')

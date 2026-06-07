@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase'
 import { PLANS, PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import CardPayPanel from '@/components/CardPayPanel'
 import MomoPayPanel from '@/components/MomoPayPanel'
+import { track } from '@/lib/analytics'
 
 function PaymentInner() {
   const router = useRouter()
@@ -58,6 +59,10 @@ function PaymentInner() {
       setEmail(session.user.email || '')
       setName(profile?.full_name || session.user.user_metadata?.full_name || '')
       setLoading(false)
+      track('payment_initiated', {
+        plan: resolved,
+        renewal: isRenewal,
+      })
     }
     load()
   }, [planParam, router])

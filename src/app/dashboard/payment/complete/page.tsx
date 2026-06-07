@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { track } from '@/lib/analytics'
 
 type Status = 'polling' | 'successful' | 'failed' | 'error'
 
@@ -37,9 +38,12 @@ function CompleteInner() {
       attempts++
       try {
         const res  = await fetch(`/api/payments/verify/${reference}`)
-        const data = await res.json() as { status: string }
-        if (data.status === 'successful') { setStatus('successful'); return }
-        if (data.status === 'failed')     { setStatus('failed');     return }
+        const data = await res.json() as { status: string; plan?: string }
+        if (data.status === 'successful') {
+          track('payment_succeeded', { plan: data.plan ?? null, reference })
+          setStatus('successful'); return
+        }
+        if (data.status === 'failed') { setStatus('failed'); return }
         // pending / not_initiated — keep polling
         timeout = setTimeout(poll, POLL_INTERVAL)
       } catch {
