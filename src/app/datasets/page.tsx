@@ -1,99 +1,206 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, Download, Lock, Clock, ExternalLink, Layers } from 'lucide-react'
+import {
+  ArrowRight, Download, Lock, Clock, ExternalLink, ChevronDown,
+} from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
-import type { DatasetSource } from '@/lib/supabase'
+import type { Dataset, DatasetSource } from '@/lib/supabase'
 
+/**
+ * Compact "show details" panel that replaces the old per-card tip box and
+ * multi-row Data Sources panel. Default state is a single line; users who
+ * want the back-story click to expand. Keeps the grid scannable — GIS pros
+ * decide on technical badges, not paragraphs.
+ */
 const DATASET_TIPS: Record<number, string> = {
-  1: 'Ideal for base maps, census planning, and jurisdiction analysis.',
-  3: 'Filter by Strahler order to isolate major rivers. Pairs well with rainfall and aquifer data for watershed and flood-risk analysis.',
-  4: 'Clipped to exact country boundaries from ESA WorldCover 2021 (10m). Open in QGIS and apply a paletted renderer on the uint8 band — 10 classes from tree cover to built-up. Ideal for change detection, land degradation mapping, and carbon stock assessment.',
-  5: 'Monitor long-term drought severity with SPI-12. Negative values indicate drought, positive values indicate wet periods. Essential for food security and water resource planning.',
-  15: 'Annual rainfall totals for agricultural planning, water catchment analysis, and climate baseline studies. Drag into QGIS for instant visualization.',
-  16: 'Monthly mean temperature climatology for habitat modelling, crop suitability, and climate change impact assessments.',
-  6: 'Essential for water resource management, transboundary groundwater agreements, and borehole planning. Pairs perfectly with HydroBASINS for full aquifer-to-catchment analysis in QGIS.',
-  7: 'Monitor vegetation health, deforestation, and seasonal growth patterns. Time-series NDVI for trend analysis.',
-  8: 'Subnational population counts at ADM1 or ADM2 level, sourced from each country\'s latest official census. Attribute table includes population, reference year, admin names/PCODEs, and a link back to the HDX dataset for audit trails. Ideal for service delivery planning and demographic analysis.',
-  9: 'Use for accessibility analysis, logistics planning, and infrastructure gap assessment across African nations.',
-  10: 'Critical for biodiversity conservation, flood modelling, and environmental compliance studies.',
-  11: 'Supports precision agriculture, land suitability analysis, and erosion risk mapping. Multi-layer soil properties.',
-  12: 'Vital for conservation planning, wildlife corridor mapping, and environmental compliance reporting.',
-  13: 'Filter by Strahler order to isolate major rivers. Strahler ≥ 4 gives named, navigable rivers. Pairs perfectly with HydroBASINS for full watershed analysis.',
-  14: 'Level 6 basins average 2,000–10,000 km² - ideal for catchment-scale hydrology, transboundary water management, and flood modelling at the regional level.',
+  1:  'Base maps, census planning, and jurisdiction analysis.',
+  3:  'Filter by Strahler order. Pairs with rainfall and aquifer data for watershed analysis.',
+  4:  'Clipped to country boundaries from ESA WorldCover 2021 (10 m). 10 classes from tree cover to built-up.',
+  5:  'Long-term drought severity. Negative = drought, positive = wet. Pairs with rainfall.',
+  6:  'Transboundary aquifer agreements and borehole planning. Pairs with HydroBASINS.',
+  8:  'Subnational counts at ADM1/ADM2 from each country\'s latest official census.',
+  9:  'Accessibility analysis, logistics planning, infrastructure gap assessment.',
+  10: 'Biodiversity conservation, flood modelling, environmental compliance.',
+  11: 'Precision agriculture, land suitability, erosion risk. Multi-layer soil properties.',
+  12: 'Conservation planning, wildlife corridor mapping, environmental compliance.',
+  13: 'Filter by Strahler order. ≥4 = named, navigable rivers. Pairs with HydroBASINS.',
+  14: 'Level 6 basins (2,000–10,000 km²). Catchment-scale hydrology and transboundary water management.',
+  15: 'Annual rainfall totals for agricultural planning, water catchments, climate baselines.',
+  16: 'Monthly mean temperature climatology for habitat modelling and crop suitability.',
 }
 
-function DataSourcesPanel({ sources, color }: { sources: DatasetSource[]; color: string }) {
-  const isMultiSource = sources.length > 1
+function CompactSources({
+  sources, color,
+}: { sources: DatasetSource[]; color: string }) {
+  const [open, setOpen] = useState(false)
+  const institutions = sources.map((s) => s.institution.split(' · ')[0]).join(', ')
+
   return (
-    <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-4 py-3"
-        style={{ backgroundColor: `${color}10` }}
+    <div className="mt-3 border border-gray-100 rounded-lg overflow-hidden text-[11px]">
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o) }}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
       >
-        <Layers size={14} style={{ color }} />
-        <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>
-          {isMultiSource ? 'Data Sources' : 'Data Source'}
+        <span className="font-semibold uppercase tracking-wider" style={{ color }}>
+          Sources
         </span>
-        <span className="ml-auto text-xs text-gray-400 font-medium">
-          {isMultiSource ? 'Harmonised multi-source product' : 'Authoritative open-data source'}
-        </span>
-      </div>
-
-      {/* Source cards */}
-      <div className="divide-y divide-gray-50">
-        {sources.map((src, idx) => (
-          <div key={idx} className="px-4 py-3 bg-white">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <span className="text-xs font-semibold text-navy leading-tight">
-                {src.institution}
-              </span>
-              <a
-                href={src.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors shrink-0"
-                onClick={e => e.stopPropagation()}
-              >
-                <ExternalLink size={10} />
-                Source
-              </a>
+        <span className="text-gray-500 truncate flex-1 text-left">{institutions}</span>
+        <ChevronDown
+          size={12}
+          className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="divide-y divide-gray-50">
+          {sources.map((src, idx) => (
+            <div key={idx} className="px-3 py-2 bg-white">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-navy text-[11px] leading-tight">
+                    {src.institution}
+                  </p>
+                  <p className="text-gray-500 text-[10.5px] mt-0.5 leading-snug">
+                    {src.contribution}
+                  </p>
+                </div>
+                <a
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink size={10} />
+                  Source
+                </a>
+              </div>
             </div>
-            <p className="text-[10px] text-gray-400 font-medium mb-1">{src.name}</p>
-            <p className="text-[11px] text-gray-500 leading-relaxed">{src.contribution}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer note */}
-      <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
-        <p className="text-[10px] text-gray-500 leading-relaxed">
-          <span className="font-semibold text-navy">Note: </span>
-          {isMultiSource ? (
-            <>
-              Geometric duplicates removed and logged. Source conflicts are flagged in the
-              attribute table (<code className="bg-gray-200 px-1 rounded text-[9px]">source_conflict</code> field)
-              and never silently resolved. This is a premium curated layer - not a single raw download.
-            </>
-          ) : (
-            <>
-              Geometries validated and fixed where invalid (all fixes logged). Clipped to Africa
-              continental boundary and exported as per-country GeoPackage files for immediate GIS use.
-            </>
-          )}
-        </p>
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// Dataset-id → dashboard section URL, re-exported from lib/supabase so the
-// homepage and this page stay in sync. Presence means the dataset has live
-// data users can browse (signing in only required when they click Download).
+function Badge({ label, color }: { label: string; color?: string }) {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold"
+      style={{
+        background: color ? `${color}15` : '#f3f4f6',
+        color: color ?? '#444',
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
+function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean }) {
+  const tip = DATASET_TIPS[dataset.id]
+  return (
+    <>
+      <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
+      <div className="p-5">
+        {/* Top row: icon + name + tier pill */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+              style={{ backgroundColor: `${dataset.color}15` }}
+            >
+              {dataset.icon}
+            </div>
+            <div className="min-w-0">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wider block"
+                style={{ color: dataset.color }}
+              >
+                {dataset.category}
+              </span>
+              <h3 className={`text-base font-bold leading-tight mt-0.5 ${isLive ? 'text-navy group-hover:text-primary transition-colors' : 'text-navy'}`}>
+                {dataset.name}
+              </h3>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {!isLive && (
+              <span className="flex items-center gap-1 text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">
+                <Clock size={9} /> Soon
+              </span>
+            )}
+            {dataset.tier === 'pro' && (
+              <span className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
+                <Lock size={9} /> Pro
+              </span>
+            )}
+            {dataset.tier === 'max' && (
+              <span className="flex items-center gap-1 text-[10px] bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full">
+                <Lock size={9} /> Max
+              </span>
+            )}
+            {dataset.tier === 'starter' && isLive && (
+              <span className="text-[10px] bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-full">
+                Starter
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Description — 2 lines max */}
+        <p className="text-[12.5px] text-gray-600 leading-snug mb-3 line-clamp-2">
+          {dataset.description}
+        </p>
+
+        {/* Metadata badges — one row, wraps */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <Badge label={dataset.format} />
+          <Badge label={dataset.resolution} />
+          {dataset.epsg && <Badge label={dataset.epsg} color={dataset.color} />}
+          {dataset.licence && <Badge label={dataset.licence} />}
+          {dataset.last_update && <Badge label={dataset.last_update} />}
+          {dataset.size_label && <Badge label={dataset.size_label} />}
+        </div>
+
+        {/* Tip — single line, expand link if truncated */}
+        {tip && (
+          <p className="text-[11.5px] text-gray-500 leading-snug border-l-2 pl-2 mb-2"
+             style={{ borderColor: `${dataset.color}40` }}>
+            <span className="font-semibold text-navy">Tip · </span>{tip}
+          </p>
+        )}
+
+        {/* Compact sources panel — only for multi-source datasets */}
+        {dataset.sources && dataset.sources.length > 0 && (
+          <CompactSources sources={dataset.sources} color={dataset.color} />
+        )}
+
+        {/* CTA */}
+        <div className="mt-4">
+          {isLive ? (
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-primary group-hover:text-accent transition-colors">
+              <Download size={13} />
+              Browse & Download Files
+              <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-[13px] font-medium text-gray-400">
+              <Clock size={13} />
+              Available soon
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 const LIVE_DATASETS = LIVE_DATASET_ROUTES
 
 export default function DatasetsPage() {
@@ -124,12 +231,11 @@ export default function DatasetsPage() {
               {DATASETS.length} Professional <span className="text-accent">GIS Datasets</span> for Africa
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
-              From administrative boundaries to soil classification - every dataset is curated from
-              world-class sources, formatted for professional GIS workflows, and covering all 54 African nations.
+              Curated from world-class sources, harmonised to EPSG:4326, and packaged per country
+              for the 54 nations.
             </p>
           </motion.div>
 
-          {/* Quick stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -137,10 +243,10 @@ export default function DatasetsPage() {
             className="flex flex-wrap gap-8 mt-10"
           >
             {[
-              { val: '54', label: 'Countries' },
+              { val: '54',                 label: 'Countries' },
               { val: `${DATASETS.length}`, label: 'Datasets' },
-              { val: '5+', label: 'Formats' },
-              { val: '6', label: 'Free Datasets' },
+              { val: 'EPSG:4326',          label: 'Harmonised CRS' },
+              { val: '5+',                 label: 'Formats' },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-2xl font-black text-accent">{s.val}</div>
@@ -166,109 +272,9 @@ export default function DatasetsPage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {DATASETS.map((dataset, i) => {
               const isLive = dataset.id in LIVE_DATASETS
-
-              const cardContent = (
-                <>
-                  {/* Color bar */}
-                  <div
-                    className="h-1.5 w-full"
-                    style={{ backgroundColor: dataset.color }}
-                  />
-
-                  <div className="p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                        style={{ backgroundColor: `${dataset.color}15` }}
-                      >
-                        {dataset.icon}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!isLive && (
-                          <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded-full">
-                            <Clock size={10} /> Coming Soon
-                          </span>
-                        )}
-                        {dataset.tier === 'pro' && (
-                          <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary font-semibold px-2 py-1 rounded-full">
-                            <Lock size={10} /> Pro
-                          </span>
-                        )}
-                        {dataset.tier === 'starter' && isLive && (
-                          <span className="text-xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-full">
-                            Free
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Category */}
-                    <span
-                      className="text-xs font-semibold uppercase tracking-wider"
-                      style={{ color: dataset.color }}
-                    >
-                      {dataset.category}
-                    </span>
-
-                    {/* Name */}
-                    <h3 className={`text-lg font-bold mt-1 mb-2 ${isLive ? 'text-navy group-hover:text-primary transition-colors' : 'text-navy'}`}>
-                      {dataset.name}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                      {dataset.description}
-                    </p>
-
-                    {/* Tip */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-gray-600 leading-relaxed">
-                        <span className="font-semibold text-navy">Tip: </span>
-                        {DATASET_TIPS[dataset.id]}
-                      </p>
-                    </div>
-
-                    {/* Data Sources panel - rendered for multi-source datasets only */}
-                    {dataset.sources && dataset.sources.length > 0 && (
-                      <DataSourcesPanel sources={dataset.sources} color={dataset.color} />
-                    )}
-
-                    {/* Meta info */}
-                    <div className="grid grid-cols-3 gap-2 text-xs mb-4">
-                      <div className="bg-gray-50 rounded-lg p-2 text-center">
-                        <span className="block text-gray-400 mb-0.5">Source</span>
-                        <span className="font-medium text-navy text-[10px]">{dataset.source}</span>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 text-center">
-                        <span className="block text-gray-400 mb-0.5">Format</span>
-                        <span className="font-medium text-navy text-[10px]">{dataset.format}</span>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 text-center">
-                        <span className="block text-gray-400 mb-0.5">Resolution</span>
-                        <span className="font-medium text-navy text-[10px]">{dataset.resolution}</span>
-                      </div>
-                    </div>
-
-                    {/* CTA */}
-                    {isLive ? (
-                      <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:text-accent transition-colors">
-                        <Download size={14} />
-                        Browse & Download Files
-                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-                        <Clock size={14} />
-                        Available soon
-                      </div>
-                    )}
-                  </div>
-                </>
-              )
 
               return (
                 <motion.div
@@ -276,19 +282,19 @@ export default function DatasetsPage() {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: Math.min(i * 0.06, 0.5) }}
+                  transition={{ delay: Math.min(i * 0.04, 0.4) }}
                 >
                   {isLive ? (
                     <Link
                       href={LIVE_DATASETS[dataset.id]}
                       replace
-                      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full"
+                      className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full"
                     >
-                      {cardContent}
+                      <DatasetCard dataset={dataset} isLive={isLive} />
                     </Link>
                   ) : (
                     <div className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-                      {cardContent}
+                      <DatasetCard dataset={dataset} isLive={isLive} />
                     </div>
                   )}
                 </motion.div>
