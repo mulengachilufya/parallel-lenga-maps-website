@@ -7,7 +7,6 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
-import GlobeAnimation from '@/components/animations/GlobeAnimation'
 import HomeContactForm from '@/components/HomeContactForm'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
@@ -18,7 +17,9 @@ import { track } from '@/lib/analytics'
 // below the hero.
 const heroImage      = '/images/branding/river-aerial.jpg'
 const satelliteImage = 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=1600&q=80'
-const villageImage   = 'https://images.unsplash.com/photo-1535991137197-67bc3f6e9fb1?w=1600&q=80'
+// Local file — see /public/images/branding/ground-story.jpg
+// (drop the African-village-pump photo there before deploy).
+const villageImage   = '/images/branding/ground-story.jpg'
 
 const services = [
   {
@@ -212,79 +213,67 @@ export default function HomePage() {
         </motion.div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-24">
-          <div className="grid lg:grid-cols-[1fr_auto] items-center gap-12">
-            <motion.div style={{ y: textY }} className="max-w-[680px]">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center gap-3.5 mb-7"
-              >
-                <div className="w-9 h-0.5 bg-gold" />
-                <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                  Geospatial Intelligence
-                </span>
-              </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
-              >
-                Unmasking{' '}
-                <span className="text-gold">Africa</span> with
-                <br />
-                <span className="text-gold">Data</span> and Intelligence.
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-[1.05rem] leading-[1.7] text-white/80 max-w-[520px] mb-12"
-              >
-                Building Africa&apos;s largest and most centralized environmental GIS
-                database. We fuse satellite-grade observation with the lived African
-                context to solve real geospatial challenges.
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="flex flex-wrap gap-4"
-              >
-                <Link
-                  href="/datasets"
-                  className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
-                >
-                  <Download size={18} />
-                  Download GIS Data
-                </Link>
-                <Link
-                  href="/services"
-                  className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
-                >
-                  Explore Services
-                </Link>
-              </motion.div>
-            </motion.div>
-
-            {/* Spinning globe — the literal "spinning thing" the brand
-                already had built. Restored to the hero so the satellite
-                / orbital intelligence story has a visible artifact, not
-                just a background photo. Hidden on small screens to keep
-                the hero body readable. */}
+          <motion.div style={{ y: textY }} className="max-w-[680px]">
             <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="hidden lg:flex justify-center items-center w-[380px] h-[380px] shrink-0"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-3.5 mb-7"
             >
-              <GlobeAnimation />
+              <div className="w-9 h-0.5 bg-gold" />
+              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
+                Geospatial Intelligence
+              </span>
             </motion.div>
-          </div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
+            >
+              Unmasking{' '}
+              <span className="text-gold">Africa</span> with
+              <br />
+              <span className="text-gold">Data</span> and Intelligence.
+            </motion.h1>
+
+            {/* Lead paragraph — the actual "what we do" headline. Bumped
+                up from 1.05rem to 1.3rem and from text-white/80 to white/90
+                + medium weight so it earns its place in the hero, not a
+                fine-print sub-line. */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="text-[1.3rem] leading-[1.55] text-white/90 font-medium max-w-[620px] mb-12"
+            >
+              Building Africa&apos;s largest and most centralized environmental GIS
+              database. We fuse satellite-grade observation with the lived African
+              context to solve real geospatial challenges.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="flex flex-wrap gap-4"
+            >
+              <Link
+                href="/datasets"
+                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+              >
+                <Download size={18} />
+                Download GIS Data
+              </Link>
+              <Link
+                href="/services"
+                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
+              >
+                Explore Services
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -316,8 +305,9 @@ export default function HomePage() {
                   Satellite-grade<br/>observation.
                 </h3>
                 <p className="mt-3 text-white/70 text-[0.92rem] leading-relaxed max-w-md">
-                  Curated from NASA, ESA, USGS, HydroSHEDS, ISRIC and HDX —
-                  the same data sources powering global environmental research.
+                  Our GIS datasets are carefully geoprocessed from NASA, ESA,
+                  USGS, HydroSHEDS, among others. These are the same data sources
+                  powering global environmental research.
                 </p>
               </div>
             </div>
