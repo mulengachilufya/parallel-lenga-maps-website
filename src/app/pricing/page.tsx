@@ -1,7 +1,9 @@
 'use client'
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { PLANS, PLAN_ORDER, PLAN_CARD_UI, type TierSlug } from "@/lib/pricing"
+import { supabase } from "@/lib/supabase"
 
 const CTA: Record<TierSlug, string> = {
   starter: 'Get started', pro: 'Get started', max: 'Get started', enterprise: 'Contact us',
@@ -15,7 +17,33 @@ const plans = PLAN_ORDER.map((slug) => ({
   ...PLAN_CARD_UI[slug],
 }))
 
+/**
+ * Pricing CTAs are session-aware:
+ *   logged-out user → /signup  (account first, then checkout)
+ *   logged-in user  → /dashboard/payment?plan=<slug>  (straight to pay)
+ *
+ * Without this, a signed-in user clicking "Get Pro" landed on a signup form
+ * for an account they already had — a comically broken experience for the
+ * one user the funnel cares most about.
+ */
+function ctaHref(slug: TierSlug, signedIn: boolean): string {
+  if (slug === 'enterprise') return '/contact-us/business'
+  return signedIn ? `/dashboard/payment?plan=${slug}` : '/signup'
+}
+
 export default function PricingPage() {
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) setSignedIn(!!session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_e, s) => setSignedIn(!!s)
+    )
+    return () => { cancelled = true; subscription.unsubscribe() }
+  }, [])
+
   return (
     <>
       <style>{`
@@ -64,7 +92,7 @@ export default function PricingPage() {
           {plans.map(p => (
             <Link
               key={p.id}
-              href="/signup"
+              href={ctaHref(p.id, signedIn)}
               className="plan-card"
               style={{ background: p.bg, border: `1px solid ${p.border}` }}
             >
