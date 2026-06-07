@@ -1,31 +1,34 @@
 'use client'
 
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { PLANS, PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug } from "@/lib/pricing"
-import { supabase } from "@/lib/supabase"
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Check } from 'lucide-react'
+import {
+  PLANS, PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug,
+} from '@/lib/pricing'
+import { supabase } from '@/lib/supabase'
 
 const CTA: Record<TierSlug, string> = {
-  starter: 'Get started', pro: 'Get started', max: 'Get started', enterprise: 'Contact us',
+  starter:    'Get started',
+  pro:        'Get started',
+  max:        'Get started',
+  enterprise: 'Contact us',
 }
 
-const plans = PLAN_ORDER.map((slug) => ({
-  id:    slug,
-  name:  PLANS[slug].name,
-  price: PLANS[slug].priceLabel,
-  cta:   CTA[slug],
-  ...PLAN_CARD_UI[slug],
-  count: planCardCount(slug),
-}))
+const TAGLINE: Record<TierSlug, string> = {
+  starter:    'Core environmental layers to get you mapping.',
+  pro:        'Everything in Starter, plus hydrology and infrastructure.',
+  max:        'The full platform — every layer we have.',
+  enterprise: 'Max, plus custom sub-country datasets and team access.',
+}
 
 /**
  * Pricing CTAs are session-aware:
  *   logged-out user → /signup  (account first, then checkout)
  *   logged-in user  → /dashboard/payment?plan=<slug>  (straight to pay)
  *
- * Without this, a signed-in user clicking "Get Pro" landed on a signup form
- * for an account they already had — a comically broken experience for the
- * one user the funnel cares most about.
+ * Enterprise always routes to sales.
  */
 function ctaHref(slug: TierSlug, signedIn: boolean): string {
   if (slug === 'enterprise') return '/contact-us/business'
@@ -46,91 +49,145 @@ export default function PricingPage() {
   }, [])
 
   return (
-    <>
-      <style>{`
-        .plan-card {
-          text-decoration: none;
-          display: flex;
-          flex-direction: column;
-          min-height: 440px;
-          border-radius: 16px;
-          padding: 1.5rem 1.25rem 1.75rem;
-          transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
-          cursor: pointer;
-        }
-        .plan-card:hover {
-          transform: translateY(-6px) scale(1.01);
-          filter: brightness(1.03);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.12);
-        }
-        .plan-card:active {
-          transform: scale(0.97);
-          filter: brightness(0.97);
-        }
-        .plan-text { color: #1a1a1a !important; }
-        .plan-muted { color: #444 !important; }
-        @media (max-width: 700px) {
-          .pricing-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-          .plan-card { min-height: 380px !important; }
-          .price-num { font-size: 36px !important; }
-        }
-        @media (max-width: 420px) {
-          .pricing-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-
-      <div style={{ padding: '2.5rem 1rem 3rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '36px', fontWeight: 400, margin: '0 0 0.5rem', lineHeight: 1.1, color: '#1a1a1a' }}>
-            Simple, honest pricing
-          </h1>
-          <p style={{ fontSize: '15px', color: '#555', margin: 0 }}>
-            All plans cover all 54 African countries. Billed monthly in USD.
+    <main className="min-h-screen bg-[#F5F1EA]">
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-5 sm:px-8 lg:px-12">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#8B7A5C] mb-6">
+            Pricing
+          </p>
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="font-serif text-[clamp(2.4rem,5vw,3.6rem)] leading-[1.05] text-[#1a1a1a] font-medium tracking-tight"
+          >
+            Simple, honest pricing for serious GIS work.
+          </motion.h1>
+          <p className="mt-6 text-[1.05rem] text-[#5b5446] leading-relaxed max-w-xl mx-auto">
+            All plans cover the 54 African countries and harmonise to EPSG:4326.
+            Billed monthly in USD. Three days of full access on every new account, no card required.
           </p>
         </div>
+      </section>
 
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', maxWidth: '960px', margin: '0 auto' }}>
-          {plans.map(p => (
-            <Link
-              key={p.id}
-              href={ctaHref(p.id, signedIn)}
-              className="plan-card"
-              style={{ background: p.bg, border: `1px solid ${p.border}` }}
-            >
-              <div className="plan-text" style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: p.nameColor, marginBottom: '0.5rem' }}>
-                {p.name}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
-                <span className="price-num" style={{ fontSize: '48px', lineHeight: 1, color: p.priceColor, fontWeight: 400 }}>{p.price}</span>
-                <span className="plan-muted" style={{ fontSize: '13px' }}>/month</span>
-              </div>
-              <p className="plan-muted" style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5 }}>{p.tagline}</p>
-              <div style={{ height: '0.5px', background: p.dividerColor, opacity: 0.2, margin: '0 0 1rem' }} />
-              <div className="plan-muted" style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
-                {p.count}
-              </div>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-                {p.datasets.map(d => (
-                  <li key={d} className="plan-text" style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: p.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
-                    {d}
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
-                <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: p.btnBg, color: '#fff', textAlign: 'center' }}>
-                  {p.cta}
+      {/* Plan grid */}
+      <section className="pb-24 px-5 sm:px-8 lg:px-12">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[#E5DDCB] border border-[#E5DDCB] rounded-sm overflow-hidden">
+          {PLAN_ORDER.map((slug, i) => {
+            const plan        = PLANS[slug]
+            const tagline     = TAGLINE[slug]
+            const datasets    = PLAN_CARD_UI[slug].datasets
+            const recommended = slug === 'pro'
+
+            return (
+              <motion.article
+                key={slug}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.06 }}
+                viewport={{ once: true }}
+                className={`relative bg-[#FAF7F1] p-7 sm:p-8 flex flex-col ${
+                  recommended ? 'ring-1 ring-inset ring-[#C9A227]' : ''
+                }`}
+              >
+                {recommended && (
+                  <span className="absolute top-4 right-4 text-[10px] font-medium uppercase tracking-[0.18em] text-[#8B7A5C]">
+                    Most chosen
+                  </span>
+                )}
+
+                {/* Eyebrow + name */}
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#8B7A5C]">
+                  {plan.name}
+                </p>
+
+                {/* Price */}
+                <div className="mt-5 flex items-baseline gap-1.5">
+                  <span className="font-serif text-[2.6rem] leading-none text-[#1a1a1a] font-medium">
+                    {plan.priceLabel}
+                  </span>
+                  <span className="text-[0.82rem] text-[#7a7060]">/month</span>
                 </div>
-              </div>
-            </Link>
+
+                {/* Tagline */}
+                <p className="mt-5 text-[0.92rem] text-[#5b5446] leading-relaxed">
+                  {tagline}
+                </p>
+
+                {/* Divider */}
+                <div className="my-7 h-px bg-[#E5DDCB]" />
+
+                {/* What's included */}
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#8B7A5C] mb-3">
+                  {planCardCount(slug)}
+                </p>
+
+                <ul className="space-y-2.5 flex-1">
+                  {datasets.map((d) => (
+                    <li
+                      key={d}
+                      className="flex items-start gap-2.5 text-[0.86rem] text-[#3d362c] leading-snug"
+                    >
+                      <Check
+                        size={13}
+                        className="mt-[3px] shrink-0 text-[#8B7A5C]"
+                        strokeWidth={2.25}
+                      />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                <div className="mt-8 pt-2">
+                  <Link
+                    href={ctaHref(slug, signedIn)}
+                    className={`block w-full text-center text-[0.86rem] font-medium tracking-wide py-3 transition-all ${
+                      recommended
+                        ? 'bg-[#1a1a1a] text-[#FAF7F1] hover:bg-[#0D2B45]'
+                        : 'bg-transparent text-[#1a1a1a] border border-[#1a1a1a]/20 hover:border-[#1a1a1a]/50'
+                    }`}
+                  >
+                    {CTA[slug]}
+                  </Link>
+                </div>
+              </motion.article>
+            )
+          })}
+        </div>
+
+        {/* Trial note */}
+        <p className="text-center mt-12 text-[0.92rem] text-[#5b5446]">
+          Every new account starts with{' '}
+          <span className="text-[#1a1a1a] font-medium">a 3-day free trial</span> of full Max access.{' '}
+          No card required.
+        </p>
+      </section>
+
+      {/* Sub-feature row — quiet confidence */}
+      <section className="pb-24 px-5 sm:px-8 lg:px-12 border-t border-[#E5DDCB]/60 pt-20">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+          {[
+            { eyebrow: 'Coverage',  title: '54 nations',   body: 'Every African country, every dataset. No regional gaps.' },
+            { eyebrow: 'Sources',   title: 'Cited',        body: 'GADM, HydroSHEDS, CHIRPS, ISRIC, WorldClim, IGRAC, HDX, ESA.' },
+            { eyebrow: 'Format',    title: 'GIS-ready',    body: 'Shapefile, GeoPackage, GeoTIFF — harmonised to EPSG:4326.' },
+            { eyebrow: 'Symbology', title: 'QGIS-paired',  body: 'Paletted rasters ship with .qml — open and they look right.' },
+          ].map((f) => (
+            <div key={f.eyebrow}>
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#8B7A5C]">
+                {f.eyebrow}
+              </p>
+              <h3 className="mt-3 font-serif text-[1.5rem] leading-tight text-[#1a1a1a] font-medium">
+                {f.title}
+              </h3>
+              <p className="mt-3 text-[0.92rem] text-[#5b5446] leading-relaxed">
+                {f.body}
+              </p>
+            </div>
           ))}
         </div>
-
-        <div style={{ maxWidth: '960px', margin: '2rem auto 0', background: '#EEEDFE', border: '1px solid #AFA9EC', borderRadius: '14px', padding: '1.25rem 2rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '18px', fontWeight: 500, color: '#26215C', margin: '0 0 0.25rem' }}>Every new account gets a free 3-day trial</p>
-          <p style={{ fontSize: '15px', color: '#534AB7', margin: 0 }}>Full Max access — no card required.</p>
-        </div>
-      </div>
-    </>
+      </section>
+    </main>
   )
 }
