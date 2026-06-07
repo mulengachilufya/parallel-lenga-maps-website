@@ -3,12 +3,15 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Globe2, FileDown } from 'lucide-react'
+import {
+  Loader2, ArrowLeft, Globe2, FileDown, ArrowUpRight, Check,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
-  PLANS, PLAN_ORDER, PLAN_CARD_UI, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
+  PLANS, PLAN_CARD_UI, getUserState, formatTrialCountdown,
   TRIAL_DOWNLOAD_CAP, planCardCount,
   type TierSlug, type UserState
 } from '@/lib/pricing'
@@ -28,17 +31,48 @@ import ProtectedAreasList   from '@/components/ProtectedAreasList'
 import RoadsList            from '@/components/RoadsList'
 import SoilList             from '@/components/SoilList'
 
-// ─── Plan style tokens ────────────────────────────────────────
-const PLAN_STYLE: Record<string, {
-  bg: string; border: string; nameColor: string;
-  priceColor: string; btnBg: string;
-}> = {
-  starter:    { bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A', btnBg: '#639922' },
-  pro:        { bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C', btnBg: '#185FA5' },
-  max:        { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
-  enterprise: { bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806', btnBg: '#854F0B' },
-  free_trial: { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
-  free:       { bg: '#F1EFE8', border: '#B4B2A9', nameColor: '#5F5E5A', priceColor: '#444441', btnBg: '#5F5E5A' },
+// ─── Surface palette ──────────────────────────────────────────
+// Editorial cream + warm neutrals. Replaces the rainbow PLAN_STYLE
+// pastels that made the dashboard read like a SaaS demo.
+const SURFACE = {
+  bg:        '#F5F1EA',  // page background (warm cream)
+  card:      '#FAF7F1',  // card surface
+  border:    '#E5DDCB',  // hairline dividers / card borders
+  eyebrow:   '#8B7A5C',  // muted bronze for eyebrows + small caps
+  body:      '#5b5446',  // body text on cream
+  ink:       '#1a1a1a',  // primary text
+  gold:      '#C9A227',  // single accent — recommended state, links on hover
+} as const
+
+// Editorial imagery per dataset id, mirrors DatasetCard's brand library
+// mapping. Keeps homepage and dashboard visually coherent.
+const DATASET_IMAGE: Record<number, string> = {
+  1:  '/images/africa-topography.webp',
+  3:  '/images/branding/river-aerial.jpg',
+  4:  '/images/branding/forest.jpg',
+  5:  '/images/branding/deforestation.jpg',
+  6:  '/images/branding/flood.jpg',
+  8:  '/images/branding/city-map.jpg',
+  9:  '/images/branding/satellite-orbit.jpg',
+  10: '/images/branding/flood.jpg',
+  11: '/images/branding/soil.jpg',
+  12: '/images/branding/hippos.jpg',
+  13: '/images/branding/ocean.jpg',
+  14: '/images/branding/river-aerial.jpg',
+  15: '/images/branding/river-aerial.jpg',
+  16: '/images/branding/satellite.jpg',
+  17: '/images/branding/ocean.jpg',
+}
+const FALLBACK_IMAGE = '/images/branding/hero-landscape.jpg'
+
+function tierLabel(tier: string): string {
+  switch (tier) {
+    case 'starter':    return 'Starter and above'
+    case 'pro':        return 'Pro and above'
+    case 'max':        return 'Max'
+    case 'enterprise': return 'Enterprise'
+    default:           return ''
+  }
 }
 
 // ─── Section registry ─────────────────────────────────────────
@@ -51,72 +85,72 @@ const SECTIONS: Record<string, {
   component: () => React.ReactNode
 }> = {
   'admin-boundaries': {
-    title: '🗺️ Administrative Boundaries',
+    title:    'Administrative Boundaries',
     subtitle: 'GADM v4.1 · Shapefile, GeoJSON, KML · All 54 African countries',
     component: () => <AdminBoundariesList />,
   },
   'rivers': {
-    title: '🌊 River Networks',
+    title:    'River Networks',
     subtitle: 'Natural Earth 1:10m · GeoPackage per country',
     component: () => <RiversList />,
   },
   'rainfall': {
-    title: '🌧️ Rainfall Data',
+    title:    'Rainfall',
     subtitle: 'CHIRPS v2.0 · GeoTIFF (ZIP) · 0.05° (~5 km)',
     component: () => <RainfallClimateList layerType="rainfall" />,
   },
   'temperature': {
-    title: '🌡️ Temperature Data',
+    title:    'Temperature',
     subtitle: 'WorldClim v2.1 · GeoTIFF (ZIP) · 2.5 arc-min (~5 km)',
     component: () => <RainfallClimateList layerType="temperature" />,
   },
   'drought-index': {
-    title: '🔥 Drought Index (SPI-12)',
+    title:    'Drought Index (SPI-12)',
     subtitle: 'CHIRPS-derived SPI · GeoTIFF (ZIP) · 0.05° (~5 km)',
     component: () => <RainfallClimateList layerType="drought_index" />,
   },
   'aquifer': {
-    title: '💧 Groundwater Aquifers',
+    title:    'Groundwater Aquifers',
     subtitle: 'IGRAC GGIS · GeoPackage · All 54 African countries',
     component: () => <AquiferList />,
   },
   'protected-areas': {
-    title: '🐘 Protected Areas & Wildlife',
+    title:    'Protected Areas & Wildlife',
     subtitle: 'OpenStreetMap · ODbL · Shapefile (ZIP) per country',
     component: () => <ProtectedAreasList />,
   },
   'watersheds': {
-    title: '🗺️ Watersheds & Catchments',
+    title:    'Watersheds & Catchments',
     subtitle: 'WWF / HydroSHEDS Level 6 · GeoPackage per country',
     component: () => <WatershedsList />,
   },
   'population': {
-    title: '🏘️ Population & Settlements',
+    title:    'Population & Settlements',
     subtitle: 'HDX COD-PS (UN OCHA) · Shapefile (ZIP) · ADM1/ADM2',
     component: () => <PopulationList />,
   },
   'roads': {
-    title: '🛣️ Roads & Infrastructure',
+    title:    'Roads & Infrastructure',
     subtitle: 'Natural Earth 1:10m · GeoPackage per country',
     component: () => <RoadsList />,
   },
   'lulc': {
-    title: '🌿 Land Use / Land Cover',
+    title:    'Land Use / Land Cover',
     subtitle: 'ESA WorldCover 2021 · GeoTIFF (10m) per country',
     component: () => <LulcList />,
   },
   'lakes': {
-    title: '🏞️ Lakes',
+    title:    'Lakes',
     subtitle: 'HydroLAKES · Shapefile (ZIP) per country',
     component: () => <HydrologyList layerType="lakes" />,
   },
   'soil': {
-    title: '🌾 Soil Classification',
+    title:    'Soil Classification',
     subtitle: 'ISRIC SoilGrids v2.0 · GeoTIFF (250m) per country',
     component: () => <SoilList />,
   },
   'rivers-hydro': {
-    title: '🌊 HydroRIVERS',
+    title:    'HydroRIVERS',
     subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
     component: () => <HydrologyList layerType="rivers" />,
   },
@@ -139,29 +173,28 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'lakes':            'lakes',
 }
 
-// ─── Pricing-style plan card ──────────────────────────────────
-// Same look as the /pricing blocks (shared colours via PLAN_CARD_UI),
-// just more compact for the dashboard. Clickable when `href` is set.
+// ─── Editorial plan card ──────────────────────────────────────
+// Cream surface, serif price, hairline divider, quiet check icons. One
+// accent (gold) used only on the recommended/upgrade card. Replaces the
+// previous mint/blue/lilac/amber pastels that made the dashboard read
+// like a SaaS template.
 function PlanCard({
-  eyebrow, title, hero, heroUnit, ui, tagline, note, count, datasets,
-  cta, href, current = false, delay = 0,
+  eyebrow, title, hero, heroUnit, tagline, note, count, datasets,
+  cta, href, current = false, recommended = false, delay = 0,
 }: {
-  eyebrow:   string
-  title:     string
-  hero:      string
-  heroUnit?: string
-  ui: {
-    bg: string; border: string; nameColor: string; priceColor: string
-    dotColor: string; btnBg: string; dividerColor: string
-  }
-  tagline?:  string
-  note?:     string | null
-  count?:    string
-  datasets?: string[]
-  cta:       string
-  href?:     string
-  current?:  boolean
-  delay?:    number
+  eyebrow:     string
+  title:       string
+  hero:        string
+  heroUnit?:   string
+  tagline?:    string
+  note?:       string | null
+  count?:      string
+  datasets?:   string[]
+  cta:         string
+  href?:       string
+  current?:    boolean
+  recommended?: boolean
+  delay?:      number
 }) {
   const MAX_ITEMS = 5
   const shown = datasets?.slice(0, MAX_ITEMS) ?? []
@@ -169,65 +202,125 @@ function PlanCard({
 
   const body = (
     <>
-      <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ui.nameColor, marginBottom: '0.5rem' }}>
+      {/* Eyebrow + name */}
+      <p
+        className="text-[10px] font-medium uppercase tracking-[0.22em]"
+        style={{ color: SURFACE.eyebrow }}
+      >
         {eyebrow} · {title}
+      </p>
+
+      {/* Hero (price or 'Free') */}
+      <div className="mt-4 flex items-baseline gap-1.5">
+        <span
+          className="font-serif text-[2.2rem] leading-none font-medium"
+          style={{ color: SURFACE.ink }}
+        >
+          {hero}
+        </span>
+        {heroUnit && (
+          <span className="text-[0.8rem]" style={{ color: SURFACE.body }}>
+            {heroUnit}
+          </span>
+        )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '0.6rem' }}>
-        <span style={{ fontSize: '40px', lineHeight: 1, fontWeight: 400, color: ui.priceColor }}>{hero}</span>
-        {heroUnit && <span style={{ fontSize: '12px', color: '#555' }}>{heroUnit}</span>}
-      </div>
-      {tagline && <p style={{ fontSize: '12.5px', color: '#444', margin: '0 0 0.75rem', lineHeight: 1.5 }}>{tagline}</p>}
-      {note && (
-        <div style={{ fontSize: '12px', color: ui.nameColor, background: '#fff', border: `1px solid ${ui.border}`, borderRadius: '8px', padding: '6px 10px', marginBottom: '0.85rem', display: 'inline-block' }}>
-          {note}
-        </div>
+
+      {/* Tagline */}
+      {tagline && (
+        <p className="mt-4 text-[0.86rem] leading-relaxed" style={{ color: SURFACE.body }}>
+          {tagline}
+        </p>
       )}
+
+      {/* Trial countdown / status pill */}
+      {note && (
+        <p
+          className="mt-3 inline-block text-[11px] font-medium tracking-wide"
+          style={{ color: SURFACE.ink }}
+        >
+          {note}
+        </p>
+      )}
+
       {(count || shown.length > 0) && (
         <>
-          <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 0.75rem' }} />
+          <div className="my-5 h-px" style={{ background: SURFACE.border }} />
+
           {count && (
-            <div style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#444', marginBottom: '0.5rem' }}>
+            <p
+              className="text-[10px] font-medium uppercase tracking-[0.18em] mb-3"
+              style={{ color: SURFACE.eyebrow }}
+            >
               {count}
-            </div>
+            </p>
           )}
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+
+          <ul className="space-y-2 flex-1">
             {shown.map((d) => (
-              <li key={d} style={{ fontSize: '12px', color: '#1a1a1a', padding: '2.5px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ui.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
-                {d}
+              <li
+                key={d}
+                className="flex items-start gap-2 text-[0.84rem] leading-snug"
+                style={{ color: SURFACE.ink }}
+              >
+                <Check
+                  size={12}
+                  className="mt-[3px] shrink-0"
+                  strokeWidth={2.25}
+                  style={{ color: SURFACE.eyebrow }}
+                />
+                <span>{d}</span>
               </li>
             ))}
             {extra > 0 && (
-              <li style={{ fontSize: '12px', color: ui.nameColor, fontWeight: 500, padding: '2.5px 0 2.5px 12px' }}>
+              <li className="text-[0.82rem] pl-4" style={{ color: SURFACE.eyebrow }}>
                 + {extra} more
               </li>
             )}
           </ul>
         </>
       )}
-      <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-        <div style={{
-          width: '100%', padding: '9px 0', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, textAlign: 'center',
-          background: current ? 'transparent' : ui.btnBg,
-          color:      current ? ui.nameColor : '#fff',
-          border:     current ? `1px solid ${ui.border}` : '1px solid transparent',
-        }}>
+
+      {/* CTA */}
+      <div className="mt-7">
+        <div
+          className="w-full text-center text-[0.82rem] font-medium tracking-wide py-3 transition-all"
+          style={{
+            background:   current     ? 'transparent'
+                          : recommended ? SURFACE.ink
+                          : 'transparent',
+            color:        current     ? SURFACE.body
+                          : recommended ? SURFACE.card
+                          : SURFACE.ink,
+            border:       current     ? `1px solid ${SURFACE.border}`
+                          : recommended ? `1px solid ${SURFACE.ink}`
+                          : `1px solid ${SURFACE.ink}33`,
+          }}
+        >
           {cta}
         </div>
       </div>
     </>
   )
 
+  const cardClass = 'h-full flex flex-col p-7 transition-all duration-200'
   const cardStyle: React.CSSProperties = {
-    background: ui.bg, border: `1px solid ${ui.border}`, borderRadius: '16px',
-    padding: '1.25rem', display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none',
+    background: SURFACE.card,
+    border: recommended
+      ? `1px solid ${SURFACE.gold}`
+      : `1px solid ${SURFACE.border}`,
+    textDecoration: 'none',
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="h-full"
+    >
       {href
-        ? <Link href={href} className="dash-plan-card" style={cardStyle}>{body}</Link>
-        : <div style={cardStyle}>{body}</div>}
+        ? <Link href={href} className={`dash-plan-card block ${cardClass}`} style={cardStyle}>{body}</Link>
+        : <div className={cardClass} style={cardStyle}>{body}</div>}
     </motion.div>
   )
 }
@@ -429,8 +522,11 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 size={32} className="animate-spin text-primary" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: SURFACE.bg }}
+      >
+        <Loader2 size={28} className="animate-spin" style={{ color: SURFACE.eyebrow }} />
       </div>
     )
   }
@@ -447,36 +543,55 @@ function DashboardContent() {
   // ── Section view ──────────────────────────────────────────
   if (sectionData) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ background: SURFACE.bg }}>
         <div className="h-20" />
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-[0.82rem] mb-8 transition-colors"
+            style={{ color: SURFACE.body }}
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={14} />
             Back to all datasets
           </Link>
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-navy">{sectionData.title}</h1>
+          <div className="mb-8">
+            <h1
+              className="font-serif text-[2.2rem] sm:text-[2.6rem] leading-[1.05] font-medium tracking-tight"
+              style={{ color: SURFACE.ink }}
+            >
+              {sectionData.title}
+            </h1>
             {sectionData.subtitle && (
-              <p className="text-xs text-gray-400 mt-1">{sectionData.subtitle}</p>
+              <p className="text-[0.84rem] mt-3" style={{ color: SURFACE.eyebrow }}>
+                {sectionData.subtitle}
+              </p>
             )}
-            {/* Trial expiry + download cap warning inside section */}
+            {/* Trial expiry + download cap — quieter inline note, no emoji */}
             {isTrial && trialStartedAt && (
-              <div className="mt-3 inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 text-sm text-yellow-800">
-                ⏱ Free trial — {formatTrialCountdown(trialStartedAt)} left ·{' '}
-                {Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)} / {TRIAL_DOWNLOAD_CAP} downloads remaining
-              </div>
+              <p
+                className="mt-5 text-[0.84rem]"
+                style={{ color: SURFACE.body }}
+              >
+                <span className="font-medium" style={{ color: SURFACE.ink }}>Free trial</span>
+                {' · '}{formatTrialCountdown(trialStartedAt)} left
+                {' · '}{Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)} of {TRIAL_DOWNLOAD_CAP} downloads remaining
+              </p>
             )}
             {isFree && (
-              <div className="mt-3 inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-700">
-                🔒 Your trial has ended — subscribe to download files
-                <Link href="/dashboard/payment?plan=starter" className="font-semibold underline ml-1">
-                  Subscribe
+              <p
+                className="mt-5 text-[0.84rem]"
+                style={{ color: SURFACE.body }}
+              >
+                Your trial has ended.{' '}
+                <Link
+                  href="/dashboard/payment?plan=starter"
+                  className="underline underline-offset-4"
+                  style={{ color: SURFACE.ink }}
+                >
+                  Subscribe to continue downloading.
                 </Link>
-              </div>
+              </p>
             )}
           </div>
 
@@ -486,7 +601,10 @@ function DashboardContent() {
             <ContinentalBundle datasetSlug={sectionKey} />
           )}
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div
+            className="p-6 sm:p-8"
+            style={{ background: SURFACE.card, border: `1px solid ${SURFACE.border}` }}
+          >
             {sectionData.component()}
           </div>
         </div>
@@ -496,95 +614,120 @@ function DashboardContent() {
 
   // ── Overview ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: SURFACE.bg }}>
       <div className="h-20" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-navy">
-            {userName ? `Welcome back, ${userName.split(' ')[0]}` : 'Your dashboard'}
+        <div className="mb-10">
+          <p
+            className="text-[10px] font-medium uppercase tracking-[0.22em] mb-3"
+            style={{ color: SURFACE.eyebrow }}
+          >
+            Dashboard
+          </p>
+          <h1
+            className="font-serif text-[2.4rem] sm:text-[2.8rem] leading-[1.05] font-medium tracking-tight"
+            style={{ color: SURFACE.ink }}
+          >
+            {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">All 54 African countries · 15 datasets</p>
+          <p className="mt-4 text-[0.95rem]" style={{ color: SURFACE.body }}>
+            15 datasets · 54 African countries · harmonised to EPSG:4326.
+          </p>
         </div>
 
         {/* Admin link — only shown if /api/admin/me confirmed this user is
-            on the server-side ADMIN_EMAILS allowlist. Adding a new admin
-            now means editing one env var, no code change. */}
+            on the server-side ADMIN_EMAILS allowlist. */}
         {isAdmin && (
-          <div className="mb-6">
+          <div className="mb-8">
             <Link
               href="/admin"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#1a1a1a', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-[0.82rem] font-medium tracking-wide transition-colors"
+              style={{ background: SURFACE.ink, color: SURFACE.card }}
             >
               Admin panel
+              <ArrowUpRight size={13} />
             </Link>
           </div>
         )}
 
-        {/* Trial banner — time + download cap. Once the cap is reached the
-            user is effectively in 'expired trial' mode for downloads even
-            if hours remain on the clock. */}
+        {/* Trial / cap notice — editorial inline copy, no coloured panel,
+            no emoji. Cap-hit state turns the link colour red to signal
+            blocking; otherwise quiet. */}
         {isTrial && trialStartedAt && (() => {
           const remaining = Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)
           const capHit    = remaining === 0
           return (
-            <div className={`mb-6 ${capHit ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'} border rounded-2xl px-5 py-4 flex items-center justify-between gap-4`}>
+            <div
+              className="mb-10 flex items-center justify-between gap-6 pb-6"
+              style={{ borderBottom: `1px solid ${SURFACE.border}` }}
+            >
               <div>
-                <p className={`font-semibold text-sm ${capHit ? 'text-red-800' : 'text-yellow-800'}`}>
-                  {capHit ? '🔒 Trial download cap reached' : '⏱ Free trial active'}
+                <p className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: SURFACE.eyebrow }}>
+                  {capHit ? 'Trial cap reached' : 'Free trial'}
                 </p>
-                <p className={`text-xs mt-0.5 ${capHit ? 'text-red-700' : 'text-yellow-700'}`}>
-                  {formatTrialCountdown(trialStartedAt)} left ·{' '}
-                  {remaining} / {TRIAL_DOWNLOAD_CAP} downloads remaining
+                <p className="mt-2 text-[0.92rem]" style={{ color: SURFACE.body }}>
+                  {formatTrialCountdown(trialStartedAt)} remaining ·{' '}
+                  <span className="font-medium" style={{ color: SURFACE.ink }}>
+                    {remaining} of {TRIAL_DOWNLOAD_CAP} downloads
+                  </span>
+                  {' '}left.
                 </p>
               </div>
               <Link
                 href="/dashboard/payment?plan=starter"
-                className={`shrink-0 text-xs font-bold text-white px-4 py-2 rounded-lg transition-colors ${capHit ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-800 hover:bg-yellow-900'}`}
+                className="shrink-0 inline-flex items-center gap-1.5 text-[0.82rem] font-medium tracking-wide px-4 py-2.5 transition-colors"
+                style={{
+                  background: capHit ? '#9c2718' : SURFACE.ink,
+                  color: SURFACE.card,
+                }}
               >
-                {capHit ? 'Subscribe to continue' : 'Subscribe now'}
+                {capHit ? 'Subscribe to continue' : 'Subscribe'}
+                <ArrowUpRight size={13} />
               </Link>
             </div>
           )
         })()}
 
-        {/* Free user banner */}
+        {/* Expired-trial banner */}
         {isFree && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
+          <div
+            className="mb-10 flex items-center justify-between gap-6 pb-6"
+            style={{ borderBottom: `1px solid ${SURFACE.border}` }}
+          >
             <div>
-              <p className="font-semibold text-red-800 text-sm">Your free trial has ended</p>
-              <p className="text-red-600 text-xs mt-0.5">Subscribe to download datasets. Browsing is still free.</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: SURFACE.eyebrow }}>
+                Trial ended
+              </p>
+              <p className="mt-2 text-[0.92rem]" style={{ color: SURFACE.body }}>
+                Browsing remains open. Downloads require a paid plan from $5/month.
+              </p>
             </div>
             <Link
               href="/dashboard/payment?plan=starter"
-              className="shrink-0 text-xs font-bold bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[0.82rem] font-medium tracking-wide px-4 py-2.5"
+              style={{ background: SURFACE.ink, color: SURFACE.card }}
             >
-              Subscribe from $5/mo
+              Subscribe
+              <ArrowUpRight size={13} />
             </Link>
           </div>
         )}
 
-        {/* Plan cards row — pricing-style blocks (shared look with /pricing) */}
+        {/* Plan cards row — editorial, no pastel blocks */}
         <style>{`
-          .dash-plan-card { transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
-          .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
-          .dash-plan-card:active { transform: scale(.98); }
+          .dash-plan-card { transition: background-color .2s ease, border-color .2s ease, transform .2s ease; }
+          .dash-plan-card:hover { transform: translateY(-2px); }
         `}</style>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px mb-16"
+             style={{ background: SURFACE.border, border: `1px solid ${SURFACE.border}` }}>
           {/* Current plan */}
           <PlanCard
             current
             delay={0.05}
             eyebrow="Current plan"
             title={planLabel}
-            ui={
-              isTrial
-                ? PLAN_CARD_UI.max
-                : isFree
-                ? { ...PLAN_STYLE.free, dotColor: PLAN_STYLE.free.nameColor, dividerColor: PLAN_STYLE.free.nameColor }
-                : PLAN_CARD_UI[userState as TierSlug]
-            }
             hero={isTrial || isFree ? 'Free' : planPrice ?? ''}
             heroUnit={isTrial || isFree ? undefined : '/month'}
             tagline={
@@ -594,19 +737,19 @@ function DashboardContent() {
                 ? 'No active plan — subscribe to download datasets.'
                 : PLAN_CARD_UI[userState as TierSlug].tagline
             }
-            note={isTrial && trialStartedAt ? `${formatTrialCountdown(trialStartedAt)} remaining · Full access` : null}
+            note={isTrial && trialStartedAt ? `${formatTrialCountdown(trialStartedAt)} remaining` : null}
             count={isTrial ? planCardCount('max') : isFree ? undefined : planCardCount(userState as TierSlug)}
             datasets={isTrial ? PLAN_CARD_UI.max.datasets : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].datasets}
-            cta={isTrial ? 'Trial active' : isFree ? 'Browsing only' : '✓ Your current plan'}
+            cta={isTrial ? 'Trial active' : isFree ? 'Browsing only' : 'Your current plan'}
           />
 
           {/* Upgrade / Subscribe */}
           {nextPlan && PLANS[nextPlan] && (
             <PlanCard
+              recommended
               delay={0.1}
-              eyebrow={isTrial || isFree ? 'Subscribe now' : 'Upgrade to'}
+              eyebrow={isTrial || isFree ? 'Subscribe' : 'Upgrade'}
               title={PLANS[nextPlan].name}
-              ui={PLAN_CARD_UI[nextPlan]}
               hero={PLANS[nextPlan].priceLabel}
               heroUnit="/month"
               tagline={PLAN_CARD_UI[nextPlan].tagline}
@@ -618,78 +761,116 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Dataset grid */}
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-navy mb-1">Browse & Download Datasets</h2>
-          <p className="text-sm text-gray-500">
-            Click any dataset to browse country files. Download buttons enforce your plan tier in real time.
+        {/* Dataset grid header */}
+        <div className="mb-8">
+          <p
+            className="text-[10px] font-medium uppercase tracking-[0.22em] mb-3"
+            style={{ color: SURFACE.eyebrow }}
+          >
+            Datasets
+          </p>
+          <h2
+            className="font-serif text-[1.8rem] sm:text-[2rem] leading-tight font-medium tracking-tight"
+            style={{ color: SURFACE.ink }}
+          >
+            Browse and download.
+          </h2>
+          <p className="mt-3 text-[0.95rem] max-w-xl" style={{ color: SURFACE.body }}>
+            Click any dataset to see country-level files. Download buttons enforce your plan tier in real time.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Editorial dataset grid — real imagery, no emoji, no tier pill,
+            no coloured top-bar. Mirrors the homepage DatasetCard. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px"
+             style={{ background: SURFACE.border, border: `1px solid ${SURFACE.border}` }}>
           {sortDatasetsByTier(DATASETS).map((dataset, i) => {
-            const isLive = dataset.id in LIVE_DATASET_ROUTES
+            const isLive   = dataset.id in LIVE_DATASET_ROUTES
+            const imageSrc = DATASET_IMAGE[dataset.id] ?? FALLBACK_IMAGE
+            const tier     = tierLabel(dataset.tier)
 
-            const ID_TO_SLUG: Record<number, import('@/lib/pricing').DatasetSlug> = {
-              1: 'admin-boundaries', 3: 'rivers',    4: 'lulc',
-              5: 'drought-index',   6: 'aquifer',    8: 'population',
-              9: 'roads',           11: 'soil',      12: 'protected-areas',
-              13: 'rivers',         14: 'watersheds', 15: 'rainfall',
-              16: 'temperature',    17: 'lakes',
-            }
-            const datasetSlug = ID_TO_SLUG[dataset.id]
-            const minTier     = datasetSlug ? DATASET_MIN_TIER[datasetSlug] : null
+            const cardBody = (
+              <article
+                className="group h-full flex flex-col overflow-hidden transition-all duration-200"
+                style={{ background: SURFACE.card }}
+              >
+                <div className="relative aspect-[5/3] overflow-hidden" style={{ background: '#1a1a1a' }}>
+                  <Image
+                    src={imageSrc}
+                    alt={dataset.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    className={`object-cover transition-transform duration-700 ${isLive ? 'group-hover:scale-[1.03]' : 'opacity-60'}`}
+                    unoptimized
+                  />
+                </div>
+                <div className="flex-1 flex flex-col p-6">
+                  <p
+                    className="text-[10px] font-medium uppercase tracking-[0.18em]"
+                    style={{ color: SURFACE.eyebrow }}
+                  >
+                    {dataset.category}
+                  </p>
+                  <h3
+                    className="mt-3 font-serif text-[1.2rem] leading-tight font-medium tracking-tight"
+                    style={{ color: SURFACE.ink }}
+                  >
+                    {dataset.name}
+                  </h3>
+                  <p
+                    className="mt-3 text-[0.86rem] leading-relaxed line-clamp-2"
+                    style={{ color: SURFACE.body }}
+                  >
+                    {dataset.description}
+                  </p>
+                  <div
+                    className="mt-auto pt-5 flex items-end justify-between gap-3"
+                    style={{ borderTop: `1px solid ${SURFACE.border}`, marginTop: 'auto' }}
+                  >
+                    <span
+                      className="text-[10px] uppercase tracking-[0.14em] pt-4"
+                      style={{ color: SURFACE.eyebrow }}
+                    >
+                      {tier}
+                    </span>
+                    {isLive ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[0.82rem] pt-4 transition-colors"
+                        style={{ color: SURFACE.ink }}
+                      >
+                        Browse
+                        <ArrowUpRight
+                          size={13}
+                          className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                        />
+                      </span>
+                    ) : (
+                      <span
+                        className="text-[0.78rem] pt-4"
+                        style={{ color: SURFACE.eyebrow }}
+                      >
+                        Coming soon
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </article>
+            )
 
             return (
               <motion.div
                 key={dataset.id}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.4) }}
+                transition={{ delay: Math.min(i * 0.03, 0.3) }}
+                className="h-full"
               >
                 {isLive ? (
-                  // All live datasets are openable by everyone
-                  // Access control is inside each component's download button
-                  <Link
-                    href={LIVE_DATASET_ROUTES[dataset.id]}
-                    className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full"
-                  >
-                    <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: `${dataset.color}15` }}>
-                          {dataset.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
-                          <h3 className="text-sm font-bold text-navy group-hover:text-primary transition-colors leading-tight">{dataset.name}</h3>
-                        </div>
-                        {minTier && (
-                          <span style={{ fontSize: '10px', fontWeight: 600, background: PLAN_STYLE[minTier]?.bg ?? '#f3f4f6', color: PLAN_STYLE[minTier]?.nameColor ?? '#555', border: `1px solid ${PLAN_STYLE[minTier]?.border ?? '#ddd'}`, borderRadius: '20px', padding: '2px 7px', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                            {minTier.charAt(0).toUpperCase() + minTier.slice(1)}+
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 leading-relaxed">{dataset.description}</p>
-                    </div>
+                  <Link href={LIVE_DATASET_ROUTES[dataset.id]} className="block h-full">
+                    {cardBody}
                   </Link>
                 ) : (
-                  // Not yet populated — still visible, not clickable
-                  <div className="block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full opacity-50">
-                    <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: `${dataset.color}15` }}>
-                          {dataset.icon}
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
-                          <h3 className="text-sm font-bold text-navy leading-tight">{dataset.name}</h3>
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-400 leading-relaxed">{dataset.description}</p>
-                    </div>
-                  </div>
+                  cardBody
                 )}
               </motion.div>
             )
