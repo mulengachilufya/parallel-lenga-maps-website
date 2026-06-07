@@ -33,7 +33,7 @@ export default function HydrologyList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: HydrologyListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers, setLayers]         = useState<HydrologyLayer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
@@ -72,13 +72,14 @@ export default function HydrologyList({
 
   // ALWAYS go through openGate — even when download_url is missing.
   // Tier required depends on layer_type: rivers=basic, lakes=pro.
-  const handleDownload = (layer: HydrologyLayer) => {
+  const handleDownload = async (layer: HydrologyLayer) => {
     const slug = layer.layer_type === 'lakes' ? 'lakes' : 'rivers'
     if (!checkAccess(slug)) {
       openGate(slug)
       return
     }
     if (!layer.download_url) { openGate(slug); return }
+    if (!(await consumeDownload(slug, layer.country))) return
     setDownloading(layer.id)
     window.open(layer.download_url, '_blank')
     setTimeout(() => setDownloading(null), 1000)

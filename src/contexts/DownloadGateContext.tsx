@@ -34,6 +34,14 @@ interface DownloadGateCtx {
   loading:     boolean
   checkAccess: (slug: DatasetSlug) => boolean
   openGate:    (slug: DatasetSlug) => void
+  /**
+   * Server-side hop that decrements the trial download counter and returns
+   * true iff the download should proceed. Always returns true for paid
+   * accounts (the endpoint short-circuits). Returns false for: trial cap
+   * reached, expired plan, anonymous. On false, the paywall is opened
+   * automatically so call sites don't need to.
+   */
+  consumeDownload: (slug: DatasetSlug, country?: string) => Promise<boolean>
 }
 
 // ─── Context ──────────────────────────────────────────────────
@@ -42,6 +50,7 @@ const Ctx = createContext<DownloadGateCtx>({
   user: null, loading: true,
   checkAccess: () => false,
   openGate: () => {},
+  consumeDownload: async () => false,
 })
 
 export function useDownloadGate() { return useContext(Ctx) }
@@ -126,8 +135,33 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
     setModal({ open: true, requiredTier, datasetSlug: slug })
   }
 
+  async function consumeDownload(slug: DatasetSlug, country?: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/usage/consume-download', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ dataset: slug, country }),
+      })
+      if (res.ok) {
+        // Refresh local state so the trial banner's remaining-count is
+        // accurate after the next render.
+        load()
+        return true
+      }
+      // 403 with reason=trial_cap_reached, plan_expired, or no_access.
+      // Open the paywall so the user sees a CTA instead of a silent fail.
+      openGate(slug)
+      return false
+    } catch {
+      // Network glitch — be permissive. The dataset API route would have
+      // refused to attach a presigned URL anyway if the user truly lacks
+      // access, so we won't accidentally serve gated data.
+      return true
+    }
+  }
+
   return (
-    <Ctx.Provider value={{ user, loading, checkAccess, openGate }}>
+    <Ctx.Provider value={{ user, loading, checkAccess, openGate, consumeDownload }}>
       {children}
       {modal.open && (
         <PaywallModal

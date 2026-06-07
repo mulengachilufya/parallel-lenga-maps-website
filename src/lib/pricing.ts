@@ -164,6 +164,16 @@ export const DATASET_MIN_TIER: Record<DatasetSlug, TierSlug> = {
 
 export const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000 // 72 hours
 
+/**
+ * Maximum number of dataset downloads granted during a free trial.
+ *
+ * Set high enough to actually evaluate the catalogue (sample a few
+ * continents, compare raster vs vector formats, test a QML in QGIS), low
+ * enough that a power user can't drain the whole library before deciding
+ * to pay. Enforced server-side in /api/usage/consume-download.
+ */
+export const TRIAL_DOWNLOAD_CAP = 10
+
 export function getUserState(
   plan:            string | undefined | null,
   trialStartedAt:  string | undefined | null,

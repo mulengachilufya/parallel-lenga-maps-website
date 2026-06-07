@@ -12,7 +12,7 @@ interface AquiferListProps {
 }
 
 export default function AquiferList({ }: AquiferListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -36,7 +36,7 @@ export default function AquiferList({ }: AquiferListProps) {
     fetchLayers()
   }, [])
 
-  const handleDownload = (layer: AquiferLayer) => {
+  const handleDownload = async (layer: AquiferLayer) => {
     if (!checkAccess('aquifer')) {
       openGate('aquifer')
       return
@@ -45,6 +45,7 @@ export default function AquiferList({ }: AquiferListProps) {
       openGate('aquifer')
       return
     }
+    if (!(await consumeDownload('aquifer', layer.country))) return
     setDownloading(layer.id)
     const link = document.createElement('a')
     link.href = layer.download_url

@@ -74,7 +74,7 @@ export default function RainfallClimateList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RainfallClimateListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState<string | null>(null)
@@ -108,7 +108,7 @@ export default function RainfallClimateList({
   // layer_type (4/8/12+ model):
   //   rainfall, temperature → basic
   //   drought_index         → pro
-  const handleDownload = (layer: RainfallClimateLayer) => {
+  const handleDownload = async (layer: RainfallClimateLayer) => {
     const slug = layer.layer_type === 'drought_index' ? 'drought-index' :
                  layer.layer_type === 'temperature'   ? 'temperature' : 'rainfall'
     if (!checkAccess(slug)) {
@@ -116,6 +116,7 @@ export default function RainfallClimateList({
       return
     }
     if (!layer.download_url) { openGate(slug); return }
+    if (!(await consumeDownload(slug, layer.country))) return
     setDownloading(layer.id)
     window.open(layer.download_url, '_blank')
     setTimeout(() => setDownloading(null), 1000)

@@ -32,7 +32,7 @@ export default function LulcList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: LulcListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<LulcLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -72,9 +72,10 @@ export default function LulcList({
 
   // ALWAYS route the click through the gate. LULC is now a Pro-tier
   // dataset (4/8/12+ model) — Basic users see the upgrade modal.
-  const handleDownload = (layer: LulcLayer) => {
+  const handleDownload = async (layer: LulcLayer) => {
   if (!checkAccess('lulc')) { openGate('lulc'); return }
   if (!layer.download_url) { openGate('lulc'); return }
+  if (!(await consumeDownload('lulc', layer.country))) return
   setDownloading(layer.id)
   const tifName = layer.r2_key.split('/').pop() || 'lulc.tif'
   triggerDownload(layer.download_url, tifName)

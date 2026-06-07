@@ -13,7 +13,7 @@ interface WatershedsListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function WatershedsList({ userPlan = 'starter', hasAccess = false }: WatershedsListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers,      setLayers]      = useState<HydrologyLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -37,9 +37,10 @@ export default function WatershedsList({ userPlan = 'starter', hasAccess = false
     load()
   }, [])
 
-  const handleDownload = (river: HydrologyLayer) => {
+  const handleDownload = async (river: HydrologyLayer) => {
   if (!checkAccess('rivers')) { openGate('rivers'); return }
   if (!river.download_url) { openGate('rivers'); return }
+  if (!(await consumeDownload('rivers', river.country))) return
   setDownloading(river.id)
   window.open(river.download_url, '_blank')
   setTimeout(() => setDownloading(null), 1000)

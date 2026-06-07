@@ -17,7 +17,7 @@ export default function RiversList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RiversListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [rivers, setRivers]           = useState<HydrologyLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -47,9 +47,10 @@ export default function RiversList({
   // ALWAYS route the click through the gate. Missing download_url means
   // the server didn't sign one for this caller (anon / no plan / wrong
   // tier) — openGate's modal is exactly what should happen then.
-  const handleDownload = (river: HydrologyLayer) => {
+  const handleDownload = async (river: HydrologyLayer) => {
   if (!checkAccess('rivers')) { openGate('rivers'); return }
   if (!river.download_url) { openGate('rivers'); return }
+  if (!(await consumeDownload('rivers', river.country))) return
   setDownloading(river.id)
   window.open(river.download_url, '_blank')
   setTimeout(() => setDownloading(null), 1000)

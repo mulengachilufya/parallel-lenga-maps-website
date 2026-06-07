@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
   PLANS, PLAN_ORDER, PLAN_CARD_UI, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
+  TRIAL_DOWNLOAD_CAP,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
@@ -319,6 +320,7 @@ function DashboardContent() {
   const [loading,        setLoading]        = useState(true)
   const [userState,      setUserState]      = useState<UserState>('free')
   const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null)
+  const [trialUsed,      setTrialUsed]      = useState(0)
   const [userName,       setUserName]       = useState('')
   const [isAdmin,        setIsAdmin]        = useState(false)
 
@@ -332,7 +334,7 @@ function DashboardContent() {
       const [profileRes, adminRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('plan, plan_status, trial_started_at, full_name')
+          .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
           .eq('id', session.user.id)
           .single(),
         fetch('/api/admin/me').then(r => r.ok ? r.json() : { isAdmin: false })
@@ -348,7 +350,7 @@ function DashboardContent() {
           await fetch('/api/account/init-profile', { method: 'POST' })
           const retry = await supabase
             .from('profiles')
-            .select('plan, plan_status, trial_started_at, full_name')
+            .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
             .eq('id', session.user.id)
             .single()
           if (retry.data) profile = retry.data
@@ -361,6 +363,7 @@ function DashboardContent() {
         profile?.plan_status,
       ))
       setTrialStartedAt(profile?.trial_started_at ?? null)
+      setTrialUsed(profile?.trial_downloads_used ?? 0)
       setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
       setIsAdmin(Boolean(adminRes?.isAdmin))
       setLoading(false)
@@ -404,10 +407,11 @@ function DashboardContent() {
             {sectionData.subtitle && (
               <p className="text-xs text-gray-400 mt-1">{sectionData.subtitle}</p>
             )}
-            {/* Trial expiry warning inside section */}
+            {/* Trial expiry + download cap warning inside section */}
             {isTrial && trialStartedAt && (
               <div className="mt-3 inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 text-sm text-yellow-800">
-                ⏱ Free trial — {formatTrialCountdown(trialStartedAt)} remaining · Full access active
+                ⏱ Free trial — {formatTrialCountdown(trialStartedAt)} left ·{' '}
+                {Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)} / {TRIAL_DOWNLOAD_CAP} downloads remaining
               </div>
             )}
             {isFree && (
@@ -462,23 +466,32 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Trial banner */}
-        {isTrial && trialStartedAt && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-yellow-800 text-sm">⏱ Free trial active</p>
-              <p className="text-yellow-700 text-xs mt-0.5">
-                Full access to all datasets · {formatTrialCountdown(trialStartedAt)} remaining
-              </p>
+        {/* Trial banner — time + download cap. Once the cap is reached the
+            user is effectively in 'expired trial' mode for downloads even
+            if hours remain on the clock. */}
+        {isTrial && trialStartedAt && (() => {
+          const remaining = Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)
+          const capHit    = remaining === 0
+          return (
+            <div className={`mb-6 ${capHit ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'} border rounded-2xl px-5 py-4 flex items-center justify-between gap-4`}>
+              <div>
+                <p className={`font-semibold text-sm ${capHit ? 'text-red-800' : 'text-yellow-800'}`}>
+                  {capHit ? '🔒 Trial download cap reached' : '⏱ Free trial active'}
+                </p>
+                <p className={`text-xs mt-0.5 ${capHit ? 'text-red-700' : 'text-yellow-700'}`}>
+                  {formatTrialCountdown(trialStartedAt)} left ·{' '}
+                  {remaining} / {TRIAL_DOWNLOAD_CAP} downloads remaining
+                </p>
+              </div>
+              <Link
+                href="/dashboard/payment?plan=starter"
+                className={`shrink-0 text-xs font-bold text-white px-4 py-2 rounded-lg transition-colors ${capHit ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-800 hover:bg-yellow-900'}`}
+              >
+                {capHit ? 'Subscribe to continue' : 'Subscribe now'}
+              </Link>
             </div>
-            <Link
-              href="/dashboard/payment?plan=starter"
-              className="shrink-0 text-xs font-bold bg-yellow-800 text-white px-4 py-2 rounded-lg hover:bg-yellow-900 transition-colors"
-            >
-              Subscribe now
-            </Link>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Free user banner */}
         {isFree && (

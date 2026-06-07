@@ -42,7 +42,7 @@ export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -79,12 +79,13 @@ export default function AdminBoundariesList({
   // session, no plan, or wrong tier). We WANT the gate to pop up the
   // appropriate signup/pay/upgrade modal in that case. Early-returning
   // would just make the button look broken to the user.
-  const handleDownload = (boundary: AdminBoundary) => {
+  const handleDownload = async (boundary: AdminBoundary) => {
     if (!checkAccess('admin-boundaries')) {
       openGate('admin-boundaries')
       return
     }
     if (!boundary.download_url) { openGate('admin-boundaries'); return }
+    if (!(await consumeDownload('admin-boundaries', boundary.country))) return
     setDownloading(boundary.id)
     window.open(boundary.download_url, '_blank')
     setTimeout(() => setDownloading(null), 2000)

@@ -16,7 +16,7 @@ interface ProtectedAreasListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess = false }: ProtectedAreasListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers,      setLayers]      = useState<ProtectedAreasLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -43,12 +43,13 @@ export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess
   // Always go through openGate — even for users without access. That's
   // the entire point of the gate: when the server didn't sign a URL for
   // this user (insufficient plan), the gate pops up the upgrade modal.
-  const handleDownload = (layer: ProtectedAreasLayer) => {
+  const handleDownload = async (layer: ProtectedAreasLayer) => {
     if (!checkAccess('protected-areas')) {
       openGate('protected-areas')
       return
     }
     if (!layer.download_url) { openGate('protected-areas'); return }
+    if (!(await consumeDownload('protected-areas', layer.country))) return
     setDownloading(layer.id)
     const link = document.createElement('a')
     link.href     = layer.download_url

@@ -16,7 +16,7 @@ interface PopulationListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PopulationList({ userPlan = 'starter', hasFullAccess = false }: PopulationListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers, setLayers]           = useState<PopulationSettlementsLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -45,9 +45,10 @@ export default function PopulationList({ userPlan = 'starter', hasFullAccess = f
   // Missing URL means the API didn't sign one for this user (= they don't
   // have access yet); the gate then pops up the upgrade modal. Early-
   // returning would just leave the user staring at a dead button.
-  const handleDownload = (layer: PopulationSettlementsLayer) => {
+  const handleDownload = async (layer: PopulationSettlementsLayer) => {
   if (!checkAccess('population')) { openGate('population'); return }
   if (!layer.download_url) { openGate('population'); return }
+  if (!(await consumeDownload('population', layer.country))) return
   setDownloading(layer.id)
   window.open(layer.download_url, '_blank')
   setTimeout(() => setDownloading(null), 1000)

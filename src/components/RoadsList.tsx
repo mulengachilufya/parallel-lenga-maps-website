@@ -13,7 +13,7 @@ interface RoadsListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function RoadsList({ userPlan = 'starter', hasAccess = false }: RoadsListProps) {
-  const { openGate, checkAccess } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
   const [layers,      setLayers]      = useState<RoadLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -36,9 +36,10 @@ export default function RoadsList({ userPlan = 'starter', hasAccess = false }: R
     })()
   }, [])
 
-  const handleDownload = (layer: RoadLayer) => {
+  const handleDownload = async (layer: RoadLayer) => {
   if (!checkAccess('roads')) { openGate('roads'); return }
   if (!layer.download_url) { openGate('roads'); return }
+  if (!(await consumeDownload('roads', layer.country))) return
   setDownloading(layer.id)
   window.open(layer.download_url, '_blank')
   setTimeout(() => setDownloading(null), 1000)
