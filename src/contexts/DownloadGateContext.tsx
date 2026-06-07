@@ -63,32 +63,31 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
   const [modal, setModal]     = useState<ModalState>({ open: false, requiredTier: 'starter', datasetSlug: null })
 
   // Defensive load: wrapped in try/finally so setLoading(false) ALWAYS
-  // runs. Profile query gets a 6 s race so a stalled refresh-token
-  // exchange (the classic returning-user failure mode) can't keep the
-  // gate in `loading: true` forever and silently break the download
-  // buttons.
+  // runs. Each await is raced against a timeout that resolves to null on
+  // expiry — a stalled refresh-token exchange (the classic returning-user
+  // failure mode) can't keep the gate in `loading: true` forever and
+  // silently break the download buttons.
+  const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
+    Promise.race([
+      p,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+    ])
+
   const load = useCallback(async () => {
     try {
-      const sessionRes = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>>((resolve) =>
-          setTimeout(() => resolve({ data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>), 5_000),
-        ),
-      ])
-      const session = sessionRes.data.session
+      const sessionRes = await withTimeout(supabase.auth.getSession(), 5_000)
+      const session = sessionRes?.data.session ?? null
       if (!session) { setUser(null); return }
 
-      const profileRes = await Promise.race([
+      const profileRes = await withTimeout(
         supabase
           .from('profiles')
           .select('plan, plan_status, plan_expires_at, trial_started_at')
           .eq('id', session.user.id)
           .single(),
-        new Promise<{ data: null }>((resolve) =>
-          setTimeout(() => resolve({ data: null }), 6_000),
-        ),
-      ])
-      const profile = profileRes.data
+        6_000,
+      )
+      const profile = profileRes?.data ?? null
 
       if (!profile) { setUser(null); return }
 

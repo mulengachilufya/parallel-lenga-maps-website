@@ -328,11 +328,10 @@ function DashboardContent() {
     // Defensive load pattern. Three rules:
     //   1. setLoading(false) MUST run no matter what — try/catch/finally.
     //   2. No single network call can stall the page forever — each await
-    //      is racing an 8s timeout, defaulting to a safe value on timeout.
+    //      is racing a timeout; on timeout we substitute null and carry on.
     //   3. A returning-user with a stale-but-non-expired session that the
     //      Supabase client decides to refresh in the background can't make
-    //      Promise.all stall; admin check runs in parallel but its failure
-    //      is silently absorbed.
+    //      Promise.all stall; admin check runs in parallel and times out.
     //
     // Real-world cause for "stuck on spinner": a user away for weeks whose
     // refresh-token handshake stalls, or /api/admin/me being slow during
@@ -340,10 +339,13 @@ function DashboardContent() {
     // timeouts, so any stall = infinite spinner.
     let cancelled = false
 
-    const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    // Race the promise against a timeout. On timeout returns null; the
+    // caller treats null the same as "we got nothing useful, render the
+    // safe defaults". No type gymnastics required.
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
       Promise.race([
         p,
-        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
       ])
 
     // Hard failsafe: 10 s after the page mounts, render with whatever we
@@ -354,12 +356,8 @@ function DashboardContent() {
 
     const load = async () => {
       try {
-        const sessionRes = await withTimeout(
-          supabase.auth.getSession(),
-          5_000,
-          { data: { session: null } as { session: { user: { id: string; email: string | null; user_metadata?: { full_name?: string } } } | null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-        )
-        const session = sessionRes.data.session
+        const sessionRes = await withTimeout(supabase.auth.getSession(), 5_000)
+        const session = sessionRes?.data.session ?? null
         if (cancelled) return
         if (!session) { router.replace('/login'); return }
 
@@ -368,18 +366,17 @@ function DashboardContent() {
           .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
           .eq('id', session.user.id)
           .single()
-          .then((r) => r)
 
         const adminPromise = fetch('/api/admin/me')
           .then((r) => r.ok ? r.json() : { isAdmin: false })
           .catch(() => ({ isAdmin: false }))
 
         const [profileRes, adminRes] = await Promise.all([
-          withTimeout(profilePromise, 8_000, { data: null, error: null } as Awaited<typeof profilePromise>),
-          withTimeout(adminPromise,   3_000, { isAdmin: false }),
+          withTimeout(profilePromise, 8_000),
+          withTimeout(adminPromise,   3_000),
         ])
         if (cancelled) return
-        let profile = profileRes.data
+        let profile = profileRes?.data ?? null
 
         // Self-heal: only attempt if we actually got a row back. We don't
         // want a slow profile query to also stall the self-heal calls.
@@ -388,7 +385,6 @@ function DashboardContent() {
             await withTimeout(
               fetch('/api/account/init-profile', { method: 'POST' }),
               3_000,
-              undefined as unknown as Response,
             )
             const retry = await withTimeout(
               supabase
@@ -397,9 +393,8 @@ function DashboardContent() {
                 .eq('id', session.user.id)
                 .single(),
               3_000,
-              { data: null, error: null } as Awaited<ReturnType<typeof profilePromise>>,
             )
-            if (retry.data) profile = retry.data
+            if (retry?.data) profile = retry.data
           } catch { /* non-fatal — UI just shows 'free' until next visit */ }
         }
         if (cancelled) return
