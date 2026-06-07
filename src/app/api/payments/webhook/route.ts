@@ -35,14 +35,17 @@ const PLAN_PERIOD_DAYS = 30
 //   key bytes tried:    base64-decoded secret, AND raw UTF-8 secret
 //   digests tried:      hex AND base64
 //
-// If LIPILA_WEBHOOK_SECRET is unset → verification is skipped (dev mode).
-// If set and a signature header is present:
-//   - any scheme matching ⇒ accept
-//   - none matching       ⇒ reject 401 (real attack OR misconfig)
-// If set and NO signature header is present → log + accept (fail-open).
-//   This lets us bring HMAC online without breaking activation while we
-//   capture the actual header name from a real call. Once we see it in
-//   logs we tighten this to reject unsigned calls.
+// Policy:
+//   LIPILA_WEBHOOK_SECRET unset                → accept + warn (dev only)
+//   secret set, sig present, match             → accept
+//   secret set, sig present, mismatch          → 401
+//   secret set, sig absent, ALLOW_UNSIGNED=1   → accept + warn (capture mode)
+//   secret set, sig absent, otherwise          → 401 (strict prod default)
+//
+// LIPILA_WEBHOOK_ALLOW_UNSIGNED=true is a temporary capture switch: set it
+// while we discover the real header name Lipila uses; the diagnostic header
+// log below reveals it on the first real call. Once known, unset this var
+// and the route becomes strict.
 // ────────────────────────────────────────────────────────────────────────
 
 const SIGNATURE_HEADERS = [
@@ -68,7 +71,10 @@ function computeHmac(rawBody: string, keyBuf: Buffer): { hex: string; b64: strin
 
 function verifySignature(rawBody: string, headers: Headers): { ok: boolean; reason: string } {
   const secret = process.env.LIPILA_WEBHOOK_SECRET
-  if (!secret) return { ok: true, reason: 'no_secret_configured' }
+  if (!secret) {
+    console.warn('[webhook] LIPILA_WEBHOOK_SECRET unset — accepting unsigned (dev only)')
+    return { ok: true, reason: 'no_secret_configured' }
+  }
 
   let providedSig: string | undefined
   let providedHeader = ''
@@ -76,7 +82,13 @@ function verifySignature(rawBody: string, headers: Headers): { ok: boolean; reas
     const v = headers.get(name)
     if (v) { providedSig = v.trim(); providedHeader = name; break }
   }
-  if (!providedSig) return { ok: true, reason: 'no_signature_header_yet (fail-open)' }
+  if (!providedSig) {
+    if (process.env.LIPILA_WEBHOOK_ALLOW_UNSIGNED === 'true') {
+      console.warn('[webhook] no signature header; ALLOW_UNSIGNED=true → accept (capture mode)')
+      return { ok: true, reason: 'no_signature_header (allow_unsigned)' }
+    }
+    return { ok: false, reason: 'no_signature_header (strict)' }
+  }
 
   // Try both key encodings (base64-decoded vs raw utf-8)
   const keyBufs: Buffer[] = []
