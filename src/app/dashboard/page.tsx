@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
   PLANS, PLAN_ORDER, PLAN_CARD_UI, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
-  TRIAL_DOWNLOAD_CAP,
+  TRIAL_DOWNLOAD_CAP, planCardCount,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES } from '@/lib/supabase'
@@ -539,7 +539,7 @@ function DashboardContent() {
                 : PLAN_CARD_UI[userState as TierSlug].tagline
             }
             note={isTrial && trialStartedAt ? `${formatTrialCountdown(trialStartedAt)} remaining · Full access` : null}
-            count={isTrial ? PLAN_CARD_UI.max.count : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].count}
+            count={isTrial ? planCardCount('max') : isFree ? undefined : planCardCount(userState as TierSlug)}
             datasets={isTrial ? PLAN_CARD_UI.max.datasets : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].datasets}
             cta={isTrial ? 'Trial active' : isFree ? 'Browsing only' : '✓ Your current plan'}
           />
@@ -554,7 +554,7 @@ function DashboardContent() {
               hero={PLANS[nextPlan].priceLabel}
               heroUnit="/month"
               tagline={PLAN_CARD_UI[nextPlan].tagline}
-              count={PLAN_CARD_UI[nextPlan].count}
+              count={planCardCount(nextPlan)}
               datasets={PLAN_CARD_UI[nextPlan].datasets}
               cta={`${isTrial || isFree ? 'Subscribe' : 'Upgrade'} · ${PLANS[nextPlan].priceLabel}/mo`}
               href={`/dashboard/payment?plan=${nextPlan}`}

@@ -99,26 +99,30 @@ export interface PlanCardUI {
   datasets:     string[]
 }
 
+// PLAN_CARD_UI uses derived dataset counts — see datasetCountForTier()
+// below. Hardcoding "5 / 9 / 15" used to drift the moment we added or
+// renamed a layer; deriving from DATASET_MIN_TIER means the truth is in
+// one place.
 export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
   starter: {
     bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A',
     dotColor: '#3B6D11', btnBg: '#639922', dividerColor: '#3B6D11',
     tagline: 'Core environmental layers to get you mapping.',
-    count: '5 datasets',
+    count: '__derived__',
     datasets: ['Administrative Boundaries', 'Groundwater Aquifers', 'Drought Index (SPI-12)', 'Rainfall Data', 'Protected Areas & Wildlife'],
   },
   pro: {
     bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C',
     dotColor: '#185FA5', btnBg: '#185FA5', dividerColor: '#185FA5',
     tagline: 'Everything in Starter, plus hydrology and infrastructure.',
-    count: '9 datasets',
+    count: '__derived__',
     datasets: ['Everything in Starter', 'Watersheds & Catchments', 'Population & Settlements', 'River Networks', 'Roads & Infrastructure'],
   },
   max: {
     bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
     dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
     tagline: 'The full platform — every layer we have.',
-    count: '15 datasets',
+    count: '__derived__',
     datasets: ['Everything in Pro', 'Temperature Data', 'HydroRIVERS', 'Land Use / Land Cover', 'Lakes', 'Soil Classification', 'Wetlands & Floodplains'],
   },
   enterprise: {
@@ -158,6 +162,27 @@ export const DATASET_MIN_TIER: Record<DatasetSlug, TierSlug> = {
   'lakes':            'max',
   'soil':             'max',
   'wetlands':         'max',
+}
+
+// ─── Derived count helpers ────────────────────────────────────
+// Single source of truth for "how many datasets does X tier include?".
+// Tiers stack: pro includes everything starter has, max includes
+// everything pro has, enterprise = max + extras.
+
+export function datasetCountForTier(tier: TierSlug): number {
+  if (tier === 'enterprise') return datasetCountForTier('max')
+  const tierIdx = PLAN_ORDER.indexOf(tier)
+  return Object.values(DATASET_MIN_TIER).filter(
+    (minTier) => PLAN_ORDER.indexOf(minTier) <= tierIdx,
+  ).length
+}
+
+/** Resolves the `count` field on a PlanCardUI; substitutes the derived
+ *  count when the static value is the `__derived__` sentinel. */
+export function planCardCount(tier: TierSlug): string {
+  const raw = PLAN_CARD_UI[tier].count
+  if (raw !== '__derived__') return raw
+  return `${datasetCountForTier(tier)} datasets`
 }
 
 // ─── Trial ────────────────────────────────────────────────────

@@ -158,6 +158,11 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                {/* CTA discipline: the marketing site sells data and a
+                    trial. Primary action is "Get Started" — the funnel
+                    entrance — not "Contact Us", which used to be the
+                    gold button and trained visitors to email instead of
+                    sign up. Login stays as the secondary text link. */}
                 <Link
                   href="/login"
                   className="text-white/90 text-[0.95rem] font-medium hover:text-gold transition-colors"
@@ -165,10 +170,10 @@ export default function Navbar() {
                   Login
                 </Link>
                 <Link
-                  href="/contact-us"
+                  href="/signup"
                   className="bg-gold text-[#1a1200] text-[0.95rem] font-bold px-7 py-3 hover:bg-gold-light transition-all hover:-translate-y-px"
                 >
-                  Contact Us
+                  Get Started
                 </Link>
               </>
             )}

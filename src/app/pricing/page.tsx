@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { PLANS, PLAN_ORDER, PLAN_CARD_UI, type TierSlug } from "@/lib/pricing"
+import { PLANS, PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug } from "@/lib/pricing"
 import { supabase } from "@/lib/supabase"
 
 const CTA: Record<TierSlug, string> = {
@@ -15,6 +15,7 @@ const plans = PLAN_ORDER.map((slug) => ({
   price: PLANS[slug].priceLabel,
   cta:   CTA[slug],
   ...PLAN_CARD_UI[slug],
+  count: planCardCount(slug),
 }))
 
 /**
