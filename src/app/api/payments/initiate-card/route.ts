@@ -1,19 +1,32 @@
 /**
  * POST /api/payments/initiate-card
  *
- * Initiates a Lipila card (Visa/Mastercard) collection.
- * Returns a cardRedirectionUrl — the client redirects the user there
- * to enter card details on Lipila's hosted payment page.
+ * Starts a Lipila card collection (Visa/Mastercard via 3GDirectPay).
+ * Returns a `cardRedirectionUrl` that the browser must navigate to so the
+ * customer can enter card details on the hosted checkout. Lipila then
+ * redirects to our `redirectUrl` (/dashboard/payment/complete) and fires
+ * the webhook at /api/payments/webhook with the final status.
  *
- * After payment Lipila redirects to our redirectUrl (/dashboard/payment/complete)
- * and fires our webhook at /api/payments/webhook with the final status.
+ * Body: { reference: string, name: string, phone: string,
+ *         city?: string, address?: string, zip?: string }
  *
- * Body: { reference: string, name: string }
+ * Lipila's card endpoint expects a NESTED body:
+ *   {
+ *     customerInfo:      { firstName, lastName, phoneNumber, email,
+ *                          city, country (ISO-2), address, zip }
+ *     collectionRequest: { referenceId, amount, narration, accountNumber,
+ *                          currency, backUrl, redirectUrl }
+ *   }
+ *
+ * Previous implementation sent a flat body with currency="USD" and
+ * country="Zambia" (full name). Lipila rejected those silently — every
+ * card attempt failed before reaching the hosted page.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { PLANS, type TierSlug } from '@/lib/pricing'
+import { usdToZmw } from '@/lib/fx'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,14 +37,36 @@ const LIPILA_BASE = process.env.LIPILA_SANDBOX === 'true'
   ? 'https://api.lipila.dev'
   : 'https://blz.lipila.io'
 
+/** Normalise phone to 260xxxxxxxxx (international Zambian format). */
+function normalisePhone(raw: string): string {
+  const digits = raw.replace(/[\s\-().+]/g, '')
+  if (digits.startsWith('260')) return digits
+  if (digits.startsWith('0') && digits.length === 10) return `26${digits}`
+  if (/^[79]\d{8}$/.test(digits)) return `260${digits}` // 9-digit without leading 0
+  return digits
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-  let reference: string, name: string
+  let reference: string
+  let name:      string
+  let phone:     string
+  let city:      string
+  let address:   string
+  let zip:       string
   try {
-    ;({ reference, name } = await request.json())
+    const body = await request.json()
+    reference = String(body?.reference ?? '').trim()
+    name      = String(body?.name      ?? '').trim()
+    phone     = String(body?.phone     ?? '').trim()
+    city      = String(body?.city      ?? 'Lusaka').trim().slice(0, 60)
+    address   = String(body?.address   ?? 'Not provided').trim().slice(0, 120)
+    zip       = String(body?.zip       ?? '10101').trim().slice(0, 20)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
@@ -39,8 +74,14 @@ export async function POST(request: NextRequest) {
   if (!reference) {
     return NextResponse.json({ error: 'Missing reference' }, { status: 400 })
   }
+  if (!phone) {
+    return NextResponse.json(
+      { error: 'A phone number is required for card payments.' },
+      { status: 400 },
+    )
+  }
 
-  // Verify the payment record belongs to this user and is still pending
+  // Verify the payment record belongs to this user and is still pending.
   const { data: payment, error: fetchErr } = await serviceSupabase
     .from('payments')
     .select('*')
@@ -55,23 +96,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
   }
 
-  // Derive amount server-side
+  // Derive amount server-side.
   const planData = PLANS[payment.plan as TierSlug]
   if (!planData) {
     return NextResponse.json({ error: 'Unrecognised plan' }, { status: 400 })
   }
+
+  // Lipila's card collection rails settle in ZMW (3GDirectPay/Zambian
+  // acquirer). International cards still work — the customer's issuing
+  // bank handles the FX. Convert the USD plan price to ZMW server-side
+  // and let the gateway charge in Kwacha.
+  const { zmw: amount, rate, baseRate } = await usdToZmw(planData.price)
+  const currency = 'ZMW'
+  console.log('[initiate-card] USD→ZMW', { usd: planData.price, zmw: amount, baseRate, rate })
+
+  // Record the Kwacha amount we're charging.
+  serviceSupabase
+    .from('payments')
+    .update({ amount_zmw: amount })
+    .eq('reference', reference)
+    .then(({ error }) => { if (error) console.error('[initiate-card] amount_zmw update failed:', error) })
 
   const appUrl      = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
   const callbackUrl = `${appUrl}/api/payments/webhook`
   const redirectUrl = `${appUrl}/dashboard/payment/complete?reference=${reference}`
   const backUrl     = `${appUrl}/dashboard/payment?plan=${payment.plan}`
 
-  // Split name into first/last (best-effort)
+  // Split name into first/last (best-effort).
   const nameParts = (name || 'Lenga User').trim().split(/\s+/)
   const firstName = nameParts[0]
   const lastName  = nameParts.slice(1).join(' ') || nameParts[0]
 
-  const email = session.user.email ?? ''
+  const email      = session.user.email ?? ''
+  const normPhone  = normalisePhone(phone)
 
   // ── Call Lipila Card Collections API ────────────────────────────────────
   let lipilaRes: Response
@@ -85,23 +142,25 @@ export async function POST(request: NextRequest) {
         'callbackUrl':  callbackUrl,
       },
       body: JSON.stringify({
-        // Customer info
-        firstName,
-        lastName,
-        phoneNumber: '',
-        email,
-        city:    'Lusaka',
-        country: 'Zambia',
-        address: '',
-        zip:     '',
-        // Collection
-        referenceId:   reference,
-        amount:        planData.price,
-        narration:     `Lenga Maps ${payment.plan} plan`,
-        accountNumber: email,
-        currency:      'USD',
-        backUrl,
-        redirectUrl,
+        customerInfo: {
+          firstName,
+          lastName,
+          phoneNumber: normPhone,
+          email,
+          city,
+          country: 'ZM',  // ISO-2 code per Lipila docs
+          address,
+          zip,
+        },
+        collectionRequest: {
+          referenceId:   reference,
+          amount,
+          narration:     `Lenga Maps ${payment.plan} plan`,
+          accountNumber: normPhone,  // docs: phone-style identifier
+          currency,
+          backUrl,
+          redirectUrl,
+        },
       }),
     })
   } catch (err) {
@@ -140,7 +199,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No card redirect URL returned. Try again.' }, { status: 502 })
   }
 
-  // Store Lipila's reference
+  // Store Lipila's reference for webhook reconciliation.
   await serviceSupabase
     .from('payments')
     .update({ lipila_reference: lipilaReferenceId ?? null })

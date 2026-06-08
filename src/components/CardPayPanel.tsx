@@ -7,13 +7,18 @@
  *   1. POST /api/payments/create → reference
  *   2. POST /api/payments/initiate-card → cardRedirectionUrl
  *   3. window.location.href = cardRedirectionUrl
- *      (Lipila hosts the card form; the customer's bank does FX,
- *       so they see USD on their statement — their own currency.)
+ *      (Lipila hosts the card form via 3GDirectPay; settlement is in ZMW,
+ *       customer's bank converts from the card's own currency.)
  *   4. Lipila redirects back to /dashboard/payment/complete
+ *
+ * Lipila's card endpoint requires a phone number per the docs — used as
+ * `accountNumber` and `customerInfo.phoneNumber` on the gateway. We collect
+ * it here so the request body is complete before we even create the
+ * pending record.
  */
 
 import { useState } from 'react'
-import { Loader2, Lock, AlertCircle, ChevronRight, RefreshCw } from 'lucide-react'
+import { Loader2, Lock, AlertCircle, ChevronRight, RefreshCw, Phone } from 'lucide-react'
 import { VisaBadge, MastercardBadge } from '@/components/PaymentProviderIcons'
 
 interface Props {
@@ -26,8 +31,19 @@ interface Props {
 export default function CardPayPanel({ plan, amountLabel, name = '', className = '' }: Props) {
   const [phase,    setPhase]    = useState<'idle' | 'loading'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [phone,    setPhone]    = useState('')
+
+  function isPhoneValid(value: string): boolean {
+    const digits = value.replace(/[\s\-().+]/g, '')
+    // Accept 0xxxxxxxxx (10), 26xxxxxxxxx (11), or 9-digit (7/9 leading)
+    return /^(0\d{9}|26\d{9}|[79]\d{8})$/.test(digits)
+  }
 
   async function pay() {
+    if (!isPhoneValid(phone)) {
+      setErrorMsg('Enter a valid Zambian phone number, e.g. 0961234567.')
+      return
+    }
     setPhase('loading'); setErrorMsg('')
 
     // 1. Create pending record
@@ -51,7 +67,7 @@ export default function CardPayPanel({ plan, amountLabel, name = '', className =
       const r = await fetch('/api/payments/initiate-card', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ reference, name }),
+        body: JSON.stringify({ reference, name, phone }),
       })
       const d = await r.json() as { cardRedirectionUrl?: string; error?: string }
       if (!r.ok || d.error || !d.cardRedirectionUrl) {
@@ -79,8 +95,30 @@ export default function CardPayPanel({ plan, amountLabel, name = '', className =
         Pay with your card
       </h2>
       <p className="text-center text-sm text-gray-500 mb-7 max-w-sm mx-auto">
-        Visa or Mastercard. Charged in USD — your bank handles the conversion.
+        Visa or Mastercard. Charged in ZMW — your bank handles the conversion
+        if your card is in another currency.
       </p>
+
+      {/* Phone number — required by the Lipila card endpoint */}
+      <div className="mb-4">
+        <label className="block text-sm font-semibold text-navy mb-2">
+          Phone number
+        </label>
+        <div className="relative">
+          <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="tel"
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="0961234567 or +260961234567"
+            className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-navy placeholder-gray-400 bg-gray-50 transition text-sm"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-gray-500">
+          Used by the payment processor for receipt and verification — your card never sees it.
+        </p>
+      </div>
 
       {/* The primary action */}
       <button
