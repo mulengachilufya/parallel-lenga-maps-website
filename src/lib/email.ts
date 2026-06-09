@@ -3,23 +3,34 @@
 // Transactional email for Lenga Maps lifecycle messages (welcome,
 // trial-ended, dormant nudge).
 //
-// Primary transport is Resend, called over its REST API with fetch, no
-// SDK dependency, same pattern as our Lipila / Web3Forms calls. If
-// RESEND_API_KEY is unset we fall back to the existing Web3Forms relay so
-// nothing hard-fails before the Resend account/domain is live.
+// Transport order (first one that's configured wins):
+//   1. SMTP   — your Namecheap Private Email mailbox (mail.privateemail.com)
+//               via nodemailer. Sends from a real @lengamaps.com address.
+//   2. Resend — HTTP API, if you prefer it / for serverless robustness.
+//   3. Web3Forms — last-ditch relay so nothing hard-fails before the above
+//               are configured.
 //
 // Copy style: no em dashes anywhere in customer-facing text. They read as
 // an AI giveaway. Use commas, periods, colons and semicolons instead.
 //
 // Env:
-//   RESEND_API_KEY   Resend secret (re_...). When set, Resend is used.
-//   RESEND_FROM      From header, e.g. 'Lenga Maps <noreply@lengamaps.com>'.
-//                    Must be a domain verified in Resend.
-//   NEXT_PUBLIC_WEB3FORMS_KEY[_ADMIN]  Fallback relay key.
+//   SMTP_HOST        mail.privateemail.com
+//   SMTP_PORT        587 (STARTTLS) or 465 (SSL). Default 587.
+//   SMTP_USER        full mailbox, e.g. newsletter@lengamaps.com
+//   SMTP_PASS        that mailbox's password
+//   SMTP_FROM        From header, e.g. 'Lenga Maps <newsletter@lengamaps.com>'.
+//                    Should match SMTP_USER so the provider doesn't reject it.
+//   EMAIL_REPLY_TO   optional, e.g. support@lengamaps.com
+//   RESEND_API_KEY / RESEND_FROM        optional Resend transport
+//   NEXT_PUBLIC_WEB3FORMS_KEY[_ADMIN]   optional fallback relay
+
+import type { Transporter } from 'nodemailer'
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 const LOGO_URL = `${APP_URL}/images/branding/logo.png`
-const DEFAULT_FROM = 'Lenga Maps <noreply@lengamaps.com>'
+// Default sender is the newsletter mailbox (one of the three real
+// @lengamaps.com inboxes). Overridable via SMTP_FROM / RESEND_FROM.
+const DEFAULT_FROM = 'Lenga Maps <newsletter@lengamaps.com>'
 
 export interface EmailMessage {
   to:      string
@@ -29,6 +40,47 @@ export interface EmailMessage {
 }
 
 // ── Transports ────────────────────────────────────────────────────────────
+
+// SMTP transporter is cached across warm invocations so we don't open a
+// fresh connection on every email. nodemailer is dynamically imported so it
+// never lands in a client bundle and only loads when SMTP is configured.
+let cachedTransport: Transporter | null = null
+
+async function smtpTransport(): Promise<Transporter | null> {
+  if (cachedTransport) return cachedTransport
+  const host = process.env.SMTP_HOST
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
+  if (!host || !user || !pass) return null
+  const nodemailer = (await import('nodemailer')).default
+  const port = Number(process.env.SMTP_PORT ?? 587)
+  cachedTransport = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
+    auth: { user, pass },
+  })
+  return cachedTransport
+}
+
+async function sendViaSmtp(msg: EmailMessage): Promise<boolean> {
+  const tx = await smtpTransport()
+  if (!tx) return false
+  try {
+    await tx.sendMail({
+      from:    process.env.SMTP_FROM || DEFAULT_FROM,
+      to:      msg.to,
+      subject: msg.subject,
+      html:    msg.html,
+      text:    msg.text,
+      replyTo: process.env.EMAIL_REPLY_TO || undefined,
+    })
+    return true
+  } catch (err) {
+    console.error('[email] smtp error', err)
+    return false
+  }
+}
 
 async function sendViaResend(msg: EmailMessage): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
@@ -92,6 +144,7 @@ async function sendViaWeb3Forms(msg: EmailMessage): Promise<boolean> {
  * a failure here must never break the request that triggered it.
  */
 export async function sendEmail(msg: EmailMessage): Promise<boolean> {
+  if (await sendViaSmtp(msg)) return true
   if (await sendViaResend(msg)) return true
   return sendViaWeb3Forms(msg)
 }
