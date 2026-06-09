@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await service
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used')
+    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used, downloads_used')
     .eq('id', user.id)
     .single()
 
@@ -75,7 +75,15 @@ export async function POST(req: NextRequest) {
 
   if (state === 'starter' || state === 'pro' ||
       state === 'max' || state === 'enterprise') {
-    // Paid: no cap. Log for analytics but skip the counter.
+    // Paid: no cap. We still bump the all-time downloads_used counter so the
+    // dormant-subscriber nudge can tell who has actually used their plan.
+    // Best-effort — a failed increment must not block the download.
+    const total = (profile.downloads_used ?? 0) + 1
+    service
+      .from('profiles')
+      .update({ downloads_used: total })
+      .eq('id', user.id)
+      .then(({ error }) => { if (error) console.error('[consume-download] paid counter failed:', error) })
     return NextResponse.json({ ok: true, paid: true })
   }
 
@@ -104,7 +112,10 @@ export async function POST(req: NextRequest) {
   const next = used + 1
   const { error: incErr } = await service
     .from('profiles')
-    .update({ trial_downloads_used: next })
+    .update({
+      trial_downloads_used: next,
+      downloads_used: (profile.downloads_used ?? 0) + 1,
+    })
     .eq('id', user.id)
 
   if (incErr) {
