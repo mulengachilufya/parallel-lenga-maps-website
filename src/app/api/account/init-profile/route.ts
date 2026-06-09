@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { sendEmail, welcomeEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,7 @@ export async function POST() {
 
   const { data: existing } = await admin
     .from('profiles')
-    .select('id, plan_status, plan_expires_at, trial_started_at')
+    .select('id, plan_status, plan_expires_at, trial_started_at, welcome_email_sent_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -73,6 +74,23 @@ export async function POST() {
   if (error) {
     console.error('[init-profile] upsert failed:', error)
     return NextResponse.json({ error: 'profile_init_failed' }, { status: 500 })
+  }
+
+  // Welcome email — fire exactly once per account. init-profile can run
+  // more than once (email-confirmation callback + dashboard self-heal), so
+  // we gate on welcome_email_sent_at and stamp it the first time. Failure
+  // to send must never fail the request, so it's awaited but its result is
+  // only used to decide whether to stamp.
+  if (!existing?.welcome_email_sent_at && user.email) {
+    const sent = await sendEmail(
+      welcomeEmail(user.email, (updateRow.full_name as string) ?? metaFullName),
+    )
+    if (sent) {
+      await admin
+        .from('profiles')
+        .update({ welcome_email_sent_at: new Date().toISOString() })
+        .eq('id', user.id)
+    }
   }
 
   return NextResponse.json({
