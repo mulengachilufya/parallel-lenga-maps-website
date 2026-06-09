@@ -70,8 +70,8 @@ async function notifyCustomer(
     ? `Your Lenga Maps ${plan.toUpperCase()} plan is active`
     : `Your Lenga Maps payment needs another look`
   const message = action === 'verify'
-    ? `Hi ${displayName},\n\nGreat news — we've verified your payment. Your ${plan.toUpperCase()} plan is now active, and you can download datasets right away at https://www.lengamaps.com/dashboard.\n\nIf you need anything, reply to this email.\n\n— Lenga Maps`
-    : `Hi ${displayName},\n\nWe reviewed your recent payment submission but couldn't verify it.\n\nReason: ${note || 'No additional detail provided.'}\n\nYou can resubmit from https://www.lengamaps.com/dashboard/payment, or reply to this email for help.\n\n— Lenga Maps`
+    ? `Hi ${displayName},\n\nGreat news, we've verified your payment. Your ${plan.toUpperCase()} plan is now active, and you can download datasets right away at https://www.lengamaps.com/dashboard.\n\nIf you need anything, reply to this email.\n\nThanks,\nThe Lenga Maps team`
+    : `Hi ${displayName},\n\nWe reviewed your recent payment submission but couldn't verify it.\n\nReason: ${note || 'No additional detail provided.'}\n\nYou can resubmit from https://www.lengamaps.com/dashboard/payment, or reply to this email for help.\n\nThanks,\nThe Lenga Maps team`
 
   try {
     await fetch('https://api.web3forms.com/submit', {

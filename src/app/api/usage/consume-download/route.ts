@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         reason:     'trial_cap_reached',
         used,
         cap:        TRIAL_DOWNLOAD_CAP,
-        message:    `Your trial includes ${TRIAL_DOWNLOAD_CAP} downloads — subscribe to continue.`,
+        message:    `Your trial includes ${TRIAL_DOWNLOAD_CAP} downloads. Subscribe to continue.`,
       },
       { status: 403 },
     )

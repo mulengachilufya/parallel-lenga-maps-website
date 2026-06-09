@@ -3,10 +3,13 @@
 // Transactional email for Lenga Maps lifecycle messages (welcome,
 // trial-ended, dormant nudge).
 //
-// Primary transport is Resend, called over its REST API with fetch — no
+// Primary transport is Resend, called over its REST API with fetch, no
 // SDK dependency, same pattern as our Lipila / Web3Forms calls. If
 // RESEND_API_KEY is unset we fall back to the existing Web3Forms relay so
 // nothing hard-fails before the Resend account/domain is live.
+//
+// Copy style: no em dashes anywhere in customer-facing text. They read as
+// an AI giveaway. Use commas, periods, colons and semicolons instead.
 //
 // Env:
 //   RESEND_API_KEY   Resend secret (re_...). When set, Resend is used.
@@ -68,7 +71,7 @@ async function sendViaWeb3Forms(msg: EmailMessage): Promise<boolean> {
         from_name:  'Lenga Maps',
         email:      msg.to,
         subject:    msg.subject,
-        // Web3Forms is plain-text only — send the text variant.
+        // Web3Forms is plain-text only, send the text variant.
         message:    msg.text,
       }),
     })
@@ -84,7 +87,7 @@ async function sendViaWeb3Forms(msg: EmailMessage): Promise<boolean> {
 }
 
 /**
- * Send one transactional email. Tries Resend, then Web3Forms. Never throws —
+ * Send one transactional email. Tries Resend, then Web3Forms. Never throws,
  * returns true iff a transport accepted the message. Email is best-effort;
  * a failure here must never break the request that triggered it.
  */
@@ -159,25 +162,26 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
       Welcome to Lenga Maps. Your account is live and your <strong>3-day free trial</strong>
-      is running — that's full Max access to every dataset, no card required.
+      is running. That's full Max access to every dataset, no card required.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
       During the trial you can browse and download from all 15 datasets across the 54 African
-      countries — boundaries, rivers, rainfall, drought, soil, land cover and more, every layer
-      harmonised to EPSG:4326 and ready for QGIS.
+      countries: boundaries, rivers, rainfall, drought, soil, land cover and more. Every layer
+      is harmonised to EPSG:4326 and ready for QGIS.
     </p>`
   const text = `Hi ${name},
 
-Welcome to Lenga Maps. Your account is live and your 3-day free trial is running — full Max access to every dataset, no card required.
+Welcome to Lenga Maps. Your account is live and your 3-day free trial is running. That's full Max access to every dataset, no card required.
 
 Browse and download from all 15 datasets across 54 African countries, every layer harmonised to EPSG:4326 and ready for QGIS.
 
 Browse datasets: ${cta}
 
-— The Lenga Maps team`
+Thanks,
+The Lenga Maps team`
   return {
     to,
-    subject: 'Welcome to Lenga Maps — your free trial is live',
+    subject: 'Welcome to Lenga Maps, your free trial is live',
     html: shell({
       preheader: 'Full Max access for 3 days, no card required.',
       heading:   `Welcome aboard, ${name}.`,
@@ -196,7 +200,7 @@ export function trialEndedEmail(to: string, fullName?: string | null): EmailMess
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your free trial has ended — but your work doesn't have to stop here.
+      Your free trial has ended, but your work doesn't have to stop here.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
       Keep full access to professional GIS data for all 54 African countries from just
@@ -204,23 +208,24 @@ export function trialEndedEmail(to: string, fullName?: string | null): EmailMess
     </p>`
   const text = `Hi ${name},
 
-Your free trial has ended — but your work doesn't have to stop here.
+Your free trial has ended, but your work doesn't have to stop here.
 
 Keep full access to professional GIS data for all 54 African countries from just $5/month. Browsing stays free; a plan unlocks the downloads.
 
 See plans: ${cta}
 
-— The Lenga Maps team`
+Thanks,
+The Lenga Maps team`
   return {
     to,
-    subject: 'Your free trial has ended — plans from $5/mo',
+    subject: 'Your free trial has ended, plans from $5/mo',
     html: shell({
       preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
       heading:   'Your free trial has ended',
       bodyHtml,
-      ctaLabel:  'See plans — from $5/mo',
+      ctaLabel:  'See plans from $5/mo',
       ctaHref:   cta,
-      footnote:  'No commitment — cancel anytime from your billing page.',
+      footnote:  'No commitment. Cancel anytime from your billing page.',
     }),
     text,
   }
@@ -232,28 +237,29 @@ export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      We noticed you're subscribed but haven't downloaded any GIS datasets yet — and we'd
+      We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd
       hate for your plan to go unused.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Want ideas on what to build? Our Atlas showcases real maps made from Lenga data —
-      watershed delineations, solar potential, carbon credits, mining boundaries and more —
-      to spark what you could create next.
+      Want ideas on what to build? Our Atlas showcases real maps made from Lenga data, like
+      watershed delineations, solar potential, carbon credits and mining boundaries, to spark
+      what you could create next.
     </p>`
   const text = `Hi ${name},
 
-We noticed you're subscribed but haven't downloaded any GIS datasets yet — and we'd hate for your plan to go unused.
+We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd hate for your plan to go unused.
 
-Want ideas on what to build? Our Atlas showcases real maps made from Lenga data — watershed delineations, solar potential, carbon credits, mining boundaries and more.
+Want ideas on what to build? Our Atlas showcases real maps made from Lenga data, like watershed delineations, solar potential, carbon credits and mining boundaries.
 
 Explore the Atlas: ${cta}
 
-— The Lenga Maps team`
+Thanks,
+The Lenga Maps team`
   return {
     to,
     subject: 'Some ideas for your Lenga Maps subscription',
     html: shell({
-      preheader: 'Real maps built from Lenga data — to spark what you could create next.',
+      preheader: 'Real maps built from Lenga data, to spark what you could create next.',
       heading:   `${name}, here's what you could build`,
       bodyHtml,
       ctaLabel:  'Explore the Atlas',

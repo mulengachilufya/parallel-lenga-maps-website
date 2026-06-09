@@ -45,16 +45,16 @@ async function sendRenewalEmail(p: DueProfile): Promise<boolean> {
   const message = [
     `Hi ${name},`,
     '',
-    `Heads up — your Lenga Maps ${p.plan.toUpperCase()} subscription renews in ${days} day${days === 1 ? '' : 's'}.`,
+    `Heads up, your Lenga Maps ${p.plan.toUpperCase()} subscription renews in ${days} day${days === 1 ? '' : 's'}.`,
     '',
     'Card networks and mobile money in Zambia both require you to approve each renewal yourself, so:',
     '',
-    `→ Tap here to renew now: ${renewLink}`,
+    `Tap here to renew now: ${renewLink}`,
     '',
     `Don't want to renew? Cancel anytime from your billing page: ${cancelLink}`,
     '',
     'Thanks for using Lenga Maps.',
-    '— The Lenga Maps team',
+    'The Lenga Maps team',
   ].join('\n')
 
   try {
