@@ -16,9 +16,9 @@
 // Env:
 //   SMTP_HOST        mail.privateemail.com
 //   SMTP_PORT        587 (STARTTLS) or 465 (SSL). Default 587.
-//   SMTP_USER        full mailbox, e.g. newsletter@lengamaps.com
+//   SMTP_USER        full mailbox, e.g. support@lengamaps.com
 //   SMTP_PASS        that mailbox's password
-//   SMTP_FROM        From header, e.g. 'Lenga Maps <newsletter@lengamaps.com>'.
+//   SMTP_FROM        From header, e.g. 'Lenga Maps <support@lengamaps.com>'.
 //                    Should match SMTP_USER so the provider doesn't reject it.
 //   EMAIL_REPLY_TO   optional, e.g. support@lengamaps.com
 //   RESEND_API_KEY / RESEND_FROM        optional Resend transport
@@ -28,9 +28,10 @@ import type { Transporter } from 'nodemailer'
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 const LOGO_URL = `${APP_URL}/images/branding/logo.png`
-// Default sender is the newsletter mailbox (one of the three real
-// @lengamaps.com inboxes). Overridable via SMTP_FROM / RESEND_FROM.
-const DEFAULT_FROM = 'Lenga Maps <newsletter@lengamaps.com>'
+// Default sender is support@ (these lifecycle emails are transactional and
+// invite replies). newsletter@ is reserved for the actual newsletter
+// product. Overridable via SMTP_FROM / RESEND_FROM.
+const DEFAULT_FROM = 'Lenga Maps <support@lengamaps.com>'
 
 export interface EmailMessage {
   to:      string
