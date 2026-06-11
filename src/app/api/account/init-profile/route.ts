@@ -76,15 +76,22 @@ export async function POST() {
     return NextResponse.json({ error: 'profile_init_failed' }, { status: 500 })
   }
 
-  // Welcome email — fire exactly once per account. init-profile can run
-  // more than once (email-confirmation callback + dashboard self-heal), so
-  // we gate on welcome_email_sent_at and stamp it the first time. Failure
-  // to send must never fail the request, so it's awaited but its result is
-  // only used to decide whether to stamp.
-  if (!existing?.welcome_email_sent_at && user.email) {
+  // Welcome email — fire exactly once per BRAND-NEW account.
+  //
+  // SAFETY: gated on TWO conditions so it can never blast existing users:
+  //   1. welcome_email_sent_at is null (not already welcomed), and
+  //   2. the auth account was created in the last hour (genuinely new).
+  // The created_at check is the hard guard: init-profile can be reached by
+  // paths other than fresh signup (e.g. the dashboard self-heal), and an
+  // old account must never receive a "welcome". A missing/!fresh created_at
+  // fails safe (no send). No backfill migration required.
+  const accountAgeMs  = Date.now() - new Date(user.created_at ?? 0).getTime()
+  const isFreshAccount = accountAgeMs >= 0 && accountAgeMs < 60 * 60 * 1000
+  if (!existing?.welcome_email_sent_at && user.email && isFreshAccount) {
     const sent = await sendEmail(
       welcomeEmail(user.email, (updateRow.full_name as string) ?? metaFullName),
     )
+    console.log('[init-profile] welcome email', { to: user.email, sent })
     if (sent) {
       await admin
         .from('profiles')

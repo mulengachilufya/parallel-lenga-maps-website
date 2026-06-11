@@ -41,6 +41,11 @@ export default function SignupPage() {
     }
 
     track('trial_started', { source: 'signup_page' })
+    // Email confirmation is off, so /auth/callback never runs. Call
+    // init-profile directly here so the profile is seeded and the welcome
+    // email fires for this brand-new signup. Best-effort; the dashboard
+    // self-heal is a backstop if this misses.
+    await fetch('/api/account/init-profile', { method: 'POST' }).catch(() => {})
     router.push('/dashboard')
   }
 

@@ -81,6 +81,10 @@ function InlineSignup() {
         return
       }
       track('trial_started', { source: 'home_inline' })
+      // Confirmation is off, so /auth/callback never runs. Fire init-profile
+      // directly to seed the profile and send the welcome email for this
+      // new signup. Best-effort.
+      await fetch('/api/account/init-profile', { method: 'POST' }).catch(() => {})
       setSuccess(true)
     } catch {
       setError('An unexpected error occurred. Please try again.')
@@ -98,9 +102,10 @@ function InlineSignup() {
         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle size={32} className="text-green-400" />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">Check your email!</h3>
+        <h3 className="text-xl font-bold text-white mb-2">You&apos;re in!</h3>
         <p className="text-white/60 text-sm">
-          We&apos;ve sent a confirmation link to <strong className="text-gold">{email}</strong>.
+          Your account is ready and a welcome email is on its way to{' '}
+          <strong className="text-gold">{email}</strong>.
         </p>
       </motion.div>
     )
