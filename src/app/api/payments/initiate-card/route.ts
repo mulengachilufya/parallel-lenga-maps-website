@@ -81,6 +81,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Lipila marks `email` required on the card endpoint; an empty value is
+  // silently rejected (like the old USD/Zambia mismatch). Fail fast with a
+  // clear message rather than letting the gateway reject the whole request.
+  const email = session.user.email ?? ''
+  if (!email) {
+    return NextResponse.json(
+      { error: 'Your account has no email address. Add one to your profile before paying by card.' },
+      { status: 400 },
+    )
+  }
+
   // Verify the payment record belongs to this user and is still pending.
   const { data: payment, error: fetchErr } = await serviceSupabase
     .from('payments')
@@ -127,7 +138,6 @@ export async function POST(request: NextRequest) {
   const firstName = nameParts[0]
   const lastName  = nameParts.slice(1).join(' ') || nameParts[0]
 
-  const email      = session.user.email ?? ''
   const normPhone  = normalisePhone(phone)
 
   // ── Call Lipila Card Collections API ────────────────────────────────────
@@ -193,19 +203,24 @@ export async function POST(request: NextRequest) {
 
   const cardRedirectionUrl = lipilaData.cardRedirectionUrl as string | undefined
   const lipilaReferenceId  = lipilaData.referenceId as string | undefined
+  const lipilaIdentifier   = lipilaData.identifier as string | undefined
 
   if (!cardRedirectionUrl) {
     console.error('[initiate-card] no cardRedirectionUrl in response:', lipilaData)
     return NextResponse.json({ error: 'No card redirect URL returned. Try again.' }, { status: 502 })
   }
 
-  // Store Lipila's reference for webhook reconciliation.
+  // Store Lipila's reference AND identifier for webhook reconciliation — the
+  // card callback may key off either, so persist both.
   await serviceSupabase
     .from('payments')
-    .update({ lipila_reference: lipilaReferenceId ?? null })
+    .update({
+      lipila_reference:  lipilaReferenceId ?? null,
+      lipila_identifier: lipilaIdentifier ?? null,
+    })
     .eq('reference', reference)
 
-  console.log('[initiate-card] card redirect created:', { reference, lipilaReferenceId })
+  console.log('[initiate-card] card redirect created:', { reference, lipilaReferenceId, lipilaIdentifier })
 
   return NextResponse.json({ cardRedirectionUrl })
 }

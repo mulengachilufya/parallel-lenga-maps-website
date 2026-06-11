@@ -6,9 +6,9 @@
  * Lipila POSTs here when a transaction reaches a terminal state. We:
  *   1. Verify the HMAC signature against LIPILA_WEBHOOK_SECRET (fail-open
  *      while we capture the first real header in logs — see notes below).
- *   2. Match the payment row by reference OR lipila_reference, against
- *      both `identifier` and `referenceId` in the payload (Lipila echoes
- *      our ref back inconsistently across flows).
+ *   2. Match the payment row by reference, lipila_reference OR
+ *      lipila_identifier, against both `identifier` and `referenceId` in the
+ *      payload (Lipila echoes our ref back inconsistently across flows).
  *   3. Mark the payment row, activate the user's plan (resets cancellation
  *      state and re-enables auto-renew), and bump the period.
  */
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
   }
 
   const orFilter = candidates
-    .flatMap((c) => [`reference.eq.${c}`, `lipila_reference.eq.${c}`])
+    .flatMap((c) => [`reference.eq.${c}`, `lipila_reference.eq.${c}`, `lipila_identifier.eq.${c}`])
     .join(',')
   const { data: payment, error: fetchErr } = await serviceSupabase
     .from('payments')
