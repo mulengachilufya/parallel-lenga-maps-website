@@ -14,6 +14,7 @@ replace the Founder.
 | 2 | CMO & Client Acquisition Director (**CMO**) | [02-cmo-client-acquisition-director.md](02-cmo-client-acquisition-director.md) | Brand, growth, LinkedIn/X/Reddit playbooks, content multiplication engine, community, B2B pipeline |
 | 3 | Senior GIS Dataset Developer (**GIS-QA**) | [03-senior-gis-dataset-developer.md](03-senior-gis-dataset-developer.md) | Dataset QA/QC with rejection authority — raster/vector/cartographic gates, metadata standard, coverage audits |
 | 4 | Senior Software Engineer (**ENGINEER**) | [04-senior-software-engineer.md](04-senior-software-engineer.md) | Architecture, code quality, security (RLS, webhooks, presigned URLs), reliability, testing, tech-debt management |
+| — | Executive Meeting Protocol | [05-executive-meeting-protocol.md](05-executive-meeting-protocol.md) | Group meetings of all four agents: chaired flow, conflict rounds, minutes, decision log (`meetings/decision-log.md`). Run with `/exec-meeting <agenda>` in Claude Code |
 
 ## How to deploy a manual as a live agent
 
