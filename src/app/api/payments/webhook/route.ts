@@ -4,8 +4,9 @@
  * Lipila callback endpoint.
  *
  * Lipila POSTs here when a transaction reaches a terminal state. We:
- *   1. Verify the HMAC signature against LIPILA_WEBHOOK_SECRET (fail-open
- *      while we capture the first real header in logs — see notes below).
+ *   1. Verify the Standard Webhooks signature (HMAC-SHA256 over
+ *      `id.timestamp.body`) against LIPILA_WEBHOOK_SECRET and reject replays
+ *      older than 5 minutes.
  *   2. Match the payment row by reference, lipila_reference OR
  *      lipila_identifier, against both `identifier` and `referenceId` in the
  *      payload (Lipila echoes our ref back inconsistently across flows).
@@ -24,49 +25,37 @@ const serviceSupabase = createClient(
 const PLAN_PERIOD_DAYS = 30
 
 // ────────────────────────────────────────────────────────────────────────
-// Signature verification
+// Signature verification — Standard Webhooks spec (https://www.standardwebhooks.com)
 //
-// Lipila's dashboard generates a Base64 webhook secret, which strongly
-// suggests HMAC with a base64-decoded key. The docs don't specify the
-// header name or digest format, so we accept several common patterns:
-//
-//   header names tried: x-signature, x-webhook-signature,
-//                       x-lipila-signature, signature, x-callback-signature
-//   key bytes tried:    base64-decoded secret, AND raw UTF-8 secret
-//   digests tried:      hex AND base64
+// Lipila signs every webhook with HMAC-SHA256. The signed content is
+//   `${webhook-id}.${webhook-timestamp}.${rawBody}`
+// keyed by the base64-DECODED signing secret; the digest is base64-encoded and
+// prefixed `v1,`. It arrives in the `webhook-signature` header, which may hold
+// several space-delimited signatures during a key-rotation overlap — a match
+// against any one passes. `webhook-timestamp` guards replay: reject if it is
+// more than 5 minutes from now.
 //
 // Policy:
-//   LIPILA_WEBHOOK_SECRET unset                → accept + warn (dev only)
-//   secret set, sig present, match             → accept
-//   secret set, sig present, mismatch          → 401
-//   secret set, sig absent, ALLOW_UNSIGNED=1   → accept + warn (capture mode)
-//   secret set, sig absent, otherwise          → 401 (strict prod default)
+//   LIPILA_WEBHOOK_SECRET unset              → accept + warn (dev only)
+//   secret set, signature valid              → accept
+//   secret set, invalid + ALLOW_UNSIGNED=1   → accept + warn (rollout capture)
+//   secret set, invalid otherwise            → 401 (strict prod default)
 //
-// LIPILA_WEBHOOK_ALLOW_UNSIGNED=true is a temporary capture switch: set it
-// while we discover the real header name Lipila uses; the diagnostic header
-// log below reveals it on the first real call. Once known, unset this var
-// and the route becomes strict.
+// LIPILA_WEBHOOK_ALLOW_UNSIGNED=true is a temporary rollout switch: it lets the
+// first live callbacks through even when verification fails, so a config slip
+// can't drop a real payment. The check still runs and logs its result — once
+// the logs show 'match', unset this var and the route is strict.
 // ────────────────────────────────────────────────────────────────────────
 
-const SIGNATURE_HEADERS = [
-  'x-signature',
-  'x-webhook-signature',
-  'x-lipila-signature',
-  'x-callback-signature',
-  'signature',
-]
+const SIGNATURE_VERSION       = 'v1'
+const TIMESTAMP_TOLERANCE_SEC = 300 // 5 minutes, per the spec
 
-function eq(a: string, b: string): boolean {
+/** Constant-time compare that returns false (not throws) on length mismatch. */
+function timingSafeEqualStr(a: string, b: string): boolean {
   const ab = Buffer.from(a, 'utf8')
   const bb = Buffer.from(b, 'utf8')
   if (ab.length !== bb.length) return false
   return timingSafeEqual(ab, bb)
-}
-
-function computeHmac(rawBody: string, keyBuf: Buffer): { hex: string; b64: string } {
-  const h1 = createHmac('sha256', keyBuf).update(rawBody).digest('hex')
-  const h2 = createHmac('sha256', keyBuf).update(rawBody).digest('base64')
-  return { hex: h1, b64: h2 }
 }
 
 function verifySignature(rawBody: string, headers: Headers): { ok: boolean; reason: string } {
@@ -76,44 +65,48 @@ function verifySignature(rawBody: string, headers: Headers): { ok: boolean; reas
     return { ok: true, reason: 'no_secret_configured' }
   }
 
-  let providedSig: string | undefined
-  let providedHeader = ''
-  for (const name of SIGNATURE_HEADERS) {
-    const v = headers.get(name)
-    if (v) { providedSig = v.trim(); providedHeader = name; break }
-  }
-  if (!providedSig) {
-    if (process.env.LIPILA_WEBHOOK_ALLOW_UNSIGNED === 'true') {
-      console.warn('[webhook] no signature header; ALLOW_UNSIGNED=true → accept (capture mode)')
-      return { ok: true, reason: 'no_signature_header (allow_unsigned)' }
-    }
-    return { ok: false, reason: 'no_signature_header (strict)' }
+  const webhookId = headers.get('webhook-id')
+  const timestamp = headers.get('webhook-timestamp')
+  const sigHeader = headers.get('webhook-signature')
+  if (!webhookId || !timestamp || !sigHeader) {
+    return { ok: false, reason: 'missing_webhook_headers' }
   }
 
-  // Try both key encodings (base64-decoded vs raw utf-8)
-  const keyBufs: Buffer[] = []
-  try { keyBufs.push(Buffer.from(secret, 'base64')) } catch { /* ignore */ }
-  keyBufs.push(Buffer.from(secret, 'utf8'))
-
-  for (const key of keyBufs) {
-    const { hex, b64 } = computeHmac(rawBody, key)
-    if (eq(providedSig, hex)) return { ok: true, reason: `match:${providedHeader}:hex` }
-    if (eq(providedSig, b64)) return { ok: true, reason: `match:${providedHeader}:base64` }
-    // Some providers prefix with the algo: "sha256=..."
-    const stripped = providedSig.replace(/^sha256=/i, '')
-    if (eq(stripped, hex)) return { ok: true, reason: `match:${providedHeader}:sha256=hex` }
-    if (eq(stripped, b64)) return { ok: true, reason: `match:${providedHeader}:sha256=base64` }
+  // Replay guard: reject timestamps outside ±5 min.
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts)) return { ok: false, reason: 'invalid_timestamp' }
+  const ageSec = Math.abs(Date.now() / 1000 - ts)
+  if (ageSec > TIMESTAMP_TOLERANCE_SEC) {
+    return { ok: false, reason: `timestamp_out_of_tolerance:${Math.round(ageSec)}s` }
   }
-  return { ok: false, reason: `mismatch:${providedHeader}` }
+
+  // The dashboard secret is raw base64; tolerate an accidental whsec_ prefix
+  // (that prefix is only for the StandardWebhooks library, not manual HMAC).
+  const rawSecret = secret.startsWith('whsec_') ? secret.slice(6) : secret
+  const key = Buffer.from(rawSecret, 'base64')
+  if (key.length === 0) return { ok: false, reason: 'bad_secret_encoding' }
+
+  const signedContent = `${webhookId}.${timestamp}.${rawBody}`
+  const expected = `${SIGNATURE_VERSION},` +
+    createHmac('sha256', key).update(signedContent).digest('base64')
+
+  // Header may carry several space-delimited `v1,<sig>` entries (key rotation).
+  const matched = sigHeader
+    .split(' ')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .some((sig) => timingSafeEqualStr(expected, sig))
+
+  return matched ? { ok: true, reason: 'match' } : { ok: false, reason: 'signature_mismatch' }
 }
 
 export async function POST(request: NextRequest) {
   // We need the raw body to verify HMAC, then we re-parse the JSON.
   const rawBody = await request.text()
 
-  // DIAGNOSTIC: log header names so the first real Lipila callback reveals
-  // its signature header. Remove once we see it. Values are over-the-body
-  // signatures, low-risk to log.
+  // Log incoming headers during rollout — confirms webhook-id / webhook-timestamp
+  // / webhook-signature arrive as expected. No secret is present here, so this
+  // is safe to log; trim once the integration is verified in prod.
   const hdrs: Record<string, string> = {}
   request.headers.forEach((v, k) => { hdrs[k] = v })
   console.log('[webhook] incoming headers:', JSON.stringify(hdrs))
@@ -121,7 +114,13 @@ export async function POST(request: NextRequest) {
   const sig = verifySignature(rawBody, request.headers)
   console.log('[webhook] signature check:', sig.reason)
   if (!sig.ok) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    // Rollout capture: log the failure but still process, so a config slip
+    // can't drop a real payment. Remove ALLOW_UNSIGNED once logs show 'match'.
+    if (process.env.LIPILA_WEBHOOK_ALLOW_UNSIGNED === 'true') {
+      console.warn('[webhook] signature not verified; ALLOW_UNSIGNED=true → processing anyway:', sig.reason)
+    } else {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
   }
 
   let payload: Record<string, unknown>
@@ -131,6 +130,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
+  // Standard Webhooks events are shaped { type, data: {...} }. Unwrap the
+  // envelope if present so we read transaction fields whether Lipila sends them
+  // nested or flat. (Confirm the real shape from the raw-body log on the first
+  // live callback, then simplify this once it's known.)
+  const eventType = typeof payload.type === 'string' ? payload.type : undefined
+  const event = (payload.data && typeof payload.data === 'object')
+    ? payload.data as Record<string, unknown>
+    : payload
+
   const {
     referenceId:   lipilaReferenceId,
     identifier,
@@ -139,9 +147,10 @@ export async function POST(request: NextRequest) {
     externalId,
     amount,
     currency,
-  } = payload as Record<string, unknown>
+  } = event
 
   console.log('[webhook] Lipila callback received:', {
+    eventType,
     lipilaReferenceId,
     identifier,
     rawStatus,
@@ -159,9 +168,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
-  const statusNorm = String(rawStatus ?? '').toLowerCase()
+  // Prefer an explicit status field; fall back to the event type
+  // (e.g. "transaction.completed" / "transaction.failed") if that's all we get.
+  let statusNorm = String(rawStatus ?? '').toLowerCase()
+  if (statusNorm !== 'successful' && statusNorm !== 'failed' && eventType) {
+    if (/complete|success/i.test(eventType)) statusNorm = 'successful'
+    else if (/fail|declin|cancel|reject/i.test(eventType)) statusNorm = 'failed'
+  }
   if (statusNorm !== 'successful' && statusNorm !== 'failed') {
-    console.log('[webhook] ignoring intermediate status:', rawStatus)
+    console.log('[webhook] ignoring intermediate status:', rawStatus, '| type:', eventType)
     return NextResponse.json({ received: true })
   }
 
