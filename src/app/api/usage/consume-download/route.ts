@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getUserState, TRIAL_DOWNLOAD_CAP } from '@/lib/pricing'
+import { sendEmail, trialCapEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,27 @@ const service = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { persistSession: false } },
 )
+
+/**
+ * Send the "you've used all 10" email once. Reuses trial_ended_email_sent_at
+ * as the dedup flag so the time-based lifecycle cron and this cap trigger
+ * can never both email the same user: whichever fires first wins, the other
+ * is suppressed.
+ */
+async function maybeSendTrialCapEmail(profile: {
+  email: string | null
+  full_name: string | null
+  trial_ended_email_sent_at: string | null
+}, userId: string): Promise<void> {
+  if (profile.trial_ended_email_sent_at || !profile.email) return
+  const ok = await sendEmail(trialCapEmail(profile.email, profile.full_name))
+  if (ok) {
+    await service
+      .from('profiles')
+      .update({ trial_ended_email_sent_at: new Date().toISOString() })
+      .eq('id', userId)
+  }
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
@@ -49,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await service
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used, downloads_used')
+    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used, downloads_used, email, full_name, trial_ended_email_sent_at')
     .eq('id', user.id)
     .single()
 
@@ -95,8 +117,15 @@ export async function POST(req: NextRequest) {
   }
 
   // state === 'free_trial'
+  // The cap is a SUM TOTAL across every dataset, not per-dataset:
+  // trial_downloads_used is a single counter on the profile, bumped on every
+  // download regardless of which dataset it came from.
   const used = profile.trial_downloads_used ?? 0
   if (used >= TRIAL_DOWNLOAD_CAP) {
+    // They already hit the cap and are trying again. Make sure the
+    // "you've used all 10" email went out (it normally fires the moment
+    // they consume the 10th, below; this covers edge cases).
+    await maybeSendTrialCapEmail(profile, user.id)
     return NextResponse.json(
       {
         ok:         false,
@@ -123,6 +152,12 @@ export async function POST(req: NextRequest) {
     // Fail open: don't penalise the user for a transient DB error. The cap
     // still holds on the next click because the row hasn't moved.
     return NextResponse.json({ ok: true, used, remaining: TRIAL_DOWNLOAD_CAP - used })
+  }
+
+  // They just consumed their final allowed download: send the cap email now
+  // so it lands the moment the trial's downloads are spent.
+  if (next >= TRIAL_DOWNLOAD_CAP) {
+    await maybeSendTrialCapEmail(profile, user.id)
   }
 
   return NextResponse.json({

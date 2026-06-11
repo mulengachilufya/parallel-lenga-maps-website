@@ -285,6 +285,44 @@ The Lenga Maps team`
   }
 }
 
+export function trialCapEmail(to: string, fullName?: string | null): EmailMessage {
+  const name = firstName(fullName)
+  const cta  = `${APP_URL}/pricing`
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      You've now used all 10 downloads included in your free trial. Nice work,
+      that's a real head start on your mapping.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      To keep downloading GIS data for all 54 African countries, pick a plan from
+      just <strong>$5/month</strong>. Browsing stays free either way.
+    </p>`
+  const text = `Hi ${name},
+
+You've now used all 10 downloads included in your free trial. Nice work, that's a real head start on your mapping.
+
+To keep downloading GIS data for all 54 African countries, pick a plan from just $5/month. Browsing stays free either way.
+
+See plans: ${cta}
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: "You've used all 10 trial downloads",
+    html: shell({
+      preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
+      heading:   "You've used your 10 free downloads",
+      bodyHtml,
+      ctaLabel:  'See plans from $5/mo',
+      ctaHref:   cta,
+      footnote:  'Your trial browsing stays open. A plan unlocks downloads again.',
+    }),
+    text,
+  }
+}
+
 export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
   const name = firstName(fullName)
   const cta  = `${APP_URL}/atlas`
