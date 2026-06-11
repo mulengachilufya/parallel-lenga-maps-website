@@ -12,8 +12,12 @@ interface SoilListProps {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function SoilList({ userPlan = 'starter', hasAccess = false }: SoilListProps) {
+export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
   const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  // Live access from the gate. The old `hasAccess` PROP defaulted to false
+  // and the dashboard never passed it, so the button read "locked" for
+  // everyone, including trial and Max/Enterprise users. Derive from checkAccess.
+  const hasAccess = checkAccess('soil')
   const [layers,      setLayers]      = useState<SoilLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)

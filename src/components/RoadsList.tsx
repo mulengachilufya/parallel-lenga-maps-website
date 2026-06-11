@@ -12,8 +12,12 @@ interface RoadsListProps {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function RoadsList({ userPlan = 'starter', hasAccess = false }: RoadsListProps) {
+export default function RoadsList({ userPlan = 'starter' }: RoadsListProps) {
   const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  // Live access from the gate. The old `hasAccess` PROP defaulted to false
+  // and the dashboard never passed it, so the button read "locked" for
+  // everyone, including trial and paid users. Derive it from checkAccess.
+  const hasAccess = checkAccess('roads')
   const [layers,      setLayers]      = useState<RoadLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -126,7 +130,7 @@ export default function RoadsList({ userPlan = 'starter', hasAccess = false }: R
                     : 'bg-orange-600 hover:bg-orange-700 text-white'
               }`}
             >
-              {!hasAccess ? '🔒 Max plan required' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
+              {!hasAccess ? '🔒 Upgrade to download' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
             </button>
           </motion.div>
         ))}
