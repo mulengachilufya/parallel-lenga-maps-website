@@ -16,7 +16,9 @@ import { sendEmail, welcomeEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
-const VALID_PLANS = new Set(['starter', 'pro', 'max', 'enterprise'])
+// Self-serve intents only. 'enterprise' delisted 2026-06 (replaced by the
+// quote-based team tier); 'team' is provisioned by admin, never via signup.
+const VALID_PLANS = new Set(['starter', 'pro', 'max'])
 
 export async function POST() {
   const cookieClient = await createServerSupabase()

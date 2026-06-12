@@ -11,7 +11,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 // session into the same cookies that `await createServerSupabase()` reads.
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
-export type PlanTier = 'starter' | 'pro' | 'max' | 'enterprise'
+export type PlanTier = 'starter' | 'pro' | 'max' | 'enterprise' | 'team'
 
 // plan_status is independent of plan:
 //   - 'free'    : user has an account but has not paid for any plan yet (default)

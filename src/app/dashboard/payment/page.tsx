@@ -18,7 +18,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { PLANS, PLAN_ORDER, type TierSlug } from '@/lib/pricing'
+import { PLANS, SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import CardPayPanel from '@/components/CardPayPanel'
 import MomoPayPanel from '@/components/MomoPayPanel'
 import { track } from '@/lib/analytics'
@@ -50,10 +50,14 @@ function PaymentInner() {
         .eq('id', session.user.id)
         .single()
 
+      // Checkout handles self-serve tiers only — enterprise is legacy and
+      // team is quote-based, so both fall back to starter here.
       const resolved =
-        (planParam && PLAN_ORDER.includes(planParam))
+        (planParam && SELF_SERVE_PLAN_ORDER.includes(planParam))
           ? planParam
-          : ((profile?.plan as TierSlug) || 'starter')
+          : (SELF_SERVE_PLAN_ORDER.includes((profile?.plan as TierSlug) ?? 'starter')
+              ? (profile?.plan as TierSlug)
+              : 'starter')
 
       setPlan(resolved)
       setEmail(session.user.email || '')
@@ -158,7 +162,7 @@ function PaymentInner() {
                 <ChevronDown size={13} className="transition-transform group-open:rotate-180" />
               </summary>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {PLAN_ORDER.map((s) => (
+                {SELF_SERVE_PLAN_ORDER.map((s) => (
                   <button
                     key={s}
                     onClick={() => setPlan(s)}

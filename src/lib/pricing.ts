@@ -2,7 +2,7 @@
 // Single source of truth for all pricing, tier, and trial logic.
 // Every page, component, and API route imports from here.
 
-export type TierSlug = 'starter' | 'pro' | 'max' | 'enterprise'
+export type TierSlug = 'starter' | 'pro' | 'max' | 'enterprise' | 'team'
 export type UserState = 'free_trial' | 'free' | TierSlug
 
 export interface Plan {
@@ -52,15 +52,15 @@ export const PLANS: Record<TierSlug, Plan> = {
   },
   max: {
     slug: 'max', name: 'Max', price: 20, priceLabel: '$20',
-    description: 'Full catalogue — every dataset, unlimited downloads, API access.',
+    description: 'Full catalogue — every dataset, unlimited downloads, continental bundles.',
     downloadLimit: -1, seats: 1, datasetCount: -1,
-    apiAccess: true, customDatasets: false, highlighted: false,
+    apiAccess: false, customDatasets: false, highlighted: false,
     ctaLabel: 'Get Max',
     features: [
       'Every dataset — full catalogue',
       'Temperature, HydroRIVERS, LULC, Lakes, Soil & Wetlands included',
       'Unlimited downloads',
-      'API access',
+      'Combined continental bundle downloads',
       'All formats + priority support',
     ],
   },
@@ -78,9 +78,37 @@ export const PLANS: Record<TierSlug, Plan> = {
       'Commercial use licence + dedicated support',
     ],
   },
+  // "For Project Teams and Businesses" (internal name: Lenga for Projects).
+  // Quote-based, per-seat, provisioned manually by admin — NEVER purchasable
+  // through Lipila checkout. Replaces the legacy flat $75 Enterprise tier,
+  // which stays in the type system so existing rows keep resolving but is
+  // delisted from every purchase surface.
+  team: {
+    slug: 'team', name: 'For Project Teams and Businesses', price: 45, priceLabel: '$45/seat',
+    description: 'Per-seat team plan with a shared workspace. Quote-based — we provision your team.',
+    downloadLimit: -1, seats: -1, datasetCount: -1,
+    apiAccess: true, customDatasets: true, highlighted: false,
+    ctaLabel: 'Get a quote',
+    features: [
+      'Every dataset, all 15, across all 54 African countries',
+      'Shared team workspace and download history',
+      'Owner-managed seats',
+      'API access with rate limits',
+      'Custom sub-country datasets',
+      'Commercial use licence + direct email support',
+    ],
+  },
 }
 
-export const PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max', 'enterprise']
+// Full ladder including non-self-serve tiers. Drives access comparisons
+// (canAccessDataset) — team sits above enterprise so members get the full
+// catalogue. Do NOT map over this for purchase UIs; use SELF_SERVE_PLAN_ORDER.
+export const PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max', 'enterprise', 'team']
+
+// What an individual can buy through checkout. Enterprise is legacy
+// (delisted 2026-06: replaced by the quote-based team tier) and team is
+// quote-only — neither belongs on a self-serve purchase surface.
+export const SELF_SERVE_PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max']
 
 // ─── Plan card UI ─────────────────────────────────────────────
 // Shared visual tokens + copy for the pricing blocks.
@@ -132,6 +160,13 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
     count: 'Everything in Max, plus',
     datasets: ['3 team seats included', 'Custom sub-country datasets', 'Priority support', 'API access'],
   },
+  team: {
+    bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
+    dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
+    tagline: 'A shared workspace for GIS teams on real projects.',
+    count: 'Everything in Max, plus',
+    datasets: ['Per-seat team accounts', 'Shared download history', 'API access', 'Custom sub-country datasets', 'Commercial use licence'],
+  },
 }
 
 // ─── Datasets ─────────────────────────────────────────────────
@@ -170,7 +205,7 @@ export const DATASET_MIN_TIER: Record<DatasetSlug, TierSlug> = {
 // everything pro has, enterprise = max + extras.
 
 export function datasetCountForTier(tier: TierSlug): number {
-  if (tier === 'enterprise') return datasetCountForTier('max')
+  if (tier === 'enterprise' || tier === 'team') return datasetCountForTier('max')
   const tierIdx = PLAN_ORDER.indexOf(tier)
   return Object.values(DATASET_MIN_TIER).filter(
     (minTier) => PLAN_ORDER.indexOf(minTier) <= tierIdx,
@@ -205,7 +240,7 @@ export function getUserState(
   planStatus:      string | undefined | null,
 ): UserState {
   if (planStatus === 'active' &&
-      plan && ['starter', 'pro', 'max', 'enterprise'].includes(plan)) {
+      plan && ['starter', 'pro', 'max', 'enterprise', 'team'].includes(plan)) {
     return plan as TierSlug
   }
   if (trialStartedAt) {
@@ -241,6 +276,7 @@ export function getTierLabel(state: UserState): string {
     pro:         'Pro',
     max:         'Max',
     enterprise:  'Enterprise',
+    team:        'Team',
   }
   return labels[state]
 }
@@ -254,6 +290,9 @@ export function canAccessDataset(userPlan: TierSlug, slug: DatasetSlug): boolean
 }
 
 export function nextTier(userPlan: TierSlug): TierSlug | null {
-  const i = PLAN_ORDER.indexOf(userPlan)
-  return i < PLAN_ORDER.length - 1 ? PLAN_ORDER[i + 1] : null
+  // Self-serve upgrades top out at Max. Enterprise (legacy) and team are
+  // quote-based, never an automatic "next step" in checkout UIs.
+  const i = SELF_SERVE_PLAN_ORDER.indexOf(userPlan)
+  if (i === -1) return null
+  return i < SELF_SERVE_PLAN_ORDER.length - 1 ? SELF_SERVE_PLAN_ORDER[i + 1] : null
 }

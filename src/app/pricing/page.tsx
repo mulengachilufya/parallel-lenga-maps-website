@@ -2,21 +2,25 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { PLANS, PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug } from "@/lib/pricing"
+import { PLANS, SELF_SERVE_PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug } from "@/lib/pricing"
 import { supabase } from "@/lib/supabase"
 
-const CTA: Record<TierSlug, string> = {
-  starter: 'Get started', pro: 'Get started', max: 'Get started', enterprise: 'Contact us',
+const CTA: Partial<Record<TierSlug, string>> = {
+  starter: 'Get started', pro: 'Get started', max: 'Get started',
 }
 
-const plans = PLAN_ORDER.map((slug) => ({
+// Self-serve cards only. The team tier ("For Project Teams and Businesses")
+// renders as its own quote-based card below — no price, no checkout.
+const plans = SELF_SERVE_PLAN_ORDER.map((slug) => ({
   id:    slug,
   name:  PLANS[slug].name,
   price: PLANS[slug].priceLabel,
-  cta:   CTA[slug],
+  cta:   CTA[slug] ?? 'Get started',
   ...PLAN_CARD_UI[slug],
   count: planCardCount(slug),
 }))
+
+const team = PLAN_CARD_UI.team
 
 /**
  * Pricing CTAs are session-aware:
@@ -28,7 +32,6 @@ const plans = PLAN_ORDER.map((slug) => ({
  * one user the funnel cares most about.
  */
 function ctaHref(slug: TierSlug, signedIn: boolean): string {
-  if (slug === 'enterprise') return '/contact-us/business'
   return signedIn ? `/dashboard/payment?plan=${slug}` : '/signup'
 }
 
@@ -124,6 +127,38 @@ export default function PricingPage() {
               </div>
             </Link>
           ))}
+
+          {/* Team tier: quote-based, no price shown here by design. */}
+          <Link
+            href="/projects"
+            className="plan-card"
+            style={{ background: team.bg, border: `1px solid ${team.border}` }}
+          >
+            <div style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: team.nameColor, marginBottom: '0.5rem' }}>
+              For Project Teams<br />and Businesses
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
+              <span className="price-num" style={{ fontSize: '34px', lineHeight: 1.15, color: team.priceColor, fontWeight: 400 }}>Per-seat</span>
+            </div>
+            <p style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5, color: '#BFD7EA' }}>{team.tagline}</p>
+            <div style={{ height: '0.5px', background: team.dividerColor, opacity: 0.35, margin: '0 0 1rem' }} />
+            <div style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem', color: '#BFD7EA' }}>
+              {team.count}
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+              {team.datasets.map(d => (
+                <li key={d} style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4, color: '#E8F1F8' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: team.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
+                  {d}
+                </li>
+              ))}
+            </ul>
+            <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
+              <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: team.btnBg, color: '#1a1200', textAlign: 'center' }}>
+                Get a quote
+              </div>
+            </div>
+          </Link>
         </div>
 
         <div style={{ maxWidth: '960px', margin: '2rem auto 0', background: '#EEEDFE', border: '1px solid #AFA9EC', borderRadius: '14px', padding: '1.25rem 2rem', textAlign: 'center' }}>

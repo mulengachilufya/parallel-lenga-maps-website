@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
   if (!plan) {
     return NextResponse.json({ error: 'Missing plan' }, { status: 400 })
   }
-  if (!['starter','pro','max','enterprise'].includes(plan)) {
+  // Self-serve tiers only: enterprise is delisted (legacy) and the team tier
+  // is quote-based — neither may enter checkout.
+  if (!['starter','pro','max'].includes(plan)) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
   // The payments table predates the flat (account-type-less) pricing model

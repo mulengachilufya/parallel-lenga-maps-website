@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
   const txnRef      = String(form.get('txn_reference') || '').slice(0, 120)
   const screenshot  = form.get('screenshot')
 
-  if (!['starter','pro','max','enterprise'].includes(plan))
+  if (!['starter','pro','max'].includes(plan))
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
   if (!['zambian','international'].includes(region))
     return NextResponse.json({ error: 'Invalid region.' }, { status: 400 })

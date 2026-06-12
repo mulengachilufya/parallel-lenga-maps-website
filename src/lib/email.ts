@@ -369,3 +369,141 @@ The Lenga Maps team`
     text,
   }
 }
+
+// ── Teams tier ("For Project Teams and Businesses") ─────────────────────────
+
+export const QUOTE_NOTIFY_EMAIL =
+  process.env.QUOTE_NOTIFY_EMAIL || 'lengamaps@gmail.com'
+
+export interface QuoteRequestFields {
+  org_name:          string
+  contact_name:      string | null
+  email:             string
+  sector:            string | null
+  region:            string | null
+  seats:             number | null
+  datasets_interest: string | null
+  notes:             string | null
+}
+
+/** Internal notification to the founder when a quote request lands. */
+export function quoteRequestAdminEmail(q: QuoteRequestFields): EmailMessage {
+  const cta  = `${APP_URL}/admin/quotes`
+  const rows = [
+    ['Organisation / project', q.org_name],
+    ['Contact',                q.contact_name ?? ''],
+    ['Email',                  q.email],
+    ['Sector',                 q.sector ?? ''],
+    ['Country / region',       q.region ?? ''],
+    ['Seats requested',        q.seats != null ? String(q.seats) : ''],
+    ['Datasets of interest',   q.datasets_interest ?? ''],
+    ['Notes',                  q.notes ?? ''],
+  ].filter(([, v]) => v)
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      A team just asked for a quote on <strong>For Project Teams and Businesses</strong>.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+      ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;">${v}</td></tr>`).join('')}
+    </table>`
+  const text = `New team quote request\n\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nManage: ${cta}`
+  return {
+    to: QUOTE_NOTIFY_EMAIL,
+    subject: `Quote request: ${q.org_name} (${q.seats ?? '?'} seats)`,
+    html: shell({
+      preheader: `${q.org_name} requested a team quote.`,
+      heading:   'New team quote request',
+      bodyHtml,
+      ctaLabel:  'Open quote pipeline',
+      ctaHref:   cta,
+      footnote:  'Reply to the requester within 1 business day, that is the promise on the form.',
+    }),
+    text,
+  }
+}
+
+/** Confirmation to the person who submitted the quote form. */
+export function quoteAckEmail(to: string, contactName: string | null, orgName: string): EmailMessage {
+  const name = firstName(contactName)
+  const cta  = `${APP_URL}/projects`
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      Thanks for your interest in <strong>For Project Teams and Businesses</strong> for
+      ${orgName}. We received your request and will be in touch within 1 business day
+      with a quote and the next steps.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      Your team plan covers all 15 datasets across all 54 African countries, a shared
+      team workspace with download history, and API access.
+    </p>`
+  const text = `Hi ${name},
+
+Thanks for your interest in For Project Teams and Businesses for ${orgName}. We received your request and will be in touch within 1 business day with a quote and the next steps.
+
+Your team plan covers all 15 datasets across all 54 African countries, a shared team workspace with download history, and API access.
+
+${cta}
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: 'We received your team quote request',
+    html: shell({
+      preheader: 'We will be in touch within 1 business day.',
+      heading:   'Request received',
+      bodyHtml,
+      ctaLabel:  'About team plans',
+      ctaHref:   cta,
+      footnote:  'Questions in the meantime? Just reply to this email.',
+    }),
+    text,
+  }
+}
+
+/** Invitation to join an organization's team workspace. */
+export function teamInviteEmail(
+  to: string,
+  orgName: string,
+  inviterName: string | null,
+  token: string,
+): EmailMessage {
+  const cta = `${APP_URL}/team/join?token=${token}`
+  const inviter = inviterName ? `${inviterName} has` : 'Your team has'
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi,</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      ${inviter} invited you to join <strong>${orgName}</strong> on Lenga Maps.
+      As a team member you get every dataset across all 54 African countries, plus a
+      shared workspace where your team sees what has already been downloaded, in which
+      coordinate system and format, so nobody pulls the same layer twice.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      Accept with the button below. If you do not have a Lenga Maps account yet,
+      create one with this email address first, then open the link again.
+    </p>`
+  const text = `Hi,
+
+${inviter} invited you to join ${orgName} on Lenga Maps. As a team member you get every dataset across all 54 African countries, plus a shared team workspace.
+
+Accept the invite: ${cta}
+
+If you do not have a Lenga Maps account yet, create one with this email address first, then open the link again.
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: `You're invited to ${orgName} on Lenga Maps`,
+    html: shell({
+      preheader: `Join ${orgName}'s team workspace on Lenga Maps.`,
+      heading:   `Join ${orgName} on Lenga Maps`,
+      bodyHtml,
+      ctaLabel:  'Accept invitation',
+      ctaHref:   cta,
+      footnote:  'This invite is tied to this email address and one of your team\'s paid seats.',
+    }),
+    text,
+  }
+}

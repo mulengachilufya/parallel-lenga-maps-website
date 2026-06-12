@@ -7,7 +7,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import {
   getUserState, DATASET_MIN_TIER, PLAN_ORDER,
-  PLANS, PLAN_ORDER as TIERS, getTierLabel,
+  PLANS, SELF_SERVE_PLAN_ORDER as TIERS, getTierLabel,
   type UserState, type TierSlug, type DatasetSlug,
 } from '@/lib/pricing'
 import Link from 'next/link'
@@ -229,7 +229,7 @@ function PaywallModal({
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-4 text-xl leading-none">✕</button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
           {TIERS.map((slug) => {
             const plan = PLANS[slug]
             const isRequired = slug === requiredTier
@@ -272,7 +272,10 @@ function PaywallModal({
 
         <div className="flex items-center justify-between">
           <p className="text-blue-500 text-xs">
-            Pay by bank transfer or mobile money. Account activated within 24 hours.
+            Pay by bank transfer or mobile money. Account activated within 24 hours.{' '}
+            <Link href="/projects" onClick={onClose} className="text-[#F5B800] hover:underline">
+              Working as a team? See team plans →
+            </Link>
           </p>
           <button onClick={onClose} className="text-blue-400 hover:text-white text-sm transition-colors">
             Browse only
