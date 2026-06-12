@@ -43,6 +43,21 @@ the auto-memory at `~/.claude/.../memory/` (pending_setup.md especially).
   expiry sweep: `src/app/api/cron/renewal-reminders/route.ts`.
 - Payments: `src/app/api/payments/*`. Card flow needs the nested Lipila
   body (customerInfo + collectionRequest), ZMW, ISO-2 country.
+- TEAM TIER ("For Project Teams and Businesses" / internal "Lenga for
+  Projects" / route `/projects` — three names, intentional, don't unify):
+  quote-based per-seat, plan slug `team`, NEVER purchasable via checkout
+  (SELF_SERVE_PLAN_ORDER guards every purchase surface; legacy `enterprise`
+  delisted but kept in types). Shared logic `src/lib/teams.ts`. Quote flow:
+  `/projects` → `/api/quotes` → `quote_requests` + founder email →
+  `/admin/quotes` pipeline. Orgs/seats: `organizations`,
+  `organization_members` (unique user_id = one org per user, seat-cap
+  trigger), `organization_invites`; provision via `/admin/organizations`
+  (sets owner profile plan='team'). Workspace: `/team` (+`/team/join`),
+  data from `/api/team*`. Download ledger: `download_events`, written
+  best-effort by consume-download (CRS/format enriched from
+  teams.ts DATASET_META). Public API is TEAM-ONLY now (Max lost apiAccess):
+  org-membership gate + per-minute rate limit (bump_rate_counter RPC,
+  organizations.api_rate_per_min) in `src/lib/api-auth.ts`.
 
 ## Done recently (this session, newest last — see git log for full detail)
 - Security/logic: webhook signature enforcement, pending_plan (no downgrade
@@ -59,7 +74,12 @@ the auto-memory at `~/.claude/.../memory/` (pending_setup.md especially).
   live gate.
 
 ## Pending manual setup (BLOCKS features until done — also in memory)
-- Run migrations 014–018 in Supabase SQL editor (in order).
+- Migrations 020–022 (dataset_bundles, teams/quotes/downloads, function
+  hardening) were applied DIRECTLY to prod via Supabase MCP on 2026-06-13 —
+  already live, do not re-run. 014–018 were applied earlier.
+- After the team-tier deploy is verified green: run
+  `scripts/finalize-enterprise-migration.sql` (flips the founder profile
+  enterprise → team; org + owner seat already exist).
 - Vercel env: LIPILA_WEBHOOK_SECRET, CRON_SECRET, and email transport
   (SMTP_HOST/PORT/USER/PASS/FROM = support@lengamaps.com, EMAIL_REPLY_TO).
 - Lipila/DPO: enable Visa/Mastercard card acceptance; fix merchant name
