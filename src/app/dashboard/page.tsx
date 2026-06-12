@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Globe2, FileDown } from 'lucide-react'
+import { Loader2, ArrowLeft, Globe2, FileDown, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
@@ -234,39 +234,54 @@ function PlanCard({
 }
 
 // ─── Continental bundle CTA ───────────────────────────────────
-// Visible only to Max / Enterprise users on a section page. Hits the
-// cookie-auth bundle endpoint and downloads the resulting manifest as a
-// JSON file the user can pipe into wget/curl/python-requests. We
-// intentionally don't spawn 54 browser downloads — it triggers permission
-// prompts and dies on rate-limited connections. A manifest is what a real
-// GIS workflow wants.
-function ContinentalBundle({ datasetSlug }: { datasetSlug: string }) {
-  const [busy,   setBusy]   = useState(false)
-  const [error,  setError]  = useState('')
-  const [result, setResult] = useState<{ file_count: number; size_mb: number } | null>(null)
+// Visible to EVERYONE on a dataset section page (it drives upgrades), but the
+// download itself is Max/Enterprise-only. Non-Max users who click get a popup
+// explaining it's a Max feature; Max/Enterprise users get the real file —
+// ONE combined GeoPackage that merges all 54 countries into a single layer
+// with attribute tables embedded, ready to drop straight into QGIS. The
+// combined file is pre-built offline and served as a presigned URL by
+// /api/datasets/:id/bundle. We use the same anchor-download pattern as the
+// per-country buttons (R2 serves the .gpkg with a binary content type).
+function ContinentalBundle({ datasetSlug, userState }: { datasetSlug: string; userState: UserState }) {
+  const [busy,     setBusy]     = useState(false)
+  const [error,    setError]    = useState('')
+  const [notReady, setNotReady] = useState(false)
+  const [result,   setResult]   = useState<{ file_count: number; size_mb: number; format: string } | null>(null)
+  const [showGate, setShowGate] = useState(false)
 
-  async function fetchBundle() {
-    setBusy(true); setError(''); setResult(null)
+  const isMax = userState === 'max' || userState === 'enterprise'
+
+  async function handleClick() {
+    // Everyone can see the card; only Max/Enterprise can download it.
+    if (!isMax) {
+      track('continental_bundle_gated', { dataset: datasetSlug, user_state: userState })
+      setShowGate(true)
+      return
+    }
+
+    setBusy(true); setError(''); setNotReady(false); setResult(null)
     track('continental_bundle_requested', { dataset: datasetSlug })
     try {
-      const res = await fetch(`/api/datasets/${datasetSlug}/bundle`)
+      const res  = await fetch(`/api/datasets/${datasetSlug}/bundle`)
       const body = await res.json().catch(() => ({}))
+
+      if (res.status === 403) { setShowGate(true); return }                       // server backstop
+      if (res.status === 404 && body.error === 'bundle_not_ready') { setNotReady(true); return }
       if (!res.ok) {
         setError(body.message || body.error || `Bundle failed (HTTP ${res.status})`)
         return
       }
 
-      const blob = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
-      a.download = `${datasetSlug}-africa-bundle.json`
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
+      // Trigger the real file download (presigned R2 URL → cross-origin .gpkg).
+      const link    = document.createElement('a')
+      link.href     = body.bundle.download_url
+      link.download = body.bundle.filename ?? `${datasetSlug}_africa.gpkg`
+      document.body.appendChild(link); link.click(); link.remove()
 
       setResult({
         file_count: body.dataset?.file_count ?? 0,
         size_mb:    body.bundle?.total_size_mb ?? 0,
+        format:     body.bundle?.format ?? 'GeoPackage',
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unexpected error.')
@@ -276,35 +291,96 @@ function ContinentalBundle({ datasetSlug }: { datasetSlug: string }) {
   }
 
   return (
-    <div className="mb-4 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
-          <Globe2 size={18} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-navy">
-            Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">Max</span>
-          </p>
-          <p className="text-xs text-gray-600 leading-snug mt-0.5">
-            Download presigned URLs for every country in one JSON manifest — feed it straight to wget, curl, or your Python pipeline.
-          </p>
-          {result && (
-            <p className="text-xs text-green-700 mt-2 font-medium">
-              ✓ Manifest saved · {result.file_count} files · ~{result.size_mb.toLocaleString()} MB total
+    <>
+      <div className="mb-4 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 shrink-0">
+            <Globe2 size={18} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-navy">
+              Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">Max</span>
             </p>
-          )}
-          {error && (
-            <p className="text-xs text-red-700 mt-2 font-medium">{error}</p>
-          )}
+            <p className="text-xs text-gray-600 leading-snug mt-0.5">
+              All 54 countries merged into one file — attribute tables included, ready to drop straight into QGIS. No more downloading countries one at a time.
+            </p>
+            {result && (
+              <p className="text-xs text-green-700 mt-2 font-medium">
+                ✓ {result.format} downloading · {result.file_count} countries · ~{result.size_mb.toLocaleString()} MB
+              </p>
+            )}
+            {notReady && (
+              <p className="text-xs text-amber-700 mt-2 font-medium">
+                This combined file is being prepared — per-country downloads are available below in the meantime.
+              </p>
+            )}
+            {error && (
+              <p className="text-xs text-red-700 mt-2 font-medium">{error}</p>
+            )}
+          </div>
+          <button
+            onClick={handleClick}
+            disabled={busy}
+            className="shrink-0 inline-flex items-center gap-1.5 bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-60 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
+            {busy ? 'Preparing…' : 'Download bundle'}
+          </button>
         </div>
-        <button
-          onClick={fetchBundle}
-          disabled={busy}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-60 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
-        >
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
-          {busy ? 'Building…' : 'Get bundle'}
-        </button>
+      </div>
+
+      {showGate && (
+        <BundleMaxGate datasetSlug={datasetSlug} onClose={() => setShowGate(false)} />
+      )}
+    </>
+  )
+}
+
+// Max-only popup for the continental bundle. This gate is tier-specific to Max
+// — distinct from the per-dataset PaywallModal, because the dataset itself may
+// sit on a lower tier (a Starter user can download rainfall country-by-country)
+// while the whole-of-Africa bundle is always a Max/Enterprise feature.
+function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-md w-full p-7 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-[#534AB7]/25 flex items-center justify-center text-[#AFA9EC] shrink-0">
+              <Lock size={17} />
+            </div>
+            <h2 className="text-lg font-bold text-white leading-tight">
+              Continental bundle is a Max feature
+            </h2>
+          </div>
+          <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-3 text-xl leading-none">✕</button>
+        </div>
+
+        <p className="text-blue-300 text-sm leading-relaxed mb-5">
+          Downloading all 54 countries as one ready-for-QGIS file is available on{' '}
+          <span className="text-white font-semibold">Max</span> and{' '}
+          <span className="text-white font-semibold">Enterprise</span>. You can still download
+          countries individually on your current plan.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/payment?plan=max"
+            onClick={() => { track('continental_bundle_upgrade_clicked', { dataset: datasetSlug }); onClose() }}
+            className="flex-1 text-center bg-[#534AB7] hover:bg-[#3C3489] text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+          >
+            Upgrade to Max · {PLANS.max.priceLabel}/mo
+          </Link>
+          <button onClick={onClose} className="text-blue-400 hover:text-white text-sm transition-colors px-2">
+            Not now
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -481,10 +557,11 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Continental bundle — Max / Enterprise only, on live datasets
-              whose section key matches an API slug. */}
-          {(userState === 'max' || userState === 'enterprise') && sectionKey && (
-            <ContinentalBundle datasetSlug={sectionKey} />
+          {/* Continental bundle — visible to everyone (drives upgrades); the
+              download itself is Max/Enterprise-only, enforced in the component
+              and again server-side in the bundle route. */}
+          {sectionKey && (
+            <ContinentalBundle datasetSlug={sectionKey} userState={userState} />
           )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

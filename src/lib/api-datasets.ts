@@ -430,6 +430,41 @@ export function totalBytes(files: ApiFile[]): number {
 }
 
 /**
+ * A pre-built "continental bundle": ONE combined file in R2 that merges every
+ * country in a dataset into a single download (a GeoPackage for vector
+ * datasets, with all 54 countries in one layer and attribute tables embedded).
+ * Built offline by scripts/combine-vector.py and registered into the
+ * dataset_bundles table by scripts/seed-bundles.mjs.
+ */
+export interface DatasetBundle {
+  dataset_id:    string
+  r2_key:        string
+  file_format:   string
+  file_size_mb:  number
+  bytes:         number
+  file_count:    number
+  feature_count: number | null
+  layers:        Array<{ name: string; geometry: string; features: number }> | null
+  built_at:      string
+}
+
+/**
+ * Look up the combined continental bundle for a dataset. Returns null when no
+ * bundle has been built + seeded yet — callers should surface
+ * "bundle_not_ready" in that case rather than 500.
+ */
+export async function getDatasetBundle(id: string): Promise<DatasetBundle | null> {
+  const supabase = adminClient()
+  const { data, error } = await supabase
+    .from('dataset_bundles')
+    .select('*')
+    .eq('dataset_id', id.toLowerCase())
+    .maybeSingle()
+  if (error || !data) return null
+  return data as DatasetBundle
+}
+
+/**
  * QGIS symbology assets that pair with paletted / categorical datasets.
  * The key is the dataset slug; the value is the R2 object key(s) we look
  * for, in order of preference. Empty list = no symbology planned (the

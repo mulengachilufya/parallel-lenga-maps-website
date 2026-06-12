@@ -9,17 +9,20 @@
  * Access rules:
  *   - must be signed in
  *   - must have an active plan that grants this specific dataset
- *   - must additionally be on Max or Enterprise — bulk pulls are a
+ *   - must additionally be on Max or Enterprise — the continental bundle is a
  *     premium feature; Starter/Pro download per-country
  *
- * Like the API version, we return a JSON manifest of presigned URLs rather
- * than a single concatenated ZIP. The dashboard kicks them off in parallel.
+ * We return a presigned URL to ONE pre-built combined file (a GeoPackage that
+ * merges all 54 countries into a single layer, attribute tables embedded) so
+ * the user can drop the whole dataset straight into QGIS — no more downloading
+ * countries one by one. The combined files are built offline
+ * (scripts/combine-vector.py) and registered in the dataset_bundles table; if a
+ * dataset hasn't been built yet we answer "bundle_not_ready" (404).
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
-import {
-  findDataset, listFilesForDataset, signAll, totalBytes, hasSymbology,
-} from '@/lib/api-datasets'
+import { findDataset, getDatasetBundle, hasSymbology } from '@/lib/api-datasets'
+import { getDownloadUrl } from '@/lib/r2'
 import { getUserState } from '@/lib/pricing'
 import type { DatasetSlug } from '@/lib/pricing'
 import { callerCanDownloadDataset } from '@/lib/dataset-access'
@@ -86,16 +89,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     )
   }
 
-  const files = await listFilesForDataset(spec, null)
-  if (files.length === 0) {
+  // One pre-built combined file per dataset (built offline, stored in R2).
+  const bundle = await getDatasetBundle(spec.id)
+  if (!bundle) {
     return NextResponse.json(
-      { error: 'empty_dataset', message: `Dataset "${spec.id}" has no files yet.` },
+      {
+        error:   'bundle_not_ready',
+        message: `The combined Africa-wide file for "${spec.name}" is being prepared. Per-country downloads are available now.`,
+      },
       { status: 404 },
     )
   }
 
-  const bytes = totalBytes(files)
-  const signed = await signAll(files, 3600)
+  const download_url = await getDownloadUrl(bundle.r2_key, 3600)
 
   const symbologyHint = hasSymbology(spec.id)
     ? { symbology_endpoint: `/api/v1/datasets/${spec.id}/symbology` }
@@ -105,12 +111,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     dataset: {
       id:         spec.id,
       name:       spec.name,
-      file_count: signed.length,
+      file_count: bundle.file_count,
     },
     bundle: {
-      total_size_mb:       Math.round(bytes / (1024 * 1024)),
+      format:              bundle.file_format,
+      total_size_mb:       bundle.file_size_mb,
+      feature_count:       bundle.feature_count,
+      layers:              bundle.layers,
+      filename:            bundle.r2_key.split('/').pop(),
+      download_url,
       download_expires_in: 3600,
-      files:               signed,
       ...symbologyHint,
     },
   })
