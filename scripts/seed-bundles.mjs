@@ -9,7 +9,7 @@
  * Run:  node scripts/seed-bundles.mjs
  *       node scripts/seed-bundles.mjs --dataset roads
  *
- * PREREQUISITE: run migration 019_create_dataset_bundles.sql in Supabase first,
+ * PREREQUISITE: run migration 020_create_dataset_bundles.sql in Supabase first,
  * and build at least one bundle:
  *   node   scripts/fetch-dataset-files.mjs --dataset roads
  *   python scripts/combine-vector.py       --dataset roads
