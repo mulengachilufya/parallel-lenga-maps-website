@@ -56,3 +56,8 @@ next-env.d.ts
 # deliverables (PPTX / PDF) live here too; rebuild any time with
 # `python scripts/build-pitch-deck.py` then `powershell scripts/convert-pitch-to-pdf.ps1`.
 /pitch/
+
+# Investor / due-diligence data room — strategy, financials, founder
+# details, internal metrics. CONFIDENTIAL. Never commit to the (shared,
+# engineer-visible) code repo. Share via a private data-room host instead.
+/data-room/

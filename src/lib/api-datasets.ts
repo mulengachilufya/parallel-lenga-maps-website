@@ -133,8 +133,8 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'aquifer',
-    name:        'Groundwater aquifers',
-    description: 'IGRAC GGIS groundwater aquifers per African country.',
+    name:        'Transboundary aquifers',
+    description: 'Transboundary aquifers — aquifers crossing international borders — per African country.',
     category:    'hydrology',
     table:       'aquifer_layers',
     source:      'IGRAC GGIS',

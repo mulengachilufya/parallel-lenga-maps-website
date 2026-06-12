@@ -259,7 +259,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 6,
-    name: 'Groundwater Aquifers',
+    name: 'Transboundary Aquifers',
     category: 'Groundwater & Hydrogeology',
     description: 'Transboundary aquifer polygons — names, country codes, and geometries for aquifers crossing international borders.',
     source: 'WHYMAP / BGR-UNESCO + IGRAC GGIS',

@@ -29,7 +29,7 @@ export const PLANS: Record<TierSlug, Plan> = {
     apiAccess: false, customDatasets: false, highlighted: false,
     ctaLabel: 'Get Starter',
     features: [
-      'Administrative Boundaries, Groundwater, Drought Index, Rainfall & Protected Areas',
+      'Administrative Boundaries, Transboundary Aquifers, Drought Index, Rainfall & Protected Areas',
       '20 downloads per month across all datasets',
       'All 54 African countries',
       'Shapefile, GeoJSON, GeoTIFF formats',
@@ -109,7 +109,7 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
     dotColor: '#3B6D11', btnBg: '#639922', dividerColor: '#3B6D11',
     tagline: 'Core environmental layers to get you mapping.',
     count: '__derived__',
-    datasets: ['Administrative Boundaries', 'Groundwater Aquifers', 'Drought Index (SPI-12)', 'Rainfall Data', 'Protected Areas & Wildlife'],
+    datasets: ['Administrative Boundaries', 'Transboundary Aquifers', 'Drought Index (SPI-12)', 'Rainfall Data', 'Protected Areas & Wildlife'],
   },
   pro: {
     bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C',

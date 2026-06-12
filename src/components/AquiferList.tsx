@@ -64,7 +64,7 @@ export default function AquiferList({ }: AquiferListProps) {
     return (
       <div className="flex flex-col items-center gap-3 py-12">
         <div className="w-8 h-8 border-3 border-sky-200 border-t-sky-700 rounded-full animate-spin" />
-        <p className="text-sm text-gray-400">Loading aquifer data…</p>
+        <p className="text-sm text-gray-400">Loading transboundary aquifer data…</p>
       </div>
     )
   }
@@ -80,7 +80,7 @@ export default function AquiferList({ }: AquiferListProps) {
   if (layers.length === 0) {
     return (
       <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 text-center text-sm text-gray-500">
-        Aquifer data is being processed — check back soon.
+        Transboundary aquifer data is being processed — check back soon.
       </div>
     )
   }
