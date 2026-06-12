@@ -74,12 +74,12 @@ the auto-memory at `~/.claude/.../memory/` (pending_setup.md especially).
   live gate.
 
 ## Pending manual setup (BLOCKS features until done — also in memory)
-- Migrations 020–022 (dataset_bundles, teams/quotes/downloads, function
-  hardening) were applied DIRECTLY to prod via Supabase MCP on 2026-06-13 —
-  already live, do not re-run. 014–018 were applied earlier.
-- After the team-tier deploy is verified green: run
-  `scripts/finalize-enterprise-migration.sql` (flips the founder profile
-  enterprise → team; org + owner seat already exist).
+- Migrations 020–023 (dataset_bundles, teams/quotes/downloads, function
+  hardening, team plan-check + founder flip) were applied DIRECTLY to prod
+  via Supabase MCP on 2026-06-13 — already live, do not re-run. 014–018 were
+  applied earlier. Founder profile is now plan='team', owner of the
+  "Lenga Maps" org (1 seat); the legacy 'enterprise' slug has zero rows but
+  stays in code.
 - Vercel env: LIPILA_WEBHOOK_SECRET, CRON_SECRET, and email transport
   (SMTP_HOST/PORT/USER/PASS/FROM = support@lengamaps.com, EMAIL_REPLY_TO).
 - Lipila/DPO: enable Visa/Mastercard card acceptance; fix merchant name
