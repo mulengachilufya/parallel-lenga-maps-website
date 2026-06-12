@@ -20,6 +20,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getUserState, TRIAL_DOWNLOAD_CAP } from '@/lib/pricing'
 import { sendEmail, trialCapEmail } from '@/lib/email'
+import { datasetMeta } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await service
     .from('profiles')
-    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used, downloads_used, email, full_name, trial_ended_email_sent_at')
+    .select('plan, plan_status, plan_expires_at, trial_started_at, trial_downloads_used, downloads_used, email, full_name, trial_ended_email_sent_at, org_id')
     .eq('id', user.id)
     .single()
 
@@ -95,8 +96,33 @@ export async function POST(req: NextRequest) {
     profile.plan_status,
   )
 
+  // Every successful download (paid or trial) leaves a download_events row —
+  // it powers the shared team dashboard (who pulled what, where, CRS/format)
+  // and the duplicate-download warning. Awaited but never allowed to block
+  // or fail the actual download.
+  const recordEvent = async () => {
+    if (!dataset) return
+    const meta = datasetMeta(dataset)
+    try {
+      const { error } = await service.from('download_events').insert({
+        user_id:      user.id,
+        org_id:       profile.org_id ?? null,
+        user_name:    profile.full_name,
+        user_email:   profile.email,
+        dataset_slug: dataset,
+        dataset_name: meta?.name ?? null,
+        country:      country || null,
+        epsg:         meta?.epsg ?? null,
+        file_format:  meta?.formats ?? null,
+      })
+      if (error) console.error('[consume-download] event insert failed:', error)
+    } catch (err) {
+      console.error('[consume-download] event insert threw:', err)
+    }
+  }
+
   if (state === 'starter' || state === 'pro' ||
-      state === 'max' || state === 'enterprise') {
+      state === 'max' || state === 'enterprise' || state === 'team') {
     // Paid: no cap. We still bump the all-time downloads_used counter so the
     // dormant-subscriber nudge can tell who has actually used their plan.
     // Best-effort — a failed increment must not block the download.
@@ -106,6 +132,7 @@ export async function POST(req: NextRequest) {
       .update({ downloads_used: total })
       .eq('id', user.id)
       .then(({ error }) => { if (error) console.error('[consume-download] paid counter failed:', error) })
+    await recordEvent()
     return NextResponse.json({ ok: true, paid: true })
   }
 
@@ -159,6 +186,8 @@ export async function POST(req: NextRequest) {
   if (next >= TRIAL_DOWNLOAD_CAP) {
     await maybeSendTrialCapEmail(profile, user.id)
   }
+
+  await recordEvent()
 
   return NextResponse.json({
     ok:        true,
