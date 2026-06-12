@@ -30,7 +30,7 @@ import { callerCanDownloadDataset } from '@/lib/dataset-access'
 export const dynamic = 'force-dynamic'
 
 // Bulk download is a premium feature — only these tiers see the button.
-const BULK_TIERS = new Set(['max', 'enterprise'])
+const BULK_TIERS = new Set(['max', 'enterprise', 'team'])
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

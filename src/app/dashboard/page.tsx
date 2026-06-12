@@ -38,6 +38,7 @@ const PLAN_STYLE: Record<string, {
   pro:        { bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C', btnBg: '#185FA5' },
   max:        { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
   enterprise: { bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806', btnBg: '#854F0B' },
+  team:       { bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF', btnBg: '#F5B800' },
   free_trial: { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
   free:       { bg: '#F1EFE8', border: '#B4B2A9', nameColor: '#5F5E5A', priceColor: '#444441', btnBg: '#5F5E5A' },
 }
@@ -249,7 +250,7 @@ function ContinentalBundle({ datasetSlug, userState }: { datasetSlug: string; us
   const [result,   setResult]   = useState<{ file_count: number; size_mb: number; format: string } | null>(null)
   const [showGate, setShowGate] = useState(false)
 
-  const isMax = userState === 'max' || userState === 'enterprise'
+  const isMax = userState === 'max' || userState === 'enterprise' || userState === 'team'
 
   async function handleClick() {
     // Everyone can see the card; only Max/Enterprise can download it.
@@ -516,10 +517,11 @@ function DashboardContent() {
   const isFree    = userState === 'free'
   const planLabel = isTrial ? 'Free Trial' : isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
   const planPrice = (!isTrial && !isFree) ? PLANS[userState as TierSlug]?.priceLabel : null
+  // Self-serve upgrades stop at Max. Team plans are quote-based via
+  // /projects, never an automatic upsell target here.
   const nextPlan  = isFree || isTrial ? 'starter' :
                     userState === 'starter' ? 'pro' :
-                    userState === 'pro'     ? 'max' :
-                    userState === 'max'     ? 'enterprise' : null
+                    userState === 'pro'     ? 'max' : null
 
   // ── Section view ──────────────────────────────────────────
   if (sectionData) {

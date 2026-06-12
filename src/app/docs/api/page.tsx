@@ -60,8 +60,9 @@ export default function ApiDocsPage() {
           <p className="mb-4 text-gray-700 leading-relaxed">
             Generate a bearer token on the{' '}
             <Link href="/dashboard/api-keys" className="text-primary font-semibold hover:underline">API keys page</Link>.
-            Available on the <strong>Business — On-site</strong> tier ($225/mo, includes 3 seats).
-            The dashboard-only $75 Business tier doesn&apos;t include API access. Send it on every request:
+            Available exclusively on <strong>For Project Teams and Businesses</strong> (per-seat
+            team plans — <Link href="/projects" className="text-primary font-semibold hover:underline">get a quote</Link>).
+            Individual plans, including Max, don&apos;t carry API access. Send your key on every request:
           </p>
           <Code block>{`Authorization: Bearer lm_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`}</Code>
           <p className="mt-4 text-sm text-gray-500 leading-relaxed">

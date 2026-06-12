@@ -1,21 +1,25 @@
 /**
  * Bearer-token authentication for the public REST API (`/api/v1/*`).
  *
+ * The API is a TEAM-TIER feature ("For Project Teams and Businesses",
+ * plan='team'). Individual plans, including Max, do not carry API access —
+ * delisted 2026-06 when the team tier replaced the legacy Enterprise tier.
+ *
  * Flow:
  *   1. Pull `Authorization: Bearer lm_live_…` off the request.
  *   2. Hash it and look up the row in `api_keys` (service-role client — the
  *      caller has no Supabase session).
- *   3. Reject if revoked, or if the owning profile isn't `account_type='business'`
- *      with `plan_status='active'` and `plan_expires_at` in the future
- *      (or null = lifetime/comped).
- *   4. Return the resolved user_id + key_id so the route handler can attach
- *      them to its response and bump usage counters.
+ *   3. Reject if revoked.
+ *   4. Gate: the key's owner must belong to an ACTIVE organization. Checked
+ *      on every request so suspending an org kills its keys immediately.
+ *   5. Rate limit: fixed one-minute window per key, limit configured
+ *      per-org (organizations.api_rate_per_min, default 60). Atomic via the
+ *      bump_rate_counter() Postgres function — correct across serverless
+ *      instances because the counter lives in the database.
+ *   6. Monthly quotas (requests + egress) as a backstop.
  *
- * Quotas:
- *   Hard limits (`MAX_REQUESTS_PER_MONTH`, `MAX_EGRESS_BYTES_PER_MONTH`) are
- *   enforced here and intentionally generous for v1. We do NOT meter overage
- *   — if you blow the quota you get a 429 and we expect you to email us. This
- *   keeps us out of the "surprise bill" trap until we're ready for real billing.
+ * We do NOT meter overage — blow a limit and you get a 429 with Retry-After,
+ * and we expect you to email us. No surprise bills.
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
@@ -24,15 +28,19 @@ import { extractKeyFromHeader, hashKey } from './api-keys'
 
 export const MAX_REQUESTS_PER_MONTH    = 5_000
 export const MAX_EGRESS_BYTES_PER_MONTH = 50 * 1024 * 1024 * 1024  // 50 GB
+export const DEFAULT_RATE_PER_MIN       = 60
 
 /** Resolved API caller after successful auth. */
 export interface ApiCaller {
   keyId:                 string
   userId:                string
-  plan:                  string
+  orgId:                 string
+  orgName:               string
   scopes:                string[]
   requestsThisMonth:     number
   egressBytesThisMonth:  number
+  rateLimitPerMin:       number
+  rateUsedThisWindow:    number
 }
 
 /** Fail reasons surface to the caller as HTTP responses. */
@@ -40,7 +48,8 @@ export type AuthFailure =
   | { type: 'missing-key' }
   | { type: 'invalid-key' }
   | { type: 'revoked' }
-  | { type: 'plan-inactive' }      // not on Business / not paid
+  | { type: 'plan-inactive' }      // owner has no active team plan
+  | { type: 'rate-limited'; limit: number; retryAfterSec: number }
   | { type: 'quota-exceeded'; field: 'requests' | 'egress' }
 
 export type AuthResult =
@@ -90,28 +99,43 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
     return { ok: false, failure: { type: 'quota-exceeded', field: 'egress' } }
   }
 
-  // Verify the owning profile is on an active Business — On-site plan. We
-  // re-check this on every request so a downgrade or expired payment kills
-  // API access immediately — no need to revoke each key by hand.
-  //
-  // The gate is account_type='business' AND plan IN ('pro','max'). The $75
-  // Business tier (plan='basic') is dashboard-only and CANNOT use the API
-  // even if a key was minted before the tier split.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan, plan_status, plan_expires_at')
-    .eq('id', key.user_id)
-    .single()
+  // Gate: the key's owner must belong to an ACTIVE organization. Re-checked
+  // on every request so suspending an org (missed renewal, cancellation)
+  // kills its keys immediately — no need to revoke each key by hand.
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('org_id, organizations!inner(id, name, status, api_rate_per_min)')
+    .eq('user_id', key.user_id)
+    .maybeSingle()
 
-  if (!profile)                         return { ok: false, failure: { type: 'plan-inactive' } }
-  if (profile.plan_status !== 'active') return { ok: false, failure: { type: 'plan-inactive' } }
-  // API access requires max or enterprise plan
-  if (!['max', 'enterprise'].includes(profile.plan ?? '')) {
+  const orgRaw = membership
+    ? (membership as { organizations: unknown }).organizations
+    : null
+  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as
+    { id: string; name: string; status: string; api_rate_per_min: number } | null
+
+  if (!org || org.status !== 'active') {
     return { ok: false, failure: { type: 'plan-inactive' } }
   }
-  if (profile.plan_expires_at &&
-      new Date(profile.plan_expires_at).getTime() <= Date.now()) {
-    return { ok: false, failure: { type: 'plan-inactive' } }
+
+  // Per-minute rate limit, fixed window, atomic in Postgres. Fail OPEN on
+  // RPC errors: a transient DB hiccup on the counter must not take the whole
+  // API down — the monthly quota still backstops abuse.
+  const limit = org.api_rate_per_min || DEFAULT_RATE_PER_MIN
+  const windowStart = new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString()
+  let usedThisWindow = 1
+  const { data: bumped, error: rateErr } = await supabase.rpc('bump_rate_counter', {
+    p_key_id: key.id,
+    p_window: windowStart,
+  })
+  if (!rateErr && typeof bumped === 'number') {
+    usedThisWindow = bumped
+    if (bumped > limit) {
+      const retryAfterSec = 60 - Math.floor((Date.now() % 60_000) / 1000)
+      return { ok: false, failure: { type: 'rate-limited', limit, retryAfterSec } }
+    }
+  } else if (rateErr) {
+    console.error('[api-auth] rate counter failed (failing open):', rateErr)
   }
 
   return {
@@ -119,10 +143,13 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
     caller: {
       keyId:                 key.id,
       userId:                key.user_id,
-      plan:                  profile.plan ?? 'max',
+      orgId:                 org.id,
+      orgName:               org.name,
       scopes:                key.scopes ?? [],
       requestsThisMonth:     key.requests_this_month,
       egressBytesThisMonth:  key.egress_bytes_this_month,
+      rateLimitPerMin:       limit,
+      rateUsedThisWindow:    usedThisWindow,
     },
   }
 }
@@ -165,7 +192,13 @@ export async function recordUsage(
 /** Convert an AuthFailure into the JSON 4xx response we return to the caller. */
 export function failureResponse(failure: AuthFailure): NextResponse {
   const body = failureBody(failure)
-  return NextResponse.json(body, { status: body.status })
+  const headers: Record<string, string> = {}
+  if (failure.type === 'rate-limited') {
+    headers['Retry-After']           = String(failure.retryAfterSec)
+    headers['X-RateLimit-Limit']     = String(failure.limit)
+    headers['X-RateLimit-Remaining'] = '0'
+  }
+  return NextResponse.json(body, { status: body.status, headers })
 }
 
 function failureBody(failure: AuthFailure) {
@@ -192,7 +225,13 @@ function failureBody(failure: AuthFailure) {
       return {
         status: 403,
         error:  'plan_inactive',
-        message: 'API access requires an active Max or Enterprise plan. See https://lenga-maps.com/pricing.',
+        message: 'API access is part of "For Project Teams and Businesses". Request a quote at https://www.lengamaps.com/projects.',
+      }
+    case 'rate-limited':
+      return {
+        status:  429,
+        error:   'rate_limited',
+        message: `You've exceeded ${failure.limit} requests/minute. Slow down and retry in ${failure.retryAfterSec}s, or email lengamaps@gmail.com for a higher limit.`,
       }
     case 'quota-exceeded':
       return {

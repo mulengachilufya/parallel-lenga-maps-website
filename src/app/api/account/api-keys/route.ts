@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { generateApiKey } from '@/lib/api-keys'
+import { getMembership } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,47 +28,36 @@ interface ApiKeyRow {
   revoked_at:               string | null
 }
 
-/** Profile gate: Business — On-site tier (account_type='business' AND
- *  plan IN ('pro','max')) + active + not-expired. The $75 Business tier
- *  (plan='basic') gets a separate api_tier_required error so the dashboard
- *  can show a useful upgrade message instead of a generic 403. */
-async function requireBusinessUser(): Promise<{ userId: string } | NextResponse> {
+/** Gate: API keys are a team-tier feature ("For Project Teams and
+ *  Businesses"). The caller must belong to an ACTIVE organization — the
+ *  same condition /api/v1 enforces per-request, checked here at minting
+ *  time so we never hand out a key that's dead on arrival. */
+async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
   const supabase = await createServerSupabase()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('account_type, plan, plan_status, plan_expires_at')
-    .eq('id', session.user.id)
-    .single()
+  const service = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  )
+  const membership = await getMembership(service, session.user.id)
 
-  if (!profile || profile.account_type !== 'business') {
-    return NextResponse.json(
-      { error: 'business_only', message: 'API keys are available on the Business tier only.' },
-      { status: 403 },
-    )
-  }
-  if (profile.plan !== 'pro' && profile.plan !== 'max') {
+  if (!membership) {
     return NextResponse.json(
       {
-        error:   'api_tier_required',
-        message: 'API keys are available on the Business — On-site tier ($225/mo). Email lengamaps@gmail.com to upgrade.',
+        error:   'team_only',
+        message: 'API access is part of "For Project Teams and Businesses". Request a quote at /projects.',
       },
       { status: 403 },
     )
   }
-  if (profile.plan_status !== 'active') {
+  if (membership.org.status !== 'active') {
     return NextResponse.json(
-      { error: 'plan_inactive', message: 'Activate your Business — On-site plan to mint API keys.' },
-      { status: 403 },
-    )
-  }
-  if (profile.plan_expires_at && new Date(profile.plan_expires_at).getTime() <= Date.now()) {
-    return NextResponse.json(
-      { error: 'plan_expired', message: 'Your Business — On-site plan has expired. Renew to mint API keys.' },
+      { error: 'plan_inactive', message: 'Your team plan is not active. Contact lengamaps@gmail.com.' },
       { status: 403 },
     )
   }
@@ -76,7 +66,7 @@ async function requireBusinessUser(): Promise<{ userId: string } | NextResponse>
 }
 
 export async function GET() {
-  const gate = await requireBusinessUser()
+  const gate = await requireTeamMember()
   if (gate instanceof NextResponse) return gate
 
   // We use the service role here (not the cookie client) because we want a
@@ -103,7 +93,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const gate = await requireBusinessUser()
+  const gate = await requireTeamMember()
   if (gate instanceof NextResponse) return gate
 
   let body: { label?: string } = {}
