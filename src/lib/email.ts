@@ -76,6 +76,7 @@ async function sendViaSmtp(msg: EmailMessage): Promise<boolean> {
       text:    msg.text,
       replyTo: process.env.EMAIL_REPLY_TO || undefined,
     })
+    console.log('[email] sent via smtp', { to: msg.to })
     return true
   } catch (err) {
     console.error('[email] smtp error', err)
@@ -105,6 +106,7 @@ async function sendViaResend(msg: EmailMessage): Promise<boolean> {
       console.error('[email] resend error', res.status, await res.text())
       return false
     }
+    console.log('[email] sent via resend', { to: msg.to })
     return true
   } catch (err) {
     console.error('[email] resend exception', err)
@@ -140,13 +142,19 @@ async function sendViaWeb3Forms(msg: EmailMessage): Promise<boolean> {
 }
 
 /**
- * Send one transactional email. Tries Resend, then Web3Forms. Never throws,
- * returns true iff a transport accepted the message. Email is best-effort;
- * a failure here must never break the request that triggered it.
+ * Send one transactional email. Order: Resend, then SMTP, then Web3Forms.
+ *
+ * Resend is FIRST because it's an HTTP API and works reliably on Vercel
+ * serverless. SMTP (nodemailer) is a fallback only: serverless functions
+ * frequently fail or hang on outbound SMTP (port 587/465), and can even
+ * report success without delivering. Web3Forms is the last resort.
+ *
+ * Never throws; returns true iff a transport accepted the message. Email is
+ * best-effort and must never break the request that triggered it.
  */
 export async function sendEmail(msg: EmailMessage): Promise<boolean> {
-  if (await sendViaSmtp(msg)) return true
   if (await sendViaResend(msg)) return true
+  if (await sendViaSmtp(msg)) return true
   return sendViaWeb3Forms(msg)
 }
 
