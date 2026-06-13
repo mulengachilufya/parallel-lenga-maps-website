@@ -17,9 +17,9 @@ import Link from 'next/link'
 import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
   Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
-  Mountain, Building2, FlaskConical, ShieldCheck,
+  Mountain, Building2, FlaskConical, ShieldCheck, Calculator,
 } from 'lucide-react'
-import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
+import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE } from '@/lib/teams'
 
 const NAVY  = '#0D2B45'
 const GOLD  = '#F5B800'
@@ -98,6 +98,9 @@ export default function ProjectsPage() {
           </p>
         </div>
       </section>
+
+      {/* ── Pricing blocks (high on the page — first thing after the hero) ─ */}
+      <PricingSection onQuote={jumpToForm} />
 
       {/* ── What the seat buys ───────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -191,67 +194,119 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      {/* ── Pricing blocks ───────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-center">Simple per-seat pricing</h2>
-        <p className="mt-3 text-center text-blue-200 text-sm">
-          Flat $45 per seat. The two team bundles carry a built-in $20/mo discount.
-        </p>
-
-        <div className="mt-10 grid md:grid-cols-3 gap-5">
-          {TEAM_BLOCKS.map((b) => (
-            <div
-              key={b.id}
-              className="flex flex-col rounded-2xl border bg-[#102f4e] p-7"
-              style={{ borderColor: b.id === 'team-10' ? GOLD : 'rgba(30,95,142,0.55)' }}
-            >
-              {b.id === 'team-10' && (
-                <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Most popular</p>
-              )}
-              <h3 className="text-lg font-bold">{b.label}</h3>
-              <div className="mt-3 flex items-baseline gap-2.5">
-                <span className="text-4xl font-extrabold">{b.price}</span>
-                {b.original && (
-                  <span className="text-sm text-blue-300">
-                    (instead of <s className="opacity-80">{b.original}</s>)
-                  </span>
-                )}
-              </div>
-              {/* $45/seat appears ONLY on the Custom block by design. */}
-              {b.perSeat && (
-                <p className="mt-1 text-xs text-blue-300">Full rate, any team size.</p>
-              )}
-              <p className="mt-4 text-sm leading-relaxed text-blue-200">{b.blurb}</p>
-
-              <div className="mt-5 rounded-xl border border-blue-800/60 bg-[#0a2238] px-4 py-3">
-                <p className="text-xs font-semibold leading-relaxed" style={{ color: GOLD }}>
-                  Includes the FULL dataset catalogue: all 15 datasets across all 54 African countries.
-                </p>
-              </div>
-
-              <ul className="mt-5 space-y-2 text-[13px] text-blue-100 flex-1">
-                <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Shared team workspace &amp; download history</li>
-                <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Owner-managed seats</li>
-                <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> API access with rate limits</li>
-                <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Commercial use licence</li>
-                <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Custom sub-country datasets on request</li>
-              </ul>
-
-              <button
-                onClick={() => jumpToForm(b.seats)}
-                className="mt-7 w-full rounded-xl py-3 text-sm font-bold transition-transform hover:-translate-y-0.5"
-                style={{ background: GOLD, color: '#1a1200' }}
-              >
-                Get a quote
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Quote form ───────────────────────────────────────────────── */}
       <div ref={formRef}>
         <QuoteForm presetSeats={presetSeats} />
+      </div>
+    </div>
+  )
+}
+
+// ── Pricing blocks ──────────────────────────────────────────────────────────
+
+function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }) {
+  return (
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h2 className="text-2xl sm:text-3xl font-extrabold text-center">Simple per-seat pricing</h2>
+      <p className="mt-3 text-center text-blue-200 text-sm">
+        Flat $45 per seat. The two team bundles carry a built-in $20/mo discount.
+      </p>
+
+      <div className="mt-10 grid md:grid-cols-3 gap-5 items-start">
+        {TEAM_BLOCKS.map((b) => (
+          <div
+            key={b.id}
+            className="flex flex-col rounded-2xl border bg-[#102f4e] p-7 h-full"
+            style={{ borderColor: b.id === 'team-10' ? GOLD : 'rgba(30,95,142,0.55)' }}
+          >
+            {b.id === 'team-10' && (
+              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Most popular</p>
+            )}
+            <h3 className="text-lg font-bold">{b.label}</h3>
+            <div className="mt-3 flex items-baseline gap-2.5">
+              <span className="text-4xl font-extrabold">{b.price}</span>
+              {b.original && (
+                <span className="text-sm text-blue-300">
+                  (instead of <s className="opacity-80">{b.original}</s>)
+                </span>
+              )}
+            </div>
+            {/* $45/seat appears ONLY on the Custom block by design. */}
+            {b.perSeat && (
+              <p className="mt-1 text-xs text-blue-300">Full rate, any team size.</p>
+            )}
+            <p className="mt-4 text-sm leading-relaxed text-blue-200">{b.blurb}</p>
+
+            <div className="mt-5 rounded-xl border border-blue-800/60 bg-[#0a2238] px-4 py-3">
+              <p className="text-xs font-semibold leading-relaxed" style={{ color: GOLD }}>
+                Includes the FULL dataset catalogue: all 15 datasets across all 54 African countries.
+              </p>
+            </div>
+
+            {/* Custom block carries the live seat calculator. */}
+            {b.id === 'custom' && <SeatCalculator />}
+
+            <ul className="mt-5 space-y-2 text-[13px] text-blue-100 flex-1">
+              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Shared team workspace &amp; download history</li>
+              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Owner-managed seats</li>
+              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> API access with rate limits</li>
+              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Commercial use licence</li>
+              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Custom sub-country datasets on request</li>
+            </ul>
+
+            <button
+              onClick={() => onQuote(b.seats)}
+              className="mt-7 w-full rounded-xl py-3 text-sm font-bold transition-transform hover:-translate-y-0.5"
+              style={{ background: GOLD, color: '#1a1200' }}
+            >
+              Get a quote
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// Curiosity calculator on the Custom block: type a seat count, see the
+// monthly bill instantly at the flat $45/seat rate. Pure display math — the
+// real number is still confirmed on the quote.
+function SeatCalculator() {
+  const [seats, setSeats] = useState(5)
+  const total = Math.max(0, seats) * TEAM_SEAT_PRICE
+
+  return (
+    <div className="mt-5 rounded-xl border bg-[#0D2B45] p-4" style={{ borderColor: 'rgba(245,184,0,0.35)' }}>
+      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: GOLD }}>
+        <Calculator size={13} /> Estimate your bill
+      </label>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button" aria-label="Fewer seats"
+          onClick={() => setSeats((s) => Math.max(1, s - 1))}
+          className="h-9 w-9 shrink-0 rounded-lg border border-blue-700/60 text-lg font-bold text-blue-100 hover:border-[#F5B800]/70 hover:text-white transition-colors"
+        >
+          −
+        </button>
+        <input
+          id="seat-calc" type="number" min={1} max={100000} value={seats}
+          onChange={(e) => {
+            const n = parseInt(e.target.value, 10)
+            setSeats(Number.isNaN(n) ? 0 : n)
+          }}
+          className="w-full rounded-lg border border-blue-700/60 bg-[#102f4e] px-3 py-2 text-center text-lg font-bold text-white focus:outline-none focus:border-[#F5B800]/70"
+        />
+        <button
+          type="button" aria-label="More seats"
+          onClick={() => setSeats((s) => s + 1)}
+          className="h-9 w-9 shrink-0 rounded-lg border border-blue-700/60 text-lg font-bold text-blue-100 hover:border-[#F5B800]/70 hover:text-white transition-colors"
+        >
+          +
+        </button>
+      </div>
+      <div className="mt-3 flex items-baseline justify-between">
+        <span className="text-xs text-blue-300">{Math.max(1, seats)} {Math.max(1, seats) === 1 ? 'seat' : 'seats'} × ${TEAM_SEAT_PRICE}</span>
+        <span className="text-2xl font-extrabold text-white tabular-nums">${total.toLocaleString()}<span className="text-sm font-normal text-blue-300">/mo</span></span>
       </div>
     </div>
   )
