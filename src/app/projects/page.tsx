@@ -194,6 +194,41 @@ export default function ProjectsPage() {
         </div>
       </section>
 
+      {/* ── The work this data serves (human/impact band) ───────────── */}
+      <section className="border-t border-blue-800/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <h2 className="text-2xl sm:text-3xl font-extrabold">The work this data serves</h2>
+          <p className="mt-3 max-w-2xl text-blue-200 text-sm leading-relaxed">
+            Behind every layer your team downloads is a real decision on the ground:
+            where the water is, whose communities are affected, which land is changing.
+            This is what your project teams are really working on.
+          </p>
+
+          <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { img: '/images/branding/beautiful-african-women-having-fun-while-fetching-water.jpg', icon: Droplets, alt: 'Women collecting water', title: 'Water access & security', body: 'Rainfall, drought index, aquifers and rivers.' },
+              { img: '/images/branding/african-kids-enjoying-life.jpg', icon: Users, alt: 'Children in a rural community', title: 'Communities & livelihoods', body: 'Population, settlements and infrastructure.' },
+              { img: '/images/branding/forest.jpg', icon: Globe2, alt: 'Dense forest canopy', title: 'Forests & climate', body: 'Land cover, protected areas and change.' },
+              { img: '/images/branding/soil.jpg', icon: Layers, alt: 'Tilled agricultural soil', title: 'Soils & agriculture', body: 'Soil classification and land use.' },
+            ].map(({ img, icon: Icon, alt, title, body }) => (
+              <figure key={title} className="relative rounded-2xl overflow-hidden min-h-[300px] group">
+                <Image
+                  src={img} alt={alt} fill
+                  sizes="(max-width:1024px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(13,43,69,0.96) 8%, rgba(13,43,69,0.35) 55%, rgba(13,43,69,0.1) 100%)' }} />
+                <figcaption className="absolute inset-x-0 bottom-0 p-5">
+                  <Icon size={18} style={{ color: GOLD }} />
+                  <p className="mt-2 text-sm font-bold text-white">{title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-blue-200">{body}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Quote form ───────────────────────────────────────────────── */}
       <div ref={formRef}>
         <QuoteForm presetSeats={presetSeats} />
