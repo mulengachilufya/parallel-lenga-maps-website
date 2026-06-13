@@ -8,6 +8,7 @@ import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye,
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
+import NewsletterPopup from '@/components/NewsletterPopup'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
@@ -662,6 +663,10 @@ export default function HomePage() {
       </section>
 
       <Footer />
+
+      {/* Bottom-anchored newsletter sign-up. Self-gates via localStorage and
+          renders nothing until its checks pass — landing page only. */}
+      <NewsletterPopup />
     </>
   )
 }
