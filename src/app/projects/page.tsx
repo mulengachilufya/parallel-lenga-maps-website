@@ -25,10 +25,7 @@ const NAVY  = '#0D2B45'
 const GOLD  = '#F5B800'
 
 const IMG = {
-  hero:    'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=2000&q=80&auto=format&fit=crop',
-  night:   'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1400&q=75&auto=format&fit=crop',
-  drought: 'https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=1400&q=75&auto=format&fit=crop',
-  river:   'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1400&q=75&auto=format&fit=crop',
+  hero: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=2000&q=80&auto=format&fit=crop',
 }
 
 export default function ProjectsPage() {
@@ -122,51 +119,9 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      {/* ── Who it's for (sector strip with photography) ─────────────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <h2 className="text-2xl sm:text-3xl font-extrabold">Built for teams working where it matters</h2>
-        <p className="mt-3 max-w-2xl text-blue-200 text-sm leading-relaxed">
-          Drought monitoring, groundwater programmes, mine permitting, settlement
-          mapping: the work our buyers do is spatial, urgent, and shared. Lenga Maps
-          keeps the data side boring so the project side can move.
-        </p>
-
-        <div className="mt-8 grid lg:grid-cols-2 gap-5">
-          <figure className="relative rounded-2xl overflow-hidden min-h-[260px]">
-            <Image src={IMG.drought} alt="Drylands under drought stress" fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
-            <figcaption className="absolute inset-x-0 bottom-0 p-5" style={{ background: 'linear-gradient(0deg, rgba(13,43,69,0.95), transparent)' }}>
-              <p className="text-sm font-bold">Drought &amp; water security</p>
-              <p className="text-xs text-blue-200 mt-1">SPI-12 drought index, rainfall, aquifers and rivers for early warning and groundwater programmes.</p>
-            </figcaption>
-          </figure>
-          <figure className="relative rounded-2xl overflow-hidden min-h-[260px]">
-            <Image src={IMG.night} alt="City lights across the continent at night" fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
-            <figcaption className="absolute inset-x-0 bottom-0 p-5" style={{ background: 'linear-gradient(0deg, rgba(13,43,69,0.95), transparent)' }}>
-              <p className="text-sm font-bold">Infrastructure &amp; settlement</p>
-              <p className="text-xs text-blue-200 mt-1">Population, roads and admin boundaries for siting, access planning and impact assessment.</p>
-            </figcaption>
-          </figure>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[
-            { icon: Mountain,      label: 'Mining' },
-            { icon: Droplets,      label: 'Water' },
-            { icon: ShieldCheck,   label: 'NGO / Development' },
-            { icon: Building2,     label: 'Government' },
-            { icon: FlaskConical,  label: 'Research' },
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-2.5 rounded-xl border border-blue-800/60 bg-[#102f4e] px-4 py-3">
-              <Icon size={16} style={{ color: GOLD }} />
-              <span className="text-xs font-semibold text-blue-100">{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── The GIS facts (what a senior GIS reviewer wants stated) ──── */}
       <section className="border-y border-blue-800/50 bg-[#0a2238]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid lg:grid-cols-2 gap-10 items-center">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div>
             <h2 className="text-2xl font-extrabold">Data your GIS lead won&apos;t have to argue with</h2>
             <ul className="mt-6 space-y-4 text-sm leading-relaxed text-blue-100">
@@ -188,28 +143,25 @@ export default function ProjectsPage() {
               </li>
             </ul>
           </div>
-          <figure className="relative rounded-2xl overflow-hidden min-h-[320px]">
-            <Image src={IMG.river} alt="Aerial view of a winding river system" fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" />
-          </figure>
         </div>
       </section>
 
-      {/* ── The work this data serves (human/impact band) ───────────── */}
+      {/* ── Industries (real branding photography) ───────────────────── */}
       <section className="border-t border-blue-800/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <h2 className="text-2xl sm:text-3xl font-extrabold">The work this data serves</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold">Our GIS data powers different industries</h2>
           <p className="mt-3 max-w-2xl text-blue-200 text-sm leading-relaxed">
-            Behind every layer your team downloads is a real decision on the ground:
-            where the water is, whose communities are affected, which land is changing.
-            This is what your project teams are really working on.
+            From water security to agriculture, the same catalogue serves the teams
+            making real decisions on the ground across Africa. Whatever your sector,
+            the data is ready for it.
           </p>
 
           <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { img: '/images/branding/beautiful-african-women-having-fun-while-fetching-water.jpg', icon: Droplets, alt: 'Women collecting water', title: 'Water access & security', body: 'Rainfall, drought index, aquifers and rivers.' },
-              { img: '/images/branding/african-kids-enjoying-life.jpg', icon: Users, alt: 'Children in a rural community', title: 'Communities & livelihoods', body: 'Population, settlements and infrastructure.' },
-              { img: '/images/branding/forest.jpg', icon: Globe2, alt: 'Dense forest canopy', title: 'Forests & climate', body: 'Land cover, protected areas and change.' },
-              { img: '/images/branding/soil.jpg', icon: Layers, alt: 'Tilled agricultural soil', title: 'Soils & agriculture', body: 'Soil classification and land use.' },
+              { img: '/images/branding/beautiful-african-women-having-fun-while-fetching-water.jpg', icon: Droplets, alt: 'Women collecting water', title: 'Water & sanitation', body: 'Rainfall, drought index, aquifers and rivers.' },
+              { img: '/images/branding/african-kids-enjoying-life.jpg', icon: ShieldCheck, alt: 'Children in a rural community', title: 'NGOs & development', body: 'Population, settlements and infrastructure.' },
+              { img: '/images/branding/forest.jpg', icon: Globe2, alt: 'Dense forest canopy', title: 'Environment & climate', body: 'Land cover, protected areas and change.' },
+              { img: '/images/branding/soil.jpg', icon: Layers, alt: 'Tilled agricultural soil', title: 'Agriculture & land', body: 'Soil classification and land use.' },
             ].map(({ img, icon: Icon, alt, title, body }) => (
               <figure key={title} className="relative rounded-2xl overflow-hidden min-h-[300px] group">
                 <Image
@@ -224,6 +176,22 @@ export default function ProjectsPage() {
                   <p className="mt-1 text-xs leading-relaxed text-blue-200">{body}</p>
                 </figcaption>
               </figure>
+            ))}
+          </div>
+
+          {/* Full sector list as chips */}
+          <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { icon: Mountain,      label: 'Mining' },
+              { icon: Droplets,      label: 'Water' },
+              { icon: ShieldCheck,   label: 'NGO / Development' },
+              { icon: Building2,     label: 'Government' },
+              { icon: FlaskConical,  label: 'Research' },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-center gap-2.5 rounded-xl border border-blue-800/60 bg-[#102f4e] px-4 py-3">
+                <Icon size={16} style={{ color: GOLD }} />
+                <span className="text-xs font-semibold text-blue-100">{label}</span>
+              </div>
             ))}
           </div>
         </div>
