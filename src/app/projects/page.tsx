@@ -57,9 +57,12 @@ export default function ProjectsPage() {
         <Image
           src={IMG.hero} alt="Earth seen from orbit at night"
           fill priority sizes="100vw"
-          className="object-cover opacity-35"
+          className="object-cover"
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(13,43,69,0.55) 0%, rgba(13,43,69,0.92) 78%, #0D2B45 100%)' }} />
+        {/* Light top so the satellite shows; keep a left scrim for heading
+            legibility and a bottom fade into the navy content section. */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(13,43,69,0.15) 0%, rgba(13,43,69,0.30) 55%, rgba(13,43,69,0.85) 88%, #0D2B45 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(13,43,69,0.65) 0%, rgba(13,43,69,0.25) 45%, rgba(13,43,69,0) 70%)' }} />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
           <p className="text-xs font-bold uppercase tracking-[0.25em] mb-5" style={{ color: GOLD }}>
             Lenga Maps for teams
