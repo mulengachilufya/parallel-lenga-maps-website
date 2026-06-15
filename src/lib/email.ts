@@ -163,34 +163,45 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Welcome to Lenga Maps. Your account is live and your <strong>3-day free trial</strong>
-      is running. That's full Max access to every dataset, no card required.
+      Your account is live and your <strong>3-day free trial just started</strong>. For the
+      next 72 hours you have full <strong>Max</strong> access to every dataset across all 54
+      African countries, plus <strong>10 downloads</strong> to spend. No card required.
     </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      During the trial you can browse and download from all 15 datasets across the 54 African
-      countries: boundaries, rivers, rainfall, drought, soil, land cover and more. Every layer
-      is harmonised to EPSG:4326 and ready for QGIS.
-    </p>`
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">
+      The trial only pays off if you pull real data into your map, so do this today while the
+      clock is running:
+    </p>
+    <ol style="margin:0 0 4px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
+      <li>Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.</li>
+      <li>Download it, already harmonised to EPSG:4326 and ready for QGIS.</li>
+      <li>Drop it straight into your project. That is one of your 10 downloads working for you.</li>
+    </ol>`
   const text = `Hi ${name},
 
-Welcome to Lenga Maps. Your account is live and your 3-day free trial is running. That's full Max access to every dataset, no card required.
+Your account is live and your 3-day free trial just started. For the next 72 hours you have full Max access to every dataset across all 54 African countries, plus 10 downloads to spend. No card required.
 
-Browse and download from all 15 datasets across 54 African countries, every layer harmonised to EPSG:4326 and ready for QGIS.
+The trial only pays off if you pull real data into your map, so do this today while the clock is running:
 
-Browse datasets: ${cta}
+1. Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.
+2. Download it, already harmonised to EPSG:4326 and ready for QGIS.
+3. Drop it straight into your project.
+
+Start here: ${cta}
+
+Three days goes fast, so dive in now. Need a hand getting started? Just reply to this email.
 
 Thanks,
 The Lenga Maps team`
   return {
     to,
-    subject: 'Welcome to Lenga Maps, your free trial is live',
+    subject: `${name}, your 3 days of full Lenga Maps access just started`,
     html: shell({
-      preheader: 'Full Max access for 3 days, no card required.',
-      heading:   `Welcome aboard, ${name}.`,
+      preheader: 'Full Max access + 10 downloads for 3 days. No card required.',
+      heading:   `Your 3-day trial is live, ${name}.`,
       bodyHtml,
-      ctaLabel:  'Browse datasets',
+      ctaLabel:  'Download your first dataset',
       ctaHref:   cta,
-      footnote:  'Your trial includes 10 downloads. Need help getting started? Just reply to this email.',
+      footnote:  'Three days goes fast, so dive in now. Stuck on where to start? Just reply to this email.',
     }),
     text,
   }
