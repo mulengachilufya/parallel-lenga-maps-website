@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
+import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
 
 /**
  * POST /api/admin/payments/verify
@@ -58,36 +59,12 @@ async function notifyCustomer(
   plan: string,
   note: string,
 ) {
-  // Same key-resolution pattern as the inbound payment notifier — admin
-  // payment-flow emails (verify / reject confirmations to the customer)
-  // share the dedicated payments key when set.
-  const key =
-    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
-    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
-  if (!key) return
-  const displayName = name || 'there'
-  const subject = action === 'verify'
-    ? `Your Lenga Maps ${plan.toUpperCase()} plan is active`
-    : `Your Lenga Maps payment needs another look`
-  const message = action === 'verify'
-    ? `Hi ${displayName},\n\nGreat news, we've verified your payment. Your ${plan.toUpperCase()} plan is now active, and you can download datasets right away at https://www.lengamaps.com/dashboard.\n\nIf you need anything, reply to this email.\n\nThanks,\nThe Lenga Maps team`
-    : `Hi ${displayName},\n\nWe reviewed your recent payment submission but couldn't verify it.\n\nReason: ${note || 'No additional detail provided.'}\n\nYou can resubmit from https://www.lengamaps.com/dashboard/payment, or reply to this email for help.\n\nThanks,\nThe Lenga Maps team`
-
-  try {
-    await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        access_key: key,
-        from_name:  'Lenga Maps',
-        subject,
-        email,
-        message,
-      }),
-    })
-  } catch (err) {
-    console.error('[admin/payments/verify] customer email failed:', err)
-  }
+  // Customer-facing payment email, on the Resend payments channel
+  // (from support@, replies forward to Gmail).
+  const msg = action === 'verify'
+    ? paymentVerifiedEmail(email, name, plan)
+    : paymentRejectedEmail(email, name, note)
+  await sendEmail(msg, 'payments')
 }
 
 export async function POST(req: NextRequest) {

@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getDownloadUrl } from '@/lib/r2'
 import { PLANS, type TierSlug } from '@/lib/pricing'
+import { sendEmail, paymentSubmittedAdminEmail, type PaymentSubmittedFields } from '@/lib/email'
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,71 +39,10 @@ function extFromMime(mime: string): string {
 }
 
 
-async function notifyEmail(args: {
-  reference:     string
-  region:        Region
-  method:        Method
-  plan:          TierSlug
-  amountLabel:   string
-  userEmail:     string
-  userName:      string
-  countryName:   string
-  senderPhone:   string
-  senderName:    string
-  txnRef:        string
-  screenshotUrl: string
-  submittedAt:   string
-}): Promise<{ ok: boolean; error?: string; status?: number }> {
-  const accessKey =
-    process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ??
-    process.env.NEXT_PUBLIC_WEB3FORMS_KEY
-  if (!accessKey) {
-    console.error('[ManualPayment] no Web3Forms key — email NOT sent.')
-    return { ok: false, error: 'web3forms_key_missing' }
-  }
-
-  const lines = [
-    `Reference: ${args.reference}`,
-    `Region:    ${args.region}${args.countryName ? ` (${args.countryName})` : ''}`,
-    `Method:    ${args.method.toUpperCase()}`,
-    `Plan:      ${args.plan}`,
-    `Amount:    ${args.amountLabel}`,
-    '',
-    `User:      ${args.userName || '(no name)'} <${args.userEmail}>`,
-    `Sender:    ${args.senderName || '(not provided)'}`,
-    `Phone:     ${args.senderPhone || '(not provided)'}`,
-    `Txn ref:   ${args.txnRef || '(not provided)'}`,
-    '',
-    `Submitted: ${args.submittedAt}`,
-    `Screenshot (valid 7 days): ${args.screenshotUrl}`,
-    '',
-    `Approve at: https://www.lengamaps.com/admin/payments`,
-  ].join('\n')
-
-  try {
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        access_key: accessKey,
-        from_name:  'Lenga Maps Payments',
-        name:       args.userName || args.userEmail,
-        email:      args.userEmail,
-        subject:    `[Lenga Maps] New payment ${args.reference} — ${args.amountLabel} (${args.plan})`,
-        message:    lines,
-        botcheck:   '',
-      }),
-    })
-    const body = await res.json().catch(() => ({} as { success?: boolean; message?: string }))
-    if (!res.ok || !body.success) {
-      console.error('[ManualPayment] web3forms rejected:', res.status, body)
-      return { ok: false, status: res.status, error: body.message || `http_${res.status}` }
-    }
-    return { ok: true, status: res.status }
-  } catch (err) {
-    console.error('[ManualPayment] email notify network error:', err)
-    return { ok: false, error: String(err) }
-  }
+async function notifyEmail(args: PaymentSubmittedFields): Promise<boolean> {
+  // Admin alert to the founder, on the Resend payments channel. Replies go
+  // to the customer (set on the message's replyTo).
+  return sendEmail(paymentSubmittedAdminEmail(args), 'payments')
 }
 
 async function notifyWhatsApp(message: string) {

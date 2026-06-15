@@ -447,3 +447,145 @@ The Lenga Maps team`
     text,
   }
 }
+
+// ── Payments ────────────────────────────────────────────────────────────────
+
+// Where manual-payment admin alerts go. Falls back to the quote notify
+// address, then the founder inbox.
+export const PAYMENT_NOTIFY_EMAIL =
+  process.env.PAYMENT_NOTIFY_EMAIL || QUOTE_NOTIFY_EMAIL
+
+export interface PaymentSubmittedFields {
+  reference:     string
+  region:        string
+  method:        string
+  plan:          string
+  amountLabel:   string
+  userEmail:     string
+  userName:      string
+  countryName:   string
+  senderPhone:   string
+  senderName:    string
+  txnRef:        string
+  screenshotUrl: string
+  submittedAt:   string
+}
+
+/** Internal alert to the founder when a manual payment is submitted. */
+export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMessage {
+  const cta = `${APP_URL}/admin/payments`
+  const rows = [
+    ['Reference',    p.reference],
+    ['Plan',         p.plan.toUpperCase()],
+    ['Amount',       p.amountLabel],
+    ['Method',       p.method.toUpperCase()],
+    ['Region',       `${p.region}${p.countryName ? ` (${p.countryName})` : ''}`],
+    ['User',         `${p.userName || '(no name)'} <${p.userEmail}>`],
+    ['Sender name',  p.senderName || '(not provided)'],
+    ['Sender phone', p.senderPhone || '(not provided)'],
+    ['Txn ref',      p.txnRef || '(not provided)'],
+    ['Submitted',    p.submittedAt],
+  ].filter(([, v]) => v)
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      A customer just submitted a manual payment for review.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+      ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;">${v}</td></tr>`).join('')}
+    </table>
+    ${p.screenshotUrl ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;"><a href="${p.screenshotUrl}" style="color:#1E5F8E;">View payment screenshot</a> (link valid 7 days)</p>` : ''}`
+  const text = [
+    'New manual payment submitted',
+    '',
+    ...rows.map(([k, v]) => `${k}: ${v}`),
+    '',
+    p.screenshotUrl ? `Screenshot (valid 7 days): ${p.screenshotUrl}` : '',
+    `Approve at: ${cta}`,
+  ].filter(Boolean).join('\n')
+  return {
+    to:      PAYMENT_NOTIFY_EMAIL,
+    replyTo: p.userEmail || undefined,
+    subject: `New payment ${p.reference}: ${p.amountLabel} (${p.plan.toUpperCase()})`,
+    html: shell({
+      preheader: `${p.amountLabel} ${p.plan.toUpperCase()} from ${p.userName || p.userEmail}.`,
+      heading:   'New payment to verify',
+      bodyHtml,
+      ctaLabel:  'Open payments queue',
+      ctaHref:   cta,
+      footnote:  'Verify or reject from the admin payments page.',
+    }),
+    text,
+  }
+}
+
+/** Confirmation to the customer when their payment is verified. */
+export function paymentVerifiedEmail(to: string, name: string | null, plan: string): EmailMessage {
+  const fname = firstName(name)
+  const cta   = `${APP_URL}/dashboard`
+  const PLAN  = plan.toUpperCase()
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      Great news, we have verified your payment. Your <strong>${PLAN}</strong> plan is now
+      active, and you can download datasets right away.
+    </p>`
+  const text = `Hi ${fname},
+
+Great news, we have verified your payment. Your ${PLAN} plan is now active, and you can download datasets right away at ${cta}.
+
+If you need anything, just reply to this email.
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: `Your Lenga Maps ${PLAN} plan is active`,
+    html: shell({
+      preheader: `Your ${PLAN} plan is active. Start downloading.`,
+      heading:   `You're all set, ${fname}.`,
+      bodyHtml,
+      ctaLabel:  'Go to your dashboard',
+      ctaHref:   cta,
+      footnote:  'Need anything? Just reply to this email.',
+    }),
+    text,
+  }
+}
+
+/** Notice to the customer when a payment cannot be verified. */
+export function paymentRejectedEmail(to: string, name: string | null, note: string): EmailMessage {
+  const fname  = firstName(name)
+  const cta    = `${APP_URL}/dashboard/payment`
+  const reason = note || 'No additional detail provided.'
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      We reviewed your recent payment submission but could not verify it yet.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      Reason: ${reason}
+    </p>`
+  const text = `Hi ${fname},
+
+We reviewed your recent payment submission but could not verify it yet.
+
+Reason: ${reason}
+
+You can resubmit from ${cta}, or reply to this email for help.
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: 'Your Lenga Maps payment needs another look',
+    html: shell({
+      preheader: 'We could not verify your payment yet. Here is how to fix it.',
+      heading:   'We need another look at your payment',
+      bodyHtml,
+      ctaLabel:  'Resubmit payment',
+      ctaHref:   cta,
+      footnote:  'Stuck? Reply to this email and we will help sort it out.',
+    }),
+    text,
+  }
+}
