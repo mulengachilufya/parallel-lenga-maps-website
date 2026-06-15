@@ -589,3 +589,56 @@ The Lenga Maps team`
     text,
   }
 }
+
+// ── Renewals ──────────────────────────────────────────────────────────────────
+
+/**
+ * Reminder that a plan renews soon. Renewal is manual (no silent auto-charge
+ * on Zambian rails), so the CTA is a one-tap renew link.
+ */
+export function renewalReminderEmail(
+  to: string,
+  fullName: string | null,
+  plan: string,
+  daysLeft: number,
+): EmailMessage {
+  const name       = firstName(fullName)
+  const PLAN       = plan.toUpperCase()
+  const dayLabel   = `${daysLeft} day${daysLeft === 1 ? '' : 's'}`
+  const renewLink  = `${APP_URL}/dashboard/payment?plan=${plan}&renew=1`
+  const cancelLink = `${APP_URL}/dashboard/billing`
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      Heads up, your <strong>${PLAN}</strong> subscription renews in <strong>${dayLabel}</strong>.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      Card networks and mobile money in Zambia both require you to approve each
+      renewal yourself, so a quick tap keeps your access going.
+    </p>`
+  const text = `Hi ${name},
+
+Heads up, your Lenga Maps ${PLAN} subscription renews in ${dayLabel}.
+
+Card networks and mobile money in Zambia both require you to approve each renewal yourself, so:
+
+Tap here to renew now: ${renewLink}
+
+Don't want to renew? Cancel anytime from your billing page: ${cancelLink}
+
+Thanks for using Lenga Maps.
+The Lenga Maps team`
+  return {
+    to,
+    subject: `Your Lenga Maps ${PLAN} plan renews in ${dayLabel}`,
+    html: shell({
+      preheader: `Approve your ${PLAN} renewal to keep your access going.`,
+      heading:   `Your ${PLAN} plan renews in ${dayLabel}`,
+      bodyHtml,
+      ctaLabel:  'Renew now',
+      ctaHref:   renewLink,
+      footnote:  `Don't want to renew? Cancel anytime from your <a href="${cancelLink}" style="color:#1E5F8E;">billing page</a>.`,
+    }),
+    text,
+  }
+}

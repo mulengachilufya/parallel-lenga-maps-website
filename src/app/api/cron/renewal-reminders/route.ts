@@ -15,13 +15,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendEmail, renewalReminderEmail } from '@/lib/email'
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 
 interface DueProfile {
   id:                  string
@@ -32,52 +31,12 @@ interface DueProfile {
 }
 
 async function sendRenewalEmail(p: DueProfile): Promise<boolean> {
-  const key = process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ?? process.env.NEXT_PUBLIC_WEB3FORMS_KEY
-  if (!key) {
-    console.warn('[cron] no web3forms key configured — skipping email for', p.email)
-    return false
-  }
-  const name = p.full_name?.split(/\s+/)[0] || 'there'
-  const days = Math.max(0, Math.ceil((new Date(p.plan_expires_at).getTime() - Date.now()) / 86_400_000))
-  const subject = `Your Lenga Maps ${p.plan.toUpperCase()} plan renews in ${days} day${days === 1 ? '' : 's'}`
-  const renewLink = `${APP_URL}/dashboard/payment?plan=${p.plan}&renew=1`
-  const cancelLink = `${APP_URL}/dashboard/billing`
-  const message = [
-    `Hi ${name},`,
-    '',
-    `Heads up, your Lenga Maps ${p.plan.toUpperCase()} subscription renews in ${days} day${days === 1 ? '' : 's'}.`,
-    '',
-    'Card networks and mobile money in Zambia both require you to approve each renewal yourself, so:',
-    '',
-    `Tap here to renew now: ${renewLink}`,
-    '',
-    `Don't want to renew? Cancel anytime from your billing page: ${cancelLink}`,
-    '',
-    'Thanks for using Lenga Maps.',
-    'The Lenga Maps team',
-  ].join('\n')
-
-  try {
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        access_key: key,
-        from_name:  'Lenga Maps',
-        email:      p.email,
-        subject,
-        message,
-      }),
-    })
-    if (!res.ok) {
-      console.error('[cron] web3forms error', res.status, await res.text())
-      return false
-    }
-    return true
-  } catch (err) {
-    console.error('[cron] web3forms exception', err)
-    return false
-  }
+  const days = Math.max(
+    0,
+    Math.ceil((new Date(p.plan_expires_at).getTime() - Date.now()) / 86_400_000),
+  )
+  // Customer-facing renewal reminder, Resend account channel (from support@).
+  return sendEmail(renewalReminderEmail(p.email, p.full_name, p.plan, days), 'account')
 }
 
 export async function GET(req: NextRequest) {
