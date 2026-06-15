@@ -1,161 +1,101 @@
 // src/lib/email.ts
 //
-// Transactional email for Lenga Maps lifecycle messages (welcome,
-// trial-ended, dormant nudge).
+// Transactional + lifecycle email for Lenga Maps. Every automated email in
+// the app goes out through Resend (HTTP API). No SMTP, no fallback relays.
 //
-// Transport order (first one that's configured wins):
-//   1. SMTP   — your Namecheap Private Email mailbox (mail.privateemail.com)
-//               via nodemailer. Sends from a real @lengamaps.com address.
-//   2. Resend — HTTP API, if you prefer it / for serverless robustness.
-//   3. Web3Forms — last-ditch relay so nothing hard-fails before the above
-//               are configured.
+// Mail is split into CHANNELS, each with its own Resend API key and verified
+// sender, so keys can be scoped and rotated independently in Resend:
+//   account    welcome, trial-ended, trial-cap, nudge, team invites, quotes
+//              -> RESEND_NEW_USER_API_KEY,  from support@lengamaps.com
+//   newsletter the landing-page newsletter
+//              -> RESEND_NEWSLETTER_API_KEY, from newsletter@lengamaps.com
+//   payments   payment confirmation / receipt / failure
+//              -> RESEND_PAYMENTS_API_KEY,  from support@lengamaps.com
+//
+// Inbound and replies to support@/newsletter@ are forwarded to Gmail (via
+// ImprovMX), so reply-to can safely default to the channel's From address.
 //
 // Copy style: no em dashes anywhere in customer-facing text. They read as
 // an AI giveaway. Use commas, periods, colons and semicolons instead.
-//
-// Env:
-//   SMTP_HOST        mail.privateemail.com
-//   SMTP_PORT        587 (STARTTLS) or 465 (SSL). Default 587.
-//   SMTP_USER        full mailbox, e.g. support@lengamaps.com
-//   SMTP_PASS        that mailbox's password
-//   SMTP_FROM        From header, e.g. 'Lenga Maps <support@lengamaps.com>'.
-//                    Should match SMTP_USER so the provider doesn't reject it.
-//   EMAIL_REPLY_TO   optional, e.g. support@lengamaps.com
-//   RESEND_API_KEY / RESEND_FROM        optional Resend transport
-//   NEXT_PUBLIC_WEB3FORMS_KEY[_ADMIN]   optional fallback relay
-
-import type { Transporter } from 'nodemailer'
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 const LOGO_URL = `${APP_URL}/images/branding/logo.png`
-// Default sender is support@ (these lifecycle emails are transactional and
-// invite replies). newsletter@ is reserved for the actual newsletter
-// product. Overridable via SMTP_FROM / RESEND_FROM.
-const DEFAULT_FROM = 'Lenga Maps <support@lengamaps.com>'
+// Channels map an email to a Resend API key + a verified sender address.
+// Each channel's key is set in Vercel (and .env.local). An unset key causes
+// the send to be skipped and logged, never thrown.
+export type EmailChannel = 'account' | 'newsletter' | 'payments'
 
-export interface EmailMessage {
-  to:      string
-  subject: string
-  html:    string
-  text:    string
-}
-
-// ── Transports ────────────────────────────────────────────────────────────
-
-// SMTP transporter is cached across warm invocations so we don't open a
-// fresh connection on every email. nodemailer is dynamically imported so it
-// never lands in a client bundle and only loads when SMTP is configured.
-let cachedTransport: Transporter | null = null
-
-async function smtpTransport(): Promise<Transporter | null> {
-  if (cachedTransport) return cachedTransport
-  const host = process.env.SMTP_HOST
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-  if (!host || !user || !pass) return null
-  const nodemailer = (await import('nodemailer')).default
-  const port = Number(process.env.SMTP_PORT ?? 587)
-  cachedTransport = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
-    auth: { user, pass },
-  })
-  return cachedTransport
-}
-
-async function sendViaSmtp(msg: EmailMessage): Promise<boolean> {
-  const tx = await smtpTransport()
-  if (!tx) return false
-  try {
-    await tx.sendMail({
-      from:    process.env.SMTP_FROM || DEFAULT_FROM,
-      to:      msg.to,
-      subject: msg.subject,
-      html:    msg.html,
-      text:    msg.text,
-      replyTo: process.env.EMAIL_REPLY_TO || undefined,
-    })
-    console.log('[email] sent via smtp', { to: msg.to })
-    return true
-  } catch (err) {
-    console.error('[email] smtp error', err)
-    return false
+function channelConfig(channel: EmailChannel): { key?: string; from: string } {
+  switch (channel) {
+    case 'newsletter':
+      return {
+        key:  process.env.RESEND_NEWSLETTER_API_KEY,
+        from: process.env.RESEND_NEWSLETTER_FROM || 'Lenga Maps <newsletter@lengamaps.com>',
+      }
+    case 'payments':
+      return {
+        key:  process.env.RESEND_PAYMENTS_API_KEY,
+        from: process.env.RESEND_PAYMENTS_FROM || 'Lenga Maps <support@lengamaps.com>',
+      }
+    case 'account':
+    default:
+      return {
+        key:  process.env.RESEND_NEW_USER_API_KEY,
+        from: process.env.RESEND_NEW_USER_FROM || 'Lenga Maps <support@lengamaps.com>',
+      }
   }
 }
 
-async function sendViaResend(msg: EmailMessage): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return false
+export interface EmailMessage {
+  to:       string
+  subject:  string
+  html:     string
+  text:     string
+  replyTo?: string
+}
+
+/**
+ * Send one transactional email through Resend on the given channel.
+ *
+ * Never throws; returns true iff Resend accepted the message. Email is
+ * best-effort and must never break the request that triggered it. If the
+ * channel's API key is unset, the send is skipped and logged.
+ */
+export async function sendEmail(
+  msg: EmailMessage,
+  channel: EmailChannel = 'account',
+): Promise<boolean> {
+  const { key, from } = channelConfig(channel)
+  if (!key) {
+    console.error(`[email] no Resend key for channel "${channel}", skipped send to`, msg.to)
+    return false
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method:  'POST',
       headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type':  'application/json',
+        Authorization:  `Bearer ${key}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:    process.env.RESEND_FROM || DEFAULT_FROM,
-        to:      [msg.to],
-        subject: msg.subject,
-        html:    msg.html,
-        text:    msg.text,
+        from,
+        to:       [msg.to],
+        subject:  msg.subject,
+        html:     msg.html,
+        text:     msg.text,
+        reply_to: msg.replyTo || undefined,
       }),
     })
     if (!res.ok) {
-      console.error('[email] resend error', res.status, await res.text())
+      console.error('[email] resend error', { channel, status: res.status }, await res.text())
       return false
     }
-    console.log('[email] sent via resend', { to: msg.to })
+    console.log('[email] sent', { channel, to: msg.to })
     return true
   } catch (err) {
-    console.error('[email] resend exception', err)
+    console.error('[email] resend exception', { channel }, err)
     return false
   }
-}
-
-async function sendViaWeb3Forms(msg: EmailMessage): Promise<boolean> {
-  const key = process.env.NEXT_PUBLIC_WEB3FORMS_KEY_ADMIN ?? process.env.NEXT_PUBLIC_WEB3FORMS_KEY
-  if (!key) return false
-  try {
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        access_key: key,
-        from_name:  'Lenga Maps',
-        email:      msg.to,
-        subject:    msg.subject,
-        // Web3Forms is plain-text only, send the text variant.
-        message:    msg.text,
-      }),
-    })
-    if (!res.ok) {
-      console.error('[email] web3forms error', res.status, await res.text())
-      return false
-    }
-    return true
-  } catch (err) {
-    console.error('[email] web3forms exception', err)
-    return false
-  }
-}
-
-/**
- * Send one transactional email. Order: Resend, then SMTP, then Web3Forms.
- *
- * Resend is FIRST because it's an HTTP API and works reliably on Vercel
- * serverless. SMTP (nodemailer) is a fallback only: serverless functions
- * frequently fail or hang on outbound SMTP (port 587/465), and can even
- * report success without delivering. Web3Forms is the last resort.
- *
- * Never throws; returns true iff a transport accepted the message. Email is
- * best-effort and must never break the request that triggered it.
- */
-export async function sendEmail(msg: EmailMessage): Promise<boolean> {
-  if (await sendViaResend(msg)) return true
-  if (await sendViaSmtp(msg)) return true
-  return sendViaWeb3Forms(msg)
 }
 
 // ── Branded HTML shell ──────────────────────────────────────────────────────
