@@ -5,10 +5,20 @@
  * (internal name: Lenga for Projects — title, name, and route are
  * intentionally different; do not "fix" them to match.)
  *
- * The quote-based team tier's front door. NO checkout anywhere on this page:
- * every CTA routes to the quote form, the form posts to /api/quotes, and
- * provisioning is manual. Pricing locked at the 2026-06-12 exec meeting:
- * flat $45/seat with two named bundles each carrying a $20/mo discount.
+ * Layout & design language:
+ *   Hero (navy, satellite photo)
+ *     → WHITE pricing section with Lenga logo, main /pricing font styles
+ *       (inline 48px price, 13px tracked uppercase label), and a glowing
+ *       "ALL 15 DATASETS" badge above the 3 cards.
+ *     → Industries (full-bleed home-page style: 4 photos at h-[480px],
+ *       free-floating with gold rule + uppercase tracked label, no boxes).
+ *     → Feature cards
+ *     → GIS facts text
+ *     → Quote form
+ *
+ * Pricing locked at the 2026-06-12 exec meeting: flat $45/seat, two named
+ * bundles each carrying a $20/mo discount. No checkout, ever — every CTA
+ * routes to the quote form.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -17,16 +27,43 @@ import Link from 'next/link'
 import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
   Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
-  Mountain, Building2, FlaskConical, ShieldCheck, Calculator,
+  Mountain, Building2, FlaskConical, ShieldCheck, Calculator, Sparkles,
 } from 'lucide-react'
 import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE } from '@/lib/teams'
 
-const NAVY  = '#0D2B45'
-const GOLD  = '#F5B800'
+const NAVY = '#0D2B45'
+const GOLD = '#F5B800'
 
 const IMG = {
-  hero: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=2000&q=80&auto=format&fit=crop',
+  hero:    'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=2000&q=80&auto=format&fit=crop',
+  water:   '/images/branding/beautiful-african-women-having-fun-while-fetching-water.jpg',
+  ngo:     '/images/branding/african-kids-enjoying-life.jpg',
+  forest:  '/images/branding/forest.jpg',
+  soil:    '/images/branding/soil.jpg',
+  logo:    '/images/branding/logo.png',
 }
+
+// The full 15 — what the glowing banner advertises and what the
+// pricing block dataset chips render. Colors picked from the existing
+// catalogue palette in src/lib/supabase.ts so chips read as Lenga datasets,
+// not generic tags.
+const ALL_DATASETS: { name: string; color: string }[] = [
+  { name: 'Administrative Boundaries', color: '#3B6D11' },
+  { name: 'Transboundary Aquifers',    color: '#155E75' },
+  { name: 'Drought Index (SPI-12)',    color: '#B45309' },
+  { name: 'Rainfall & Climate',        color: '#185FA5' },
+  { name: 'Protected Areas',           color: '#115E59' },
+  { name: 'Watershed Boundaries',      color: '#0E7490' },
+  { name: 'Population & Settlements',  color: '#7C2D12' },
+  { name: 'River Networks',            color: '#1D4ED8' },
+  { name: 'Roads & Infrastructure',    color: '#52525B' },
+  { name: 'Temperature',               color: '#9F1239' },
+  { name: 'HydroRIVERS',               color: '#0369A1' },
+  { name: 'Land Use / Land Cover',     color: '#15803D' },
+  { name: 'Lakes',                     color: '#0284C7' },
+  { name: 'Soil Classification',       color: '#78350F' },
+  { name: 'Wetlands & Floodplains',    color: '#155E63' },
+]
 
 export default function ProjectsPage() {
   const [isTeamMember, setIsTeamMember] = useState(false)
@@ -47,27 +84,96 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div style={{ background: NAVY }} className="text-white">
+    <>
+      {/* Local styles: copies the main /pricing card font metrics
+          (48px price, 13px tracked uppercase label, 12.5px dataset rows)
+          and adds the glowing-banner animation. */}
+      <style>{`
+        @keyframes lengaGlow {
+          0%, 100% { box-shadow: 0 0 0 1px rgba(245,184,0,0.5), 0 0 30px rgba(245,184,0,0.35), 0 0 60px rgba(245,184,0,0.18); }
+          50%      { box-shadow: 0 0 0 1px rgba(245,184,0,0.8), 0 0 45px rgba(245,184,0,0.6),  0 0 90px rgba(245,184,0,0.30); }
+        }
+        .lm-glow {
+          animation: lengaGlow 3.2s ease-in-out infinite;
+        }
+        .lm-card {
+          text-decoration: none;
+          display: flex;
+          flex-direction: column;
+          min-height: 580px;
+          border-radius: 16px;
+          padding: 1.75rem 1.5rem 1.75rem;
+          transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+        }
+        .lm-card:hover {
+          transform: translateY(-6px);
+          filter: brightness(1.02);
+          box-shadow: 0 14px 36px rgba(13,43,69,0.18);
+        }
+        .lm-featured {
+          /* Subtle gold halo on the popular block. */
+          box-shadow: 0 8px 28px rgba(13,43,69,0.18), 0 0 0 2px rgba(245,184,0,0.5);
+        }
+        .lm-featured:hover {
+          box-shadow: 0 18px 44px rgba(13,43,69,0.25), 0 0 0 2px rgba(245,184,0,0.7);
+        }
+        .lm-name {
+          font-size: 13px; font-weight: 500; letter-spacing: 0.08em;
+          text-transform: uppercase; margin-bottom: 0.5rem;
+        }
+        .lm-price-row {
+          display: flex; align-items: baseline; gap: 8px; margin-bottom: 0.5rem; flex-wrap: wrap;
+        }
+        .lm-price { font-size: 48px; line-height: 1; font-weight: 400; }
+        .lm-period { font-size: 13px; }
+        .lm-instead { font-size: 13px; opacity: 0.8; }
+        .lm-blurb { font-size: 13px; line-height: 1.5; margin: 0.5rem 0 1.1rem; }
+        .lm-divider { height: 0.5px; opacity: 0.2; margin: 0 0 1rem; }
+        .lm-feat-label {
+          font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+          text-transform: uppercase; margin-bottom: 0.6rem;
+        }
+        .lm-feat-row {
+          font-size: 12.5px; padding: 3px 0;
+          display: flex; align-items: flex-start; gap: 7px; line-height: 1.4;
+        }
+        .lm-cta {
+          margin-top: auto; padding-top: 1.25rem;
+        }
+        .lm-cta-btn {
+          width: 100%; padding: 11px 0; border-radius: 10px;
+          font-size: 13px; font-weight: 600; cursor: pointer;
+          border: none; transition: filter 0.18s ease;
+        }
+        .lm-cta-btn:hover { filter: brightness(1.06); }
+        @media (max-width: 920px) {
+          .lm-grid { grid-template-columns: 1fr !important; }
+          .lm-card { min-height: 0 !important; }
+        }
+      `}</style>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden text-white" style={{ background: NAVY }}>
         <Image
           src={IMG.hero} alt="Earth seen from orbit at night"
           fill priority sizes="100vw"
           className="object-cover"
         />
-        {/* Light top so the satellite shows; keep a left scrim for heading
-            legibility and a bottom fade into the navy content section. */}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(13,43,69,0.15) 0%, rgba(13,43,69,0.30) 55%, rgba(13,43,69,0.85) 88%, #0D2B45 100%)' }} />
+        {/* Light top so the satellite shows; left scrim for legibility;
+            bottom hard-cut so we hand off cleanly to the white pricing band. */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(13,43,69,0.15) 0%, rgba(13,43,69,0.30) 55%, rgba(13,43,69,0.92) 92%, #0D2B45 100%)' }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(13,43,69,0.65) 0%, rgba(13,43,69,0.25) 45%, rgba(13,43,69,0) 70%)' }} />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] mb-5" style={{ color: GOLD }}>
-            Lenga Maps for teams
-          </p>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24">
+          <div className="flex items-center gap-3.5 mb-6">
+            <div className="w-9 h-0.5" style={{ background: GOLD }} />
+            <span className="text-[0.78rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+              Lenga Maps for Teams
+            </span>
+          </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] max-w-3xl">
             {TEAM_TIER_TITLE}
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-blue-100">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85">
             One workspace for your whole GIS team. Every dataset we publish, across all
             54 African countries, with a shared download history your teammates can
             actually trust: who pulled which layer, for which country, in which
@@ -84,116 +190,74 @@ export default function ProjectsPage() {
             {isTeamMember && (
               <Link
                 href="/team"
-                className="inline-flex items-center gap-2 rounded-xl border border-blue-400/40 px-7 py-3.5 text-sm font-semibold text-blue-100 hover:border-[#F5B800]/70 hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-7 py-3.5 text-sm font-semibold text-white hover:border-[#F5B800]/80 hover:bg-white/5 transition-colors"
               >
                 Open your team workspace
               </Link>
             )}
           </div>
-          <p className="mt-5 text-sm text-blue-300">
+          <p className="mt-5 text-sm text-white/60">
             Quote-based. No checkout, no card. We provision your team within 1 business day.
           </p>
         </div>
       </section>
 
-      {/* ── Pricing blocks (high on the page — first thing after the hero) ─ */}
+      {/* ── Pricing (WHITE) — main /pricing font + glowing dataset banner ─ */}
       <PricingSection onQuote={jumpToForm} />
 
+      {/* ── Industries (FULL-BLEED, home-page style, immediately after pricing) ─ */}
+      <IndustriesSection />
+
       {/* ── What the seat buys ───────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { icon: Layers,     title: 'The full catalogue',        body: 'All 15 datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, population, protected areas and more. This tier is never a reduced catalogue.' },
-            { icon: History,    title: 'Shared download history',   body: 'Every pull is logged with dataset, country, CRS, format, who and when. New joiners see months of team context on day one.' },
-            { icon: Crosshair,  title: 'Duplicate-pull warnings',   body: 'Opening a layer a teammate already downloaded? The workspace says so before you spend another download on it.' },
-            { icon: KeyRound,   title: 'API access',                body: 'Programmatic access to the catalogue with per-minute rate limits and monthly quotas. Exclusive to team plans.' },
-            { icon: MapPin,     title: 'Project area of operation', body: 'Set your operating countries once; the workspace keeps the whole team oriented on the same region.' },
-            { icon: FileCheck2, title: 'Commercial licence',        body: 'Use the data in client deliverables and commercial work, plus custom sub-country datasets on request and direct email support.' },
-          ].map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-2xl border border-blue-800/60 bg-[#102f4e] p-6">
-              <Icon size={22} style={{ color: GOLD }} />
-              <h3 className="mt-4 text-base font-bold">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-blue-200">{body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── The GIS facts (what a senior GIS reviewer wants stated) ──── */}
-      <section className="border-y border-blue-800/50 bg-[#0a2238]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <div>
-            <h2 className="text-2xl font-extrabold">Data your GIS lead won&apos;t have to argue with</h2>
-            <ul className="mt-6 space-y-4 text-sm leading-relaxed text-blue-100">
-              <li className="flex gap-3">
-                <Globe2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
-                <span><strong className="text-white">One CRS, stated everywhere.</strong> Every layer ships in EPSG:4326 (WGS84) and the workspace shows the CRS on every download record, because projection mismatches are how team GIS projects quietly fall apart.</span>
-              </li>
-              <li className="flex gap-3">
-                <Layers size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
-                <span><strong className="text-white">Formats teams actually use.</strong> Shapefile, GeoJSON and KML for vectors; GeoTIFF for rasters; QGIS symbology included where it helps.</span>
-              </li>
-              <li className="flex gap-3">
-                <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
-                <span><strong className="text-white">Country-complete coverage.</strong> Each dataset is clipped, validated and packaged per country, all 54, islands included.</span>
-              </li>
-              <li className="flex gap-3">
-                <Users size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
-                <span><strong className="text-white">Sources you can cite.</strong> GADM, HydroSHEDS, ESA WorldCover, CHIRPS, WorldPop, ISRIC, WDPA lineage, with attribution preserved for your reports.</span>
-              </li>
-            </ul>
+      <section className="bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="flex items-center gap-3.5 mb-4">
+            <div className="w-9 h-0.5" style={{ background: GOLD }} />
+            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
+              Built for teams
+            </span>
           </div>
-        </div>
-      </section>
+          <h2 className="text-3xl sm:text-4xl font-extrabold mb-10" style={{ color: NAVY }}>
+            What every seat unlocks.
+          </h2>
 
-      {/* ── Industries (real branding photography) ───────────────────── */}
-      <section className="border-t border-blue-800/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <h2 className="text-2xl sm:text-3xl font-extrabold">Our GIS data powers different industries</h2>
-          <p className="mt-3 max-w-2xl text-blue-200 text-sm leading-relaxed">
-            From water security to agriculture, the same catalogue serves the teams
-            making real decisions on the ground across Africa. Whatever your sector,
-            the data is ready for it.
-          </p>
-
-          <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { img: '/images/branding/beautiful-african-women-having-fun-while-fetching-water.jpg', icon: Droplets, alt: 'Women collecting water', title: 'Water & sanitation', body: 'Rainfall, drought index, aquifers and rivers.' },
-              { img: '/images/branding/african-kids-enjoying-life.jpg', icon: ShieldCheck, alt: 'Children in a rural community', title: 'NGOs & development', body: 'Population, settlements and infrastructure.' },
-              { img: '/images/branding/forest.jpg', icon: Globe2, alt: 'Dense forest canopy', title: 'Environment & climate', body: 'Land cover, protected areas and change.' },
-              { img: '/images/branding/soil.jpg', icon: Layers, alt: 'Tilled agricultural soil', title: 'Agriculture & land', body: 'Soil classification and land use.' },
-            ].map(({ img, icon: Icon, alt, title, body }) => (
-              <figure key={title} className="relative rounded-2xl overflow-hidden min-h-[300px] group">
-                <Image
-                  src={img} alt={alt} fill
-                  sizes="(max-width:1024px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(13,43,69,0.96) 8%, rgba(13,43,69,0.35) 55%, rgba(13,43,69,0.1) 100%)' }} />
-                <figcaption className="absolute inset-x-0 bottom-0 p-5">
-                  <Icon size={18} style={{ color: GOLD }} />
-                  <p className="mt-2 text-sm font-bold text-white">{title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-blue-200">{body}</p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-
-          {/* Full sector list as chips */}
-          <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              { icon: Mountain,      label: 'Mining' },
-              { icon: Droplets,      label: 'Water' },
-              { icon: ShieldCheck,   label: 'NGO / Development' },
-              { icon: Building2,     label: 'Government' },
-              { icon: FlaskConical,  label: 'Research' },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2.5 rounded-xl border border-blue-800/60 bg-[#102f4e] px-4 py-3">
-                <Icon size={16} style={{ color: GOLD }} />
-                <span className="text-xs font-semibold text-blue-100">{label}</span>
+              { icon: Layers,     title: 'The full catalogue',        body: 'All 15 datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, population, protected areas and more. This tier is never a reduced catalogue.' },
+              { icon: History,    title: 'Shared download history',   body: 'Every pull is logged with dataset, country, CRS, format, who and when. New joiners see months of team context on day one.' },
+              { icon: Crosshair,  title: 'Duplicate-pull warnings',   body: 'Opening a layer a teammate already downloaded? The workspace says so before you spend another download on it.' },
+              { icon: KeyRound,   title: 'API access',                body: 'Programmatic access to the catalogue with per-minute rate limits and monthly quotas. Exclusive to team plans.' },
+              { icon: MapPin,     title: 'Project area of operation', body: 'Set your operating countries once; the workspace keeps the whole team oriented on the same region.' },
+              { icon: FileCheck2, title: 'Commercial licence',        body: 'Use the data in client deliverables and commercial work, plus custom sub-country datasets on request and direct email support.' },
+            ].map(({ icon: Icon, title, body }) => (
+              <div key={title} className="rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-md transition-shadow">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,184,0,0.12)' }}>
+                  <Icon size={20} style={{ color: '#854F0B' }} />
+                </div>
+                <h3 className="mt-4 text-base font-bold" style={{ color: NAVY }}>{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">{body}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── GIS facts (dark, condensed text block) ───────────────────── */}
+      <section style={{ background: NAVY }} className="text-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex items-center gap-3.5 mb-5">
+            <div className="w-9 h-0.5" style={{ background: GOLD }} />
+            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+              For your GIS lead
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold">Data that won&apos;t start arguments.</h2>
+          <ul className="mt-7 space-y-4 text-[15px] leading-relaxed text-white/85">
+            <li className="flex gap-3"><Globe2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">One CRS, stated everywhere.</strong> Every layer ships in EPSG:4326 (WGS84) and the workspace shows the CRS on every download record, because projection mismatches are how team GIS projects quietly fall apart.</span></li>
+            <li className="flex gap-3"><Layers size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Formats teams actually use.</strong> Shapefile, GeoJSON and KML for vectors; GeoTIFF for rasters; QGIS symbology included where it helps.</span></li>
+            <li className="flex gap-3"><CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Country-complete coverage.</strong> Each dataset is clipped, validated and packaged per country, all 54, islands included.</span></li>
+            <li className="flex gap-3"><Users size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Sources you can cite.</strong> GADM, HydroSHEDS, ESA WorldCover, CHIRPS, WorldPop, ISRIC, WDPA lineage, with attribution preserved for your reports.</span></li>
+          </ul>
         </div>
       </section>
 
@@ -201,71 +265,173 @@ export default function ProjectsPage() {
       <div ref={formRef}>
         <QuoteForm presetSeats={presetSeats} />
       </div>
-    </div>
+    </>
   )
 }
 
-// ── Pricing blocks ──────────────────────────────────────────────────────────
+// ── Pricing section ───────────────────────────────────────────────────────
+// WHITE background. Mirrors the main /pricing card font metrics (inline
+// styles, 48px price, 13px tracked uppercase label). Logo + tracked label
+// at top; glowing "ALL 15 DATASETS" banner above the cards so the catalogue
+// is impossible to miss. Three blocks: 3 seats / 10 seats (FEATURED, navy)
+// / Custom (cream with calculator).
+
+interface CardPalette {
+  bg: string; border: string; nameColor: string; priceColor: string
+  text: string; muted: string; dotColor: string; dividerColor: string
+  btnBg: string; btnColor: string; ledgerBg: string; ledgerText: string
+}
+
+const PALETTE_CREAM: CardPalette = {
+  bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806',
+  text: '#1a1a1a', muted: '#5a4a2a', dotColor: '#854F0B', dividerColor: '#854F0B',
+  btnBg: '#854F0B', btnColor: '#ffffff',
+  ledgerBg: 'rgba(255,255,255,0.65)', ledgerText: '#5a4a2a',
+}
+const PALETTE_NAVY: CardPalette = {
+  bg: NAVY, border: GOLD, nameColor: GOLD, priceColor: '#ffffff',
+  text: '#ffffff', muted: 'rgba(255,255,255,0.75)', dotColor: GOLD, dividerColor: GOLD,
+  btnBg: GOLD, btnColor: '#1a1200',
+  ledgerBg: 'rgba(255,255,255,0.08)', ledgerText: 'rgba(255,255,255,0.85)',
+}
 
 function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }) {
+  const paletteFor = (id: string): CardPalette =>
+    id === 'team-10' ? PALETTE_NAVY : PALETTE_CREAM
+
   return (
-    <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-center">Simple per-seat pricing</h2>
-      <p className="mt-3 text-center text-blue-200 text-sm">
-        Flat $45 per seat. The two team bundles carry a built-in $20/mo discount.
-      </p>
+    <section style={{ background: '#FAFAF7' }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
 
-      <div className="mt-10 grid md:grid-cols-3 gap-5 items-start">
-        {TEAM_BLOCKS.map((b) => (
-          <div
-            key={b.id}
-            className="flex flex-col rounded-2xl border bg-[#102f4e] p-7 h-full"
-            style={{ borderColor: b.id === 'team-10' ? GOLD : 'rgba(30,95,142,0.55)' }}
-          >
-            {b.id === 'team-10' && (
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Most popular</p>
-            )}
-            <h3 className="text-lg font-bold">{b.label}</h3>
-            <div className="mt-3 flex items-baseline gap-2.5">
-              <span className="text-4xl font-extrabold">{b.price}</span>
-              {b.original && (
-                <span className="text-sm text-blue-300">
-                  (instead of <s className="opacity-80">{b.original}</s>)
-                </span>
-              )}
-            </div>
-            {/* $45/seat appears ONLY on the Custom block by design. */}
-            {b.perSeat && (
-              <p className="mt-1 text-xs text-blue-300">Full rate, any team size.</p>
-            )}
-            <p className="mt-4 text-sm leading-relaxed text-blue-200">{b.blurb}</p>
-
-            <div className="mt-5 rounded-xl border border-blue-800/60 bg-[#0a2238] px-4 py-3">
-              <p className="text-xs font-semibold leading-relaxed" style={{ color: GOLD }}>
-                Includes the FULL dataset catalogue: all 15 datasets across all 54 African countries.
-              </p>
-            </div>
-
-            {/* Custom block carries the live seat calculator. */}
-            {b.id === 'custom' && <SeatCalculator />}
-
-            <ul className="mt-5 space-y-2 text-[13px] text-blue-100 flex-1">
-              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Shared team workspace &amp; download history</li>
-              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Owner-managed seats</li>
-              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> API access with rate limits</li>
-              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Commercial use licence</li>
-              <li className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: GOLD }} /> Custom sub-country datasets on request</li>
-            </ul>
-
-            <button
-              onClick={() => onQuote(b.seats)}
-              className="mt-7 w-full rounded-xl py-3 text-sm font-bold transition-transform hover:-translate-y-0.5"
-              style={{ background: GOLD, color: '#1a1200' }}
-            >
-              Get a quote
-            </button>
+        {/* Logo + label */}
+        <div className="flex flex-col items-center text-center">
+          <Image
+            src={IMG.logo} alt="Lenga Maps" width={56} height={56}
+            className="mb-4" priority unoptimized
+          />
+          <div className="flex items-center gap-3.5 mb-5">
+            <div className="w-9 h-0.5" style={{ background: GOLD }} />
+            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
+              Simple per-seat pricing
+            </span>
+            <div className="w-9 h-0.5" style={{ background: GOLD }} />
           </div>
-        ))}
+          <h2 style={{ fontSize: '40px', fontWeight: 400, lineHeight: 1.1, color: NAVY, margin: '0 0 0.75rem' }}>
+            Pick a plan. Get the workspace.
+          </h2>
+          <p style={{ fontSize: '15px', color: '#555', margin: 0, maxWidth: '560px' }}>
+            Flat $45 per seat. The two team bundles carry a built-in $20/mo discount.
+            All plans cover all 54 African countries. Billed monthly in USD.
+          </p>
+        </div>
+
+        {/* ── Glowing ALL 15 DATASETS banner ─────────────────────────── */}
+        <div
+          className="lm-glow mt-12 rounded-2xl"
+          style={{ background: 'linear-gradient(135deg, #0D2B45 0%, #102f4e 50%, #0a2238 100%)', padding: '1.5rem 1.5rem 1.25rem' }}
+        >
+          <div className="flex items-center justify-center gap-2 mb-3.5">
+            <Sparkles size={16} style={{ color: GOLD }} />
+            <span className="text-[0.72rem] font-extrabold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+              Every team plan unlocks all 15 datasets
+            </span>
+            <Sparkles size={16} style={{ color: GOLD }} />
+          </div>
+          <p className="text-center text-sm mb-4" style={{ color: 'rgba(255,255,255,0.78)' }}>
+            Across all 54 African countries — boundaries, hydrology, climate, land, soils, infrastructure, more.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {ALL_DATASETS.map((d) => (
+              <span
+                key={d.name}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium"
+                style={{
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.92)',
+                }}
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: d.color, boxShadow: `0 0 6px ${d.color}` }} />
+                {d.name}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Cards ─────────────────────────────────────────────────── */}
+        <div
+          className="lm-grid mt-10"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px', alignItems: 'stretch' }}
+        >
+          {TEAM_BLOCKS.map((b) => {
+            const p = paletteFor(b.id)
+            const featured = b.id === 'team-10'
+            return (
+              <div
+                key={b.id}
+                className={`lm-card ${featured ? 'lm-featured' : ''}`}
+                style={{ background: p.bg, border: `1px solid ${p.border}`, color: p.text }}
+              >
+                {featured && (
+                  <div className="lm-name" style={{ color: GOLD, marginBottom: '0.4rem' }}>
+                    ★ Most popular
+                  </div>
+                )}
+                <div className="lm-name" style={{ color: p.nameColor }}>{b.label}</div>
+
+                <div className="lm-price-row">
+                  <span className="lm-price" style={{ color: p.priceColor }}>{b.price}</span>
+                  {b.original && (
+                    <span className="lm-instead" style={{ color: p.muted }}>
+                      instead of <s>{b.original}</s>
+                    </span>
+                  )}
+                </div>
+                {/* $45/seat appears ONLY on the Custom block by design. */}
+                {b.perSeat && (
+                  <p className="lm-period" style={{ color: p.muted, margin: 0 }}>Full rate, any team size.</p>
+                )}
+
+                <p className="lm-blurb" style={{ color: p.muted }}>{b.blurb}</p>
+
+                <div className="lm-divider" style={{ background: p.dividerColor }} />
+
+                {/* Custom block carries the live seat calculator. */}
+                {b.id === 'custom' && <SeatCalculator palette={p} />}
+
+                <div className="lm-feat-label" style={{ color: p.muted }}>What you get</div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+                  {[
+                    'Shared team workspace & download history',
+                    'Owner-managed seats',
+                    'API access with rate limits',
+                    'Commercial use licence',
+                    'Custom sub-country datasets on request',
+                  ].map((row) => (
+                    <li key={row} className="lm-feat-row" style={{ color: p.text }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: p.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
+                      {row}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="lm-cta">
+                  <button
+                    onClick={() => onQuote(b.seats)}
+                    className="lm-cta-btn"
+                    style={{ background: p.btnBg, color: p.btnColor }}
+                  >
+                    Get a quote
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-center text-xs text-gray-500 mt-7">
+          Quote-based. We provision your team manually within 1 business day. No card needed.
+        </p>
       </div>
     </section>
   )
@@ -273,21 +439,33 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
 
 // Curiosity calculator on the Custom block: type a seat count, see the
 // monthly bill instantly at the flat $45/seat rate. Pure display math — the
-// real number is still confirmed on the quote.
-function SeatCalculator() {
+// real number is still confirmed on the quote. Honors the card palette so
+// it doesn't fight the cream/navy backgrounds.
+function SeatCalculator({ palette }: { palette: CardPalette }) {
   const [seats, setSeats] = useState(5)
   const total = Math.max(0, seats) * TEAM_SEAT_PRICE
+  const onCream = palette === PALETTE_CREAM
 
   return (
-    <div className="mt-5 rounded-xl border bg-[#0D2B45] p-4" style={{ borderColor: 'rgba(245,184,0,0.35)' }}>
-      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: GOLD }}>
+    <div
+      className="rounded-xl p-4 mb-5"
+      style={{
+        background: onCream ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${onCream ? 'rgba(133,79,11,0.35)' : 'rgba(245,184,0,0.45)'}`,
+      }}
+    >
+      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: palette.nameColor }}>
         <Calculator size={13} /> Estimate your bill
       </label>
       <div className="mt-3 flex items-center gap-3">
         <button
           type="button" aria-label="Fewer seats"
           onClick={() => setSeats((s) => Math.max(1, s - 1))}
-          className="h-9 w-9 shrink-0 rounded-lg border border-blue-700/60 text-lg font-bold text-blue-100 hover:border-[#F5B800]/70 hover:text-white transition-colors"
+          className="h-9 w-9 shrink-0 rounded-lg text-lg font-bold transition-colors"
+          style={{
+            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
+            color: palette.text, background: 'transparent',
+          }}
         >
           −
         </button>
@@ -297,21 +475,147 @@ function SeatCalculator() {
             const n = parseInt(e.target.value, 10)
             setSeats(Number.isNaN(n) ? 0 : n)
           }}
-          className="w-full rounded-lg border border-blue-700/60 bg-[#102f4e] px-3 py-2 text-center text-lg font-bold text-white focus:outline-none focus:border-[#F5B800]/70"
+          className="w-full rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none"
+          style={{
+            background: onCream ? '#fff' : 'rgba(255,255,255,0.08)',
+            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
+            color: palette.text,
+          }}
         />
         <button
           type="button" aria-label="More seats"
           onClick={() => setSeats((s) => s + 1)}
-          className="h-9 w-9 shrink-0 rounded-lg border border-blue-700/60 text-lg font-bold text-blue-100 hover:border-[#F5B800]/70 hover:text-white transition-colors"
+          className="h-9 w-9 shrink-0 rounded-lg text-lg font-bold transition-colors"
+          style={{
+            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
+            color: palette.text, background: 'transparent',
+          }}
         >
           +
         </button>
       </div>
       <div className="mt-3 flex items-baseline justify-between">
-        <span className="text-xs text-blue-300">{Math.max(1, seats)} {Math.max(1, seats) === 1 ? 'seat' : 'seats'} × ${TEAM_SEAT_PRICE}</span>
-        <span className="text-2xl font-extrabold text-white tabular-nums">${total.toLocaleString()}<span className="text-sm font-normal text-blue-300">/mo</span></span>
+        <span className="text-xs" style={{ color: palette.muted }}>
+          {Math.max(1, seats)} {Math.max(1, seats) === 1 ? 'seat' : 'seats'} × ${TEAM_SEAT_PRICE}
+        </span>
+        <span className="text-2xl font-extrabold tabular-nums" style={{ color: palette.priceColor }}>
+          ${total.toLocaleString()}
+          <span className="text-sm font-normal" style={{ color: palette.muted }}>/mo</span>
+        </span>
       </div>
     </div>
+  )
+}
+
+// ── Industries — home-page photo style ────────────────────────────────────
+// Free-floating, large (h-[480px]), full-bleed photos in a 2×2 grid.
+// Mirrors the home page's Orbit×Ground treatment: gold rule + uppercase
+// tracked label, big white headline, body copy, subtle gradient.
+
+function IndustriesSection() {
+  const rows: { img: string; alt: string; eyebrow: string; title: string; body: string }[][] = [
+    [
+      {
+        img: IMG.water, alt: 'Women collecting water',
+        eyebrow: 'Water & Sanitation',
+        title: 'Where the water actually is.',
+        body: 'Rainfall, drought index, transboundary aquifers and river networks for groundwater programmes and early-warning work.',
+      },
+      {
+        img: IMG.ngo, alt: 'Children in a rural community',
+        eyebrow: 'NGO & Development',
+        title: 'For the work that reaches people.',
+        body: 'Population, settlements, roads and admin boundaries for siting clinics, schools, food programmes and access planning.',
+      },
+    ],
+    [
+      {
+        img: IMG.forest, alt: 'Dense forest canopy',
+        eyebrow: 'Environment & Climate',
+        title: 'Catch the changes early.',
+        body: 'Land cover, protected areas, wetlands and floodplains for conservation, climate, and impact assessments across the continent.',
+      },
+      {
+        img: IMG.soil, alt: 'Tilled agricultural soil',
+        eyebrow: 'Agriculture & Land',
+        title: 'Ground truth for the ground.',
+        body: 'Soil classification, land use and watershed data for cropping decisions, land-use planning and sustainable agriculture.',
+      },
+    ],
+  ]
+
+  return (
+    <section className="relative overflow-hidden" style={{ background: '#0a121c' }}>
+      {/* Heading band */}
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-20 pb-12 text-center">
+        <div className="flex items-center justify-center gap-3.5 mb-6">
+          <div className="w-9 h-0.5" style={{ background: GOLD }} />
+          <span className="text-[0.78rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+            Who it&apos;s for
+          </span>
+          <div className="w-9 h-0.5" style={{ background: GOLD }} />
+        </div>
+        <h2 className="text-white font-extrabold text-[clamp(2rem,4.5vw,3.2rem)] leading-[1.05] tracking-tight">
+          Our GIS data powers <span style={{ color: GOLD }}>different industries.</span>
+        </h2>
+        <p className="mt-5 text-white/75 text-[1.05rem] leading-[1.6] max-w-2xl mx-auto">
+          From water security to agriculture, the same catalogue serves the teams
+          making real decisions on the ground across Africa.
+        </p>
+      </div>
+
+      {/* Two rows of full-bleed photo halves — home-page Orbit×Ground style */}
+      {rows.map((row, i) => (
+        <div key={i} className="grid lg:grid-cols-2 border-t border-white/[0.06]">
+          {row.map((cell) => (
+            <div key={cell.eyebrow} className="relative h-[420px] lg:h-[520px] overflow-hidden group">
+              <Image
+                src={cell.img} alt={cell.alt} fill
+                sizes="(max-width:1024px) 100vw, 50vw"
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                style={{ filter: 'brightness(0.68) saturate(1.08)' }}
+                unoptimized
+              />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, transparent 30%, rgba(10,18,28,0.72) 100%)' }} />
+              <div className="absolute inset-0 flex items-end p-8 lg:p-14">
+                <div className="max-w-xl">
+                  <div className="flex items-center gap-3.5 mb-4">
+                    <div className="w-9 h-0.5" style={{ background: GOLD }} />
+                    <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+                      {cell.eyebrow}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
+                    {cell.title}
+                  </h3>
+                  <p className="mt-4 text-white/85 text-[1.05rem] leading-[1.6] font-medium">
+                    {cell.body}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {/* Sector chip strip below the photos */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {[
+            { icon: Mountain,     label: 'Mining' },
+            { icon: Droplets,     label: 'Water' },
+            { icon: ShieldCheck,  label: 'NGO / Development' },
+            { icon: Building2,    label: 'Government' },
+            { icon: FlaskConical, label: 'Research' },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3">
+              <Icon size={16} style={{ color: GOLD }} />
+              <span className="text-xs font-semibold text-white/90">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -351,11 +655,11 @@ function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
 
   if (done) {
     return (
-      <section className="border-t border-blue-800/50 bg-[#0a2238]">
-        <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-          <CheckCircle2 size={44} className="mx-auto" style={{ color: GOLD }} />
-          <h2 className="mt-5 text-2xl font-extrabold text-white">Request received</h2>
-          <p className="mt-3 text-blue-200 text-sm leading-relaxed">
+      <section className="bg-white">
+        <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+          <CheckCircle2 size={44} className="mx-auto" style={{ color: '#854F0B' }} />
+          <h2 className="mt-5 text-2xl font-extrabold" style={{ color: NAVY }}>Request received</h2>
+          <p className="mt-3 text-gray-600 text-sm leading-relaxed">
             Thanks. We&apos;ll be in touch within 1 business day with your quote and
             the steps to get your team provisioned. A confirmation is on its way to
             your inbox.
@@ -365,14 +669,22 @@ function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
     )
   }
 
-  const field = 'w-full rounded-xl border border-blue-800/70 bg-[#0D2B45] px-4 py-3 text-sm text-white placeholder:text-blue-400/70 focus:outline-none focus:border-[#F5B800]/70'
-  const label = 'block text-xs font-semibold uppercase tracking-wide text-blue-300 mb-1.5'
+  const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#854F0B]'
+  const label = 'block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5'
 
   return (
-    <section className="border-t border-blue-800/50 bg-[#0a2238]">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Tell us about your team</h2>
-        <p className="mt-3 text-sm text-blue-200 leading-relaxed">
+    <section className="bg-white">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20">
+        <div className="flex items-center gap-3.5 mb-5">
+          <div className="w-9 h-0.5" style={{ background: GOLD }} />
+          <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
+            Talk to us
+          </span>
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-extrabold" style={{ color: NAVY }}>
+          Tell us about your team.
+        </h2>
+        <p className="mt-3 text-sm text-gray-600 leading-relaxed max-w-xl">
           No payment is taken on the site for team plans. We reply with a quote within
           1 business day, then provision your workspace once you confirm.
         </p>
@@ -418,19 +730,19 @@ function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
           </div>
 
           {error && (
-            <p className="sm:col-span-2 text-sm text-red-300">{error}</p>
+            <p className="sm:col-span-2 text-sm text-red-600">{error}</p>
           )}
 
           <div className="sm:col-span-2">
             <button
               type="submit" disabled={sending}
-              className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-bold disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-bold disabled:opacity-60 transition-transform hover:-translate-y-0.5"
               style={{ background: GOLD, color: '#1a1200' }}
             >
               {sending ? <Loader2 size={16} className="animate-spin" /> : null}
               {sending ? 'Sending…' : 'Request a quote'}
             </button>
-            <p className="mt-3 text-xs text-blue-400">
+            <p className="mt-3 text-xs text-gray-500">
               We&apos;ll be in touch within 1 business day.
             </p>
           </div>
