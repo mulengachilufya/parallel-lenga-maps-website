@@ -28,6 +28,7 @@ import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
   Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
   Mountain, Building2, FlaskConical, ShieldCheck, Calculator, Sparkles,
+  Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
 import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE } from '@/lib/teams'
 
@@ -205,7 +206,15 @@ export default function ProjectsPage() {
       {/* ── Pricing (WHITE) — main /pricing font + glowing dataset banner ─ */}
       <PricingSection onQuote={jumpToForm} />
 
-      {/* ── Industries (FULL-BLEED, home-page style, immediately after pricing) ─ */}
+      {/* ── Quote form — primary CTA, sits directly below pricing ──── */}
+      <div ref={formRef}>
+        <QuoteForm presetSeats={presetSeats} />
+      </div>
+
+      {/* ── Urgent contact — secondary path for businesses in a rush ─ */}
+      <UrgentContact />
+
+      {/* ── Industries (FULL-BLEED, home-page style) ───────────────── */}
       <IndustriesSection />
 
       {/* ── What the seat buys ───────────────────────────────────────── */}
@@ -261,10 +270,6 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      {/* ── Quote form ───────────────────────────────────────────────── */}
-      <div ref={formRef}>
-        <QuoteForm presetSeats={presetSeats} />
-      </div>
     </>
   )
 }
@@ -619,6 +624,102 @@ function IndustriesSection() {
   )
 }
 
+// ── Urgent contact band ──────────────────────────────────────────────────
+// Secondary path for businesses on a deadline. The form above is the
+// preferred channel (sets a quote_request row, gives us context). This
+// section is visible but visually narrower — a single navy card with gold
+// accents — so it never competes with the primary CTA above. Two real
+// businesses have already reached out by phone/email, so this exists
+// because the need exists, not because we want to dilute the form.
+function UrgentContact() {
+  const tracks = [
+    {
+      icon: MessageCircle,
+      label: 'WhatsApp & Calls',
+      value: '+260 965 699 359',
+      href:  'https://wa.me/260965699359?text=Hi%20Lenga%20Maps%2C%20we%20need%20datasets%20urgently.',
+      hint:  'Fastest. Message or call.',
+    },
+    {
+      icon: Phone,
+      label: 'Calls only',
+      value: '+260 779 187 025',
+      href:  'tel:+260779187025',
+      hint:  'Voice only, weekdays.',
+    },
+    {
+      icon: Mail,
+      label: 'Direct email',
+      value: 'mulenga@lengamaps.com',
+      href:  'mailto:mulenga@lengamaps.com?subject=Urgent%3A%20Team%20Data%20Request',
+      hint:  'Founder inbox.',
+    },
+  ]
+
+  return (
+    <section className="bg-white">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #0D2B45 0%, #102f4e 60%, #0a2238 100%)',
+            border: `1px solid rgba(245,184,0,0.45)`,
+            boxShadow: '0 10px 32px rgba(13,43,69,0.18), 0 0 0 1px rgba(245,184,0,0.12)',
+          }}
+        >
+          <div className="px-6 sm:px-10 py-8 sm:py-9 grid lg:grid-cols-[1fr_1.6fr] gap-8 items-center">
+            {/* Left: pitch */}
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <Zap size={16} style={{ color: GOLD }} />
+                <span className="text-[0.7rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
+                  In a rush?
+                </span>
+              </div>
+              <h3 className="text-white font-extrabold text-2xl sm:text-[1.7rem] leading-tight">
+                Need our datasets urgently?
+              </h3>
+              <p className="mt-3 text-white/75 text-sm leading-relaxed">
+                A couple of teams already reached out by phone instead of the form
+                because they needed turnaround the same day. If you&apos;re on a
+                deadline, get us directly:
+              </p>
+            </div>
+
+            {/* Right: contact methods */}
+            <div className="grid sm:grid-cols-3 gap-3">
+              {tracks.map(({ icon: Icon, label, value, href, hint }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target={href.startsWith('http') ? '_blank' : undefined}
+                  rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="group rounded-xl p-4 transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(245,184,0,0.25)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon size={16} style={{ color: GOLD }} />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: GOLD }}>
+                      {label}
+                    </span>
+                  </div>
+                  <div className="text-white text-sm font-bold group-hover:text-[#F5B800] transition-colors break-all">
+                    {value}
+                  </div>
+                  <div className="mt-1 text-[11px] text-white/55">{hint}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Quote form ────────────────────────────────────────────────────────────
 
 function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
@@ -678,11 +779,11 @@ function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
         <div className="flex items-center gap-3.5 mb-5">
           <div className="w-9 h-0.5" style={{ background: GOLD }} />
           <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
-            Talk to us
+            Get started
           </span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold" style={{ color: NAVY }}>
-          Tell us about your team.
+          Reach out to get started.
         </h2>
         <p className="mt-3 text-sm text-gray-600 leading-relaxed max-w-xl">
           No payment is taken on the site for team plans. We reply with a quote within
