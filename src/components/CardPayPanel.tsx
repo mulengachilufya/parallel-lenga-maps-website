@@ -17,7 +17,7 @@
  * pending record.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2, Lock, AlertCircle, ChevronRight, RefreshCw, Phone } from 'lucide-react'
 import { VisaBadge, MastercardBadge } from '@/components/PaymentProviderIcons'
 
@@ -32,6 +32,19 @@ export default function CardPayPanel({ plan, amountLabel, name = '', className =
   const [phase,    setPhase]    = useState<'idle' | 'loading'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [phone,    setPhone]    = useState('')
+
+  // We redirect to the hosted checkout via window.location. If the user hits
+  // Back, the browser can restore this page from its back-forward cache (bfcache)
+  // frozen mid-redirect with phase='loading', leaving the button stuck on
+  // "Connecting to secure checkout...". Reset to idle on bfcache restore so the
+  // button is clickable again.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) { setPhase('idle'); setErrorMsg('') }
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   function isPhoneValid(value: string): boolean {
     const digits = value.replace(/[\s\-().+]/g, '')
