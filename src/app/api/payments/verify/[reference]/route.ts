@@ -1,12 +1,16 @@
 /**
  * GET /api/payments/verify/[reference]
  *
- * Checks the status of a Lipila payment by looking up our own DB record,
- * which is updated by the Lipila webhook at /api/payments/webhook.
+ * Checks the status of a Lipila payment. Primary source of truth is our own DB
+ * record, which the Lipila webhook (/api/payments/webhook) updates on a terminal
+ * callback.
  *
- * Lipila is webhook-first ("your application will only receive a callback
- * when a transaction succeeds or fails") so we don't poll their API here —
- * we just read what the webhook already wrote.
+ * SAFETY NET: webhooks can be missed (provider outage, the customer closes the
+ * tab the instant after paying). If the DB still says `pending`, we ask Lipila
+ * directly via its Collection Status endpoint and reconcile — so a real payment
+ * always activates even when no webhook arrived. (The old comment here claimed
+ * Lipila was "webhook-only"; it is not — GET /api/v1/collections/check-status
+ * exists and is exactly what this needs.)
  *
  * Responses:
  *   { status: 'pending' }                     — waiting for customer to approve
@@ -24,6 +28,34 @@ const serviceSupabase = createClient(
 )
 
 const PLAN_PERIOD_DAYS = 30
+
+const LIPILA_BASE = process.env.LIPILA_SANDBOX === 'true'
+  ? 'https://api.lipila.dev'
+  : 'https://blz.lipila.io'
+
+/**
+ * Ask Lipila directly whether a collection reached a terminal state.
+ * Returns 'pending' for any non-terminal/unknown/error case (incl. 404/429 and
+ * network errors), so a transient blip just keeps us polling rather than wrongly
+ * marking a payment failed.
+ */
+async function checkLipilaStatus(referenceId: string): Promise<'successful' | 'failed' | 'pending'> {
+  try {
+    const res = await fetch(
+      `${LIPILA_BASE}/api/v1/collections/check-status?referenceId=${encodeURIComponent(referenceId)}`,
+      { headers: { accept: 'application/json', 'x-api-key': process.env.LIPILA_API_KEY! } },
+    )
+    if (!res.ok) return 'pending'
+    const data = await res.json() as { status?: string }
+    const s = String(data.status ?? '').toLowerCase()
+    if (s === 'successful') return 'successful'
+    if (s === 'failed')     return 'failed'
+    return 'pending'
+  } catch (err) {
+    console.error('[verify] check-status call failed:', err)
+    return 'pending'
+  }
+}
 
 /** Activate the user's plan (idempotent — safe to call more than once). */
 async function activateProfile(userId: string, plan: string) {
@@ -78,6 +110,35 @@ export async function GET(
     return NextResponse.json({ status: 'successful', plan: payment.plan })
   }
 
-  // Still pending — client should keep polling
+  // Still pending in our DB. The webhook may have been missed, so reconcile
+  // directly against Lipila. We only reach here once /initiate succeeded (the
+  // not_initiated branch above returns earlier), so lipila_reference is set.
+  const refForStatus = payment.lipila_reference ?? payment.reference
+  const live = await checkLipilaStatus(refForStatus)
+
+  if (live === 'successful') {
+    // Guard with .eq('status','pending') so we never clobber a concurrent
+    // webhook write that already finalised the row.
+    await serviceSupabase
+      .from('payments')
+      .update({ status: 'successful' })
+      .eq('reference', payment.reference)
+      .eq('status', 'pending')
+    await activateProfile(payment.user_id, payment.plan)
+    console.log('[verify] reconciled pending→successful via check-status:', payment.reference)
+    return NextResponse.json({ status: 'successful', plan: payment.plan })
+  }
+
+  if (live === 'failed') {
+    await serviceSupabase
+      .from('payments')
+      .update({ status: 'failed' })
+      .eq('reference', payment.reference)
+      .eq('status', 'pending')
+    console.log('[verify] reconciled pending→failed via check-status:', payment.reference)
+    return NextResponse.json({ status: 'failed' })
+  }
+
+  // Genuinely still pending — client should keep polling
   return NextResponse.json({ status: 'pending' })
 }
