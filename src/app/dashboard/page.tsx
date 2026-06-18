@@ -438,7 +438,21 @@ function DashboardContent() {
         const sessionRes = await withTimeout(supabase.auth.getSession(), 5_000)
         const session = sessionRes?.data.session ?? null
         if (cancelled) return
-        if (!session) { router.replace('/login'); return }
+        if (!session) {
+          // NEVER redirect from here. Middleware (src/middleware.ts) is the
+          // authoritative auth gate for /dashboard. If middleware allowed the
+          // route, a transient null session client-side is a cookie race, not
+          // a real sign-out — the /login page's own auto-redirect-when-signed-
+          // in would then bounce us straight back, and we'd loop 3× per second
+          // (the "screen goes back to login, then dashboard, then login again"
+          // production bug reported 2026-06-18). Render safe defaults and bail.
+          setUserState('free')
+          setTrialStartedAt(null)
+          setTrialUsed(0)
+          setUserName('')
+          setIsAdmin(false)
+          return
+        }
 
         const profilePromise = supabase
           .from('profiles')

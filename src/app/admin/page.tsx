@@ -3,30 +3,48 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function AdminPage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [signedIn, setSignedIn] = useState(true)
 
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.replace('/login?next=%2Fadmin')
-        return
-      }
+      // Middleware (src/middleware.ts) gates /admin: an actually-anonymous
+      // user never reaches this code. A transient client-side null here is
+      // a cookie race — render a sign-in prompt; do NOT redirect to /login
+      // (that would race with the login page's auto-redirect-when-signed-in
+      // and cause the /login ⇄ /admin loop, same shape as the dashboard
+      // bug reported 2026-06-18).
+      setSignedIn(Boolean(session))
       setLoading(false)
     }
     check()
-  }, [router])
+  }, [])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 size={32} className="animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!signedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-xl font-bold text-navy mb-3">Your session went stale.</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Sign in again to open the admin tools.
+          </p>
+          <Link href="/login?next=%2Fadmin" className="inline-block bg-navy text-white text-sm font-semibold px-5 py-2.5 rounded-lg">
+            Sign in
+          </Link>
+        </div>
       </div>
     )
   }

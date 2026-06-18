@@ -118,7 +118,20 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
     load()
 
     // Refresh on auth changes (sign-in / sign-out in any tab).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load())
+    //
+    // CRITICAL: wipe state SYNCHRONOUSLY before the async load(). Without this,
+    // signing out and back in (or switching between two accounts in the same
+    // browser) leaves the previous account's `user` in context during the
+    // re-fetch window. Buttons calling checkAccess() see the stale plan and
+    // give the wrong answer — the exact "admin denied access to a dataset
+    // because a test account didn't have it" production bug reported
+    // 2026-06-18. Closing the gate by default (user=null, loading=true)
+    // until load() finishes is always safer than serving stale entitlements.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      setUser(null)
+      setLoading(true)
+      load()
+    })
 
     // Refresh when the tab regains focus. Catches the case where a user
     // leaves a dashboard tab open while admin verifies their payment in

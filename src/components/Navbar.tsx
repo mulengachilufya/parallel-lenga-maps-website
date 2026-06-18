@@ -101,8 +101,12 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href={isSignedIn ? '/dashboard' : '/'} className="flex items-center gap-2.5">
+          {/* Logo — ALWAYS goes to /. Signed-in users have the gold
+              "Dashboard" button on the right; routing the logo to /dashboard
+              instead trapped them in the app with no obvious way home
+              ("why can't someone access the website home page while in
+              their account" — reported 2026-06-18). */}
+          <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/images/branding/logo.png"
               alt="Lenga Maps"

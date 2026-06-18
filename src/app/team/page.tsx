@@ -18,7 +18,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   Users, History, Settings2, LayoutDashboard, Loader2, Globe2,
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
@@ -63,7 +62,6 @@ const fmtWhen = (iso: string) => {
 const who = (e: Ev) => e.user_name || e.user_email || 'Former member'
 
 export default function TeamPage() {
-  const router = useRouter()
   const [data, setData] = useState<TeamPayload | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'no_team' | 'signed_out'>('loading')
   const [tab, setTab] = useState<Tab>('overview')
@@ -82,14 +80,38 @@ export default function TeamPage() {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
-  useEffect(() => {
-    if (state === 'signed_out') router.replace('/login?next=%2Fteam')
-  }, [state, router])
+  // No auto-redirect on signed_out. /team is publicly routable; if /api/team
+  // returns 401, the cookies may not have propagated yet (cookie-race on
+  // sign-in) — auto-redirecting to /login here would race with /login's
+  // own auto-redirect-when-signed-in and cause a /login ⇄ /team loop,
+  // same shape as the dashboard bug reported 2026-06-18.
 
-  if (state === 'loading' || state === 'signed_out') {
+  if (state === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: NAVY }}>
         <Loader2 size={32} className="animate-spin" style={{ color: GOLD }} />
+      </div>
+    )
+  }
+
+  if (state === 'signed_out') {
+    return (
+      <div className="min-h-screen" style={{ background: NAVY }}>
+        <div className="h-24" />
+        <div className="max-w-xl mx-auto px-4 text-center text-white">
+          <Users size={40} className="mx-auto" style={{ color: GOLD }} />
+          <h1 className="mt-5 text-2xl font-extrabold">Sign in to open your team</h1>
+          <p className="mt-3 text-sm leading-relaxed text-blue-200">
+            Your session ended. Sign back in to load your team workspace.
+          </p>
+          <Link
+            href="/login?next=%2Fteam"
+            className="mt-7 inline-block rounded-xl px-7 py-3 text-sm font-bold"
+            style={{ background: GOLD, color: '#1a1200' }}
+          >
+            Sign in
+          </Link>
+        </div>
       </div>
     )
   }

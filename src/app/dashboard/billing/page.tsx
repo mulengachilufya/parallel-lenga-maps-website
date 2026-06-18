@@ -10,7 +10,6 @@
  */
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Loader2, ArrowLeft, CheckCircle2, AlertTriangle, Calendar,
@@ -47,7 +46,6 @@ function daysUntil(iso: string | null): number {
 }
 
 function BillingInner() {
-  const router = useRouter()
   const [loading,   setLoading]   = useState(true)
   const [profile,   setProfile]   = useState<Profile | null>(null)
   const [email,     setEmail]     = useState('')
@@ -58,7 +56,13 @@ function BillingInner() {
 
   const load = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.replace('/login?next=/dashboard/billing'); return }
+    if (!session) {
+      // Never redirect from here — see src/app/dashboard/page.tsx for the
+      // login-loop story. Middleware already gates /dashboard/*. A transient
+      // null-session client-side is a cookie race, not a real sign-out.
+      setLoading(false)
+      return
+    }
     setEmail(session.user.email || '')
 
     const [profRes, payRes] = await Promise.all([
@@ -74,7 +78,7 @@ function BillingInner() {
     setProfile(profRes.data as Profile | null)
     setPayments((payRes.data || []) as PaymentRow[])
     setLoading(false)
-  }, [router])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
