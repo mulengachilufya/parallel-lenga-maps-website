@@ -25,6 +25,13 @@ interface GateUser {
 
 interface ModalState {
   open:          boolean
+  /** 'paywall' = access denied / trial expired (UPSELL).
+   *  'unavailable' = access GRANTED but the specific file has no R2 URL
+   *  (file not in storage yet, signing failed, key missing). Different copy,
+   *  no upsell — showing the paywall here was the production bug reported
+   *  2026-06-18 where a Team-tier user clicked random rainfall rows and saw
+   *  "Your free trial has ended". */
+  kind:          'paywall' | 'unavailable'
   requiredTier:  TierSlug
   datasetSlug:   DatasetSlug | null
 }
@@ -34,6 +41,13 @@ interface DownloadGateCtx {
   loading:     boolean
   checkAccess: (slug: DatasetSlug) => boolean
   openGate:    (slug: DatasetSlug) => void
+  /**
+   * Call this when checkAccess() passed (user has access) but the specific
+   * file row has no download_url — i.e. R2 signing failed or the file
+   * hasn't been uploaded yet. Surfaces a "file not ready" modal instead of
+   * the misleading "trial ended" paywall.
+   */
+  notifyUnavailable: (slug: DatasetSlug) => void
   /**
    * Server-side hop that decrements the trial download counter and returns
    * true iff the download should proceed. Always returns true for paid
@@ -50,6 +64,7 @@ const Ctx = createContext<DownloadGateCtx>({
   user: null, loading: true,
   checkAccess: () => false,
   openGate: () => {},
+  notifyUnavailable: () => {},
   consumeDownload: async () => false,
 })
 
@@ -60,7 +75,7 @@ export function useDownloadGate() { return useContext(Ctx) }
 export default function DownloadGateProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<GateUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [modal, setModal]     = useState<ModalState>({ open: false, requiredTier: 'starter', datasetSlug: null })
+  const [modal, setModal]     = useState<ModalState>({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })
 
   // Defensive load: wrapped in try/finally so setLoading(false) ALWAYS
   // runs. Each await is raced against a timeout that resolves to null on
@@ -169,7 +184,11 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       required_tier: requiredTier,
       user_state: user?.userState ?? 'anonymous',
     })
-    setModal({ open: true, requiredTier, datasetSlug: slug })
+    setModal({ open: true, kind: 'paywall', requiredTier, datasetSlug: slug })
+  }
+
+  function notifyUnavailable(slug: DatasetSlug) {
+    setModal({ open: true, kind: 'unavailable', requiredTier: 'starter', datasetSlug: slug })
   }
 
   async function consumeDownload(slug: DatasetSlug, country?: string): Promise<boolean> {
@@ -198,16 +217,59 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
   }
 
   return (
-    <Ctx.Provider value={{ user, loading, checkAccess, openGate, consumeDownload }}>
+    <Ctx.Provider value={{ user, loading, checkAccess, openGate, notifyUnavailable, consumeDownload }}>
       {children}
-      {modal.open && (
+      {modal.open && modal.kind === 'unavailable' && (
+        <UnavailableModal
+          onClose={() => setModal({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })}
+        />
+      )}
+      {modal.open && modal.kind === 'paywall' && (
         <PaywallModal
           requiredTier={modal.requiredTier}
           userState={user?.userState ?? 'free'}
-          onClose={() => setModal({ open: false, requiredTier: 'starter', datasetSlug: null })}
+          onClose={() => setModal({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })}
         />
       )}
     </Ctx.Provider>
+  )
+}
+
+// ─── Unavailable modal ────────────────────────────────────────
+// Shown when the user HAS access but the specific file row has no
+// download_url (R2 signing failed, file not uploaded yet, key missing).
+// Brand-consistent with the Paywall modal but says nothing about plans —
+// because plans aren't the problem.
+
+function UnavailableModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+      <div className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-md w-full p-7 shadow-2xl">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-white mb-1">This file isn&apos;t ready yet</h2>
+            <p className="text-blue-300 text-sm">Your plan covers it, but the data isn&apos;t in our storage for this country right now.</p>
+          </div>
+          <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-3 text-xl leading-none">✕</button>
+        </div>
+        <div className="bg-[#112236] border border-blue-900/60 rounded-xl px-4 py-3.5 text-blue-200 text-[13px] leading-relaxed mb-5">
+          We&apos;re still expanding country coverage. Other countries in this same
+          dataset should work — try a neighbouring one, or email{' '}
+          <a href="mailto:lengamaps@gmail.com" className="text-[#F5B800] hover:underline">
+            lengamaps@gmail.com
+          </a>{' '}
+          and we&apos;ll prioritise this one.
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="bg-[#F5B800] hover:bg-[#FFC940] text-[#0D2B45] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -16,7 +16,7 @@ interface PopulationListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PopulationList({ userPlan = 'starter' }: PopulationListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   // Live access from the gate. The old `hasFullAccess` PROP defaulted to
   // false and the dashboard never passed it, so the button read "locked"
   // for everyone, including trial and paid users. Derive from checkAccess.
@@ -51,7 +51,7 @@ export default function PopulationList({ userPlan = 'starter' }: PopulationListP
   // returning would just leave the user staring at a dead button.
   const handleDownload = async (layer: PopulationSettlementsLayer) => {
   if (!checkAccess('population')) { openGate('population'); return }
-  if (!layer.download_url) { openGate('population'); return }
+  if (!layer.download_url) { notifyUnavailable('population'); return }
   if (!(await consumeDownload('population', layer.country))) return
   setDownloading(layer.id)
   window.open(layer.download_url, '_blank')

@@ -116,7 +116,7 @@ function LoginForm() {
             <span className="font-bold text-navy text-lg">LENGA <span className="text-accent">MAPS</span></span>
           </Link>
 
-          <h1 className="text-3xl font-black text-navy mb-2">Welcome back</h1>
+          <h1 className="text-3xl font-black text-navy mb-2">Sign in to Lenga Maps</h1>
           <p className="text-gray-500 mb-8">
             {hasNext ? 'Sign in to continue where you left off.' : 'Sign in to access your datasets and downloads.'}
           </p>

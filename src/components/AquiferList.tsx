@@ -12,7 +12,7 @@ interface AquiferListProps {
 }
 
 export default function AquiferList({ }: AquiferListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [layers, setLayers]           = useState<AquiferLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)

@@ -74,7 +74,7 @@ export default function RainfallClimateList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RainfallClimateListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [layers, setLayers]             = useState<RainfallClimateLayer[]>([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState<string | null>(null)
@@ -115,7 +115,7 @@ export default function RainfallClimateList({
       openGate(slug)
       return
     }
-    if (!layer.download_url) { openGate(slug); return }
+    if (!layer.download_url) { notifyUnavailable(slug); return }
     if (!(await consumeDownload(slug, layer.country))) return
     setDownloading(layer.id)
     window.open(layer.download_url, '_blank')

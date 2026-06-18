@@ -16,7 +16,7 @@ interface ProtectedAreasListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess = false }: ProtectedAreasListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [layers,      setLayers]      = useState<ProtectedAreasLayer[]>([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState<string | null>(null)
@@ -48,7 +48,7 @@ export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess
       openGate('protected-areas')
       return
     }
-    if (!layer.download_url) { openGate('protected-areas'); return }
+    if (!layer.download_url) { notifyUnavailable('protected-areas'); return }
     if (!(await consumeDownload('protected-areas', layer.country))) return
     setDownloading(layer.id)
     const link = document.createElement('a')

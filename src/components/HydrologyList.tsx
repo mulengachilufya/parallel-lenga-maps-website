@@ -33,7 +33,7 @@ export default function HydrologyList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: HydrologyListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [layers, setLayers]         = useState<HydrologyLayer[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
@@ -78,7 +78,7 @@ export default function HydrologyList({
       openGate(slug)
       return
     }
-    if (!layer.download_url) { openGate(slug); return }
+    if (!layer.download_url) { notifyUnavailable(slug); return }
     if (!(await consumeDownload(slug, layer.country))) return
     setDownloading(layer.id)
     window.open(layer.download_url, '_blank')

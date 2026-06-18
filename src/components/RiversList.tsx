@@ -17,7 +17,7 @@ export default function RiversList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: RiversListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [rivers, setRivers]           = useState<HydrologyLayer[]>([])
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
@@ -49,7 +49,7 @@ export default function RiversList({
   // tier) — openGate's modal is exactly what should happen then.
   const handleDownload = async (river: HydrologyLayer) => {
   if (!checkAccess('rivers')) { openGate('rivers'); return }
-  if (!river.download_url) { openGate('rivers'); return }
+  if (!river.download_url) { notifyUnavailable('rivers'); return }
   if (!(await consumeDownload('rivers', river.country))) return
   setDownloading(river.id)
   window.open(river.download_url, '_blank')

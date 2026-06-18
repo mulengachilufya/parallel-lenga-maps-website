@@ -13,7 +13,7 @@ interface WatershedsListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function WatershedsList({ userPlan = 'starter' }: WatershedsListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   // Live access from the gate. The old `hasAccess` PROP defaulted to false
   // and the dashboard never passed it, so the button read "locked" for
   // everyone. Watersheds is a Pro-tier dataset; derive from checkAccess.
@@ -43,7 +43,7 @@ export default function WatershedsList({ userPlan = 'starter' }: WatershedsListP
 
   const handleDownload = async (river: HydrologyLayer) => {
   if (!checkAccess('watersheds')) { openGate('watersheds'); return }
-  if (!river.download_url) { openGate('watersheds'); return }
+  if (!river.download_url) { notifyUnavailable('watersheds'); return }
   if (!(await consumeDownload('watersheds', river.country))) return
   setDownloading(river.id)
   window.open(river.download_url, '_blank')

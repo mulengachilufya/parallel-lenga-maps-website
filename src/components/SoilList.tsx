@@ -13,7 +13,7 @@ interface SoilListProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   // Live access from the gate. The old `hasAccess` PROP defaulted to false
   // and the dashboard never passed it, so the button read "locked" for
   // everyone, including trial and Max/Enterprise users. Derive from checkAccess.
@@ -42,7 +42,7 @@ export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
 
   const handleDownload = async (layer: SoilLayer) => {
   if (!checkAccess('soil')) { openGate('soil'); return }
-  if (!layer.download_url) { openGate('soil'); return }
+  if (!layer.download_url) { notifyUnavailable('soil'); return }
   if (!(await consumeDownload('soil', layer.country))) return
   setDownloading(layer.id)
   window.open(layer.download_url, '_blank')

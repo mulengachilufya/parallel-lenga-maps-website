@@ -42,7 +42,7 @@ export default function AdminBoundariesList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasAccess = false,
 }: AdminBoundariesListProps) {
-  const { openGate, checkAccess, consumeDownload } = useDownloadGate()
+  const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [boundaries, setBoundaries] = useState<AdminBoundary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +84,7 @@ export default function AdminBoundariesList({
       openGate('admin-boundaries')
       return
     }
-    if (!boundary.download_url) { openGate('admin-boundaries'); return }
+    if (!boundary.download_url) { notifyUnavailable('admin-boundaries'); return }
     if (!(await consumeDownload('admin-boundaries', boundary.country))) return
     setDownloading(boundary.id)
     window.open(boundary.download_url, '_blank')
