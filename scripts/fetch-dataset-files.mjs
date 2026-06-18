@@ -42,9 +42,10 @@ const r2 = new S3Client({
 const BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-// Vector datasets only (phase 1). Mirrors the table mapping in
-// src/lib/api-datasets.ts. `layer_type` filters shared tables; `adm0_only`
-// keeps just level-0 boundaries for the admin dataset.
+// Mirrors the table mapping in src/lib/api-datasets.ts. `layer_type` filters
+// shared tables; `adm0_only` keeps just level-0 boundaries for the admin
+// dataset. Vector datasets combine into a GeoPackage (combine-vector.py); the
+// coarse climate rasters combine into a COG (combine-raster.py).
 const DATASETS = {
   'rivers':           { table: 'hydrology_layers', layer_type: 'rivers' },
   'lakes':            { table: 'hydrology_layers', layer_type: 'lakes' },
@@ -54,6 +55,10 @@ const DATASETS = {
   'protected-areas':  { table: 'protected_areas_layers' },
   'population':       { table: 'population_settlements_layers' },
   'admin-boundaries': { table: 'admin_boundaries', adm0_only: true },
+  // Climate rasters (~5 km) — combined by combine-raster.py, not the vector combiner.
+  'rainfall':         { table: 'rainfall_climate_layers', layer_type: 'rainfall' },
+  'temperature':      { table: 'rainfall_climate_layers', layer_type: 'temperature' },
+  'drought-index':    { table: 'rainfall_climate_layers', layer_type: 'drought_index' },
 }
 
 function arg(flag) {
@@ -102,11 +107,12 @@ async function main() {
       const bytes = await obj.Body.transformToByteArray()
       fs.writeFileSync(localPath, Buffer.from(bytes))
       index.push({
-        country:     String(row.country),
+        country:       String(row.country),
         iso3,
-        r2_key:      r2Key,
-        local_path:  localName,
-        admin_level: row.admin_level ?? null,
+        r2_key:        r2Key,
+        local_path:    localName,
+        admin_level:   row.admin_level ?? null,
+        variable_name: row.variable_name ?? null,
       })
       console.log(`ok (${(bytes.length / 1_048_576).toFixed(2)} MB)`)
       ok++
