@@ -26,7 +26,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { PLANS, type TierSlug } from '@/lib/pricing'
-import { usdToZmw } from '@/lib/fx'
 
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -113,20 +112,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unrecognised plan' }, { status: 400 })
   }
 
-  // Lipila's card collection rails settle in ZMW (3GDirectPay/Zambian
-  // acquirer). International cards still work — the customer's issuing
-  // bank handles the FX. Convert the USD plan price to ZMW server-side
-  // and let the gateway charge in Kwacha.
-  const { zmw: amount, rate, baseRate } = await usdToZmw(planData.price)
-  const currency = 'ZMW'
-  console.log('[initiate-card] USD→ZMW', { usd: planData.price, zmw: amount, baseRate, rate })
+  // Charge cards in USD directly. 3GDirectPay (Lipila's card rail) supports
+  // USD, and the plan is priced in USD, so this shows the customer the exact
+  // price. The old USD->ZMW conversion meant the hosted page then re-converted
+  // ZMW->USD at its own spread, turning a $5 plan into $5.21. The customer's
+  // issuing bank handles any FX to their card currency. Mobile money still
+  // charges ZMW (wallets hold Kwacha) — that path is unchanged.
+  const amount   = planData.price
+  const currency = 'USD'
+  console.log('[initiate-card] charging USD', { usd: amount, reference })
 
-  // Record the Kwacha amount we're charging.
+  // Record the USD amount + currency we're charging.
   serviceSupabase
     .from('payments')
-    .update({ amount_zmw: amount })
+    .update({ amount_usd: amount, currency })
     .eq('reference', reference)
-    .then(({ error }) => { if (error) console.error('[initiate-card] amount_zmw update failed:', error) })
+    .then(({ error }) => { if (error) console.error('[initiate-card] amount_usd update failed:', error) })
 
   const appUrl      = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
   const callbackUrl = `${appUrl}/api/payments/webhook`
