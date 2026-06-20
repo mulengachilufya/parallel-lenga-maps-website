@@ -43,7 +43,7 @@ const DATASET_ICON: Record<number, LucideIcon> = {
   3:  Waves,       // River Networks
   4:  Trees,       // Land Use / Land Cover
   5:  Flame,       // Drought Index (SPI-12)
-  6:  Droplets,    // Groundwater Aquifers
+  6:  Droplets,    // Transboundary Aquifers
   8:  Users,       // Population & Settlements
   9:  Route,       // Roads & Infrastructure
   10: CloudRain,   // Wetlands & Floodplains

@@ -78,7 +78,7 @@ const SECTIONS: Record<string, {
     component: () => <RainfallClimateList layerType="drought_index" />,
   },
   'aquifer': {
-    title: '💧 Groundwater Aquifers',
+    title: '💧 Transboundary Aquifers',
     subtitle: 'IGRAC GGIS · GeoPackage · All 54 African countries',
     component: () => <AquiferList />,
   },
