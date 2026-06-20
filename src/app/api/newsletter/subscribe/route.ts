@@ -11,8 +11,13 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { clientIp, checkIpRateLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
+
+// Public, unauthenticated form: 3 signups per IP per 10 minutes.
+const NL_LIMIT  = 3
+const NL_WINDOW = 600 // seconds
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +41,12 @@ export async function POST(req: NextRequest) {
 
   if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+  }
+
+  // Rate-limit valid submissions per IP so the table can't be scripted full.
+  const rl = await checkIpRateLimit(service, 'newsletter', clientIp(req), NL_LIMIT, NL_WINDOW)
+  if (!rl.ok) {
+    return rateLimitedResponse(rl, 'Too many sign-up attempts. Please wait a few minutes.')
   }
 
   const source =

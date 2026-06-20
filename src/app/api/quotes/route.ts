@@ -12,8 +12,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, quoteRequestAdminEmail, quoteAckEmail } from '@/lib/email'
+import { clientIp, checkIpRateLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
+
+// Public, unauthenticated form: 5 submissions per IP per 10 minutes. Enough
+// for a genuine person fixing typos and resubmitting; cuts off a script.
+const QUOTE_LIMIT  = 5
+const QUOTE_WINDOW = 600 // seconds
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,6 +60,13 @@ export async function POST(req: NextRequest) {
       { error: 'validation', message: 'Organisation name and a valid email are required.' },
       { status: 400 },
     )
+  }
+
+  // Rate-limit only well-formed submissions (the ones that would write a row
+  // and fire two emails). Honeypot + malformed requests already returned above.
+  const rl = await checkIpRateLimit(service, 'quotes', clientIp(req), QUOTE_LIMIT, QUOTE_WINDOW)
+  if (!rl.ok) {
+    return rateLimitedResponse(rl, "You've sent a few requests already. Please wait a few minutes, or email lengamaps@gmail.com directly.")
   }
 
   const fields = { org_name, contact_name, email, sector, region, seats, datasets_interest, notes }
