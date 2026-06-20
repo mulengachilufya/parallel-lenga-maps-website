@@ -321,6 +321,61 @@ The Lenga Maps team`
   }
 }
 
+// ── Newsletter ──────────────────────────────────────────────────────────────
+
+/**
+ * Sent immediately when someone subscribes via the landing-page newsletter.
+ * Goes out on the `newsletter` channel (newsletter@lengamaps.com). Best-effort:
+ * a failed send must never fail the subscribe request.
+ */
+export function newsletterWelcomeEmail(to: string): EmailMessage {
+  const cta = `${APP_URL}/atlas`
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi there,</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      Thanks for subscribing. You're now on the list for everything we make at Lenga Maps:
+      new datasets and country coverage, practical mapping tips, and real maps built from our
+      data. We only send something when it's genuinely useful, so no spam and no filler.
+    </p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      In case we haven't met properly: Lenga Maps is professional GIS data for all
+      <strong>54 African countries</strong>. Fifteen datasets, including boundaries, rivers,
+      rainfall, drought, soil and land cover, each harmonised to EPSG:4326 and ready to drop
+      straight into QGIS.
+    </p>
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
+      You don't have to wait for the next email to dig in. Browsing the catalogue is free, and
+      a <strong>3-day trial</strong> unlocks full access with 10 downloads, no card required.
+    </p>`
+  const text = `Hi there,
+
+Thanks for subscribing. You're now on the list for everything we make at Lenga Maps: new datasets and country coverage, practical mapping tips, and real maps built from our data. We only send something when it's genuinely useful, so no spam and no filler.
+
+In case we haven't met properly: Lenga Maps is professional GIS data for all 54 African countries. Fifteen datasets, including boundaries, rivers, rainfall, drought, soil and land cover, each harmonised to EPSG:4326 and ready to drop straight into QGIS.
+
+You don't have to wait for the next email to dig in. Browsing the catalogue is free, and a 3-day trial unlocks full access with 10 downloads, no card required.
+
+Explore the Atlas: ${cta}
+
+You're getting this because you subscribed at lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to,
+    subject: "Welcome to Lenga Maps, you're on the list",
+    html: shell({
+      preheader: 'Professional GIS data for all 54 African countries, plus what\'s new, in your inbox.',
+      heading:   'Welcome to Lenga Maps.',
+      bodyHtml,
+      ctaLabel:  'Explore the Atlas',
+      ctaHref:   cta,
+      footnote:  'You\'re getting this because you subscribed at lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
+    }),
+    text,
+  }
+}
+
 // ── Teams tier ("For Project Teams and Businesses") ─────────────────────────
 
 export const QUOTE_NOTIFY_EMAIL =

@@ -3,8 +3,10 @@
  *
  * Body: { email: string, source?: string }
  * Writes one row to newsletter_subscribers via the service role (the table
- * has no public RLS policy — same posture as quote_requests). Phase 1 only
- * stores the address; no confirmation email is sent (that is Phase 2).
+ * has no public RLS policy — same posture as quote_requests), then sends a
+ * welcome email on the newsletter channel. The welcome send is best-effort:
+ * it never blocks or fails the subscribe response, and it is skipped for a
+ * duplicate address (they already received it on first sign-up).
  *
  * A duplicate address returns success WITHOUT revealing it already exists,
  * to prevent email enumeration.
@@ -12,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, checkIpRateLimit, rateLimitedResponse } from '@/lib/rate-limit'
+import { sendEmail, newsletterWelcomeEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,6 +70,10 @@ export async function POST(req: NextRequest) {
     console.error('[newsletter] insert failed:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+
+  // New subscriber: send the welcome email. Best-effort — sendEmail never
+  // throws, so a mail outage can't fail a sign-up that already persisted.
+  await sendEmail(newsletterWelcomeEmail(email), 'newsletter')
 
   return NextResponse.json({ success: true })
 }
