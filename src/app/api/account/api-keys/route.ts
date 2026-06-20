@@ -34,8 +34,12 @@ interface ApiKeyRow {
  *  time so we never hand out a key that's dead on arrival. */
 async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // getUser() validates the JWT against the auth server. getSession() only
+  // decodes the cookie and would let a forged `sub` claim impersonate
+  // another user (mint API keys on their org). NEVER use getSession() for
+  // authorization. (Security audit 2026-06-18.)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -44,7 +48,7 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },
   )
-  const membership = await getMembership(service, session.user.id)
+  const membership = await getMembership(service, user.id)
 
   if (!membership) {
     return NextResponse.json(
@@ -62,7 +66,7 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
     )
   }
 
-  return { userId: session.user.id }
+  return { userId: user.id }
 }
 
 export async function GET() {

@@ -77,8 +77,10 @@ export async function GET(
   { params }: { params: Promise<{ reference: string }> }
 ) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // getUser() (verified). With getSession() a forged `sub` could read
+  // another user's payment status by reference. (Security audit 2026-06-18.)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { reference } = await params
 
@@ -87,7 +89,7 @@ export async function GET(
     .from('payments')
     .select('*')
     .eq('reference', reference)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (fetchError || !payment) {

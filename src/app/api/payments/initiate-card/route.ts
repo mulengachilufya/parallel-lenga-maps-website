@@ -47,8 +47,10 @@ function normalisePhone(raw: string): string {
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // getUser() (verified) not getSession() (cookie-trusting). Security audit
+  // 2026-06-18: getSession lets a forged `sub` act as another user.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
   // Lipila marks `email` required on the card endpoint; an empty value is
   // silently rejected (like the old USD/Zambia mismatch). Fail fast with a
   // clear message rather than letting the gateway reject the whole request.
-  const email = session.user.email ?? ''
+  const email = user.email ?? ''
   if (!email) {
     return NextResponse.json(
       { error: 'Your account has no email address. Add one to your profile before paying by card.' },
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
     .from('payments')
     .select('*')
     .eq('reference', reference)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (fetchErr || !payment) {

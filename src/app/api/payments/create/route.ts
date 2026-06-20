@@ -10,9 +10,11 @@ const serviceSupabase = createClient(
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() (verified) not getSession() (cookie-trusting). Security audit
+  // 2026-06-18: getSession lets a forged `sub` act as another user.
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   const reference = `lm-${randomUUID().replace(/-/g, '').slice(0, 16)}`
   const { error } = await serviceSupabase.from('payments').insert({
-    user_id:      session.user.id,
+    user_id:      user.id,
     reference,
     plan,
     account_type: accountType,

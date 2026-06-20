@@ -18,13 +18,15 @@ const service = createClient(
 
 export async function POST(_request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // getUser() (verified). With getSession() a forged `sub` could cancel
+  // another user's subscription. (Security audit 2026-06-18.)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: profile, error: fetchErr } = await service
     .from('profiles')
     .select('plan, plan_status, plan_expires_at, auto_renew_enabled')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single()
 
   if (fetchErr || !profile) {
@@ -40,7 +42,7 @@ export async function POST(_request: NextRequest) {
       auto_renew_enabled: false,
       cancelled_at:       new Date().toISOString(),
     })
-    .eq('id', session.user.id)
+    .eq('id', user.id)
 
   if (upErr) {
     console.error('[cancel] failed to update profile:', upErr)

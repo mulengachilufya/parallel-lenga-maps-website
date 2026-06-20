@@ -14,8 +14,11 @@ export const dynamic = 'force-dynamic'
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieClient = await createServerSupabase()
-  const { data: { session } } = await cookieClient.auth.getSession()
-  if (!session) {
+  // getUser() (verified) not getSession() (cookie-trusting) — see security
+  // audit 2026-06-18. With getSession a forged `sub` could revoke another
+  // user's API keys.
+  const { data: { user } } = await cookieClient.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -34,7 +37,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .from('api_keys')
     .update({ revoked_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .is('revoked_at', null)
     .select('id')
     .maybeSingle()

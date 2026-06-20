@@ -55,12 +55,15 @@ async function notifyWhatsApp(message: string) {
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // getUser() (verified) not getSession() (cookie-trusting). Security audit
+  // 2026-06-18: getSession lets a forged `sub` submit a payment as another
+  // user (and would attribute the activation to the victim's account).
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
   }
-  const userId    = session.user.id
-  const userEmail = session.user.email || ''
+  const userId    = user.id
+  const userEmail = user.email || ''
 
   let form: FormData
   try {
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
   if (!profileName) {
     const { data: prof } = await service
       .from('profiles').select('full_name').eq('id', userId).single()
-    profileName = prof?.full_name || session.user.user_metadata?.full_name || ''
+    profileName = prof?.full_name || user.user_metadata?.full_name || ''
   }
 
   // Upload screenshot to R2

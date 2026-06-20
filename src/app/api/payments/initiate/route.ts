@@ -38,8 +38,10 @@ function normalisePhone(raw: string): string {
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // getUser() (verified) not getSession() (cookie-trusting). Security audit
+  // 2026-06-18: getSession lets a forged `sub` act as another user.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let reference: string, phone: string
   try {
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
     .from('payments')
     .select('*')
     .eq('reference', reference)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (fetchErr || !payment) {
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
         narration:     `Lenga Maps ${payment.plan} plan`,
         accountNumber: normPhone,
         currency,
-        email:         session.user.email ?? undefined,
+        email:         user.email ?? undefined,
       }),
     })
   } catch (err) {

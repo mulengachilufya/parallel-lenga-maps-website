@@ -16,13 +16,15 @@ const service = createClient(
 
 export async function POST(_request: NextRequest) {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // getUser() (verified). With getSession() a forged `sub` could resume
+  // another user's subscription. (Security audit 2026-06-18.)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: profile } = await service
     .from('profiles')
     .select('plan_status, plan_expires_at')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single()
 
   if (!profile || profile.plan_status !== 'active') {
@@ -38,7 +40,7 @@ export async function POST(_request: NextRequest) {
       auto_renew_enabled: true,
       cancelled_at:       null,
     })
-    .eq('id', session.user.id)
+    .eq('id', user.id)
 
   if (upErr) {
     console.error('[resume] failed:', upErr)
