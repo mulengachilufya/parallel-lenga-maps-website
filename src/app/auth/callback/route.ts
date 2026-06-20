@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 /**
  * GET /auth/callback?code=...&next=...
@@ -15,7 +16,10 @@ import { createServerSupabase } from '@/lib/supabase-server'
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') || '/dashboard?welcome=new'
+  // Sanitise `next` — this route does NextResponse.redirect(new URL(next, …))
+  // right after a successful code exchange, so an unsanitised absolute /
+  // protocol-relative value would be a post-auth open redirect (phishing).
+  const next = safeNextPath(url.searchParams.get('next'), '/dashboard?welcome=new')
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', url.origin))

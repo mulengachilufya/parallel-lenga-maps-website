@@ -7,16 +7,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  // Only allow safe internal paths for `next` (must start with "/" and not "//")
+  // Only allow safe same-origin paths for `next` (rejects absolute,
+  // protocol-relative //, and /\ backslash tricks). See safeNextPath.
   const nextParam = searchParams.get('next')
-  const nextPath = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
-    ? nextParam
-    : '/dashboard'
-  const hasNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+  const nextPath  = safeNextPath(nextParam, '/dashboard')
+  const hasNext   = !!nextParam && nextPath === nextParam
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
