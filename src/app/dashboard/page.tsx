@@ -109,7 +109,7 @@ const SECTIONS: Record<string, {
   },
   'lakes': {
     title: '🏞️ Lakes',
-    subtitle: 'HydroLAKES · Shapefile (ZIP) per country',
+    subtitle: 'HydroLAKES · GeoPackage per country',
     component: () => <HydrologyList layerType="lakes" />,
   },
   'soil': {

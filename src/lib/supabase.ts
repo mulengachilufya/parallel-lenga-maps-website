@@ -414,7 +414,7 @@ export const DATASETS: Dataset[] = [
     category: 'Water & Hydrology',
     description: 'Per-country lake polygons from HydroLAKES. Includes natural lakes and major reservoirs.',
     source: 'HydroLAKES',
-    format: 'ZIP (Shapefile)',
+    format: 'GeoPackage',
     resolution: 'Vector polygons',
     icon: '🏞️',
     tier: 'max',

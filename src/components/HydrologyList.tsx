@@ -71,7 +71,7 @@ export default function HydrologyList({
   }, [filterCountry, filterType, pinnedLayerType])
 
   // ALWAYS go through openGate — even when download_url is missing.
-  // Tier required depends on layer_type: rivers=basic, lakes=pro.
+  // Tier required depends on layer_type: rivers=pro, lakes=max.
   const handleDownload = async (layer: HydrologyLayer) => {
     const slug = layer.layer_type === 'lakes' ? 'lakes' : 'rivers'
     if (!checkAccess(slug)) {
@@ -105,18 +105,23 @@ export default function HydrologyList({
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Layer Type</label>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Rivers &amp; Lakes</option>
-            <option value="rivers">Rivers only</option>
-            <option value="lakes">Lakes only</option>
-          </select>
-        </div>
+        {/* Layer-type picker only when NOT pinned. The Lakes dashboard section
+            pins layerType="lakes"; showing a Rivers/Lakes picker there would
+            wrongly imply lakes and rivers are the same dataset. */}
+        {!pinnedLayerType && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Layer Type</label>
+            <select
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Rivers &amp; Lakes</option>
+              <option value="rivers">Rivers only</option>
+              <option value="lakes">Lakes only</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -199,9 +204,11 @@ export default function HydrologyList({
           </table>
 
           <div className="mt-4 text-sm text-gray-500">
-            Showing {layers.length} layer{layers.length !== 1 ? 's' : ''}
-            {' '}- {layers.filter(l => l.layer_type === 'rivers').length} river files,{' '}
-            {layers.filter(l => l.layer_type === 'lakes').length} lake files
+            Showing {layers.length} {pinnedLayerType === 'lakes' ? 'lake' : 'hydrology'} file{layers.length !== 1 ? 's' : ''}
+            {!pinnedLayerType && <>
+              {' '}- {layers.filter(l => l.layer_type === 'rivers').length} river files,{' '}
+              {layers.filter(l => l.layer_type === 'lakes').length} lake files
+            </>}
           </div>
         </div>
       )}

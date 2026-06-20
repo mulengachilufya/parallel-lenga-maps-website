@@ -22,19 +22,20 @@ const ORDERED_DATASETS = sortDatasetsByTier(DATASETS)
  */
 const DATASET_TIPS: Record<number, string> = {
   1:  'Base maps, census planning, and jurisdiction analysis.',
-  3:  'Filter by Strahler order. Pairs with rainfall and aquifer data for watershed analysis.',
+  3:  'Filter by Strahler order. River and stream networks for drainage, flood and hydrological analysis.',
   4:  'Clipped to country boundaries from ESA WorldCover 2021 (10 m). 10 classes from tree cover to built-up.',
   5:  'Long-term drought severity. Negative = drought, positive = wet. Pairs with rainfall.',
-  6:  'Transboundary aquifer agreements and borehole planning. Pairs with HydroBASINS.',
+  6:  'Cross-border aquifer extents for transboundary groundwater management, recharge studies and borehole planning.',
   8:  'Subnational counts at ADM1/ADM2 from each country\'s latest official census.',
   9:  'Accessibility analysis, logistics planning, infrastructure gap assessment.',
   10: 'Biodiversity conservation, flood modelling, environmental compliance.',
   11: 'Precision agriculture, land suitability, erosion risk. Multi-layer soil properties.',
   12: 'Conservation planning, wildlife corridor mapping, environmental compliance.',
-  13: 'Filter by Strahler order. ≥4 = named, navigable rivers. Pairs with HydroBASINS.',
-  14: 'Level 6 basins (2,000–10,000 km²). Catchment-scale hydrology and transboundary water management.',
+  13: 'Filter by Strahler order. ≥4 = named, navigable rivers, with discharge and length attributes.',
+  14: 'Level 6 drainage basins (2,000–10,000 km²) for catchment delineation, runoff and flood-risk modelling.',
   15: 'Annual rainfall totals for agricultural planning, water catchments, climate baselines.',
   16: 'Monthly mean temperature climatology for habitat modelling and crop suitability.',
+  17: 'Natural lakes and major reservoirs from HydroLAKES — water-resource, fisheries and flood-extent analysis.',
 }
 
 function CompactSources({

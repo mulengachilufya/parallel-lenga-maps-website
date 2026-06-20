@@ -127,7 +127,7 @@ export const DATASETS: DatasetSpec[] = [
       country_iso3: iso3For(String(r.country)),
       r2_key:       String(r.r2_key),
       file_size_mb: Number(r.file_size_mb ?? 0),
-      file_format:  String(r.file_format ?? 'ZIP (Shapefile)'),
+      file_format:  String(r.file_format ?? 'GeoPackage'),
       source:       String(r.source ?? 'HydroLAKES'),
     }),
   },
