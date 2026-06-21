@@ -101,14 +101,16 @@ export async function sendEmail(
 // ── Branded HTML shell ──────────────────────────────────────────────────────
 
 function shell(opts: {
-  preheader: string
-  heading:   string
-  bodyHtml:  string
-  ctaLabel:  string
-  ctaHref:   string
-  footnote?: string
+  preheader:  string
+  heading:    string
+  bodyHtml:   string
+  ctaLabel:   string
+  ctaHref:    string
+  cta2Label?: string
+  cta2Href?:  string
+  footnote?:  string
 }): string {
-  const { preheader, heading, bodyHtml, ctaLabel, ctaHref, footnote } = opts
+  const { preheader, heading, bodyHtml, ctaLabel, ctaHref, cta2Label, cta2Href, footnote } = opts
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -134,6 +136,10 @@ function shell(opts: {
             <tr><td style="border-radius:10px;background:#C9A227;">
               <a href="${ctaHref}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:#1a1200;text-decoration:none;border-radius:10px;">${ctaLabel}</a>
             </td></tr>
+            ${cta2Label && cta2Href ? `<tr><td style="height:12px;line-height:12px;font-size:12px;">&nbsp;</td></tr>
+            <tr><td style="border-radius:10px;background:#0D2B45;">
+              <a href="${cta2Href}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${cta2Label}</a>
+            </td></tr>` : ''}
           </table>
           ${footnote ? `<p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#8a8a8a;">${footnote}</p>` : ''}
         </td></tr>
@@ -330,6 +336,7 @@ The Lenga Maps team`
  */
 export function newsletterWelcomeEmail(to: string): EmailMessage {
   const cta = `${APP_URL}/atlas`
+  const dl  = `${APP_URL}/datasets`
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi there,</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
@@ -364,6 +371,7 @@ My name is Mulenga, founder of Lenga Maps, a tech startup building Africa's larg
 New issues land every Monday. Lenga Maps gives you professional GIS data across all 54 African countries: 15 datasets, harmonised to EPSG:4326 and ready for QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
 
 Explore the Atlas: ${cta}
+Download GIS data: ${dl}
 
 See you Monday,
 Mulenga
@@ -378,6 +386,8 @@ You're getting this because you subscribed at www.lengamaps.com. Not for you? Ju
       bodyHtml,
       ctaLabel:  'Explore the Atlas',
       ctaHref:   cta,
+      cta2Label: 'Download GIS data',
+      cta2Href:  dl,
       footnote:  'See you Monday, Mulenga.<br><br>You\'re getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
     }),
     text,
