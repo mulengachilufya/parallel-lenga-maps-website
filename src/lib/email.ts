@@ -333,11 +333,11 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi there,</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Thanks for subscribing. I'm Mulenga, and this is
-      <strong>Earth, Maps &amp; Models by Lenga Maps</strong>: geospatial thinking from the
-      African frontier. A new issue lands in your inbox <strong>every Monday</strong>.
+      My name is Mulenga, founder of Lenga Maps, a tech startup building Africa's largest and
+      most centralised GIS data platform for Climate, Water and Industrial Projects. We developed
+      this newsletter to truly connect extensively with great people like yourself, and will be
+      offering the following:
     </p>
-    <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">Here's what each one gives you:</p>
     <ul style="margin:0 0 14px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
       <li><strong>From the Build</strong>: an honest note on what I shipped at Lenga Maps that week.</li>
       <li><strong>The Feature</strong>: one GIS concept or African environmental issue, explored properly.</li>
@@ -346,16 +346,14 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
       <li><strong>The Question</strong>: one honest question. Hit reply, I read every one.</li>
     </ul>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      In case we haven't met properly: Lenga Maps is professional GIS data for all
-      <strong>54 African countries</strong>. Fifteen datasets, harmonised to EPSG:4326 and ready
-      to drop straight into QGIS. Browsing is free, a <strong>3-day trial</strong> unlocks full
-      access with 10 downloads and no card, and plans start at <strong>$5/month</strong>.
+      New issues land every Monday. Lenga Maps gives you professional GIS data across all
+      <strong>54 African countries</strong>: 15 datasets, harmonised to EPSG:4326 and ready for
+      QGIS. Browsing is free, a <strong>3-day trial</strong> unlocks full access with 10 downloads
+      and no card, and plans start at <strong>$5/month</strong>.
     </p>`
   const text = `Hi there,
 
-Thanks for subscribing. I'm Mulenga, and this is Earth, Maps & Models by Lenga Maps: geospatial thinking from the African frontier. A new issue lands in your inbox every Monday.
-
-Here's what each one gives you:
+My name is Mulenga, founder of Lenga Maps, a tech startup building Africa's largest and most centralised GIS data platform for Climate, Water and Industrial Projects. We developed this newsletter to truly connect extensively with great people like yourself, and will be offering the following:
 
 - From the Build: an honest note on what I shipped at Lenga Maps that week.
 - The Feature: one GIS concept or African environmental issue, explored properly.
@@ -363,7 +361,7 @@ Here's what each one gives you:
 - GIS Trick of the Week: one practical QGIS, Python or GDAL tip you can use that day.
 - The Question: one honest question. Hit reply, I read every one.
 
-In case we haven't met properly: Lenga Maps is professional GIS data for all 54 African countries. Fifteen datasets, harmonised to EPSG:4326 and ready to drop straight into QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
+New issues land every Monday. Lenga Maps gives you professional GIS data across all 54 African countries: 15 datasets, harmonised to EPSG:4326 and ready for QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
 
 Explore the Atlas: ${cta}
 
