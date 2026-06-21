@@ -78,6 +78,22 @@ export default function Footer() {
             </a>
           </div>
 
+          {/* Newsletter */}
+          <div className="flex-1 min-w-[160px] flex flex-col gap-3">
+            <h4 className="text-[0.78rem] font-bold tracking-[0.14em] uppercase text-gold mb-1">
+              Newsletter
+            </h4>
+            <p className="text-[0.9rem] leading-[1.6] text-white/45">
+              Earth, Maps &amp; Models. Geospatial thinking from the African frontier, every Monday.
+            </p>
+            <Link
+              href="/newsletter"
+              className="inline-flex items-center justify-center bg-gold text-[#1a1200] font-bold text-[0.85rem] px-5 py-2.5 rounded-lg hover:bg-gold-light transition-all w-fit mt-1"
+            >
+              Subscribe
+            </Link>
+          </div>
+
           {/* Quick Links */}
           <div className="flex-1 min-w-[160px] flex flex-col gap-3">
             <h4 className="text-[0.78rem] font-bold tracking-[0.14em] uppercase text-gold mb-1">
