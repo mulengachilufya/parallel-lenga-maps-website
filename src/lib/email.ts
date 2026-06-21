@@ -333,44 +333,54 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi there,</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Thanks for subscribing. You're now on the list for everything we make at Lenga Maps:
-      new datasets and country coverage, practical mapping tips, and real maps built from our
-      data. We only send something when it's genuinely useful, so no spam and no filler.
+      Thanks for subscribing. I'm Mulenga, I build Lenga Maps, and this is
+      <strong>Earth, Maps &amp; Models</strong>: geospatial thinking from the African frontier.
+      A new issue lands in your inbox <strong>every Monday</strong>.
     </p>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      In case we haven't met properly: Lenga Maps is professional GIS data for all
-      <strong>54 African countries</strong>. Fifteen datasets, including boundaries, rivers,
-      rainfall, drought, soil and land cover, each harmonised to EPSG:4326 and ready to drop
-      straight into QGIS.
-    </p>
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">Here's what each one gives you:</p>
+    <ul style="margin:0 0 14px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
+      <li><strong>From the Build</strong>: an honest note on what I shipped at Lenga Maps that week.</li>
+      <li><strong>The Feature</strong>: one GIS concept or African environmental issue, explored properly.</li>
+      <li><strong>Dataset Spotlight</strong>: one of our datasets, one real use case, and the decision it informs.</li>
+      <li><strong>GIS Trick of the Week</strong>: one practical QGIS, Python or GDAL tip you can use that day.</li>
+      <li><strong>The Question</strong>: one honest question. Hit reply, I read every one.</li>
+    </ul>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      You don't have to wait for the next email to dig in. Browsing the catalogue is free, and
-      a <strong>3-day trial</strong> unlocks full access with 10 downloads, no card required.
+      In case we haven't met properly: Lenga Maps is professional GIS data for all
+      <strong>54 African countries</strong>. Fifteen datasets, harmonised to EPSG:4326 and ready
+      to drop straight into QGIS. Browsing is free, a <strong>3-day trial</strong> unlocks full
+      access with 10 downloads and no card, and plans start at <strong>$5/month</strong>.
     </p>`
   const text = `Hi there,
 
-Thanks for subscribing. You're now on the list for everything we make at Lenga Maps: new datasets and country coverage, practical mapping tips, and real maps built from our data. We only send something when it's genuinely useful, so no spam and no filler.
+Thanks for subscribing. I'm Mulenga, I build Lenga Maps, and this is Earth, Maps & Models: geospatial thinking from the African frontier. A new issue lands in your inbox every Monday.
 
-In case we haven't met properly: Lenga Maps is professional GIS data for all 54 African countries. Fifteen datasets, including boundaries, rivers, rainfall, drought, soil and land cover, each harmonised to EPSG:4326 and ready to drop straight into QGIS.
+Here's what each one gives you:
 
-You don't have to wait for the next email to dig in. Browsing the catalogue is free, and a 3-day trial unlocks full access with 10 downloads, no card required.
+- From the Build: an honest note on what I shipped at Lenga Maps that week.
+- The Feature: one GIS concept or African environmental issue, explored properly.
+- Dataset Spotlight: one of our datasets, one real use case, and the decision it informs.
+- GIS Trick of the Week: one practical QGIS, Python or GDAL tip you can use that day.
+- The Question: one honest question. Hit reply, I read every one.
+
+In case we haven't met properly: Lenga Maps is professional GIS data for all 54 African countries. Fifteen datasets, harmonised to EPSG:4326 and ready to drop straight into QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
 
 Explore the Atlas: ${cta}
 
-You're getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.
+See you Monday,
+Mulenga
 
-Thanks,
-The Lenga Maps team`
+You're getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.`
   return {
     to,
-    subject: "Welcome to Lenga Maps, you're on the list",
+    subject: 'Welcome to Earth, Maps & Models',
     html: shell({
-      preheader: 'Professional GIS data for all 54 African countries, plus what\'s new, in your inbox.',
-      heading:   'Welcome to Lenga Maps.',
+      preheader: 'Geospatial thinking from the African frontier, every Monday.',
+      heading:   'Welcome to Earth, Maps & Models.',
       bodyHtml,
       ctaLabel:  'Explore the Atlas',
       ctaHref:   cta,
-      footnote:  'You\'re getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
+      footnote:  'See you Monday, Mulenga.<br><br>You\'re getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
     }),
     text,
   }
