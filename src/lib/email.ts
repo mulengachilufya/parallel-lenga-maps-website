@@ -357,7 +357,7 @@ You don't have to wait for the next email to dig in. Browsing the catalogue is f
 
 Explore the Atlas: ${cta}
 
-You're getting this because you subscribed at lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.
+You're getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.
 
 Thanks,
 The Lenga Maps team`
@@ -370,7 +370,7 @@ The Lenga Maps team`
       bodyHtml,
       ctaLabel:  'Explore the Atlas',
       ctaHref:   cta,
-      footnote:  'You\'re getting this because you subscribed at lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
+      footnote:  'You\'re getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we\'ll take you off the list.',
     }),
     text,
   }
