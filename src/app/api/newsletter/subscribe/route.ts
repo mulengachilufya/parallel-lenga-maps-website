@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { clientIp, checkIpRateLimit, rateLimitedResponse } from '@/lib/rate-limit'
-import { sendEmail, newsletterWelcomeEmail } from '@/lib/email'
+import { sendEmail, newsletterWelcomeEmail, addNewsletterContact } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,8 +71,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 
-  // New subscriber: send the welcome email. Best-effort — sendEmail never
-  // throws, so a mail outage can't fail a sign-up that already persisted.
+  // New subscriber: add them to the Resend Audience (so the weekly issue can
+  // be sent from Resend Broadcasts) and send the welcome email. Both are
+  // best-effort and never throw, so they can't fail a sign-up that persisted.
+  await addNewsletterContact(email)
   await sendEmail(newsletterWelcomeEmail(email), 'newsletter')
 
   return NextResponse.json({ success: true })

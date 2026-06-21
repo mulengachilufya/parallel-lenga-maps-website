@@ -330,6 +330,37 @@ The Lenga Maps team`
 // ── Newsletter ──────────────────────────────────────────────────────────────
 
 /**
+ * Add a subscriber to the Resend Audience that backs the weekly newsletter, so
+ * each Monday issue can be written and sent from Resend > Broadcasts. Uses the
+ * newsletter API key and RESEND_AUDIENCE_ID. Best-effort: never throws, and a
+ * missing audience id just skips (logged), so it can't fail a sign-up.
+ */
+export async function addNewsletterContact(email: string): Promise<boolean> {
+  const key        = process.env.RESEND_NEWSLETTER_API_KEY
+  const audienceId = process.env.RESEND_AUDIENCE_ID
+  if (!key || !audienceId) {
+    console.error('[email] newsletter contact skipped: missing RESEND_NEWSLETTER_API_KEY or RESEND_AUDIENCE_ID')
+    return false
+  }
+  try {
+    const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, unsubscribed: false }),
+    })
+    if (!res.ok) {
+      console.error('[email] resend contact error', { status: res.status }, await res.text())
+      return false
+    }
+    console.log('[email] newsletter contact added', { email })
+    return true
+  } catch (err) {
+    console.error('[email] resend contact exception', err)
+    return false
+  }
+}
+
+/**
  * Sent immediately when someone subscribes via the landing-page newsletter.
  * Goes out on the `newsletter` channel (newsletter@lengamaps.com). Best-effort:
  * a failed send must never fail the subscribe request.
