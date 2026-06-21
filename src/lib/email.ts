@@ -333,9 +333,9 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi there,</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Thanks for subscribing. I'm Mulenga, I build Lenga Maps, and this is
-      <strong>Earth, Maps &amp; Models</strong>: geospatial thinking from the African frontier.
-      A new issue lands in your inbox <strong>every Monday</strong>.
+      Thanks for subscribing. I'm Mulenga, and this is
+      <strong>Earth, Maps &amp; Models by Lenga Maps</strong>: geospatial thinking from the
+      African frontier. A new issue lands in your inbox <strong>every Monday</strong>.
     </p>
     <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">Here's what each one gives you:</p>
     <ul style="margin:0 0 14px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
@@ -353,7 +353,7 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
     </p>`
   const text = `Hi there,
 
-Thanks for subscribing. I'm Mulenga, I build Lenga Maps, and this is Earth, Maps & Models: geospatial thinking from the African frontier. A new issue lands in your inbox every Monday.
+Thanks for subscribing. I'm Mulenga, and this is Earth, Maps & Models by Lenga Maps: geospatial thinking from the African frontier. A new issue lands in your inbox every Monday.
 
 Here's what each one gives you:
 
@@ -373,10 +373,10 @@ Mulenga
 You're getting this because you subscribed at www.lengamaps.com. Not for you? Just reply with "unsubscribe" and we'll take you off the list.`
   return {
     to,
-    subject: 'Welcome to Earth, Maps & Models',
+    subject: 'Welcome to Earth, Maps & Models by Lenga Maps',
     html: shell({
       preheader: 'Geospatial thinking from the African frontier, every Monday.',
-      heading:   'Welcome to Earth, Maps & Models.',
+      heading:   'Welcome to Earth, Maps & Models by Lenga Maps.',
       bodyHtml,
       ctaLabel:  'Explore the Atlas',
       ctaHref:   cta,
