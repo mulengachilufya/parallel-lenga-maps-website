@@ -7,8 +7,9 @@
  *   1. POST /api/payments/create → reference
  *   2. POST /api/payments/initiate-card → cardRedirectionUrl
  *   3. window.location.href = cardRedirectionUrl
- *      (Lipila hosts the card form via 3GDirectPay; settlement is in ZMW,
- *       customer's bank converts from the card's own currency.)
+ *      (Lipila hosts the card form via 3GDirectPay; charged in USD — the
+ *       exact plan price — and the customer's bank converts to the card's
+ *       own currency if needed.)
  *   4. Lipila redirects back to /dashboard/payment/complete
  *
  * Lipila's card endpoint requires a phone number per the docs — used as
@@ -108,8 +109,8 @@ export default function CardPayPanel({ plan, amountLabel, name = '', className =
         Pay with your card
       </h2>
       <p className="text-center text-sm text-gray-500 mb-7 max-w-sm mx-auto">
-        Visa or Mastercard. Charged in ZMW — your bank handles the conversion
-        if your card is in another currency.
+        Visa or Mastercard. Charged in USD, the exact plan price. Your bank
+        converts to your card&apos;s currency if it isn&apos;t in dollars.
       </p>
 
       {/* Phone number — required by the Lipila card endpoint */}
