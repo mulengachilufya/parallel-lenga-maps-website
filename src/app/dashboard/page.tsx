@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -402,6 +402,33 @@ function DashboardContent() {
   const [userName,       setUserName]       = useState('')
   const [isAdmin,        setIsAdmin]        = useState(false)
 
+  // The verified user id this dashboard's data belongs to. Used by the auth
+  // listener below to detect an account switch (e.g. a different account
+  // signed in on another tab) and force a clean refetch so we never render
+  // account A's chrome with account B's plan.
+  const loadedUserIdRef = useRef<string | null>(null)
+
+  // React to auth changes anywhere (this tab or another). This is what makes
+  // sign-out and account-switching feel instant and safe instead of leaving
+  // stale UI behind:
+  //   - SIGNED_OUT              → hard-redirect home (full state wipe)
+  //   - signed in as a NEW user → hard-reload so all data refetches for them
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        window.location.href = '/'
+        return
+      }
+      const newId = session?.user?.id ?? null
+      const knownId = loadedUserIdRef.current
+      // Only act once we've loaded (knownId set) and the id actually changed.
+      if (newId && knownId && newId !== knownId) {
+        window.location.reload()
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   useEffect(() => {
     // Defensive load pattern. Three rules:
     //   1. setLoading(false) MUST run no matter what — try/catch/finally.
@@ -435,10 +462,14 @@ function DashboardContent() {
 
     const load = async () => {
       try {
-        const sessionRes = await withTimeout(supabase.auth.getSession(), 5_000)
-        const session = sessionRes?.data.session ?? null
+        // getUser() — server-VERIFIED identity, not getSession()'s unverified
+        // cookie decode. This guarantees the profile below is fetched for the
+        // real signed-in account, never a stale/swapped session's id.
+        const userRes = await withTimeout(supabase.auth.getUser(), 5_000)
+        const user = userRes?.data.user ?? null
         if (cancelled) return
-        if (!session) {
+        loadedUserIdRef.current = user?.id ?? null
+        if (!user) {
           // NEVER redirect from here. Middleware (src/middleware.ts) is the
           // authoritative auth gate for /dashboard. If middleware allowed the
           // route, a transient null session client-side is a cookie race, not
@@ -457,7 +488,7 @@ function DashboardContent() {
         const profilePromise = supabase
           .from('profiles')
           .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single()
 
         const adminPromise = fetch('/api/admin/me')
@@ -483,7 +514,7 @@ function DashboardContent() {
               supabase
                 .from('profiles')
                 .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
-                .eq('id', session.user.id)
+                .eq('id', user.id)
                 .single(),
               3_000,
             )
@@ -499,7 +530,7 @@ function DashboardContent() {
         ))
         setTrialStartedAt(profile?.trial_started_at ?? null)
         setTrialUsed(profile?.trial_downloads_used ?? 0)
-        setUserName(profile?.full_name || session.user.user_metadata?.full_name || '')
+        setUserName(profile?.full_name || user.user_metadata?.full_name || '')
         setIsAdmin(Boolean(adminRes?.isAdmin))
       } catch (err) {
         // Last-ditch: log and render whatever defaults are in state. The

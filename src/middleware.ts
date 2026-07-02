@@ -52,9 +52,15 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() — NOT getSession(). getUser() revalidates the token against
+  // Supabase's Auth server (and refreshes it, writing fresh cookies via the
+  // setAll callback above). getSession() only decodes whatever JWT is in the
+  // cookie without verifying it, so a stale / swapped / revoked cookie would
+  // be trusted as-is — the root cause of "I'm in account A but see account B".
+  // Verifying at the edge means every gated page renders for the REAL user.
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session && isGated(req.nextUrl.pathname)) {
+  if (!user && isGated(req.nextUrl.pathname)) {
     const loginUrl = new URL('/login', req.url)
     // Preserve the original destination so /login can bounce them back
     // after they sign in. nextPath is sanitised on the login page.

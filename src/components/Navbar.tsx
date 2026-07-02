@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, LayoutDashboard, LogOut, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -36,7 +36,6 @@ const navLinks = [
  *   was tightened to not double up.
  */
 export default function Navbar() {
-  const router   = useRouter()
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -49,13 +48,16 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Subscribe to auth state. Sets `email` to the signed-in user's email or
-  // null. Updates live across login / logout in any tab.
+  // Establish identity with getUser() (server-verified) on mount, then keep it
+  // live via onAuthStateChange. getUser() is used for the initial read — not
+  // getSession() — so the email pill reflects the REAL signed-in account even
+  // if the cookie is stale or was swapped by another Chrome profile/tab. The
+  // listener then fires SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED across tabs.
   useEffect(() => {
     let cancelled = false
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (cancelled) return
-      setEmail(session?.user.email ?? null)
+      setEmail(user?.email ?? null)
       setAuthReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -66,21 +68,28 @@ export default function Navbar() {
   }, [])
 
   const handleSignOut = async () => {
-    // Optimistic logout: flip the navbar and leave the dashboard NOW so there's
-    // no perceptible lag. The previous version awaited a default (global) signOut
-    // — a network round-trip that revokes the session server-side — before
-    // touching the UI, so on a slow connection the user appeared still signed in
-    // until they refreshed. `scope: 'local'` clears the stored session
-    // immediately (no server round-trip that can hang), and we don't block the
-    // UI on it.
+    // Flip the UI immediately so there's no perceived lag.
     setEmail(null)
     setMenuOpen(false)
-    router.replace('/')
+
+    // Revoke the session — attempt a full (server-side) sign-out but never let
+    // a slow network freeze logout: race it against a short timeout. Then a
+    // guaranteed local clear removes the cookie with no network round-trip.
     try {
-      await supabase.auth.signOut({ scope: 'local' })
-    } catch {
-      // Session is already cleared locally; ignore any network error.
-    }
+      await Promise.race([
+        supabase.auth.signOut(),                                   // global revoke
+        new Promise((resolve) => setTimeout(resolve, 1200)),       // hard cap
+      ])
+    } catch { /* ignore */ }
+    try {
+      await supabase.auth.signOut({ scope: 'local' })             // guaranteed cookie clear
+    } catch { /* already gone */ }
+
+    // HARD navigation (not router.replace). A full document load wipes ALL
+    // client state and the Next.js router cache, so nothing from the previous
+    // session can survive, and middleware re-runs against the cleared cookie.
+    // This is what makes logout actually LOOK like a logout.
+    window.location.href = '/'
   }
 
   // Hide on /admin (own header). Allowed on /dashboard now.

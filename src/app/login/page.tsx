@@ -35,8 +35,13 @@ function LoginForm() {
   // "type password, get an error, am I logged in or not?" loop.
   useEffect(() => {
     let cancelled = false
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled && session) router.replace(nextPath)
+    // getUser() (verified), NOT getSession(). If we bounced on a stale/invalid
+    // cookie, middleware's getUser() gate would kick the user right back to
+    // /login → infinite loop. getUser() only redirects a genuinely valid
+    // session; an invalid cookie resolves to null and the user just sees the
+    // login form.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!cancelled && user) router.replace(nextPath)
     })
     return () => { cancelled = true }
   }, [nextPath, router])

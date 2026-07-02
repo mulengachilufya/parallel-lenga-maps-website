@@ -55,23 +55,25 @@ function BillingInner() {
   const [error,     setError]     = useState('')
 
   const load = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    // getUser() — server-verified, so billing + payment history always belong
+    // to the REAL signed-in account, never a stale/swapped cookie's id.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       // Never redirect from here — see src/app/dashboard/page.tsx for the
       // login-loop story. Middleware already gates /dashboard/*. A transient
-      // null-session client-side is a cookie race, not a real sign-out.
+      // null-user client-side is a cookie race, not a real sign-out.
       setLoading(false)
       return
     }
-    setEmail(session.user.email || '')
+    setEmail(user.email || '')
 
     const [profRes, payRes] = await Promise.all([
       supabase.from('profiles')
         .select('plan, plan_status, plan_expires_at, auto_renew_enabled, cancelled_at')
-        .eq('id', session.user.id).single(),
+        .eq('id', user.id).single(),
       supabase.from('payments')
         .select('reference, plan, status, amount_zmw, operator, created_at')
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10),
     ])
@@ -81,6 +83,14 @@ function BillingInner() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Sign out anywhere → leave this billing page immediately (hard nav).
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') window.location.href = '/'
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   async function doCancel() {
     setBusy(true); setError('')
