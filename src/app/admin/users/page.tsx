@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, RefreshCw, Search, ShieldCheck, XCircle, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sectorLabel } from '@/lib/sectors'
 
 type EffectiveStatus = 'active' | 'pending' | 'trial' | 'free' | 'expired'
 
@@ -26,7 +27,10 @@ interface UserRow {
   id:                string
   email:             string
   full_name:         string | null
-  account_type:      string | null
+  first_name:        string | null
+  last_name:         string | null
+  country:           string | null
+  sector:            string | null
   plan:              string | null
   plan_status:       string | null
   effective_status:  EffectiveStatus
@@ -223,7 +227,7 @@ export default function AdminUsersPage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by email, name, plan, account type…"
+              placeholder="Search by email, name, country, plan…"
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
@@ -243,7 +247,8 @@ export default function AdminUsersPage() {
                 <tr className="text-left text-[11px] uppercase tracking-wider text-gray-500">
                   <th className="px-4 py-3 font-semibold">Email</th>
                   <th className="px-4 py-3 font-semibold">Name</th>
-                  <th className="px-4 py-3 font-semibold">Account</th>
+                  <th className="px-4 py-3 font-semibold">Country</th>
+                  <th className="px-4 py-3 font-semibold">Sector</th>
                   <th className="px-4 py-3 font-semibold">Plan</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Expires</th>
@@ -260,7 +265,8 @@ export default function AdminUsersPage() {
                   >
                     <td className="px-4 py-3 text-navy font-medium">{u.email || <span className="text-gray-300">—</span>}</td>
                     <td className="px-4 py-3 text-gray-700">{u.full_name || <span className="text-gray-300">—</span>}</td>
-                    <td className="px-4 py-3 text-gray-700 capitalize">{u.account_type || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3 text-gray-700">{u.country || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs">{u.sector ? sectorLabel(u.sector) : <span className="text-gray-300">—</span>}</td>
                     <td className="px-4 py-3 text-gray-700">
                       {u.plan
                         ? <span className="capitalize font-semibold">{u.plan}</span>
@@ -301,7 +307,7 @@ export default function AdminUsersPage() {
                 ))}
                 {users.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
                       No users match this filter.
                     </td>
                   </tr>

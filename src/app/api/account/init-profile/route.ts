@@ -13,8 +13,14 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { sendEmail, welcomeEmail } from '@/lib/email'
+import { isValidCountry } from '@/lib/countries'
+import { isValidSector } from '@/lib/sectors'
 
 export const dynamic = 'force-dynamic'
+
+function metaString(v: unknown, max = 120): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
 
 // Self-serve intents only. 'enterprise' delisted 2026-06 (replaced by the
 // quote-based team tier); 'team' is provisioned by admin, never via signup.
@@ -32,6 +38,10 @@ export async function POST() {
   const metaFullName       = typeof user.user_metadata?.full_name === 'string'
     ? user.user_metadata.full_name.trim().slice(0, 200)
     : null
+  const metaFirstName      = metaString(user.user_metadata?.first_name)
+  const metaLastName       = metaString(user.user_metadata?.last_name)
+  const metaCountry        = isValidCountry(user.user_metadata?.country) ? user.user_metadata.country : null
+  const metaSector         = isValidSector(user.user_metadata?.sector) ? user.user_metadata.sector : null
 
   // Only accept valid new plan slugs — no account_type, no old slugs
   const plan = VALID_PLANS.has(metaPlan) ? metaPlan : null
@@ -54,7 +64,11 @@ export async function POST() {
   }
 
   if (plan) updateRow.plan = plan
-  if (metaFullName) updateRow.full_name = metaFullName
+  if (metaFullName)  updateRow.full_name  = metaFullName
+  if (metaFirstName) updateRow.first_name = metaFirstName
+  if (metaLastName)  updateRow.last_name  = metaLastName
+  if (metaCountry)   updateRow.country    = metaCountry
+  if (metaSector)    updateRow.sector     = metaSector
 
   // Set trial_started_at — use existing value if already set, otherwise
   // use what came from metadata, otherwise set to now for new signups

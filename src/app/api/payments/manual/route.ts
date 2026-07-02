@@ -28,7 +28,7 @@ const RATE_LIMIT_WINDOW_MIN = 60
 const RATE_LIMIT_MAX_PENDING = 3
 
 type Region = 'zambian' | 'international'
-type Method = 'mtn' | 'airtel'
+type Method = 'mtn' | 'airtel' | 'bank'
 
 function extFromMime(mime: string): string {
   const map: Record<string, string> = {
@@ -83,10 +83,12 @@ export async function POST(request: NextRequest) {
 
   if (!['starter','pro','max'].includes(plan))
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
-  if (!['zambian','international'].includes(region))
-    return NextResponse.json({ error: 'Invalid region.' }, { status: 400 })
-  if (!['mtn','airtel'].includes(method))
+  if (!['mtn','airtel','bank'].includes(method))
     return NextResponse.json({ error: 'Invalid payment method.' }, { status: 400 })
+  // Region only applies to mobile money (Zambian vs international send). Bank
+  // transfer uses the same account regardless of where the payer is.
+  if (method !== 'bank' && !['zambian','international'].includes(region))
+    return NextResponse.json({ error: 'Invalid region.' }, { status: 400 })
   if (!(screenshot instanceof File))
     return NextResponse.json({ error: 'Screenshot is required.' }, { status: 400 })
   if (screenshot.size === 0)
@@ -152,7 +154,7 @@ export async function POST(request: NextRequest) {
     user_email:     userEmail,
     user_name:      profileName || null,
     reference,
-    region,
+    region:         region || null,
     country_name:   countryName || null,
     plan,
     amount_usd,

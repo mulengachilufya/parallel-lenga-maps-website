@@ -6,29 +6,53 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
+import { isValidCountry } from '@/lib/countries'
+import { SECTORS, isValidSector } from '@/lib/sectors'
+import CountrySelect from '@/components/CountrySelect'
 
 export default function SignupPage() {
   const router = useRouter()
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName]   = useState('')
+  const [country, setCountry]     = useState('')
+  const [sector, setSector]       = useState('')
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first name and surname.')
+      return
+    }
+    if (!isValidCountry(country)) {
+      setError('Please pick your country from the list.')
+      return
+    }
+    if (!isValidSector(sector)) {
+      setError('Please choose the option that best describes you.')
+      return
+    }
+
+    setLoading(true)
     track('signup_started', { source: 'signup_page' })
 
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName,
-          plan: 'free_trial',
+          full_name:        fullName,
+          first_name:       firstName.trim(),
+          last_name:        lastName.trim(),
+          country,
+          sector,
+          plan:             'free_trial',
           trial_started_at: new Date().toISOString(),
         },
       },
@@ -49,8 +73,11 @@ export default function SignupPage() {
     router.push('/dashboard')
   }
 
+  const inputClass =
+    'w-full bg-[#0D2B45] border border-blue-900/60 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm'
+
   return (
-    <main className="min-h-screen bg-[#0D2B45] flex items-center justify-center px-4">
+    <main className="min-h-screen bg-[#0D2B45] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
@@ -67,16 +94,51 @@ export default function SignupPage() {
           onSubmit={handleSubmit}
           className="bg-[#112236] border border-blue-900/60 rounded-2xl p-8 space-y-5"
         >
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-blue-300 mb-2">First name</label>
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-blue-300 mb-2">Surname</label>
+              <input
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Surname"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm text-blue-300 mb-2">Full Name</label>
-            <input
-              type="text"
+            <label className="block text-sm text-blue-300 mb-2">Country</label>
+            <CountrySelect value={country} onChange={setCountry} />
+          </div>
+
+          <div>
+            <label className="block text-sm text-blue-300 mb-2">Which best describes you?</label>
+            <select
               required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your full name"
-              className="w-full bg-[#0D2B45] border border-blue-900/60 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm"
-            />
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              className={`${inputClass} ${sector ? 'text-white' : 'text-blue-700'}`}
+            >
+              <option value="" disabled>Select one…</option>
+              {SECTORS.map((s) => (
+                <option key={s.value} value={s.value} className="text-white bg-[#0D2B45]">
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -87,7 +149,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full bg-[#0D2B45] border border-blue-900/60 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm"
+              className={inputClass}
             />
           </div>
 
@@ -100,7 +162,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimum 8 characters"
-              className="w-full bg-[#0D2B45] border border-blue-900/60 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm"
+              className={inputClass}
             />
           </div>
 

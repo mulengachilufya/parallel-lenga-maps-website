@@ -18,12 +18,15 @@
 // Copy style: no em dashes anywhere in customer-facing text. They read as
 // an AI giveaway. Use commas, periods, colons and semicolons instead.
 
+import { PLANS, type TierSlug } from './pricing'
+import { BANK_DETAILS } from './bank-details'
+
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 const LOGO_URL = `${APP_URL}/images/branding/logo.png`
 // Channels map an email to a Resend API key + a verified sender address.
 // Each channel's key is set in Vercel (and .env.local). An unset key causes
 // the send to be skipped and logged, never thrown.
-export type EmailChannel = 'account' | 'newsletter' | 'payments'
+export type EmailChannel = 'account' | 'newsletter' | 'payments' | 'manual_payment'
 
 function channelConfig(channel: EmailChannel): { key?: string; from: string } {
   switch (channel) {
@@ -36,6 +39,13 @@ function channelConfig(channel: EmailChannel): { key?: string; from: string } {
       return {
         key:  process.env.RESEND_PAYMENTS_API_KEY,
         from: process.env.RESEND_PAYMENTS_FROM || 'Lenga Maps <support@lengamaps.com>',
+      }
+    case 'manual_payment':
+      // Dedicated key + sender for the card/bank-transfer bank-details email,
+      // kept separate from the other Resend channels.
+      return {
+        key:  process.env.RESEND_MANUAL_PAYMENTS_API_KEY,
+        from: process.env.RESEND_MANUAL_PAYMENTS_FROM || 'Lenga Maps <mulenga@lengamaps.com>',
       }
     case 'account':
     default:
@@ -628,6 +638,71 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
       ctaLabel:  'Open payments queue',
       ctaHref:   cta,
       footnote:  'Verify or reject from the admin payments page.',
+    }),
+    text,
+  }
+}
+
+/**
+ * Bank-transfer details sent to the customer when they choose the card / bank
+ * option. Goes out on the dedicated `manual_payment` channel. The bank details
+ * live in src/lib/bank-details.ts.
+ */
+export function bankTransferDetailsEmail(opts: {
+  to: string; firstName?: string | null; plan: TierSlug; appUrl?: string
+}): EmailMessage {
+  const fname = (opts.firstName || '').trim() || 'there'
+  const plan  = PLANS[opts.plan]
+  const b     = BANK_DETAILS
+  const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
+  const cta   = `${base}/dashboard/payment?plan=${opts.plan}`
+  const rows: [string, string][] = [
+    ['Amount',            `${plan.priceLabel} per month`],
+    ['Account name',      b.accountName],
+    ['Bank',              b.bankName],
+    ['Account number',    b.accountNumber],
+    ['Branch code',       b.branchCode],
+    ['SWIFT / BIC',       b.swift],
+    ['Bank address',      b.bankAddress],
+    ['Payment reference', opts.to],
+  ]
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
+      Thanks for choosing the <strong>${plan.name}</strong> plan. Here are the details to pay by
+      bank transfer. Please use your email address as the payment reference so we can match your
+      transfer to your account.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+      ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
+    </table>
+    <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
+      Once you have paid, upload your proof of payment and we will switch your plan on, usually
+      within a few hours.
+    </p>`
+  const text = [
+    `Hi ${fname},`,
+    '',
+    `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and use your email address as the payment reference:`,
+    '',
+    ...rows.map(([k, v]) => `  ${k}: ${v}`),
+    '',
+    `Upload your proof of payment: ${cta}`,
+    'We switch your plan on once we verify it, usually within a few hours.',
+    '',
+    'Not seeing our emails? Add mulenga@lengamaps.com to your contacts and check spam.',
+    'Thanks, The Lenga Maps team',
+  ].join('\n')
+  return {
+    to:      opts.to,
+    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details (${plan.priceLabel})`,
+    html: shell({
+      preheader: `Bank transfer details for your ${plan.name} plan.`,
+      heading:   'Pay by bank transfer',
+      bodyHtml,
+      ctaLabel:  'Upload proof of payment',
+      ctaHref:   cta,
+      footnote:  'Not seeing our emails? Add mulenga@lengamaps.com to your contacts and check your spam folder.',
     }),
     text,
   }

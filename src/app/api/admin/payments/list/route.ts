@@ -41,6 +41,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'query failed' }, { status: 500 })
   }
 
+  // Attach payer identity from profiles so the transfer can be matched to a
+  // fully-identified person (name / country / sector captured at signup).
+  const userIds = [...new Set((data || []).map((r) => r.user_id).filter(Boolean))]
+  const profileById = new Map<string, {
+    first_name: string | null; last_name: string | null
+    country: string | null; sector: string | null; full_name: string | null
+  }>()
+  if (userIds.length) {
+    const { data: profs } = await service
+      .from('profiles')
+      .select('id, first_name, last_name, country, sector, full_name')
+      .in('id', userIds)
+    for (const p of profs || []) profileById.set(p.id, p)
+  }
+
   // Sign each screenshot for 1 hour so admin can inspect it.
   const rows = await Promise.all(
     (data || []).map(async (row) => {
@@ -48,7 +63,16 @@ export async function GET(req: NextRequest) {
       try {
         screenshotUrl = await getDownloadUrl(row.screenshot_key, 3600)
       } catch { /* ignore */ }
-      return { ...row, screenshot_url: screenshotUrl }
+      const prof = profileById.get(row.user_id)
+      return {
+        ...row,
+        screenshot_url:     screenshotUrl,
+        profile_first_name: prof?.first_name ?? null,
+        profile_last_name:  prof?.last_name  ?? null,
+        profile_country:    prof?.country    ?? null,
+        profile_sector:     prof?.sector     ?? null,
+        profile_full_name:  prof?.full_name  ?? null,
+      }
     })
   )
 

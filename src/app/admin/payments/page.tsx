@@ -7,8 +7,10 @@ import { motion } from 'framer-motion'
 import {
   Loader2, CheckCircle2, XCircle, Clock, ShieldCheck, AlertCircle,
   Phone, User, Mail, Calendar, Hash, ArrowLeft, RefreshCw, Send,
+  Globe2, Briefcase,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sectorLabel } from '@/lib/sectors'
 
 type PaymentStatus = 'pending' | 'verified' | 'rejected'
 
@@ -18,7 +20,7 @@ interface Payment {
   user_id: string
   user_email: string
   user_name: string | null
-  region: string
+  region: string | null
   country_name: string | null
   plan: string
   account_type: string
@@ -34,6 +36,13 @@ interface Payment {
   submitted_at: string
   verified_at: string | null
   screenshot_url: string
+  // Identity captured at signup (joined from profiles) — so a transfer can be
+  // matched to a fully-identified person.
+  profile_first_name: string | null
+  profile_last_name: string | null
+  profile_country: string | null
+  profile_sector: string | null
+  profile_full_name: string | null
 }
 
 const TABS: { id: PaymentStatus | 'all'; label: string }[] = [
@@ -305,6 +314,10 @@ function PaymentCard({
   busy: boolean
 }) {
   const amount = p.currency === 'ZMW' ? `K${p.amount_zmw}` : `$${p.amount_usd}`
+  const fullName =
+    [p.profile_first_name, p.profile_last_name].filter(Boolean).join(' ').trim() ||
+    p.profile_full_name || p.user_name || p.sender_name || '—'
+  const country = p.profile_country || p.country_name || ''
   const badge =
     p.status === 'pending'  ? { bg: 'bg-amber-50 border-amber-200 text-amber-700', icon: <Clock size={14} />, label: 'Pending' } :
     p.status === 'verified' ? { bg: 'bg-green-50 border-green-200 text-green-700', icon: <CheckCircle2 size={14} />, label: 'Verified' } :
@@ -349,16 +362,18 @@ function PaymentCard({
               </h3>
             </div>
             <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400">
-              {p.payment_method} · {p.region}
+              {p.payment_method}{p.region ? ` · ${p.region}` : ''}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-sm text-gray-600 mb-4">
-            <InfoRow icon={<User size={13} />}     label="Name"     value={p.user_name || '—'} />
+            <InfoRow icon={<User size={13} />}     label="Name"     value={fullName} />
             <InfoRow icon={<Mail size={13} />}     label="Email"    value={p.user_email} />
-            <InfoRow icon={<Phone size={13} />}    label="Sender"   value={p.sender_phone || '—'} />
+            {country && <InfoRow icon={<Globe2 size={13} />} label="Country" value={country} />}
+            {p.profile_sector && <InfoRow icon={<Briefcase size={13} />} label="Sector" value={sectorLabel(p.profile_sector)} />}
+            {p.sender_name && <InfoRow icon={<User size={13} />} label="On acct" value={p.sender_name} />}
+            {p.sender_phone && <InfoRow icon={<Phone size={13} />} label="Phone" value={p.sender_phone} />}
             <InfoRow icon={<Hash size={13} />}     label="Txn ref"  value={p.txn_reference || '—'} />
-            {p.country_name && <InfoRow icon={<Phone size={13} />} label="Country" value={p.country_name} />}
             <InfoRow icon={<Calendar size={13} />} label="Submitted" value={new Date(p.submitted_at).toLocaleString()} />
             {p.verified_at && <InfoRow icon={<Calendar size={13} />} label={p.status === 'verified' ? 'Verified' : 'Decided'} value={new Date(p.verified_at).toLocaleString()} />}
             {p.admin_note && <InfoRow icon={<AlertCircle size={13} />} label="Note" value={p.admin_note} />}

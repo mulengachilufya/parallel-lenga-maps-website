@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PLANS, SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
-import CardPayPanel from '@/components/CardPayPanel'
+import BankTransferPanel from '@/components/BankTransferPanel'
 import MomoPayPanel from '@/components/MomoPayPanel'
 import { track } from '@/lib/analytics'
 
@@ -119,7 +119,7 @@ function PaymentInner() {
           <ArrowLeft size={14} /> Back
         </Link>
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-          <ShieldCheck size={13} /> Secured by Lipila
+          <ShieldCheck size={13} /> Secure payment
         </span>
       </div>
 
@@ -189,10 +189,11 @@ function PaymentInner() {
           transition={{ delay: 0.1 }}
           className="bg-white rounded-3xl p-7 sm:p-10 shadow-sm border border-gray-100"
         >
-          <CardPayPanel
+          <BankTransferPanel
             plan={plan}
             amountLabel={`${priceLabel} USD`}
-            name={name}
+            userEmail={email}
+            userName={name}
           />
         </motion.div>
 

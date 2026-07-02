@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   // complexity yet — re-run when the table tops 5k.
   const { data: profiles, error: profErr } = await service
     .from('profiles')
-    .select('id, full_name, plan, plan_status, plan_expires_at, trial_started_at, created_at')
+    .select('id, full_name, first_name, last_name, country, sector, plan, plan_status, plan_expires_at, trial_started_at, created_at')
     .order('created_at', { ascending: false })
     .limit(2000)
   if (profErr) {
@@ -99,6 +99,10 @@ export async function GET(req: NextRequest) {
       id:               p.id,
       email,
       full_name:        p.full_name,
+      first_name:       p.first_name,
+      last_name:        p.last_name,
+      country:          p.country,
+      sector:           p.sector,
       plan:             p.plan,
       plan_status:      p.plan_status,
       effective_status,
@@ -118,6 +122,9 @@ export async function GET(req: NextRequest) {
     filtered = filtered.filter((r) =>
       (r.email || '').toLowerCase().includes(search) ||
       (r.full_name || '').toLowerCase().includes(search) ||
+      (r.first_name || '').toLowerCase().includes(search) ||
+      (r.last_name || '').toLowerCase().includes(search) ||
+      (r.country || '').toLowerCase().includes(search) ||
       (r.plan || '').toLowerCase().includes(search) ||
    '')
   }
