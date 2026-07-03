@@ -20,7 +20,12 @@ export const SECTORS: SectorOption[] = [
   { value: 'ngo',             label: 'NGO / non-profit' },
   { value: 'academia',        label: 'Research & academia', hint: 'University or research institute' },
   { value: 'donor_project',   label: 'Development / donor project', hint: 'UN, World Bank, GIZ-funded, etc.' },
-  { value: 'individual',      label: 'Student / individual' },
+  // 'individual' historically read "Student / individual", which lumped
+  // seasoned independent GIS professionals in with students. Split into two
+  // distinct, respectful options. 'individual' value kept stable (any older
+  // rows now read as independent professionals) and 'student' added.
+  { value: 'individual',      label: 'Independent professional / freelancer', hint: 'Freelance GIS analyst, consultant, hydrogeologist, surveyor, etc.' },
+  { value: 'student',         label: 'Student' },
   { value: 'other',           label: 'Other' },
 ]
 
