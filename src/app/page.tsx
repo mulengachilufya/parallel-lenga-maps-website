@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Download, Database, Layers, Pickaxe, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { ArrowRight, Download, Pickaxe, Globe2, Briefcase, Landmark, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
@@ -22,21 +22,26 @@ const satelliteImage = 'https://images.unsplash.com/photo-1614728263952-84ea256f
 // /public/images/branding/ground-story.jpeg.
 const villageImage   = '/images/branding/ground-story.jpeg'
 
-const services = [
+const customers = [
   {
-    icon: <Database size={28} />,
-    title: 'GIS Data Bank',
-    description: 'Download professional-grade datasets - boundaries, elevation, rivers, land cover, and more.',
+    icon: <Globe2 size={28} />,
+    title: 'GIS Users',
+    description: 'Analysts, researchers, and students who need reliable, ready to use datasets without the endless hunt.',
   },
   {
-    icon: <Layers size={28} />,
-    title: 'Custom Mapping',
-    description: 'Bespoke map production, remote sensing, and spatial modelling tailored to your needs.',
+    icon: <Briefcase size={28} />,
+    title: 'Teams and Businesses',
+    description: 'Consultancies and companies that need shared access, custom data, and dependable delivery.',
+  },
+  {
+    icon: <Landmark size={28} />,
+    title: 'NGOs and Governments',
+    description: 'Ministries, agencies, and nonprofits turning geodata into decisions and real impact.',
   },
   {
     icon: <Pickaxe size={28} />,
-    title: 'Environmental Studies',
-    description: 'Environmental impact assessments, land use analysis, and climate data processing.',
+    title: 'Project Developers',
+    description: 'Engineering, mining, energy, and infrastructure teams that scope and plan projects on the ground.',
   },
 ]
 
@@ -226,8 +231,7 @@ export default function HomePage() {
               transition={{ delay: 0.3 }}
               className="flex items-center gap-3.5 mb-7"
             >
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
+              <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
                 Geospatial Intelligence
               </span>
             </motion.div>
@@ -255,7 +259,7 @@ export default function HomePage() {
               className="text-[1.3rem] leading-[1.55] text-white/90 font-medium max-w-[620px] mb-12"
             >
               Building Africa&apos;s largest and most centralized environmental GIS
-              database. We fuse satellite-grade observation with the lived African
+              database. We fuse satellite grade observation with the lived African
               context to solve real geospatial challenges.
             </motion.p>
 
@@ -302,13 +306,12 @@ export default function HomePage() {
             <div className="absolute inset-0 flex items-end p-8 lg:p-14">
               <div>
                 <div className="flex items-center gap-3.5 mb-4">
-                  <div className="w-9 h-0.5 bg-gold" />
-                  <span className="text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
+                  <span className="font-display text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
                     From Orbit
                   </span>
                 </div>
                 <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
-                  Satellite-grade<br/>observation.
+                  Satellite grade<br/>observation.
                 </h3>
                 <p className="mt-4 text-white/85 text-[1.3rem] leading-[1.55] font-medium max-w-xl">
                   Our GIS datasets are carefully geoprocessed from NASA, ESA,
@@ -332,8 +335,7 @@ export default function HomePage() {
             <div className="absolute inset-0 flex items-end p-8 lg:p-14">
               <div>
                 <div className="flex items-center gap-3.5 mb-4">
-                  <div className="w-9 h-0.5 bg-gold" />
-                  <span className="text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
+                  <span className="font-display text-[0.72rem] font-bold tracking-[0.22em] text-gold uppercase">
                     On the Ground
                   </span>
                 </div>
@@ -360,20 +362,16 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="flex items-center justify-center gap-3.5 mb-6">
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                GIS Data Bank
-              </span>
-              <div className="w-9 h-0.5 bg-gold" />
-            </div>
+            <p className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase mb-6">
+              GIS Data Bank
+            </p>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
               Africa&apos;s Most Centralized{' '}
               <span className="text-gold">GIS Database</span>
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
-              Download professional-grade geospatial datasets covering all 54 African nations.
-              Boundaries, elevation, rivers, land cover, geology, and more - sourced from global institutions.
+              Download professional grade geospatial datasets covering all 54 African nations.
+              Boundaries, elevation, rivers, land cover, geology, and more, sourced from global institutions.
             </p>
           </motion.div>
 
@@ -432,8 +430,7 @@ export default function HomePage() {
               viewport={{ once: true }}
             >
               <div className="flex items-center gap-3.5 mb-6">
-                <div className="w-9 h-0.5 bg-gold" />
-                <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
+                <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
                   Get Started
                 </span>
               </div>
@@ -450,7 +447,7 @@ export default function HomePage() {
                 {[
                   'Access to 15+ curated GIS datasets',
                   'Browse datasets free, pay only when you download',
-                  'Professional-grade data from global institutions',
+                  'Professional grade data from global institutions',
                   'Shapefile, GeoTIFF, and GeoJSON formats',
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3">
@@ -476,7 +473,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SERVICES / CONSULTANCY ────────────────────────── */}
+      {/* ── WHO WE SERVE ──────────────────────────────────── */}
       <section className="py-20 lg:py-28 bg-dark-light border-t border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
           <motion.div
@@ -485,28 +482,23 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="flex items-center justify-center gap-3.5 mb-6">
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
-                What We Do
-              </span>
-              <div className="w-9 h-0.5 bg-gold" />
-            </div>
+            <p className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase mb-6">
+              Who We Serve
+            </p>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
-              We Don&apos;t Just Map the World -
-              <br />
-              <span className="text-gold">We Help Solve It.</span>
+              Built for Everyone{' '}
+              <span className="text-gold">Mapping Africa.</span>
             </h2>
             <p className="text-[1.05rem] text-white/60 max-w-2xl mx-auto leading-relaxed">
-              From a centralised GIS data bank to custom mapping and environmental studies - Lenga Maps
-              provides the geospatial foundation for projects across Africa and beyond.
+              From independent analysts to national programs, people across the continent rely on
+              Lenga Maps for the geospatial foundation their work needs.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {customers.map((customer, i) => (
               <motion.div
-                key={service.title}
+                key={customer.title}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -514,20 +506,20 @@ export default function HomePage() {
                 className="group bg-white/[0.03] border border-white/[0.08] p-8 hover:border-gold/30 transition-all duration-300"
               >
                 <div className="w-14 h-14 bg-gold/10 flex items-center justify-center text-gold mb-5 group-hover:bg-gold/20 transition-colors">
-                  {service.icon}
+                  {customer.icon}
                 </div>
-                <h3 className="text-lg font-bold text-white mb-3">{service.title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{service.description}</p>
+                <h3 className="text-lg font-bold text-white mb-3">{customer.title}</h3>
+                <p className="text-white/50 text-sm leading-relaxed">{customer.description}</p>
               </motion.div>
             ))}
           </div>
 
           <div className="text-center mt-14">
             <Link
-              href="/services"
+              href="/pricing"
               className="inline-flex items-center gap-2 text-gold text-[0.92rem] font-bold px-6 py-3.5 border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
             >
-              View All Services
+              See Plans &amp; Pricing
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -545,8 +537,7 @@ export default function HomePage() {
               className="flex-1 min-w-0"
             >
               <div className="flex items-center gap-3.5 mb-6">
-                <div className="w-9 h-0.5 bg-gold" />
-                <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
+                <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
                   Partnerships
                 </span>
               </div>
@@ -556,7 +547,7 @@ export default function HomePage() {
               </h2>
               <p className="text-[1.05rem] text-white/60 leading-relaxed mb-4">
                 We collaborate with businesses, organizations, and institutions to deliver
-                data-driven geospatial and environmental solutions.
+                data driven geospatial and environmental solutions.
               </p>
               <p className="text-[1.05rem] text-white/60 leading-relaxed mb-5">
                 Email us at{' '}
@@ -611,9 +602,7 @@ export default function HomePage() {
             className="text-center mb-14"
           >
             <div className="flex items-center justify-center gap-3.5 mb-4">
-              <div className="w-9 h-0.5 bg-gold" />
-              <span className="text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">Get In Touch</span>
-              <div className="w-9 h-0.5 bg-gold" />
+              <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">Get In Touch</span>
             </div>
             <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
               Send Us a Message

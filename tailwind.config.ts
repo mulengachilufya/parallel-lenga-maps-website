@@ -22,6 +22,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       animation: {
         "spin-slow": "spin 20s linear infinite",
