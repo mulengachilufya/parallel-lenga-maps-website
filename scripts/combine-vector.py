@@ -116,7 +116,17 @@ def merge_entries(entries, src_dir: Path, tmproot: str):
         g = g.to_crs(4326)
         # Stamp country identity so the merged layer is filterable by country.
         g["country"] = e["country"]
-        g["iso3"]    = e["iso3"]
+        # Prefer a real iso3 from the fetch manifest. But some source tables
+        # (hydrology_layers: rivers/watersheds/lakes) have no iso3 column, so
+        # the manifest carries the 'XXX' placeholder — in that case KEEP the
+        # correct iso3 the per-country prepare script already stamped into the
+        # file, rather than clobbering it to 'XXX'.
+        man_iso = e.get("iso3")
+        if man_iso and man_iso != "XXX":
+            g["iso3"] = man_iso
+        elif "iso3" not in g.columns:
+            g["iso3"] = man_iso or "XXX"
+        # else: keep the file's own (correct) iso3
         g["geometry"] = g.geometry.apply(to_multi)
         frames.append(g)
         n_countries += 1
