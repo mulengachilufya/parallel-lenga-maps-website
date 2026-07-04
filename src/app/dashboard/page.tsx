@@ -243,6 +243,17 @@ function PlanCard({
 // combined file is pre-built offline and served as a presigned URL by
 // /api/datasets/:id/bundle. We use the same anchor-download pattern as the
 // per-country buttons (R2 serves the .gpkg with a binary content type).
+// Datasets that have a pre-built Africa-wide bundle in R2. Vector layers merge
+// into one GeoPackage; the coarse (~5 km) climate rasters mosaic into one COG.
+// LULC (10 m), soil (250 m) and lakes are deliberately excluded — the first two
+// are too large to host as a single continental file (per-country only), and
+// lakes has no source data yet.
+const BUNDLE_DATASETS = new Set<string>([
+  'admin-boundaries', 'aquifer', 'population', 'protected-areas',
+  'rivers', 'roads', 'watersheds',
+  'rainfall', 'temperature', 'drought-index',
+])
+
 function ContinentalBundle({ datasetSlug, userState }: { datasetSlug: string; userState: UserState }) {
   const [busy,     setBusy]     = useState(false)
   const [error,    setError]    = useState('')
@@ -606,8 +617,13 @@ function DashboardContent() {
 
           {/* Continental bundle — visible to everyone (drives upgrades); the
               download itself is Max/Enterprise-only, enforced in the component
-              and again server-side in the bundle route. */}
-          {sectionKey && (
+              and again server-side in the bundle route.
+              Only shown for datasets that actually have a pre-built Africa-wide
+              file: the vector layers + the coarse climate rasters. LULC (10 m)
+              and soil (250 m) are per-country only — an Africa-wide mosaic at
+              native resolution is far too large to host/download — so we don't
+              tease a bundle that will never exist for them. */}
+          {sectionKey && BUNDLE_DATASETS.has(sectionKey) && (
             <ContinentalBundle datasetSlug={sectionKey} userState={userState} />
           )}
 
