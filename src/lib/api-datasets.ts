@@ -100,18 +100,18 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'rivers',
     name:        'River networks',
-    description: 'HydroSHEDS / FAO river networks per African country.',
+    description: 'HydroSHEDS HydroRIVERS v1.0 detailed river network per African country (full dendritic network, tiny headwater streams filtered).',
     category:    'hydrology',
     table:       'hydrology_layers',
     layer_type:  'rivers',
-    source:      'HydroSHEDS / FAO',
+    source:      'HydroSHEDS HydroRIVERS v1.0',
     toFile: (r) => ({
       country_name: String(r.country),
       country_iso3: iso3For(String(r.country)),
       r2_key:       String(r.r2_key),
       file_size_mb: Number(r.file_size_mb ?? 0),
-      file_format:  String(r.file_format ?? 'ZIP (Shapefile)'),
-      source:       String(r.source ?? 'HydroSHEDS / FAO'),
+      file_format:  String(r.file_format ?? 'GeoPackage'),
+      source:       String(r.source ?? 'HydroSHEDS HydroRIVERS v1.0'),
     }),
   },
   {
@@ -278,8 +278,8 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'watersheds',
-    name:        'Watershed boundaries (HydroBASINS L6)',
-    description: 'HydroSHEDS HydroBASINS Level 6 watershed polygon delineations per African country (~2,000–10,000 km² per basin).',
+    name:        'Watershed boundaries (HydroBASINS L8)',
+    description: 'HydroSHEDS HydroBASINS Level 8 detailed sub-catchment delineations per African country (~100–1,000 km² per basin).',
     category:    'hydrology',
     table:       'hydrology_layers',
     layer_type:  'watersheds',
@@ -291,7 +291,7 @@ export const DATASETS: DatasetSpec[] = [
       file_size_mb: Number(r.file_size_mb ?? 0),
       file_format:  String(r.file_format ?? 'GeoPackage'),
       source:       String(r.source ?? 'WWF / HydroSHEDS HydroBASINS v1c'),
-      meta:         { layer_type: 'watersheds', level: 6 },
+      meta:         { layer_type: 'watersheds', level: 8 },
     }),
   },
   {

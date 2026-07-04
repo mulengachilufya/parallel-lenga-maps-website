@@ -59,7 +59,7 @@ const SECTIONS: Record<string, {
   },
   'rivers': {
     title: '🌊 River Networks',
-    subtitle: 'Natural Earth 1:10m · GeoPackage per country',
+    subtitle: 'HydroSHEDS HydroRIVERS v1.0 · detailed network · GeoPackage per country',
     component: () => <RiversList />,
   },
   'rainfall': {
@@ -89,7 +89,7 @@ const SECTIONS: Record<string, {
   },
   'watersheds': {
     title: '🗺️ Watersheds & Catchments',
-    subtitle: 'WWF / HydroSHEDS Level 6 · GeoPackage per country',
+    subtitle: 'WWF / HydroSHEDS HydroBASINS Level 8 · detailed sub-catchments · GeoPackage per country',
     component: () => <WatershedsList />,
   },
   'population': {
@@ -250,7 +250,7 @@ function PlanCard({
 // lakes has no source data yet.
 const BUNDLE_DATASETS = new Set<string>([
   'admin-boundaries', 'aquifer', 'population', 'protected-areas',
-  'rivers', 'roads', 'watersheds',
+  'rivers', 'roads', 'watersheds', 'lakes',
   'rainfall', 'temperature', 'drought-index',
 ])
 

@@ -44,9 +44,11 @@ import pandas as pd
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-HYDROBASINS_URL = (
+# Parametrised by --level. Level 8 = detailed sub-catchments (~100–1,000 km²),
+# the "detailed watershed map" scale; Level 6 = coarse main catchments.
+HYDROBASINS_URL_TMPL = (
     "https://data.hydrosheds.org/file/HydroBASINS/standard/"
-    "hybas_af_lev06_v1c.zip"
+    "hybas_af_lev{lvl:02d}_v1c.zip"
 )
 
 # Country admin-0 centroids to clip — we download via Natural Earth
@@ -144,22 +146,27 @@ def main() -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--country", help="ISO-3 to process (e.g. ZMB)")
+    parser.add_argument("--level", type=int, default=6,
+                        help="HydroBASINS level (6=coarse main catchments, "
+                             "8=detailed sub-catchments). Default 6.")
     parser.add_argument("--skip-download", action="store_true",
                         help="Reuse already-cached zip files")
     args = parser.parse_args()
 
+    lvl = args.level
+
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    basin_zip = CACHE_DIR / "hybas_af_lev06_v1c.zip"
+    basin_zip = CACHE_DIR / f"hybas_af_lev{lvl:02d}_v1c.zip"
     admin_zip = CACHE_DIR / "ne_10m_admin_0_countries.zip"
 
     if not args.skip_download:
-        download(HYDROBASINS_URL, basin_zip)
+        download(HYDROBASINS_URL_TMPL.format(lvl=lvl), basin_zip)
         download(ADMIN0_URL, admin_zip)
 
     # ── Load global data ─────────────────────────────────────────────────────
-    print("\nLoading HydroBASINS Level 6 Africa…")
+    print(f"\nLoading HydroBASINS Level {lvl} Africa…")
     basins = load_shapefile_from_zip(basin_zip, "*.shp")
     if basins is None:
         print("ERROR: could not find .shp inside the HydroBASINS zip")
@@ -199,7 +206,7 @@ def main() -> int:
     ok, skipped = 0, 0
     for iso3, country in targets:
         print(f"\n{country} ({iso3})")
-        out_gpkg = OUT_DIR / f"{iso3}_Watersheds_L6.gpkg"
+        out_gpkg = OUT_DIR / f"{iso3}_Watersheds_L{lvl}.gpkg"
 
         ctry = country_map.get(iso3)
         if ctry is None:
@@ -237,7 +244,7 @@ def main() -> int:
         equal_area = out.to_crs("ESRI:54034")
         out["area_km2"] = (equal_area.geometry.area / 1_000_000).round(2)
 
-        out.to_file(out_gpkg, driver="GPKG", layer=f"{iso3}_watersheds_L6")
+        out.to_file(out_gpkg, driver="GPKG", layer=f"{iso3}_watersheds_L{lvl}")
 
         n          = len(out)
         total_km2  = round(float(out.get("SUB_AREA", out["area_km2"]).sum()), 1)
@@ -250,7 +257,7 @@ def main() -> int:
             "iso3":         iso3,
             "basin_count":  n,
             "total_area_km2": total_km2,
-            "source":       "HydroSHEDS / WWF HydroBASINS Level 6 v1c",
+            "source":       f"HydroSHEDS / WWF HydroBASINS Level {lvl} v1c",
             "license":      "Free for commercial use — cite HydroSHEDS",
             "source_version": "v1c",
         }
