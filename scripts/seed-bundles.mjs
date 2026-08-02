@@ -20,8 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
-import { S3Client } from '@aws-sdk/client-s3'
-import { Upload } from '@aws-sdk/lib-storage'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 
@@ -76,33 +75,16 @@ async function seed() {
     const sizeMB = fs.statSync(filePath).size / 1_048_576
     process.stdout.write(`  ${entry.dataset_id.padEnd(18)} → ${entry.r2_key} (${sizeMB.toFixed(2)} MB) ... `)
 
-    // Multipart upload (streamed, 8 MB parts, retried per-part). Far more
-    // resilient than a single PutObject for the large bundle files (100+ MB)
-    // over a flaky connection — a dropped part retries instead of restarting
-    // the whole file. We also retry the whole upload a few times.
-    let uploaded = false
-    for (let attempt = 1; attempt <= 4 && !uploaded; attempt++) {
-      try {
-        const up = new Upload({
-          client: r2,
-          params: {
-            Bucket:      BUCKET,
-            Key:         entry.r2_key,
-            Body:        fs.createReadStream(filePath),
-            ContentType: CONTENT_TYPE[entry.file_format] ?? 'application/octet-stream',
-          },
-          queueSize: 3,
-          partSize:  8 * 1024 * 1024,
-          leavePartsOnError: false,
-        })
-        await up.done()
-        uploaded = true
-      } catch (err) {
-        if (attempt === 4) { console.log(`R2 ERROR after ${attempt} tries: ${err.message}`) }
-        else { await new Promise(r => setTimeout(r, 4000)) }
-      }
+    try {
+      await r2.send(new PutObjectCommand({
+        Bucket:      BUCKET,
+        Key:         entry.r2_key,
+        Body:        fs.readFileSync(filePath),
+        ContentType: CONTENT_TYPE[entry.file_format] ?? 'application/octet-stream',
+      }))
+    } catch (err) {
+      console.log(`R2 ERROR: ${err.message}`); fail++; continue
     }
-    if (!uploaded) { fail++; continue }
 
     const { error } = await sb.from('dataset_bundles').upsert({
       dataset_id:    entry.dataset_id,
