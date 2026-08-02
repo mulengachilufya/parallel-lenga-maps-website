@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Analytics } from '@vercel/analytics/next'
-import Script from 'next/script'
 
 // Distinct display typeface for eyebrow labels / accents. Loaded once here and
 // exposed as the --font-display CSS variable, wired to the `font-display`
@@ -36,11 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={displayFont.variable}>
       <body className="antialiased">
-        <Script
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1550056060479056"
           crossOrigin="anonymous"
-          strategy="beforeInteractive"
         />
         <LoadingScreen />
         <Navbar />
