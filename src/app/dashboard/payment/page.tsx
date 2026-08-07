@@ -16,10 +16,11 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown } from 'lucide-react'
+import { Loader2, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown, Landmark } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PLANS, SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
 import BankTransferPanel from '@/components/BankTransferPanel'
+import CardPayPanel from '@/components/CardPayPanel'
 import MomoPayPanel from '@/components/MomoPayPanel'
 import { track } from '@/lib/analytics'
 
@@ -35,6 +36,7 @@ function PaymentInner() {
   const [name,     setName]     = useState('')
   const [paid,     setPaid]     = useState(false)
   const [showMomo, setShowMomo] = useState(false)
+  const [showBank, setShowBank] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -189,11 +191,10 @@ function PaymentInner() {
           transition={{ delay: 0.1 }}
           className="bg-white rounded-3xl p-7 sm:p-10 shadow-sm border border-gray-100"
         >
-          <BankTransferPanel
+          <CardPayPanel
             plan={plan}
-            amountLabel={`${priceLabel} USD`}
-            userEmail={email}
-            userName={name}
+            amountLabel={priceLabel}
+            name={name}
           />
         </motion.div>
 
@@ -235,6 +236,45 @@ function PaymentInner() {
             >
               <div className="mt-4 bg-white rounded-2xl border border-gray-200 p-5 sm:p-6">
                 <MomoPayPanel plan={plan} onSuccess={() => setPaid(true)} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          onClick={() => setShowBank((s) => !s)}
+          className="mt-3 w-full flex items-center justify-between bg-white rounded-2xl border border-gray-200 hover:border-gray-300 px-5 py-4 transition-all text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-md bg-navy/10 flex items-center justify-center">
+              <Landmark size={16} className="text-navy" />
+            </div>
+            <div>
+              <p className="font-bold text-navy text-sm">Bank Transfer</p>
+              <p className="text-xs text-gray-500">Manual, we verify within a few hours</p>
+            </div>
+          </div>
+          <ChevronDown
+            size={18}
+            className={`text-gray-400 transition-transform ${showBank ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        <AnimatePresence>
+          {showBank && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 bg-white rounded-2xl border border-gray-200 p-5 sm:p-6">
+                <BankTransferPanel
+                  plan={plan}
+                  amountLabel={`${priceLabel} USD`}
+                  userEmail={email}
+                  userName={name}
+                />
               </div>
             </motion.div>
           )}
