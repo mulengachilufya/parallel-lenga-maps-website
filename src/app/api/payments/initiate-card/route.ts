@@ -32,9 +32,18 @@ const serviceSupabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const LIPILA_BASE = process.env.LIPILA_SANDBOX === 'true'
+const LIPILA_SANDBOX_MODE = process.env.LIPILA_SANDBOX === 'true'
+
+const LIPILA_BASE = LIPILA_SANDBOX_MODE
   ? 'https://api.lipila.dev'
   : 'https://blz.lipila.io'
+
+// Sandbox uses its own key (LIPILA_TEST_API_KEY) so it never has to share a
+// variable name with the live LIPILA_API_KEY. Falls back to LIPILA_API_KEY
+// if no test key is set, so nothing breaks if it's left unconfigured.
+const LIPILA_KEY = LIPILA_SANDBOX_MODE
+  ? (process.env.LIPILA_TEST_API_KEY ?? process.env.LIPILA_API_KEY)
+  : process.env.LIPILA_API_KEY
 
 /** Normalise phone to 260xxxxxxxxx (international Zambian format). */
 function normalisePhone(raw: string): string {
@@ -151,7 +160,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'accept':       'application/json',
         'Content-Type': 'application/json',
-        'x-api-key':    process.env.LIPILA_API_KEY!,
+        'x-api-key':    LIPILA_KEY!,
         'callbackUrl':  callbackUrl,
       },
       body: JSON.stringify({
