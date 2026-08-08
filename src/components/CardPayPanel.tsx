@@ -109,8 +109,9 @@ export default function CardPayPanel({ plan, amountLabel, name = '', className =
         Pay with your card
       </h2>
       <p className="text-center text-sm text-gray-500 mb-7 max-w-sm mx-auto">
-        Visa or Mastercard. Charged in USD, the exact plan price. Your bank
-        converts to your card&apos;s currency if it isn&apos;t in dollars.
+        Visa or Mastercard, accepted worldwide. The next screen shows the amount
+        in Zambian Kwacha (ZMW), that&apos;s just our local processor&apos;s
+        currency, not an extra charge. You&apos;re still paying exactly {amountLabel}.
       </p>
 
       {/* Phone number — required by the Lipila card endpoint */}
