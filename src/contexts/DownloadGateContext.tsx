@@ -6,33 +6,35 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
-  getUserState, DATASET_MIN_TIER, PLAN_ORDER,
-  PLANS, SELF_SERVE_PLAN_ORDER as TIERS, getTierLabel,
+  getUserState, PLANS, PLAN_ORDER as TIERS,
   type UserState, type TierSlug, type DatasetSlug,
 } from '@/lib/pricing'
 import Link from 'next/link'
 import { track } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────
+//
+// Once-off model: no trial, no per-dataset tier ladder. A profile either
+// has an active plan (individual or team) — full catalogue, no cap — or
+// it doesn't. `checkAccess` no longer needs the dataset slug to decide;
+// it's kept as a parameter so call sites throughout the app don't all
+// need to change in the same pass.
 
 interface GateUser {
   plan:            TierSlug | null
   planStatus:      string
-  planExpiresAt:   string | null
-  trialStartedAt:  string | null
   userState:       UserState
 }
 
 interface ModalState {
   open:          boolean
-  /** 'paywall' = access denied / trial expired (UPSELL).
+  /** 'paywall' = no active plan.
    *  'unavailable' = access GRANTED but the specific file has no R2 URL
    *  (file not in storage yet, signing failed, key missing). Different copy,
    *  no upsell — showing the paywall here was the production bug reported
    *  2026-06-18 where a Team-tier user clicked random rainfall rows and saw
    *  "Your free trial has ended". */
   kind:          'paywall' | 'unavailable'
-  requiredTier:  TierSlug
   datasetSlug:   DatasetSlug | null
 }
 
@@ -75,7 +77,7 @@ export function useDownloadGate() { return useContext(Ctx) }
 export default function DownloadGateProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<GateUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [modal, setModal]     = useState<ModalState>({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })
+  const [modal, setModal]     = useState<ModalState>({ open: false, kind: 'paywall', datasetSlug: null })
 
   // Defensive load: wrapped in try/finally so setLoading(false) ALWAYS
   // runs. Each await is raced against a timeout that resolves to null on
@@ -99,7 +101,7 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       const profileRes = await withTimeout(
         supabase
           .from('profiles')
-          .select('plan, plan_status, plan_expires_at, trial_started_at')
+          .select('plan, plan_status')
           .eq('id', session.user.id)
           .single(),
         6_000,
@@ -108,17 +110,11 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
 
       if (!profile) { setUser(null); return }
 
-      const userState = getUserState(
-        profile.plan,
-        profile.trial_started_at,
-        profile.plan_status,
-      )
+      const userState = getUserState(profile.plan, profile.plan_status)
 
       setUser({
-        plan:           profile.plan as TierSlug | null,
-        planStatus:     profile.plan_status,
-        planExpiresAt:  profile.plan_expires_at,
-        trialStartedAt: profile.trial_started_at,
+        plan:       profile.plan as TierSlug | null,
+        planStatus: profile.plan_status,
         userState,
       })
     } catch (err) {
@@ -169,28 +165,26 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
     }
   }, [load])
 
-  function checkAccess(slug: DatasetSlug): boolean {
+  // slug kept in the signature so existing call sites (buttons, dataset
+  // lists) don't all need updating in this pass — it's simply unused now.
+  function checkAccess(_slug: DatasetSlug): boolean {
     if (!user) return false
-    const { userState } = user
-    if (userState === 'free_trial') return true
-    if (userState === 'free' || !user.plan) return false
-    return PLAN_ORDER.indexOf(user.plan) >= PLAN_ORDER.indexOf(DATASET_MIN_TIER[slug])
+    return user.userState !== 'free'
   }
 
   function openGate(slug: DatasetSlug) {
-    const requiredTier = DATASET_MIN_TIER[slug]
-    track('paywall_shown', {
-      dataset: slug,
-      required_tier: requiredTier,
-      user_state: user?.userState ?? 'anonymous',
-    })
-    setModal({ open: true, kind: 'paywall', requiredTier, datasetSlug: slug })
+    track('paywall_shown', { dataset: slug, user_state: user?.userState ?? 'anonymous' })
+    setModal({ open: true, kind: 'paywall', datasetSlug: slug })
   }
 
   function notifyUnavailable(slug: DatasetSlug) {
-    setModal({ open: true, kind: 'unavailable', requiredTier: 'starter', datasetSlug: slug })
+    setModal({ open: true, kind: 'unavailable', datasetSlug: slug })
   }
 
+  // TODO (Phase 3): /api/usage/consume-download still enforces the old
+  // trial download cap. There's no cap anymore in the once-off model, so
+  // once that route is simplified/retired, this can become a no-op that
+  // just returns checkAccess(slug) without the network round-trip.
   async function consumeDownload(slug: DatasetSlug, country?: string): Promise<boolean> {
     try {
       const res = await fetch('/api/usage/consume-download', {
@@ -199,13 +193,10 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
         body:    JSON.stringify({ dataset: slug, country }),
       })
       if (res.ok) {
-        // Refresh local state so the trial banner's remaining-count is
-        // accurate after the next render.
         load()
         return true
       }
-      // 403 with reason=trial_cap_reached, plan_expired, or no_access.
-      // Open the paywall so the user sees a CTA instead of a silent fail.
+      // 403 = plan not active / no access. Open the paywall.
       openGate(slug)
       return false
     } catch {
@@ -221,14 +212,12 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       {children}
       {modal.open && modal.kind === 'unavailable' && (
         <UnavailableModal
-          onClose={() => setModal({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })}
+          onClose={() => setModal({ open: false, kind: 'paywall', datasetSlug: null })}
         />
       )}
       {modal.open && modal.kind === 'paywall' && (
         <PaywallModal
-          requiredTier={modal.requiredTier}
-          userState={user?.userState ?? 'free'}
-          onClose={() => setModal({ open: false, kind: 'paywall', requiredTier: 'starter', datasetSlug: null })}
+          onClose={() => setModal({ open: false, kind: 'paywall', datasetSlug: null })}
         />
       )}
     </Ctx.Provider>
@@ -275,67 +264,43 @@ function UnavailableModal({ onClose }: { onClose: () => void }) {
 
 // ─── Paywall modal ────────────────────────────────────────────
 
-function PaywallModal({
-  requiredTier,
-  userState,
-  onClose,
-}: {
-  requiredTier: TierSlug
-  userState:    UserState
-  onClose:      () => void
-}) {
-  const isExpired = userState === 'free'
-
+function PaywallModal({ onClose }: { onClose: () => void }) {
+  // NOTE (Phase 4): individual's card still links to /dashboard/payment,
+  // the old Lipila checkout route. That gets replaced with a "contact us"
+  // CTA in Phase 4 — left as-is here so this stays a Phase 2-only change.
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
       <div className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-2xl w-full p-8 shadow-2xl">
 
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-white mb-1">
-              {isExpired ? 'Your free trial has ended' : 'This dataset requires a paid plan'}
-            </h2>
+            <h2 className="text-xl font-bold text-white mb-1">Get full access</h2>
             <p className="text-blue-300 text-sm">
-              {isExpired
-                ? 'Choose a plan to keep accessing your datasets.'
-                : `This dataset is available on the ${getTierLabel(requiredTier)} plan and above.`}
+              One-time payment. Every dataset, every country, no expiry.
             </p>
           </div>
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-4 text-xl leading-none">✕</button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {TIERS.map((slug) => {
             const plan = PLANS[slug]
-            const isRequired = slug === requiredTier
             return (
               <Link
                 key={slug}
-                href={`/dashboard/payment?plan=${slug}`}
+                href={plan.selfServe ? `/dashboard/payment?plan=${slug}` : '/projects'}
                 onClick={() => {
-                  track('paywall_cta_clicked', { plan: slug, required_tier: requiredTier })
+                  track('paywall_cta_clicked', { plan: slug })
                   onClose()
                 }}
-                className={`block rounded-xl border p-4 text-center transition-colors hover:border-[#F5B800]/60 group ${
-                  isRequired
-                    ? 'border-[#F5B800]/50 bg-[#1a3a5c]'
-                    : 'border-blue-900/60 bg-[#112236]'
-                }`}
+                className="block rounded-xl border border-blue-900/60 bg-[#112236] p-4 text-center transition-colors hover:border-[#F5B800]/60 group"
               >
-                {isRequired && (
-                  <p className="text-[#F5B800] text-xs font-bold uppercase tracking-wide mb-2">Required</p>
-                )}
                 <p className="text-white font-semibold text-sm mb-1">{plan.name}</p>
                 <p className="text-2xl font-bold text-white group-hover:text-[#F5B800] transition-colors">{plan.priceLabel}</p>
-                <p className="text-blue-400 text-xs">/month</p>
                 <div className="mt-3 pt-3 border-t border-blue-900/40 text-left space-y-1">
-                  <p className="text-blue-300 text-xs">
-                    {plan.datasetCount === -1 ? 'All datasets' : `${plan.datasetCount} datasets`}
-                  </p>
-                  <p className="text-blue-300 text-xs">
-                    {plan.downloadLimit === -1 ? 'Unlimited downloads' : `${plan.downloadLimit}/mo`}
-                  </p>
-                  {plan.apiAccess && <p className="text-blue-300 text-xs">API access</p>}
+                  <p className="text-blue-300 text-xs">All 15 datasets, all 54 countries</p>
+                  <p className="text-blue-300 text-xs">No expiry, unlimited downloads</p>
+                  {plan.perSeat && <p className="text-blue-300 text-xs">{plan.minSeats}-seat minimum</p>}
                 </div>
                 <div className="mt-3 bg-[#1E5F8E] group-hover:bg-[#F5B800] group-hover:text-[#0D2B45] text-white text-xs font-semibold py-2 rounded-lg transition-colors">
                   {plan.ctaLabel}
@@ -347,10 +312,7 @@ function PaywallModal({
 
         <div className="flex items-center justify-between">
           <p className="text-blue-500 text-xs">
-            Pay by bank transfer or mobile money. Account activated within 24 hours.{' '}
-            <Link href="/projects" onClick={onClose} className="text-[#F5B800] hover:underline">
-              Working as a team? See team plans →
-            </Link>
+            Pay by bank transfer. Account activated within 24 hours.
           </p>
           <button onClick={onClose} className="text-blue-400 hover:text-white text-sm transition-colors">
             Browse only
