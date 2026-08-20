@@ -1,152 +1,129 @@
-// src/lib/pricing.ts
-// Single source of truth for all pricing and access logic.
-// Every page, component, and API route imports from here.
-//
-// ─── ONCE-OFF MODEL (2026-08) ──────────────────────────────────
-// Replaced the 5-tier monthly system (Starter/Pro/Max/Enterprise/Team)
-// with two flat, once-off, no-expiry plans. Every paid account — either
-// plan — gets every dataset. There is no more per-dataset gating, no
-// free trial, no recurring billing, no self-serve checkout. Access is
-// granted manually by an admin after the buyer contacts us and pays via
-// bank transfer (see /api/admin/payments/verify).
-//
-// Old TierSlug values ('starter' | 'pro' | 'max' | 'enterprise') and the
-// dataset-tier ladder (DATASET_MIN_TIER, PLAN_ORDER, datasetCountForTier,
-// canAccessDataset) are gone. Anything still importing them will fail to
-// compile — that's the map for Phase 2 (dataset-access.ts /
-// DownloadGateContext.tsx) and Phase 3 (kill the trial system).
+'use client'
 
-export type TierSlug = 'individual' | 'team'
-export type UserState = 'free' | TierSlug
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { PLANS, PLAN_CARD_UI, PLAN_ORDER, type TierSlug } from "@/lib/pricing"
+import { supabase } from "@/lib/supabase"
 
-export interface Plan {
-  slug:         TierSlug
-  name:         string
-  price:        number     // USD, per seat for 'team'
-  priceLabel:   string
-  description:  string
-  perSeat:      boolean
-  minSeats:     number      // enforced at checkout/admin-grant time
-  selfServe:    boolean     // false = contact-us / admin-provisioned only
-  ctaLabel:     string
-  features:     string[]
+/**
+ * Pricing CTAs are session-aware for the self-serve (individual) plan:
+ *   logged-out user -> /signup  (account first, then payment)
+ *   logged-in user  -> /dashboard/payment?plan=individual
+ *
+ * The team plan is never self-serve - it always goes to /projects
+ * regardless of session state, same as before.
+ */
+function ctaHref(slug: TierSlug, signedIn: boolean): string {
+  const plan = PLANS[slug]
+  if (!plan.selfServe) return '/projects'
+  return signedIn ? `/dashboard/payment?plan=${slug}` : '/signup'
 }
 
-export const PLANS: Record<TierSlug, Plan> = {
-  individual: {
-    slug: 'individual', name: 'Individual', price: 50, priceLabel: '$50 once-off',
-    description: 'One-time payment. Every dataset, every country, no expiry.',
-    perSeat: false, minSeats: 1, selfServe: true,
-    ctaLabel: 'Get access',
-    features: [
-      'All 15 datasets, all 54 African countries',
-      'Unlimited downloads',
-      'Pay once — access never expires',
-      'Shapefile, GeoJSON, GeoTIFF formats',
-      'Email support',
-    ],
-  },
-  team: {
-    slug: 'team', name: 'Team', price: 45, priceLabel: '$45/seat once-off',
-    description: 'One-time per-seat payment for teams and organisations. 2-seat minimum.',
-    perSeat: true, minSeats: 2, selfServe: false,
-    ctaLabel: 'Contact us',
-    features: [
-      'Everything in Individual, per seat',
-      'Shared team workspace and download history',
-      'Pay once per seat — access never expires',
-      'Owner-managed seats, 2-seat minimum',
-      'Commercial use licence + direct email support',
-    ],
-  },
-}
+export default function PricingPage() {
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) setSignedIn(!!session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_e, s) => setSignedIn(!!s)
+    )
+    return () => { cancelled = true; subscription.unsubscribe() }
+  }, [])
 
-export const PLAN_ORDER: TierSlug[] = ['individual', 'team']
+  const cards = PLAN_ORDER.map((slug) => ({
+    id: slug,
+    plan: PLANS[slug],
+    ui: PLAN_CARD_UI[slug],
+  }))
 
-// What a buyer can pay for directly on-site vs. contact-us-only.
-// Individual is (eventually) self-serve; team stays quote/contact-based
-// because seats + manual bank-transfer onboarding don't fit a checkout form.
-export const SELF_SERVE_PLAN_ORDER: TierSlug[] = ['individual']
+  return (
+    <>
+      <style>{`
+        .plan-card {
+          text-decoration: none;
+          display: flex;
+          flex-direction: column;
+          min-height: 440px;
+          border-radius: 16px;
+          padding: 1.5rem 1.25rem 1.75rem;
+          transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+          cursor: pointer;
+        }
+        .plan-card:hover {
+          transform: translateY(-6px) scale(1.01);
+          filter: brightness(1.03);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+        }
+        .plan-card:active {
+          transform: scale(0.97);
+          filter: brightness(0.97);
+        }
+        .plan-text { color: #1a1a1a !important; }
+        .plan-muted { color: #444 !important; }
+        @media (max-width: 700px) {
+          .pricing-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+          .plan-card { min-height: 380px !important; }
+          .price-num { font-size: 36px !important; }
+        }
+      `}</style>
 
-// ─── Plan card UI ─────────────────────────────────────────────
+      <div style={{ padding: '2.5rem 1rem 3rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 400, margin: '0 0 0.5rem', lineHeight: 1.1, color: '#1a1a1a' }}>
+            Simple, honest pricing
+          </h1>
+          <p style={{ fontSize: '15px', color: '#555', margin: 0 }}>
+            One-time payment. Every dataset, every one of 54 African countries, no expiry.
+          </p>
+        </div>
 
-export interface PlanCardUI {
-  bg:           string
-  border:       string
-  nameColor:    string
-  priceColor:   string
-  dotColor:     string
-  btnBg:        string
-  dividerColor: string
-  tagline:      string
-  count:        string
-  datasets:     string[]
-}
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px', maxWidth: '640px', margin: '0 auto' }}>
+          {cards.map(({ id, plan, ui }) => {
+            const isTeam = id === 'team'
+            return (
+              <Link
+                key={id}
+                href={ctaHref(id, signedIn)}
+                className="plan-card"
+                style={{ background: ui.bg, border: `1px solid ${ui.border}` }}
+              >
+                <div className={isTeam ? undefined : 'plan-text'} style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: ui.nameColor, marginBottom: '0.5rem' }}>
+                  {plan.name}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
+                  <span className="price-num" style={{ fontSize: '40px', lineHeight: 1, color: ui.priceColor, fontWeight: 400 }}>{plan.priceLabel}</span>
+                </div>
+                <p className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5, color: isTeam ? '#BFD7EA' : undefined }}>{ui.tagline}</p>
+                <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 1rem' }} />
+                <div className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem', color: isTeam ? '#BFD7EA' : undefined }}>
+                  {ui.count}
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+                  {ui.datasets.map(d => (
+                    <li key={d} className={isTeam ? undefined : 'plan-text'} style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4, color: isTeam ? '#E8F1F8' : undefined }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ui.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
+                  <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: ui.btnBg, color: isTeam ? '#1a1200' : '#fff', textAlign: 'center' }}>
+                    {plan.ctaLabel}
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
 
-export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
-  individual: {
-    bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
-    dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
-    tagline: 'The full platform, once, no subscription.',
-    count: '15 datasets',
-    datasets: ['Every dataset we have', 'All 54 African countries', 'Unlimited downloads', 'No expiry'],
-  },
-  team: {
-    bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
-    dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
-    tagline: 'A shared workspace for GIS teams on real projects.',
-    count: '15 datasets',
-    datasets: ['Per-seat team accounts', 'Shared download history', 'Commercial use licence', '2-seat minimum'],
-  },
-}
-
-// ─── Datasets ─────────────────────────────────────────────────
-// Slugs match the id field in api-datasets.ts EXACTLY — do not change.
-// No tier ladder anymore: every dataset is available to every paid account.
-
-export type DatasetSlug =
-  | 'admin-boundaries' | 'aquifer' | 'drought-index'
-  | 'rainfall' | 'protected-areas'
-  | 'watersheds' | 'population' | 'rivers' | 'roads'
-  | 'temperature' | 'hydrorivers' | 'lulc' | 'lakes' | 'soil' | 'wetlands'
-
-export const ALL_DATASETS: DatasetSlug[] = [
-  'admin-boundaries', 'aquifer', 'drought-index', 'rainfall', 'protected-areas',
-  'watersheds', 'population', 'rivers', 'roads',
-  'temperature', 'hydrorivers', 'lulc', 'lakes', 'soil', 'wetlands',
-]
-
-export const DATASET_COUNT = ALL_DATASETS.length
-
-// ─── Access ───────────────────────────────────────────────────
-// Binary now: an account is either paid (any plan) or free. Paid unlocks
-// everything. No trial, no per-dataset gate, no download cap.
-
-export function getUserState(
-  plan:       string | undefined | null,
-  planStatus: string | undefined | null,
-): UserState {
-  if (planStatus === 'active' && plan && (plan === 'individual' || plan === 'team')) {
-    return plan as TierSlug
-  }
-  return 'free'
-}
-
-export function getTierLabel(state: UserState): string {
-  const labels: Record<UserState, string> = {
-    free:       'Free',
-    individual: 'Individual',
-    team:       'Team',
-  }
-  return labels[state]
-}
-
-/** Any paid account (individual or team) can access every file. */
-export function canAccessFiles(state: UserState): boolean {
-  return state !== 'free'
-}
-
-/** Every dataset is available to every paid account — no per-tier gate. */
-export function canAccessDataset(userPlan: TierSlug | 'free'): boolean {
-  return userPlan !== 'free'
+        <div style={{ maxWidth: '640px', margin: '2rem auto 0', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+            Pay by bank transfer. We activate your account within 24 hours of payment.
+          </p>
+        </div>
+      </div>
+    </>
+  )
 }
