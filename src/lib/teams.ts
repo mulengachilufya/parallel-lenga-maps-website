@@ -8,45 +8,29 @@
 //   internal/product name  →  "Lenga for Projects"
 //   page route             →  /projects
 //
-// Pricing model (locked 2026-06-12 exec meeting, decision D2):
-//   flat $45/seat, two named bundles each carrying a $20/mo discount shown
-//   against the crossed-out per-seat original. Custom stays full rate.
+// Pricing model (updated 2026-08, once-off migration):
+//   flat $45/seat, once-off, 2-seat minimum. No bundles, no discount framing —
+//   $45 is already $5 below the $50 Individual plan per seat, and that's the
+//   whole story. Team size is always confirmed on the quote.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DatasetSlug } from './pricing'
 
 export const TEAM_TIER_TITLE   = 'For Project Teams and Businesses'
 export const TEAM_PRODUCT_NAME = 'Lenga for Projects'
-export const TEAM_SEAT_PRICE   = 45 // USD / seat / month
+export const TEAM_SEAT_PRICE   = 45 // USD / seat, once-off
+export const TEAM_MIN_SEATS    = 2
 
 export interface TeamBlock {
-  id:         'team-3' | 'team-10' | 'custom'
-  label:      string
-  seats:      number | null   // null = custom
-  price:      string          // what they pay
-  original:   string | null   // crossed-out "(instead of $X)" anchor; bundles only
-  perSeat:    string | null   // shown ONLY on the custom block
-  blurb:      string
+  id:      'custom'
+  label:   string
+  blurb:   string
 }
 
-// The two bundles deliberately do NOT show a per-seat rate — the visible
-// price is the bundle price with its saving. $45/seat appears only on Custom
-// so the page never contradicts itself.
 export const TEAM_BLOCKS: TeamBlock[] = [
   {
-    id: 'team-3', label: '3 seats', seats: 3,
-    price: '$115/mo', original: '$135', perSeat: null,
-    blurb: 'For small project teams getting a shared workspace for the first time.',
-  },
-  {
-    id: 'team-10', label: '10 seats', seats: 10,
-    price: '$430/mo', original: '$450', perSeat: null,
-    blurb: 'For departments and multi-project teams that live in GIS data.',
-  },
-  {
-    id: 'custom', label: 'Custom', seats: null,
-    price: '$45/seat', original: null, perSeat: '$45',
-    blurb: 'Any team size. Tell us your seat count and we will quote it.',
+    id: 'custom', label: 'Team plan',
+    blurb: `Once-off, per seat. ${TEAM_MIN_SEATS}-seat minimum. Tell us your seat count and we'll confirm the total.`,
   },
 ]
 

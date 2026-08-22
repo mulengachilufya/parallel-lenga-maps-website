@@ -16,9 +16,9 @@
  *     → GIS facts text
  *     → Quote form
  *
- * Pricing locked at the 2026-06-12 exec meeting: flat $45/seat, two named
- * bundles each carrying a $20/mo discount. No checkout, ever — every CTA
- * routes to the quote form.
+ * Pricing: flat $45/seat, once-off, 2-seat minimum — $5 below the $50
+ * Individual plan per seat. No checkout, ever — every CTA routes to the
+ * quote form.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -30,7 +30,7 @@ import {
   Mountain, Building2, FlaskConical, ShieldCheck, Calculator, Sparkles,
   Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
-import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE } from '@/lib/teams'
+import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE, TEAM_MIN_SEATS } from '@/lib/teams'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -165,13 +165,13 @@ export default function ProjectsPage() {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(13,43,69,0.15) 0%, rgba(13,43,69,0.30) 55%, rgba(13,43,69,0.92) 92%, #0D2B45 100%)' }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(13,43,69,0.65) 0%, rgba(13,43,69,0.25) 45%, rgba(13,43,69,0) 70%)' }} />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24">
-          <div className="flex items-center gap-3.5 mb-6">
-            <div className="w-9 h-0.5" style={{ background: GOLD }} />
-            <span className="text-[0.78rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-              Lenga Maps for Teams
-            </span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] max-w-3xl">
+          <span
+            className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-5 block"
+            style={{ color: GOLD }}
+          >
+            Lenga Maps for Teams
+          </span>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-[4.25rem] font-bold leading-[1.05] max-w-3xl">
             {TEAM_TIER_TITLE}
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85">
@@ -220,13 +220,13 @@ export default function ProjectsPage() {
       {/* ── What the seat buys ───────────────────────────────────────── */}
       <section className="bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex items-center gap-3.5 mb-4">
-            <div className="w-9 h-0.5" style={{ background: GOLD }} />
-            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
-              Built for teams
-            </span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-10" style={{ color: NAVY }}>
+          <span
+            className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4 block"
+            style={{ color: '#854F0B' }}
+          >
+            Built for teams
+          </span>
+          <h2 className="font-display text-4xl sm:text-5xl font-bold mb-10" style={{ color: NAVY }}>
             What every seat unlocks.
           </h2>
 
@@ -254,13 +254,13 @@ export default function ProjectsPage() {
       {/* ── GIS facts (dark, condensed text block) ───────────────────── */}
       <section style={{ background: NAVY }} className="text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="flex items-center gap-3.5 mb-5">
-            <div className="w-9 h-0.5" style={{ background: GOLD }} />
-            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-              For your GIS lead
-            </span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold">Data that won&apos;t start arguments.</h2>
+          <span
+            className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4 block"
+            style={{ color: GOLD }}
+          >
+            For your GIS lead
+          </span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold">Data that won&apos;t start arguments.</h2>
           <ul className="mt-7 space-y-4 text-[15px] leading-relaxed text-white/85">
             <li className="flex gap-3"><Globe2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">One CRS, stated everywhere.</strong> Every layer ships in EPSG:4326 (WGS84) and the workspace shows the CRS on every download record, because projection mismatches are how team GIS projects quietly fall apart.</span></li>
             <li className="flex gap-3"><Layers size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Formats teams actually use.</strong> Shapefile, GeoJSON and KML for vectors; GeoTIFF for rasters; QGIS symbology included where it helps.</span></li>
@@ -301,9 +301,6 @@ const PALETTE_NAVY: CardPalette = {
 }
 
 function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }) {
-  const paletteFor = (id: string): CardPalette =>
-    id === 'team-10' ? PALETTE_NAVY : PALETTE_CREAM
-
   return (
     <section style={{ background: '#FAFAF7' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -312,21 +309,20 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
         <div className="flex flex-col items-center text-center">
           <Image
             src={IMG.logo} alt="Lenga Maps" width={56} height={56}
-            className="mb-4" priority unoptimized
+            className="mb-5" priority unoptimized
           />
-          <div className="flex items-center gap-3.5 mb-5">
-            <div className="w-9 h-0.5" style={{ background: GOLD }} />
-            <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
-              Simple per-seat pricing
-            </span>
-            <div className="w-9 h-0.5" style={{ background: GOLD }} />
-          </div>
-          <h2 style={{ fontSize: '40px', fontWeight: 400, lineHeight: 1.1, color: NAVY, margin: '0 0 0.75rem' }}>
-            Pick a plan. Get the workspace.
+          <span
+            className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4"
+            style={{ color: '#854F0B' }}
+          >
+            Team pricing
+          </span>
+          <h2 className="font-display" style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.08, color: NAVY, margin: '0 0 1rem' }}>
+            One seat price. Paid once.
           </h2>
-          <p style={{ fontSize: '15px', color: '#555', margin: 0, maxWidth: '560px' }}>
-            Flat $45 per seat. The two team bundles carry a built-in $20/mo discount.
-            All plans cover all 54 African countries. Billed monthly in USD.
+          <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
+            $45 per seat — $5 less than paying for each teammate on an Individual plan.
+            2-seat minimum. All 54 African countries, every dataset, no expiry.
           </p>
         </div>
 
@@ -363,78 +359,66 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           </div>
         </div>
 
-        {/* ── Cards ─────────────────────────────────────────────────── */}
-        <div
-          className="lm-grid mt-10"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px', alignItems: 'stretch' }}
-        >
-          {TEAM_BLOCKS.map((b) => {
-            const p = paletteFor(b.id)
-            const featured = b.id === 'team-10'
-            return (
-              <div
-                key={b.id}
-                className={`lm-card ${featured ? 'lm-featured' : ''}`}
-                style={{ background: p.bg, border: `1px solid ${p.border}`, color: p.text }}
+        {/* ── Card ──────────────────────────────────────────────────── */}
+        <div className="mt-10 flex justify-center">
+          <div
+            className="lm-card"
+            style={{ background: PALETTE_NAVY.bg, border: `1px solid ${PALETTE_NAVY.border}`, color: PALETTE_NAVY.text, maxWidth: '440px', width: '100%' }}
+          >
+            {/* Once-off callout — this is the thing people must not miss. */}
+            <div
+              className="flex items-center gap-2.5 rounded-xl px-4 py-3 mb-5"
+              style={{ background: 'rgba(245,184,0,0.14)', border: `1.5px solid ${GOLD}` }}
+            >
+              <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
+              <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
+                Paid once. Access never expires. Not a subscription.
+              </span>
+            </div>
+
+            <div className="lm-name" style={{ color: PALETTE_NAVY.nameColor }}>{TEAM_BLOCKS[0].label}</div>
+
+            <div className="lm-price-row">
+              <span className="lm-price" style={{ color: PALETTE_NAVY.priceColor }}>${TEAM_SEAT_PRICE}</span>
+              <span className="lm-period" style={{ color: PALETTE_NAVY.muted }}>/seat, once-off</span>
+            </div>
+            <p className="lm-period" style={{ color: PALETTE_NAVY.muted, margin: 0 }}>{TEAM_MIN_SEATS}-seat minimum.</p>
+
+            <p className="lm-blurb" style={{ color: PALETTE_NAVY.muted }}>{TEAM_BLOCKS[0].blurb}</p>
+
+            <div className="lm-divider" style={{ background: PALETTE_NAVY.dividerColor }} />
+
+            <SeatCalculator palette={PALETTE_NAVY} />
+
+            <div className="lm-feat-label" style={{ color: PALETTE_NAVY.muted }}>What you get</div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+              {[
+                'Shared team workspace & download history',
+                'Owner-managed seats',
+                'API access with rate limits',
+                'Commercial use licence',
+                'Custom sub-country datasets on request',
+              ].map((row) => (
+                <li key={row} className="lm-feat-row" style={{ color: PALETTE_NAVY.text }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: PALETTE_NAVY.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
+                  {row}
+                </li>
+              ))}
+            </ul>
+
+            <div className="lm-cta">
+              <button
+                onClick={() => onQuote(null)}
+                className="lm-cta-btn"
+                style={{ background: PALETTE_NAVY.btnBg, color: PALETTE_NAVY.btnColor }}
               >
-                {featured && (
-                  <div className="lm-name" style={{ color: GOLD, marginBottom: '0.4rem' }}>
-                    ★ Most popular
-                  </div>
-                )}
-                <div className="lm-name" style={{ color: p.nameColor }}>{b.label}</div>
-
-                <div className="lm-price-row">
-                  <span className="lm-price" style={{ color: p.priceColor }}>{b.price}</span>
-                  {b.original && (
-                    <span className="lm-instead" style={{ color: p.muted }}>
-                      instead of <s>{b.original}</s>
-                    </span>
-                  )}
-                </div>
-                {/* $45/seat appears ONLY on the Custom block by design. */}
-                {b.perSeat && (
-                  <p className="lm-period" style={{ color: p.muted, margin: 0 }}>Full rate, any team size.</p>
-                )}
-
-                <p className="lm-blurb" style={{ color: p.muted }}>{b.blurb}</p>
-
-                <div className="lm-divider" style={{ background: p.dividerColor }} />
-
-                {/* Custom block carries the live seat calculator. */}
-                {b.id === 'custom' && <SeatCalculator palette={p} />}
-
-                <div className="lm-feat-label" style={{ color: p.muted }}>What you get</div>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-                  {[
-                    'Shared team workspace & download history',
-                    'Owner-managed seats',
-                    'API access with rate limits',
-                    'Commercial use licence',
-                    'Custom sub-country datasets on request',
-                  ].map((row) => (
-                    <li key={row} className="lm-feat-row" style={{ color: p.text }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: p.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
-                      {row}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="lm-cta">
-                  <button
-                    onClick={() => onQuote(b.seats)}
-                    className="lm-cta-btn"
-                    style={{ background: p.btnBg, color: p.btnColor }}
-                  >
-                    Get a quote
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+                Get a quote
+              </button>
+            </div>
+          </div>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-7">
+        <p className="text-center text-sm text-gray-500 mt-7">
           Quote-based. We provision your team manually within 1 business day. No card needed.
         </p>
       </div>
@@ -442,12 +426,12 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
   )
 }
 
-// Curiosity calculator on the Custom block: type a seat count, see the
-// monthly bill instantly at the flat $45/seat rate. Pure display math — the
-// real number is still confirmed on the quote. Honors the card palette so
-// it doesn't fight the cream/navy backgrounds.
+// Curiosity calculator: type a seat count, see the once-off total instantly
+// at the flat $45/seat rate. Pure display math — the real number is still
+// confirmed on the quote. Honors the card palette so it doesn't fight the
+// cream/navy backgrounds.
 function SeatCalculator({ palette }: { palette: CardPalette }) {
-  const [seats, setSeats] = useState(5)
+  const [seats, setSeats] = useState(TEAM_MIN_SEATS)
   const total = Math.max(0, seats) * TEAM_SEAT_PRICE
   const onCream = palette === PALETTE_CREAM
 
@@ -459,13 +443,13 @@ function SeatCalculator({ palette }: { palette: CardPalette }) {
         border: `1px solid ${onCream ? 'rgba(133,79,11,0.35)' : 'rgba(245,184,0,0.45)'}`,
       }}
     >
-      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: palette.nameColor }}>
-        <Calculator size={13} /> Estimate your bill
+      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide" style={{ color: palette.nameColor }}>
+        <Calculator size={14} /> Estimate your total
       </label>
       <div className="mt-3 flex items-center gap-3">
         <button
           type="button" aria-label="Fewer seats"
-          onClick={() => setSeats((s) => Math.max(1, s - 1))}
+          onClick={() => setSeats((s) => Math.max(TEAM_MIN_SEATS, s - 1))}
           className="h-9 w-9 shrink-0 rounded-lg text-lg font-bold transition-colors"
           style={{
             border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
@@ -475,7 +459,7 @@ function SeatCalculator({ palette }: { palette: CardPalette }) {
           −
         </button>
         <input
-          id="seat-calc" type="number" min={1} max={100000} value={seats}
+          id="seat-calc" type="number" min={TEAM_MIN_SEATS} max={100000} value={seats}
           onChange={(e) => {
             const n = parseInt(e.target.value, 10)
             setSeats(Number.isNaN(n) ? 0 : n)
@@ -499,13 +483,18 @@ function SeatCalculator({ palette }: { palette: CardPalette }) {
           +
         </button>
       </div>
+      {seats < TEAM_MIN_SEATS && seats > 0 && (
+        <p className="mt-2 text-xs" style={{ color: onCream ? '#a15c1f' : '#ffcf6b' }}>
+          {TEAM_MIN_SEATS}-seat minimum applies.
+        </p>
+      )}
       <div className="mt-3 flex items-baseline justify-between">
         <span className="text-xs" style={{ color: palette.muted }}>
           {Math.max(1, seats)} {Math.max(1, seats) === 1 ? 'seat' : 'seats'} × ${TEAM_SEAT_PRICE}
         </span>
         <span className="text-2xl font-extrabold tabular-nums" style={{ color: palette.priceColor }}>
           ${total.toLocaleString()}
-          <span className="text-sm font-normal" style={{ color: palette.muted }}>/mo</span>
+          <span className="text-sm font-normal" style={{ color: palette.muted }}> once-off</span>
         </span>
       </div>
     </div>
@@ -553,14 +542,13 @@ function IndustriesSection() {
     <section className="relative overflow-hidden" style={{ background: '#0a121c' }}>
       {/* Heading band */}
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-20 pb-12 text-center">
-        <div className="flex items-center justify-center gap-3.5 mb-6">
-          <div className="w-9 h-0.5" style={{ background: GOLD }} />
-          <span className="text-[0.78rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-            Who it&apos;s for
-          </span>
-          <div className="w-9 h-0.5" style={{ background: GOLD }} />
-        </div>
-        <h2 className="text-white font-extrabold text-[clamp(2rem,4.5vw,3.2rem)] leading-[1.05] tracking-tight">
+        <span
+          className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-5 block"
+          style={{ color: GOLD }}
+        >
+          Who it&apos;s for
+        </span>
+        <h2 className="font-display text-white font-bold text-[clamp(2rem,4.5vw,3.2rem)] leading-[1.05] tracking-tight">
           Our GIS data powers <span style={{ color: GOLD }}>different industries.</span>
         </h2>
         <p className="mt-5 text-white/75 text-[1.05rem] leading-[1.6] max-w-2xl mx-auto">
@@ -584,12 +572,12 @@ function IndustriesSection() {
               <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, transparent 30%, rgba(10,18,28,0.72) 100%)' }} />
               <div className="absolute inset-0 flex items-end p-8 lg:p-14">
                 <div className="max-w-xl">
-                  <div className="flex items-center gap-3.5 mb-4">
-                    <div className="w-9 h-0.5" style={{ background: GOLD }} />
-                    <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-                      {cell.eyebrow}
-                    </span>
-                  </div>
+                  <span
+                    className="font-display text-[0.85rem] font-bold tracking-[0.14em] uppercase mb-3 block"
+                    style={{ color: GOLD }}
+                  >
+                    {cell.eyebrow}
+                  </span>
                   <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
                     {cell.title}
                   </h3>
@@ -776,13 +764,13 @@ function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
   return (
     <section className="bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20">
-        <div className="flex items-center gap-3.5 mb-5">
-          <div className="w-9 h-0.5" style={{ background: GOLD }} />
-          <span className="text-[0.72rem] font-bold tracking-[0.22em] uppercase" style={{ color: '#1a1a1a' }}>
-            Get started
-          </span>
-        </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold" style={{ color: NAVY }}>
+        <span
+          className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4 block"
+          style={{ color: '#854F0B' }}
+        >
+          Get started
+        </span>
+        <h2 className="font-display text-4xl sm:text-5xl font-bold" style={{ color: NAVY }}>
           Reach out to get started.
         </h2>
         <p className="mt-3 text-sm text-gray-600 leading-relaxed max-w-xl">

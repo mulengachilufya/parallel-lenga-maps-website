@@ -240,7 +240,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-[clamp(2.6rem,5.5vw,4.2rem)] font-extrabold leading-[1.08] text-white tracking-tight mb-7"
+              className="font-display text-[clamp(2.8rem,6vw,4.6rem)] font-bold leading-[1.08] text-white tracking-tight mb-7"
             >
               Unmasking{' '}
               <span className="text-gold">Africa</span> with
@@ -310,7 +310,7 @@ export default function HomePage() {
                     From Orbit
                   </span>
                 </div>
-                <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
+                <h3 className="font-display font-bold text-white text-[1.8rem] lg:text-[2.2rem] leading-tight">
                   Satellite grade<br/>observation.
                 </h3>
                 <p className="mt-4 text-white/85 text-[1.3rem] leading-[1.55] font-medium max-w-xl">
@@ -339,7 +339,7 @@ export default function HomePage() {
                     On the Ground
                   </span>
                 </div>
-                <h3 className="font-extrabold text-white text-[1.65rem] lg:text-[2rem] leading-tight">
+                <h3 className="font-display font-bold text-white text-[1.8rem] lg:text-[2.2rem] leading-tight">
                   Built for the<br/>African context.
                 </h3>
                 <p className="mt-4 text-white/85 text-[1.3rem] leading-[1.55] font-medium max-w-xl">
@@ -365,7 +365,7 @@ export default function HomePage() {
             <p className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase mb-6">
               GIS Data Bank
             </p>
-            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
+            <h2 className="font-display text-[clamp(2.1rem,4vw,3.1rem)] font-bold text-white leading-tight mb-4">
               Africa&apos;s Most Centralized{' '}
               <span className="text-gold">GIS Database</span>
             </h2>
@@ -434,7 +434,7 @@ export default function HomePage() {
                   Get Started
                 </span>
               </div>
-              <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-6">
+              <h2 className="font-display text-[clamp(2.1rem,4vw,3.1rem)] font-bold text-white leading-tight mb-6">
                 Create Your{' '}
                 <span className="text-gold">Free Account</span>
               </h2>
@@ -485,7 +485,7 @@ export default function HomePage() {
             <p className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase mb-6">
               Who We Serve
             </p>
-            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
+            <h2 className="font-display text-[clamp(2.1rem,4vw,3.1rem)] font-bold text-white leading-tight mb-4">
               Built for Everyone{' '}
               <span className="text-gold">Mapping Africa.</span>
             </h2>
@@ -541,7 +541,7 @@ export default function HomePage() {
                   Partnerships
                 </span>
               </div>
-              <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-7">
+              <h2 className="font-display text-[clamp(2.1rem,4vw,3.1rem)] font-bold text-white leading-tight mb-7">
                 Become a Strategic{' '}
                 <span className="text-gold">Partner</span>
               </h2>
@@ -557,7 +557,7 @@ export default function HomePage() {
                 {' '}with the subject line:
               </p>
 
-              <div className="text-[0.82rem] font-bold tracking-[0.12em] text-gold bg-gold/10 border-l-[3px] border-gold px-[18px] py-3.5 uppercase mb-5">
+              <div className="font-display text-[0.82rem] font-bold tracking-[0.12em] text-gold bg-gold/10 border-l-[3px] border-gold px-[18px] py-3.5 uppercase mb-5">
                 Strategic Partnership Proposal with Lenga Maps
               </div>
 
@@ -604,7 +604,7 @@ export default function HomePage() {
             <div className="flex items-center justify-center gap-3.5 mb-4">
               <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">Get In Touch</span>
             </div>
-            <h2 className="text-[clamp(1.9rem,3.5vw,2.8rem)] font-extrabold text-white leading-tight mb-4">
+            <h2 className="font-display text-[clamp(2.1rem,4vw,3.1rem)] font-bold text-white leading-tight mb-4">
               Send Us a Message
             </h2>
             <p className="text-white/50 text-[1rem] max-w-lg mx-auto">
