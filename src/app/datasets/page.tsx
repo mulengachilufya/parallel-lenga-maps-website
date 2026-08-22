@@ -5,13 +5,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
-  ArrowRight, Download, Lock, Clock, ExternalLink, ChevronDown,
+  ArrowRight, Download, Clock, ExternalLink, ChevronDown,
 } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import type { Dataset, DatasetSource } from '@/lib/supabase'
 
-// Order: Starter → Pro → Max, deterministic within each tier.
+// Display order only — every dataset is included with any paid plan now.
 const ORDERED_DATASETS = sortDatasetsByTier(DATASETS)
 
 /**
@@ -137,21 +137,6 @@ function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean })
             {!isLive && (
               <span className="flex items-center gap-1 text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">
                 <Clock size={9} /> Soon
-              </span>
-            )}
-            {dataset.tier === 'pro' && (
-              <span className="flex items-center gap-1 text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
-                <Lock size={9} /> Pro
-              </span>
-            )}
-            {dataset.tier === 'max' && (
-              <span className="flex items-center gap-1 text-[10px] bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full">
-                <Lock size={9} /> Max
-              </span>
-            )}
-            {dataset.tier === 'starter' && isLive && (
-              <span className="text-[10px] bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-full">
-                Starter
               </span>
             )}
           </div>
