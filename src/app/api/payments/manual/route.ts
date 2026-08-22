@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   const txnRef      = String(form.get('txn_reference') || '').slice(0, 120)
   const screenshot  = form.get('screenshot')
 
-  if (!['starter','pro','max'].includes(plan))
+  if (!['individual','team'].includes(plan))
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
   if (!['mtn','airtel','bank'].includes(method))
     return NextResponse.json({ error: 'Invalid payment method.' }, { status: 400 })

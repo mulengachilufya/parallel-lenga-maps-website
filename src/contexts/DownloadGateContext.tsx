@@ -6,7 +6,7 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
-  getUserState, PLANS, PLAN_ORDER as TIERS,
+  getUserState, PLANS, PLAN_ORDER as TIERS, planCtaHref,
   type UserState, type TierSlug, type DatasetSlug,
 } from '@/lib/pricing'
 import Link from 'next/link'
@@ -288,7 +288,7 @@ function PaywallModal({ onClose }: { onClose: () => void }) {
             return (
               <Link
                 key={slug}
-                href={plan.selfServe ? `/dashboard/payment?plan=${slug}` : '/projects'}
+                href={planCtaHref(slug)}
                 onClick={() => {
                   track('paywall_cta_clicked', { plan: slug })
                   onClose()

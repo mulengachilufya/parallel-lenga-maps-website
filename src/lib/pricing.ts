@@ -1,118 +1,95 @@
 // src/lib/pricing.ts
-// Single source of truth for all pricing, tier, and trial logic.
+// Single source of truth for all pricing and access logic.
 // Every page, component, and API route imports from here.
+//
+// ─── ONCE-OFF MODEL (2026-08) ──────────────────────────────────
+// Replaced the 5-tier monthly system (Starter/Pro/Max/Enterprise/Team)
+// with two flat, once-off, no-expiry plans. Every paid account — either
+// plan — gets every dataset. There is no more per-dataset gating, no
+// free trial, no recurring billing, no self-serve checkout. Access is
+// granted manually by an admin after the buyer contacts us and pays via
+// bank transfer (see /api/admin/payments/verify).
+//
+// Old TierSlug values ('starter' | 'pro' | 'max' | 'enterprise') and the
+// dataset-tier ladder (DATASET_MIN_TIER, PLAN_ORDER, datasetCountForTier,
+// canAccessDataset) are gone. Anything still importing them will fail to
+// compile — that's the map for Phase 2 (dataset-access.ts /
+// DownloadGateContext.tsx) and Phase 3 (kill the trial system).
 
-export type TierSlug = 'starter' | 'pro' | 'max' | 'enterprise' | 'team'
-export type UserState = 'free_trial' | 'free' | TierSlug
+export type TierSlug = 'individual' | 'team'
+export type UserState = 'free' | TierSlug
 
 export interface Plan {
-  slug:           TierSlug
-  name:           string
-  price:          number
-  priceLabel:     string
-  description:    string
-  downloadLimit:  number   // -1 = unlimited
-  seats:          number
-  datasetCount:   number   // -1 = all
-  apiAccess:      boolean
-  customDatasets: boolean
-  highlighted:    boolean
-  ctaLabel:       string
-  features:       string[]
+  slug:         TierSlug
+  name:         string
+  price:        number     // USD, per seat for 'team'
+  priceLabel:   string
+  description:  string
+  perSeat:      boolean
+  minSeats:     number      // enforced at admin-grant / quote time
+  selfServe:    boolean     // true = has its own pay-now flow (bank transfer + proof + admin approval)
+  contactHref:  string      // "talk to me first" alternative, for both plans
+  ctaLabel:     string
+  features:     string[]
 }
 
+// Two parallel paths to get paid, per plan:
+//   selfServe (individual only) -> /dashboard/payment -> BankTransferPanel:
+//     buyer gets bank details immediately (auto-emailed), pays, uploads
+//     proof, lands in the admin queue as 'pending'. Fastest path — no
+//     waiting on a reply first. Admin approval grants access immediately,
+//     no expiry.
+//   contactHref (both plans) -> talk first, get bank details by email
+//     manually, same admin-approval queue underneath. Team ALWAYS goes
+//     this route (seats need negotiating) -> /projects.
 export const PLANS: Record<TierSlug, Plan> = {
-  starter: {
-    slug: 'starter', name: 'Starter', price: 5, priceLabel: '$5',
-    description: 'Core environmental datasets for researchers and students.',
-    downloadLimit: 20, seats: 1, datasetCount: 5,
-    apiAccess: false, customDatasets: false, highlighted: false,
-    ctaLabel: 'Get Starter',
+  individual: {
+    slug: 'individual', name: 'Individual', price: 50, priceLabel: '$50 once-off',
+    description: 'One-time payment. Every dataset, every country, no expiry.',
+    perSeat: false, minSeats: 1, selfServe: true, contactHref: '/contact-us',
+    ctaLabel: 'Get access',
     features: [
-      'Administrative Boundaries, Transboundary Aquifers, Drought Index, Rainfall & Protected Areas',
-      '20 downloads per month across all datasets',
-      'All 54 African countries',
+      'All 15 datasets, all 54 African countries',
+      'Unlimited downloads',
+      'Pay once — access never expires',
       'Shapefile, GeoJSON, GeoTIFF formats',
       'Email support',
     ],
   },
-  pro: {
-    slug: 'pro', name: 'Pro', price: 12, priceLabel: '$12',
-    description: 'Expanded access including hydrology, population and infrastructure data.',
-    downloadLimit: 80, seats: 1, datasetCount: 9,
-    apiAccess: false, customDatasets: false, highlighted: true,
-    ctaLabel: 'Get Pro',
-    features: [
-      'Everything in Starter',
-      'Watersheds & Catchments, Population, River Networks & Roads',
-      '80 downloads per month across all datasets',
-      'All 54 African countries',
-      'All formats + priority support',
-    ],
-  },
-  max: {
-    slug: 'max', name: 'Max', price: 20, priceLabel: '$20',
-    description: 'Full catalogue — every dataset, unlimited downloads, continental bundles.',
-    downloadLimit: -1, seats: 1, datasetCount: -1,
-    apiAccess: false, customDatasets: false, highlighted: false,
-    ctaLabel: 'Get Max',
-    features: [
-      'Every dataset — full catalogue',
-      'Temperature, HydroRIVERS, LULC, Lakes, Soil & Wetlands included',
-      'Unlimited downloads',
-      'Combined continental bundle downloads',
-      'All formats + priority support',
-    ],
-  },
-  enterprise: {
-    slug: 'enterprise', name: 'Enterprise', price: 75, priceLabel: '$75',
-    description: 'For teams and organisations needing shared access and custom data.',
-    downloadLimit: -1, seats: 3, datasetCount: -1,
-    apiAccess: true, customDatasets: true, highlighted: false,
-    ctaLabel: 'Get Enterprise',
-    features: [
-      'Everything in Max',
-      'Up to 3 team seats',
-      'Custom sub-country datasets',
-      'Unlimited downloads + API access',
-      'Commercial use licence + dedicated support',
-    ],
-  },
-  // "For Project Teams and Businesses" (internal name: Lenga for Projects).
-  // Quote-based, per-seat, provisioned manually by admin — NEVER purchasable
-  // through Lipila checkout. Replaces the legacy flat $75 Enterprise tier,
-  // which stays in the type system so existing rows keep resolving but is
-  // delisted from every purchase surface.
   team: {
-    slug: 'team', name: 'For Project Teams and Businesses', price: 45, priceLabel: '$45/seat',
-    description: 'Per-seat team plan with a shared workspace. Quote-based — we provision your team.',
-    downloadLimit: -1, seats: -1, datasetCount: -1,
-    apiAccess: true, customDatasets: true, highlighted: false,
-    ctaLabel: 'Get a quote',
+    slug: 'team', name: 'Team', price: 45, priceLabel: '$45/seat once-off',
+    description: 'One-time per-seat payment for teams and organisations. 2-seat minimum.',
+    perSeat: true, minSeats: 2, selfServe: false, contactHref: '/projects',
+    ctaLabel: 'Contact us',
     features: [
-      'Every dataset, all 15, across all 54 African countries',
+      'Everything in Individual, per seat',
       'Shared team workspace and download history',
-      'Owner-managed seats',
-      'API access with rate limits',
-      'Custom sub-country datasets',
+      'Pay once per seat — access never expires',
+      'Owner-managed seats, 2-seat minimum',
       'Commercial use licence + direct email support',
     ],
   },
 }
 
-// Full ladder including non-self-serve tiers. Drives access comparisons
-// (canAccessDataset) — team sits above enterprise so members get the full
-// catalogue. Do NOT map over this for purchase UIs; use SELF_SERVE_PLAN_ORDER.
-export const PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max', 'enterprise', 'team']
+export const PLAN_ORDER: TierSlug[] = ['individual', 'team']
 
-// What an individual can buy through checkout. Enterprise is legacy
-// (delisted 2026-06: replaced by the quote-based team tier) and team is
-// quote-only — neither belongs on a self-serve purchase surface.
-export const SELF_SERVE_PLAN_ORDER: TierSlug[] = ['starter', 'pro', 'max']
+// Plans with their own pay-now flow (bank-details/manual-proof/admin-verify).
+export const SELF_SERVE_PLAN_ORDER: TierSlug[] = ['individual']
+
+/**
+ * Where a plan's primary CTA should send a buyer. Single source of truth —
+ * every place that renders a plan CTA (paywall modal, /pricing, dashboard)
+ * calls this instead of re-deriving the routing rule locally. That
+ * duplication is exactly what caused the self-serve flow to briefly break
+ * during the once-off migration — three copies of the same branch, one of
+ * them wrong.
+ */
+export function planCtaHref(slug: TierSlug): string {
+  const plan = PLANS[slug]
+  return plan.selfServe ? `/dashboard/payment?plan=${slug}` : plan.contactHref
+}
 
 // ─── Plan card UI ─────────────────────────────────────────────
-// Shared visual tokens + copy for the pricing blocks.
-// Consumed by both /pricing and /dashboard so the two never drift.
 
 export interface PlanCardUI {
   bg:           string
@@ -127,50 +104,26 @@ export interface PlanCardUI {
   datasets:     string[]
 }
 
-// PLAN_CARD_UI uses derived dataset counts — see datasetCountForTier()
-// below. Hardcoding "5 / 9 / 15" used to drift the moment we added or
-// renamed a layer; deriving from DATASET_MIN_TIER means the truth is in
-// one place.
 export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
-  starter: {
-    bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A',
-    dotColor: '#3B6D11', btnBg: '#639922', dividerColor: '#3B6D11',
-    tagline: 'Core environmental layers to get you mapping.',
-    count: '__derived__',
-    datasets: ['Administrative Boundaries', 'Transboundary Aquifers', 'Drought Index (SPI-12)', 'Rainfall Data', 'Protected Areas & Wildlife'],
-  },
-  pro: {
-    bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C',
-    dotColor: '#185FA5', btnBg: '#185FA5', dividerColor: '#185FA5',
-    tagline: 'Everything in Starter, plus hydrology and infrastructure.',
-    count: '__derived__',
-    datasets: ['Everything in Starter', 'Watersheds & Catchments', 'Population & Settlements', 'River Networks', 'Roads & Infrastructure'],
-  },
-  max: {
+  individual: {
     bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
     dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
-    tagline: 'The full platform — every layer we have.',
-    count: '__derived__',
-    datasets: ['Everything in Pro', 'Temperature Data', 'HydroRIVERS', 'Land Use / Land Cover', 'Lakes', 'Soil Classification', 'Wetlands & Floodplains'],
-  },
-  enterprise: {
-    bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806',
-    dotColor: '#854F0B', btnBg: '#854F0B', dividerColor: '#854F0B',
-    tagline: 'Max, plus custom sub-country datasets and team access.',
-    count: 'Everything in Max, plus',
-    datasets: ['3 team seats included', 'Custom sub-country datasets', 'Priority support', 'API access'],
+    tagline: 'The full platform, once, no subscription.',
+    count: '15 datasets',
+    datasets: ['Every dataset we have', 'All 54 African countries', 'Unlimited downloads', 'No expiry'],
   },
   team: {
     bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
     dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
     tagline: 'A shared workspace for GIS teams on real projects.',
-    count: 'Everything in Max, plus',
-    datasets: ['Per-seat team accounts', 'Shared download history', 'API access', 'Custom sub-country datasets', 'Commercial use licence'],
+    count: '15 datasets',
+    datasets: ['Per-seat team accounts', 'Shared download history', 'Commercial use licence', '2-seat minimum'],
   },
 }
 
 // ─── Datasets ─────────────────────────────────────────────────
-// Slugs match the id field in api-datasets.ts EXACTLY — do not change
+// Slugs match the id field in api-datasets.ts EXACTLY — do not change.
+// No tier ladder anymore: every dataset is available to every paid account.
 
 export type DatasetSlug =
   | 'admin-boundaries' | 'aquifer' | 'drought-index'
@@ -178,121 +131,43 @@ export type DatasetSlug =
   | 'watersheds' | 'population' | 'rivers' | 'roads'
   | 'temperature' | 'hydrorivers' | 'lulc' | 'lakes' | 'soil' | 'wetlands'
 
-export const DATASET_MIN_TIER: Record<DatasetSlug, TierSlug> = {
-  // Starter (5)
-  'admin-boundaries': 'starter',
-  'aquifer':          'starter',
-  'drought-index':    'starter',
-  'rainfall':         'starter',
-  'protected-areas':  'starter',
-  // Pro adds 4 (total 9)
-  'watersheds':       'pro',
-  'population':       'pro',
-  'rivers':           'pro',
-  'roads':            'pro',
-  // Max adds everything else (total 15)
-  'temperature':      'max',
-  'hydrorivers':      'max',
-  'lulc':             'max',
-  'lakes':            'max',
-  'soil':             'max',
-  'wetlands':         'max',
-}
+export const ALL_DATASETS: DatasetSlug[] = [
+  'admin-boundaries', 'aquifer', 'drought-index', 'rainfall', 'protected-areas',
+  'watersheds', 'population', 'rivers', 'roads',
+  'temperature', 'hydrorivers', 'lulc', 'lakes', 'soil', 'wetlands',
+]
 
-// ─── Derived count helpers ────────────────────────────────────
-// Single source of truth for "how many datasets does X tier include?".
-// Tiers stack: pro includes everything starter has, max includes
-// everything pro has, enterprise = max + extras.
+export const DATASET_COUNT = ALL_DATASETS.length
 
-export function datasetCountForTier(tier: TierSlug): number {
-  if (tier === 'enterprise' || tier === 'team') return datasetCountForTier('max')
-  const tierIdx = PLAN_ORDER.indexOf(tier)
-  return Object.values(DATASET_MIN_TIER).filter(
-    (minTier) => PLAN_ORDER.indexOf(minTier) <= tierIdx,
-  ).length
-}
-
-/** Resolves the `count` field on a PlanCardUI; substitutes the derived
- *  count when the static value is the `__derived__` sentinel. */
-export function planCardCount(tier: TierSlug): string {
-  const raw = PLAN_CARD_UI[tier].count
-  if (raw !== '__derived__') return raw
-  return `${datasetCountForTier(tier)} datasets`
-}
-
-// ─── Trial ────────────────────────────────────────────────────
-
-export const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000 // 72 hours
-
-/**
- * Maximum number of dataset downloads granted during a free trial.
- *
- * Set high enough to actually evaluate the catalogue (sample a few
- * continents, compare raster vs vector formats, test a QML in QGIS), low
- * enough that a power user can't drain the whole library before deciding
- * to pay. Enforced server-side in /api/usage/consume-download.
- */
-export const TRIAL_DOWNLOAD_CAP = 10
+// ─── Access ───────────────────────────────────────────────────
+// Binary now: an account is either paid (any plan) or free. Paid unlocks
+// everything. No trial, no per-dataset gate, no download cap.
 
 export function getUserState(
-  plan:            string | undefined | null,
-  trialStartedAt:  string | undefined | null,
-  planStatus:      string | undefined | null,
+  plan:       string | undefined | null,
+  planStatus: string | undefined | null,
 ): UserState {
-  if (planStatus === 'active' &&
-      plan && ['starter', 'pro', 'max', 'enterprise', 'team'].includes(plan)) {
+  if (planStatus === 'active' && plan && (plan === 'individual' || plan === 'team')) {
     return plan as TierSlug
-  }
-  if (trialStartedAt) {
-    const elapsed = Date.now() - new Date(trialStartedAt).getTime()
-    if (elapsed < TRIAL_DURATION_MS) return 'free_trial'
   }
   return 'free'
 }
 
-export function trialMsRemaining(trialStartedAt: string | undefined | null): number {
-  if (!trialStartedAt) return 0
-  return Math.max(0, TRIAL_DURATION_MS - (Date.now() - new Date(trialStartedAt).getTime()))
-}
-
-export function formatTrialCountdown(trialStartedAt: string | undefined | null): string {
-  const ms = trialMsRemaining(trialStartedAt)
-  if (ms <= 0) return 'Expired'
-  const totalHours = Math.floor(ms / 3_600_000)
-  const days  = Math.floor(totalHours / 24)
-  const hours = totalHours % 24
-  if (days > 0) return `${days} day${days !== 1 ? 's' : ''}, ${hours}h`
-  const mins = Math.floor((ms % 3_600_000) / 60_000)
-  return `${hours}h ${mins}m`
-}
-
-// ─── Access helpers ───────────────────────────────────────────
-
 export function getTierLabel(state: UserState): string {
   const labels: Record<UserState, string> = {
-    free_trial:  'Free Trial',
-    free:        'Free',
-    starter:     'Starter',
-    pro:         'Pro',
-    max:         'Max',
-    enterprise:  'Enterprise',
-    team:        'Team',
+    free:       'Free',
+    individual: 'Individual',
+    team:       'Team',
   }
   return labels[state]
 }
 
+/** Any paid account (individual or team) can access every file. */
 export function canAccessFiles(state: UserState): boolean {
   return state !== 'free'
 }
 
-export function canAccessDataset(userPlan: TierSlug, slug: DatasetSlug): boolean {
-  return PLAN_ORDER.indexOf(userPlan) >= PLAN_ORDER.indexOf(DATASET_MIN_TIER[slug])
-}
-
-export function nextTier(userPlan: TierSlug): TierSlug | null {
-  // Self-serve upgrades top out at Max. Enterprise (legacy) and team are
-  // quote-based, never an automatic "next step" in checkout UIs.
-  const i = SELF_SERVE_PLAN_ORDER.indexOf(userPlan)
-  if (i === -1) return null
-  return i < SELF_SERVE_PLAN_ORDER.length - 1 ? SELF_SERVE_PLAN_ORDER[i + 1] : null
+/** Every dataset is available to every paid account — no per-tier gate. */
+export function canAccessDataset(userPlan: TierSlug | 'free'): boolean {
+  return userPlan !== 'free'
 }

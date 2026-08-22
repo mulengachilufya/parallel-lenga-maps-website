@@ -24,6 +24,8 @@ export type FunnelEvent =
   | 'continental_bundle_requested'
   | 'continental_bundle_gated'
   | 'continental_bundle_upgrade_clicked'
+  | 'continental_bundle_gate_cta_clicked'
+  | 'payment_page_visited'
 
 export function track(event: FunnelEvent, props?: Record<string, string | number | boolean | null>): void {
   try {

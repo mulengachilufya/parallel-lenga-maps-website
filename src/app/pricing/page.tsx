@@ -2,36 +2,13 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { PLANS, PLAN_CARD_UI, PLAN_ORDER, type TierSlug } from "@/lib/pricing"
-import { supabase } from "@/lib/supabase"
+import { PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref } from "@/lib/pricing"
 
-/**
- * Pricing CTAs are session-aware for the self-serve (individual) plan:
- *   logged-out user -> /signup  (account first, then payment)
- *   logged-in user  -> /dashboard/payment?plan=individual
- *
- * The team plan is never self-serve - it always goes to /projects
- * regardless of session state, same as before.
- */
-function ctaHref(slug: TierSlug, signedIn: boolean): string {
-  const plan = PLANS[slug]
-  if (!plan.selfServe) return '/projects'
-  return signedIn ? `/dashboard/payment?plan=${slug}` : '/signup'
-}
+// Both plans send buyers to their planCtaHref (see pricing.ts): individual
+// -> /dashboard/payment (self-serve bank transfer, fastest path), team ->
+// /projects (quote-based, seats need negotiating).
 
 export default function PricingPage() {
-  const [signedIn, setSignedIn] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled) setSignedIn(!!session)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_e, s) => setSignedIn(!!s)
-    )
-    return () => { cancelled = true; subscription.unsubscribe() }
-  }, [])
-
   const cards = PLAN_ORDER.map((slug) => ({
     id: slug,
     plan: PLANS[slug],
@@ -85,7 +62,7 @@ export default function PricingPage() {
             return (
               <Link
                 key={id}
-                href={ctaHref(id, signedIn)}
+                href={planCtaHref(id)}
                 className="plan-card"
                 style={{ background: ui.bg, border: `1px solid ${ui.border}` }}
               >
