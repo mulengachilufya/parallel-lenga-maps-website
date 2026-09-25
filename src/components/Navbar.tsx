@@ -172,8 +172,8 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                {/* CTA discipline: the marketing site sells data and a
-                    trial. Primary action is "Get Started" — the funnel
+                {/* CTA discipline: the marketing site sells data.
+                    Primary action is "Get Started" — the funnel
                     entrance — not "Contact Us", which used to be the
                     gold button and trained visitors to email instead of
                     sign up. Login stays as the secondary text link. */}

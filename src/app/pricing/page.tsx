@@ -1,52 +1,18 @@
 'use client'
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { PLANS, SELF_SERVE_PLAN_ORDER, PLAN_CARD_UI, planCardCount, type TierSlug } from "@/lib/pricing"
-import { supabase } from "@/lib/supabase"
+import { PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref } from "@/lib/pricing"
 
-const CTA: Partial<Record<TierSlug, string>> = {
-  starter: 'Get started', pro: 'Get started', max: 'Get started',
-}
-
-// Self-serve cards only. The team tier ("For Project Teams and Businesses")
-// renders as its own quote-based card below — no price, no checkout.
-const plans = SELF_SERVE_PLAN_ORDER.map((slug) => ({
-  id:    slug,
-  name:  PLANS[slug].name,
-  price: PLANS[slug].priceLabel,
-  cta:   CTA[slug] ?? 'Get started',
-  ...PLAN_CARD_UI[slug],
-  count: planCardCount(slug),
-}))
-
-const team = PLAN_CARD_UI.team
-
-/**
- * Pricing CTAs are session-aware:
- *   logged-out user → /signup  (account first, then checkout)
- *   logged-in user  → /dashboard/payment?plan=<slug>  (straight to pay)
- *
- * Without this, a signed-in user clicking "Get Pro" landed on a signup form
- * for an account they already had — a comically broken experience for the
- * one user the funnel cares most about.
- */
-function ctaHref(slug: TierSlug, signedIn: boolean): string {
-  return signedIn ? `/dashboard/payment?plan=${slug}` : '/signup'
-}
+// Both plans send buyers to their planCtaHref (see pricing.ts): individual
+// -> /dashboard/payment (self-serve bank transfer, fastest path), team ->
+// /projects (quote-based, seats need negotiating).
 
 export default function PricingPage() {
-  const [signedIn, setSignedIn] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled) setSignedIn(!!session)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_e, s) => setSignedIn(!!s)
-    )
-    return () => { cancelled = true; subscription.unsubscribe() }
-  }, [])
+  const cards = PLAN_ORDER.map((slug) => ({
+    id: slug,
+    plan: PLANS[slug],
+    ui: PLAN_CARD_UI[slug],
+  }))
 
   return (
     <>
@@ -73,12 +39,9 @@ export default function PricingPage() {
         .plan-text { color: #1a1a1a !important; }
         .plan-muted { color: #444 !important; }
         @media (max-width: 700px) {
-          .pricing-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .pricing-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
           .plan-card { min-height: 380px !important; }
           .price-num { font-size: 36px !important; }
-        }
-        @media (max-width: 420px) {
-          .pricing-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -88,82 +51,53 @@ export default function PricingPage() {
             Simple, honest pricing
           </h1>
           <p style={{ fontSize: '15px', color: '#555', margin: 0 }}>
-            All plans cover all 54 African countries. Billed monthly in USD.
+            One-time payment. Every dataset, every one of 54 African countries, no expiry.
           </p>
         </div>
 
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', maxWidth: '960px', margin: '0 auto' }}>
-          {plans.map(p => (
-            <Link
-              key={p.id}
-              href={ctaHref(p.id, signedIn)}
-              className="plan-card"
-              style={{ background: p.bg, border: `1px solid ${p.border}` }}
-            >
-              <div className="plan-text" style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: p.nameColor, marginBottom: '0.5rem' }}>
-                {p.name}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
-                <span className="price-num" style={{ fontSize: '48px', lineHeight: 1, color: p.priceColor, fontWeight: 400 }}>{p.price}</span>
-                <span className="plan-muted" style={{ fontSize: '13px' }}>/month</span>
-              </div>
-              <p className="plan-muted" style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5 }}>{p.tagline}</p>
-              <div style={{ height: '0.5px', background: p.dividerColor, opacity: 0.2, margin: '0 0 1rem' }} />
-              <div className="plan-muted" style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
-                {p.count}
-              </div>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-                {p.datasets.map(d => (
-                  <li key={d} className="plan-text" style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: p.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
-                    {d}
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
-                <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: p.btnBg, color: '#fff', textAlign: 'center' }}>
-                  {p.cta}
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px', maxWidth: '640px', margin: '0 auto' }}>
+          {cards.map(({ id, plan, ui }) => {
+            const isTeam = id === 'team'
+            return (
+              <Link
+                key={id}
+                href={planCtaHref(id)}
+                className="plan-card"
+                style={{ background: ui.bg, border: `1px solid ${ui.border}` }}
+              >
+                <div className={isTeam ? undefined : 'plan-text'} style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: ui.nameColor, marginBottom: '0.5rem' }}>
+                  {plan.name}
                 </div>
-              </div>
-            </Link>
-          ))}
-
-          {/* Team tier: quote-based, no price shown here by design. */}
-          <Link
-            href="/projects"
-            className="plan-card"
-            style={{ background: team.bg, border: `1px solid ${team.border}` }}
-          >
-            <div style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: team.nameColor, marginBottom: '0.5rem' }}>
-              For Project Teams<br />and Businesses
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
-              <span className="price-num" style={{ fontSize: '34px', lineHeight: 1.15, color: team.priceColor, fontWeight: 400 }}>Per-seat</span>
-            </div>
-            <p style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5, color: '#BFD7EA' }}>{team.tagline}</p>
-            <div style={{ height: '0.5px', background: team.dividerColor, opacity: 0.35, margin: '0 0 1rem' }} />
-            <div style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem', color: '#BFD7EA' }}>
-              {team.count}
-            </div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-              {team.datasets.map(d => (
-                <li key={d} style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4, color: '#E8F1F8' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: team.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
-                  {d}
-                </li>
-              ))}
-            </ul>
-            <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
-              <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: team.btnBg, color: '#1a1200', textAlign: 'center' }}>
-                Get a quote
-              </div>
-            </div>
-          </Link>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
+                  <span className="price-num" style={{ fontSize: '40px', lineHeight: 1, color: ui.priceColor, fontWeight: 400 }}>{plan.priceLabel}</span>
+                </div>
+                <p className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5, color: isTeam ? '#BFD7EA' : undefined }}>{ui.tagline}</p>
+                <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 1rem' }} />
+                <div className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem', color: isTeam ? '#BFD7EA' : undefined }}>
+                  {ui.count}
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+                  {ui.datasets.map(d => (
+                    <li key={d} className={isTeam ? undefined : 'plan-text'} style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4, color: isTeam ? '#E8F1F8' : undefined }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ui.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
+                  <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: ui.btnBg, color: isTeam ? '#1a1200' : '#fff', textAlign: 'center' }}>
+                    {plan.ctaLabel}
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
         </div>
 
-        <div style={{ maxWidth: '960px', margin: '2rem auto 0', background: '#EEEDFE', border: '1px solid #AFA9EC', borderRadius: '14px', padding: '1.25rem 2rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '18px', fontWeight: 500, color: '#26215C', margin: '0 0 0.25rem' }}>Every new account gets a free 3-day trial</p>
-          <p style={{ fontSize: '15px', color: '#534AB7', margin: 0 }}>Full Max access — no card required.</p>
+        <div style={{ maxWidth: '640px', margin: '2rem auto 0', textAlign: 'center' }}>
+          <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+            Pay by bank transfer. We activate your account within 24 hours of payment.
+          </p>
         </div>
       </div>
     </>

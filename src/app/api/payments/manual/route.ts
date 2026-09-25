@@ -6,6 +6,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { getDownloadUrl } from '@/lib/r2'
 import { PLANS, type TierSlug } from '@/lib/pricing'
 import { sendEmail, paymentSubmittedAdminEmail, type PaymentSubmittedFields } from '@/lib/email'
+import { bankReferenceFor } from '@/lib/bank-details'
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
   const txnRef      = String(form.get('txn_reference') || '').slice(0, 120)
   const screenshot  = form.get('screenshot')
 
-  if (!['starter','pro','max'].includes(plan))
+  if (!['individual','team'].includes(plan))
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
   if (!['mtn','airtel','bank'].includes(method))
     return NextResponse.json({ error: 'Invalid payment method.' }, { status: 400 })
@@ -189,7 +190,7 @@ export async function POST(request: NextRequest) {
   try { screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600) } catch { /* non-fatal */ }
 
   const notifyArgs = {
-    reference, region, method, plan, amountLabel,
+    reference, bankRef: bankReferenceFor(userId), region, method, plan, amountLabel,
     userEmail, userName: profileName,
     countryName, senderPhone, senderName: profileName, txnRef,
     screenshotUrl, submittedAt,

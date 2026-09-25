@@ -3,14 +3,17 @@
  *
  * Cookie-authenticated continental bundle for the in-app dashboard.
  * Mirrors /api/v1/datasets/:id/bundle (which uses bearer keys), but for
- * the browser session — so a Max/Enterprise subscriber can click "Download
- * all 54 countries" without first issuing an API key.
+ * the browser session — so a paid subscriber can click "Download all 54
+ * countries" without first issuing an API key.
+ *
+ * Once-off model: bulk bundles are no longer a Max/Enterprise-only
+ * premium feature — every paid account (individual or team) gets
+ * unlimited downloads and the full catalogue, so any active plan can
+ * pull the continental bundle.
  *
  * Access rules:
  *   - must be signed in
- *   - must have an active plan that grants this specific dataset
- *   - must additionally be on Max or Enterprise — the continental bundle is a
- *     premium feature; Starter/Pro download per-country
+ *   - must have an active plan (individual or team)
  *
  * We return a presigned URL to ONE pre-built combined file (a GeoPackage that
  * merges all 54 countries into a single layer, attribute tables embedded) so
@@ -23,14 +26,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { findDataset, getDatasetBundle, hasSymbology } from '@/lib/api-datasets'
 import { getDownloadUrl } from '@/lib/r2'
-import { getUserState } from '@/lib/pricing'
 import type { DatasetSlug } from '@/lib/pricing'
 import { callerCanDownloadDataset } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
-
-// Bulk download is a premium feature — only these tiers see the button.
-const BULK_TIERS = new Set(['max', 'enterprise', 'team'])
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,40 +40,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  // Resolve plan / status / trial so we can gate on tier in addition to
-  // the per-dataset minimum.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan, plan_status, plan_expires_at, trial_started_at')
-    .eq('id', user.id)
-    .single()
-  if (!profile) {
-    return NextResponse.json({ error: 'no_profile' }, { status: 403 })
-  }
-  if (profile.plan_expires_at &&
-      new Date(profile.plan_expires_at).getTime() <= Date.now()) {
-    return NextResponse.json({ error: 'plan_expired' }, { status: 403 })
-  }
-
-  const userState = getUserState(
-    profile.plan,
-    profile.trial_started_at,
-    profile.plan_status,
-  )
-  if (!BULK_TIERS.has(userState)) {
-    return NextResponse.json(
-      {
-        error: 'bulk_requires_max',
-        message: 'Continental bundle downloads are available on Max and Enterprise plans. Per-country downloads remain available on your current plan.',
-        required_tier: 'max',
-      },
-      { status: 403 },
-    )
-  }
-
-  // Also enforce the per-dataset minimum (no gaming the gate by submitting
-  // a bundle request for a Pro-tier dataset from a Max account that
-  // somehow had its plan downgraded mid-flight, etc.).
+  // No per-tier gate anymore — any active plan (individual or team) can
+  // pull any bundle.
   const slug = id as DatasetSlug
   const canDownload = await callerCanDownloadDataset(slug).catch(() => false)
   if (!canDownload) {

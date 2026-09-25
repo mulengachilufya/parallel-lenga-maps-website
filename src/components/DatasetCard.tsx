@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  Lock, Map, Waves, Trees, Flame, Droplets, Users, Route, CloudRain,
+  Map, Waves, Trees, Flame, Droplets, Users, Route, CloudRain,
   Mountain, Sprout, Bird, Thermometer, Anchor,
   type LucideIcon,
 } from 'lucide-react'
@@ -56,32 +56,6 @@ const DATASET_ICON: Record<number, LucideIcon> = {
   17: Anchor,      // Lakes
 }
 
-/**
- * Plan-tier badge text. Replaces the legacy "Basic & Pro" / "Pro Only"
- * binary which was hardcoded against an old slug ('basic') the new tier
- * model never returns — so every card on the live site read "Pro Only"
- * regardless of dataset.
- */
-function tierBadgeText(tier: string): string {
-  switch (tier) {
-    case 'starter':    return 'Starter+'
-    case 'pro':        return 'Pro+'
-    case 'max':        return 'Max'
-    case 'enterprise': return 'Enterprise'
-    default:           return 'Starter+'
-  }
-}
-
-function tierBadgeStyle(tier: string): string {
-  switch (tier) {
-    case 'starter':    return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/60'
-    case 'pro':        return 'bg-amber-50 text-amber-900 ring-1 ring-amber-300/60'
-    case 'max':        return 'bg-violet-50 text-violet-900 ring-1 ring-violet-300/60'
-    case 'enterprise': return 'bg-rose-50 text-rose-900 ring-1 ring-rose-200/60'
-    default:           return 'bg-gray-100 text-gray-700 ring-1 ring-gray-200'
-  }
-}
-
 export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
   const Icon = DATASET_ICON[dataset.id] ?? Map
   const accent = dataset.color // richer per-dataset accent (set in DATASETS)
@@ -118,12 +92,7 @@ export default function DatasetCard({ dataset, index, href }: DatasetCardProps) 
             <h3 className="mt-3 font-bold text-navy text-lg leading-tight">{dataset.name}</h3>
             <p className="mt-2 text-gray-500 text-sm leading-relaxed line-clamp-2">{dataset.description}</p>
           </div>
-          <div className="flex items-center justify-between mt-4">
-            <span
-              className={`text-xs font-semibold px-2 py-1 rounded-full ${tierBadgeStyle(dataset.tier)}`}
-            >
-              {tierBadgeText(dataset.tier)}
-            </span>
+          <div className="flex items-center justify-end mt-4">
             <span className="text-xs text-gray-400">Hover for details</span>
           </div>
         </div>
@@ -136,11 +105,6 @@ export default function DatasetCard({ dataset, index, href }: DatasetCardProps) 
           <div>
             <div className="flex items-center justify-between mb-4">
               <Icon size={22} strokeWidth={1.6} className="text-white/90" />
-              {(dataset.tier === 'pro' || dataset.tier === 'max') && (
-                <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
-                  <Lock size={10} /> {tierBadgeText(dataset.tier)}
-                </span>
-              )}
             </div>
             <h3 className="font-bold text-lg mb-4">{dataset.name}</h3>
             <div className="space-y-2">

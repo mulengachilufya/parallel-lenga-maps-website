@@ -4,7 +4,7 @@
  * /admin/users
  *
  * Admin-only roster that shows every signed-up user side-by-side with
- * their plan + plan_status + plan_expires_at. Solves the Supabase Auth
+ * their plan + plan_status. Solves the Supabase Auth
  * UI gap (auth.users alone doesn't expose profile fields), and replaces
  * the need to write ad-hoc SQL just to answer "who's on Pro right now?"
  *
@@ -21,7 +21,7 @@ import { ArrowLeft, Loader2, RefreshCw, Search, ShieldCheck, XCircle, Users } fr
 import { supabase } from '@/lib/supabase'
 import { sectorLabel } from '@/lib/sectors'
 
-type EffectiveStatus = 'active' | 'pending' | 'trial' | 'free' | 'expired'
+type EffectiveStatus = 'active' | 'pending' | 'free'
 
 interface UserRow {
   id:                string
@@ -34,8 +34,6 @@ interface UserRow {
   plan:              string | null
   plan_status:       string | null
   effective_status:  EffectiveStatus
-  plan_expires_at:   string | null
-  days_left:         number | null
   created_at:        string
 }
 
@@ -43,9 +41,7 @@ interface Summary {
   total:   number
   active:  number
   pending: number
-  trial:   number
   free:    number
-  expired: number
 }
 
 type TabValue = 'all' | EffectiveStatus
@@ -54,33 +50,25 @@ const TABS: { value: TabValue; label: string }[] = [
   { value: 'all',     label: 'All' },
   { value: 'active',  label: 'Active' },
   { value: 'pending', label: 'Pending' },
-  { value: 'trial',   label: 'Free trial' },
   { value: 'free',    label: 'Free (no plan)' },
-  { value: 'expired', label: 'Expired' },
 ]
 
 const STATUS_CHIP: Record<EffectiveStatus, string> = {
   active:  'bg-green-100 text-green-700',
   pending: 'bg-amber-100 text-amber-700',
-  // Trial = Max access for 72h — use the Max plan's purple to make that read
-  // instantly against an active paid plan (green).
-  trial:   'bg-violet-100 text-violet-700',
   free:    'bg-gray-100 text-gray-600',
-  expired: 'bg-red-100 text-red-700',
 }
 
 const STATUS_LABEL: Record<EffectiveStatus, string> = {
   active:  'active',
   pending: 'pending',
-  trial:   'free trial',
   free:    'free',
-  expired: 'expired',
 }
 
 export default function AdminUsersPage() {
   const [authState, setAuthState] = useState<'loading' | 'anon' | 'forbidden' | 'ok'>('loading')
   const [users,    setUsers]      = useState<UserRow[]>([])
-  const [summary,  setSummary]    = useState<Summary>({ total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 })
+  const [summary,  setSummary]    = useState<Summary>({ total: 0, active: 0, pending: 0, free: 0 })
   const [tab,      setTab]        = useState<TabValue>('all')
   const [q,        setQ]          = useState('')
   const [loading,  setLoading]    = useState(false)
@@ -96,7 +84,7 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setUsers(json.users || [])
-      setSummary(json.summary || { total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 })
+      setSummary(json.summary || { total: 0, active: 0, pending: 0, free: 0 })
       setAuthState('ok')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load users')
@@ -129,9 +117,7 @@ export default function AdminUsersPage() {
       { label: 'Total',      value: summary.total,   color: 'text-navy' },
       { label: 'Active',     value: summary.active,  color: 'text-green-700' },
       { label: 'Pending',    value: summary.pending, color: 'text-amber-700' },
-      { label: 'Free trial', value: summary.trial,   color: 'text-violet-700' },
       { label: 'Free',       value: summary.free,    color: 'text-gray-600' },
-      { label: 'Expired',    value: summary.expired, color: 'text-red-700' },
     ]
   ), [summary])
 
@@ -251,7 +237,6 @@ export default function AdminUsersPage() {
                   <th className="px-4 py-3 font-semibold">Sector</th>
                   <th className="px-4 py-3 font-semibold">Plan</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Expires</th>
                   <th className="px-4 py-3 font-semibold">Joined</th>
                 </tr>
               </thead>
@@ -270,35 +255,12 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-gray-700">
                       {u.plan
                         ? <span className="capitalize font-semibold">{u.plan}</span>
-                        : u.effective_status === 'trial'
-                          ? (
-                            <span className="font-semibold text-violet-700">
-                              Free trial
-                              <span className="block text-[10px] font-normal text-violet-500/80">Max access</span>
-                            </span>
-                          )
-                          : <span className="text-gray-300">—</span>}
+                        : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_CHIP[u.effective_status]}`}>
                         {STATUS_LABEL[u.effective_status]}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {u.plan_expires_at
-                        ? (
-                          <>
-                            {new Date(u.plan_expires_at).toLocaleDateString()}
-                            {u.days_left !== null && (
-                              <span className={`block text-[10px] mt-0.5 ${u.days_left >= 0 ? (u.effective_status === 'trial' ? 'text-violet-500' : 'text-gray-400') : 'text-red-500'}`}>
-                                {u.days_left >= 0
-                                  ? `${u.days_left}d ${u.effective_status === 'trial' ? 'trial left' : 'left'}`
-                                  : `${Math.abs(u.days_left)}d ago`}
-                              </span>
-                            )}
-                          </>
-                        )
-                        : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {new Date(u.created_at).toLocaleDateString()}
@@ -307,7 +269,7 @@ export default function AdminUsersPage() {
                 ))}
                 {users.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
                       No users match this filter.
                     </td>
                   </tr>
@@ -318,9 +280,8 @@ export default function AdminUsersPage() {
         </div>
 
         <p className="text-xs text-gray-400 mt-4">
-          Joins <code>profiles</code> with <code>auth.users</code> via the service role. Status is
-          &ldquo;effective&rdquo; — a row with <code>plan_status=&apos;active&apos;</code> but a past{' '}
-          <code>plan_expires_at</code> shows as <em>Expired</em>. To change someone&apos;s plan, edit
+          Joins <code>profiles</code> with <code>auth.users</code> via the service role. Plans are
+          once-off, so <em>active</em> never expires. To change someone&apos;s plan, edit
           the profile row in Supabase SQL Editor or process a fresh payment via{' '}
           <Link href="/admin/payments" className="text-primary font-semibold">/admin/payments</Link>.
         </p>

@@ -1,10 +1,12 @@
 /**
- * GET /api/admin/users/list?status=active|free|pending|expired|all
+ * GET /api/admin/users/list?status=active|free|pending|all
  *
  * Admin-only. Returns the full user roster joined with profile data
- * (plan, plan_status, plan_expires_at, trial_started_at) plus the email
- * from auth.users — the piece the Supabase Auth dashboard alone won't
- * show side-by-side with their plan.
+ * (plan, plan_status) plus the email from auth.users - the piece the
+ * Supabase Auth dashboard alone won't show side-by-side with their plan.
+ *
+ * Once-off model: no expiry, no trial. A user is just active, pending
+ * (manual payment submitted, awaiting verification), or free (not paid).
  *
  * Auth: cookie session + ADMIN_EMAILS allow-list.
  */
@@ -12,7 +14,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
-import { TRIAL_DURATION_MS } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,10 +35,10 @@ export async function GET(req: NextRequest) {
 
   // Pull every profile row. The dataset is small (a few hundred users at
   // most for the foreseeable future) so pagination isn't worth the
-  // complexity yet — re-run when the table tops 5k.
+  // complexity yet - re-run when the table tops 5k.
   const { data: profiles, error: profErr } = await service
     .from('profiles')
-    .select('id, full_name, first_name, last_name, country, sector, plan, plan_status, plan_expires_at, trial_started_at, created_at')
+    .select('id, full_name, first_name, last_name, country, sector, plan, plan_status, created_at')
     .order('created_at', { ascending: false })
     .limit(2000)
   if (profErr) {
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'profile fetch failed' }, { status: 500 })
   }
 
-  // The auth.users table holds emails — service role unlocks the
+  // The auth.users table holds emails - service role unlocks the
   // `auth.admin.listUsers` endpoint which the anon client can't see.
   // We pull all and intersect with the profiles list. 1 page = 1000 users;
   // good enough until we cross 1k users (then move to paged + match).
@@ -58,42 +59,13 @@ export async function GET(req: NextRequest) {
     (authList?.users ?? []).map((u) => [u.id, u.email ?? '']),
   )
 
-  // Decorate + filter
-  const now = Date.now()
+  // Decorate. No expiry, no trial in the once-off model - effective_status
+  // is just plan_status, kept as its own field so the UI code that reads
+  // effective_status doesn't need to change.
   const rows = (profiles ?? []).map((p) => {
     const email = emailById.get(p.id) ?? ''
-    const expiresAt = p.plan_expires_at ? new Date(p.plan_expires_at).getTime() : null
-    const isExpired = expiresAt !== null && expiresAt <= now
-    // Compose an "effective" status that captures expiry AND the automatic
-    // 3-day free trial — the raw plan_status='active' with a past expires_at
-    // is misleading on its own, and plan_status='free' on a brand-new user
-    // hides that they currently have Max access via their trial window.
-    let effective_status: 'active' | 'pending' | 'free' | 'expired' | 'trial' =
+    const effective_status: 'active' | 'pending' | 'free' =
       (p.plan_status ?? 'free') as 'active' | 'pending' | 'free'
-    if (effective_status === 'active' && isExpired) effective_status = 'expired'
-
-    // Trial detection: only override the "free" bucket. Pending users stay
-    // pending (admin needs to verify their manual payment) and active/expired
-    // users stay where they are (a real paid plan beats the trial).
-    let trialExpiresAt: number | null = null
-    if (effective_status === 'free' && p.trial_started_at) {
-      const trialEnd = new Date(p.trial_started_at).getTime() + TRIAL_DURATION_MS
-      if (trialEnd > now) {
-        effective_status = 'trial'
-        trialExpiresAt = trialEnd
-      }
-    }
-
-    // For the Expires column: trial users get a virtual expiry (trial end);
-    // everyone else uses the real plan_expires_at column. days_left mirrors
-    // whichever source is in play so the UI's "Xd left" works for both.
-    const displayExpiresMs = trialExpiresAt ?? expiresAt
-    const displayExpiresAt = trialExpiresAt
-      ? new Date(trialExpiresAt).toISOString()
-      : p.plan_expires_at
-    const days_left = displayExpiresMs !== null
-      ? Math.ceil((displayExpiresMs - now) / (24 * 60 * 60 * 1000))
-      : null
 
     return {
       id:               p.id,
@@ -106,8 +78,6 @@ export async function GET(req: NextRequest) {
       plan:             p.plan,
       plan_status:      p.plan_status,
       effective_status,
-      plan_expires_at:  displayExpiresAt,
-      days_left,
       created_at:       p.created_at,
     }
   })
@@ -117,7 +87,7 @@ export async function GET(req: NextRequest) {
   if (statusFilter !== 'all') {
     filtered = filtered.filter((r) => r.effective_status === statusFilter)
   }
-  // Search filter (email / name / plan)
+  // Search filter (email / name / country / plan)
   if (search) {
     filtered = filtered.filter((r) =>
       (r.email || '').toLowerCase().includes(search) ||
@@ -125,8 +95,8 @@ export async function GET(req: NextRequest) {
       (r.first_name || '').toLowerCase().includes(search) ||
       (r.last_name || '').toLowerCase().includes(search) ||
       (r.country || '').toLowerCase().includes(search) ||
-      (r.plan || '').toLowerCase().includes(search) ||
-   '')
+      (r.plan || '').toLowerCase().includes(search)
+    )
   }
 
   // Summary counts (across all rows, not the filtered slice)
@@ -136,7 +106,7 @@ export async function GET(req: NextRequest) {
       acc[r.effective_status] = (acc[r.effective_status] ?? 0) + 1
       return acc
     },
-    { total: 0, active: 0, pending: 0, trial: 0, free: 0, expired: 0 } as Record<string, number>,
+    { total: 0, active: 0, pending: 0, free: 0 } as Record<string, number>,
   )
 
   return NextResponse.json({

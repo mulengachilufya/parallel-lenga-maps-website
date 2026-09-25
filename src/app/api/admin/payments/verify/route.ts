@@ -11,8 +11,7 @@ import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/ema
  * Admin-only. On 'verify':
  *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
  *   - profiles.plan → plan recorded on the payment row
- *   - profiles.plan_status → 'active'
- *   - profiles.plan_expires_at → now() + 30 days (single-month billing period)
+ *   - profiles.plan_status → 'active' (once-off — no expiry, access is permanent)
  *   - fires Web3Forms email to the customer letting them know access is live
  *
  * On 'reject':
@@ -27,9 +26,6 @@ const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-// One month of paid access — the unit customers pay for on the pricing page.
-const ACTIVE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000
 
 // Simple per-admin in-memory rate limiter. Fine for a single Vercel instance
 // under normal admin load; if we ever need cross-instance enforcement we
@@ -119,17 +115,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
     }
 
-    const expiresAt = new Date(Date.now() + ACTIVE_PERIOD_MS).toISOString()
-    // Promote pending → active in one write. Clear pending_plan so the
-    // user's profile stops advertising a pending upgrade. account_type is
-    // kept for back-compat with older payment rows.
+    // Promote pending -> active in one write. Once-off model: no expiry —
+    // access is granted for good the moment an admin approves. Clear
+    // pending_plan so the profile stops advertising a pending request.
+    // account_type is kept for back-compat with older payment rows.
     const { error: profErr } = await service
       .from('profiles')
       .update({
         plan:            payment.plan,
         account_type:    payment.account_type,
         plan_status:     'active',
-        plan_expires_at: expiresAt,
         pending_plan:    null,
       })
       .eq('id', payment.user_id)

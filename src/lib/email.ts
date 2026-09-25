@@ -174,125 +174,44 @@ function firstName(fullName?: string | null): string {
 // ── Templates ───────────────────────────────────────────────────────────────
 
 export function welcomeEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/datasets`
+  const name  = firstName(fullName)
+  const cta   = `${APP_URL}/datasets`
+  const cta2  = `${APP_URL}/pricing`
+  const price = PLANS.individual.priceLabel
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your account is live and your <strong>3-day free trial just started</strong>. For the
-      next 72 hours you have full <strong>Max</strong> access to every dataset across all 54
-      African countries, plus <strong>10 downloads</strong> to spend. No card required.
+      Your Lenga Maps account is live. You can browse the full catalogue now: every dataset
+      across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
     </p>
-    <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">
-      The trial only pays off if you pull real data into your map, so do this today while the
-      clock is running:
-    </p>
-    <ol style="margin:0 0 4px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
-      <li>Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.</li>
-      <li>Download it, already harmonised to EPSG:4326 and ready for QGIS.</li>
-      <li>Drop it straight into your project. That is one of your 10 downloads working for you.</li>
-    </ol>`
-  const text = `Hi ${name},
-
-Your account is live and your 3-day free trial just started. For the next 72 hours you have full Max access to every dataset across all 54 African countries, plus 10 downloads to spend. No card required.
-
-The trial only pays off if you pull real data into your map, so do this today while the clock is running:
-
-1. Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.
-2. Download it, already harmonised to EPSG:4326 and ready for QGIS.
-3. Drop it straight into your project.
-
-Start here: ${cta}
-
-Three days goes fast, so dive in now. Need a hand getting started? Just reply to this email.
-
-Thanks,
-The Lenga Maps team`
-  return {
-    to,
-    subject: `${name}, your 3 days of full Lenga Maps access just started`,
-    html: shell({
-      preheader: 'Full Max access + 10 downloads for 3 days. No card required.',
-      heading:   `Your 3-day trial is live, ${name}.`,
-      bodyHtml,
-      ctaLabel:  'Download your first dataset',
-      ctaHref:   cta,
-      footnote:  'Three days goes fast, so dive in now. Stuck on where to start? Just reply to this email.',
-    }),
-    text,
-  }
-}
-
-export function trialEndedEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/pricing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your free trial has ended, but your work doesn't have to stop here.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Keep full access to professional GIS data for all 54 African countries from just
-      <strong>$5/month</strong>. Browsing stays free; a plan unlocks the downloads.
+      When you are ready to download, access is a <strong>one-time payment of ${price}</strong>.
+      No subscription and no expiry: every dataset, every country, unlimited downloads, for good.
+      Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
     </p>`
   const text = `Hi ${name},
 
-Your free trial has ended, but your work doesn't have to stop here.
+Your Lenga Maps account is live. You can browse the full catalogue now: every dataset across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
 
-Keep full access to professional GIS data for all 54 African countries from just $5/month. Browsing stays free; a plan unlocks the downloads.
+When you are ready to download, access is a one-time payment of ${price}. No subscription and no expiry: every dataset, every country, unlimited downloads, for good. Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
 
-See plans: ${cta}
-
-Thanks,
-The Lenga Maps team`
-  return {
-    to,
-    subject: 'Your free trial has ended, plans from $5/mo',
-    html: shell({
-      preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
-      heading:   'Your free trial has ended',
-      bodyHtml,
-      ctaLabel:  'See plans from $5/mo',
-      ctaHref:   cta,
-      footnote:  'No commitment. Cancel anytime from your billing page.',
-    }),
-    text,
-  }
-}
-
-export function trialCapEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/pricing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      You've now used all 10 downloads included in your free trial. Nice work,
-      that's a real head start on your mapping.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      To keep downloading GIS data for all 54 African countries, pick a plan from
-      just <strong>$5/month</strong>. Browsing stays free either way.
-    </p>`
-  const text = `Hi ${name},
-
-You've now used all 10 downloads included in your free trial. Nice work, that's a real head start on your mapping.
-
-To keep downloading GIS data for all 54 African countries, pick a plan from just $5/month. Browsing stays free either way.
-
-See plans: ${cta}
+Browse the catalogue: ${cta}
+See pricing: ${cta2}
 
 Thanks,
 The Lenga Maps team`
   return {
     to,
-    subject: "You've used all 10 trial downloads",
+    subject: `${name}, your Lenga Maps account is live`,
     html: shell({
-      preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
-      heading:   "You've used your 10 free downloads",
+      preheader: `Browse every dataset now. Full access is ${price}, no subscription.`,
+      heading:   `Welcome to Lenga Maps, ${name}.`,
       bodyHtml,
-      ctaLabel:  'See plans from $5/mo',
+      ctaLabel:  'Browse the catalogue',
       ctaHref:   cta,
-      footnote:  'Your trial browsing stays open. A plan unlocks downloads again.',
+      cta2Label: 'See pricing',
+      cta2Href:  cta2,
+      footnote:  'Questions about which datasets fit your project? Just reply to this email.',
     }),
     text,
   }
@@ -304,7 +223,7 @@ export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd
+      We noticed you have full access but haven't downloaded any GIS datasets yet, and we'd
       hate for your plan to go unused.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
@@ -314,7 +233,7 @@ export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
     </p>`
   const text = `Hi ${name},
 
-We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd hate for your plan to go unused.
+We noticed you have full access but haven't downloaded any GIS datasets yet, and we'd hate for your plan to go unused.
 
 Want ideas on what to build? Our Atlas showcases real maps made from Lenga data, like watershed delineations, solar potential, carbon credits and mining boundaries.
 
@@ -324,7 +243,7 @@ Thanks,
 The Lenga Maps team`
   return {
     to,
-    subject: 'Some ideas for your Lenga Maps subscription',
+    subject: 'Some ideas for getting started with your Lenga Maps data',
     html: shell({
       preheader: 'Real maps built from Lenga data, to spark what you could create next.',
       heading:   `${name}, here's what you could build`,
@@ -582,6 +501,7 @@ export const PAYMENT_NOTIFY_EMAIL =
 
 export interface PaymentSubmittedFields {
   reference:     string
+  bankRef:       string
   region:        string
   method:        string
   plan:          string
@@ -601,6 +521,7 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
   const cta = `${APP_URL}/admin/payments`
   const rows = [
     ['Reference',    p.reference],
+    ['Bank ref',     p.bankRef],
     ['Plan',         p.plan.toUpperCase()],
     ['Amount',       p.amountLabel],
     ['Method',       p.method.toUpperCase()],
@@ -649,7 +570,7 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
  * live in src/lib/bank-details.ts.
  */
 export function bankTransferDetailsEmail(opts: {
-  to: string; firstName?: string | null; plan: TierSlug; appUrl?: string
+  to: string; firstName?: string | null; plan: TierSlug; reference: string; appUrl?: string
 }): EmailMessage {
   const fname = (opts.firstName || '').trim() || 'there'
   const plan  = PLANS[opts.plan]
@@ -657,35 +578,42 @@ export function bankTransferDetailsEmail(opts: {
   const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
   const cta   = `${base}/dashboard/payment?plan=${opts.plan}`
   const rows: [string, string][] = [
-    ['Amount',            `${plan.priceLabel} per month`],
+    ['Amount',            `$${plan.price} USD (once-off)`],
     ['Account name',      b.accountName],
     ['Bank',              b.bankName],
     ['Account number',    b.accountNumber],
     ['Branch code',       b.branchCode],
     ['SWIFT / BIC',       b.swift],
     ['Bank address',      b.bankAddress],
-    ['Payment reference', opts.to],
+    ['Payment reference', opts.reference],
+    ['Transfer fees',     'Covered by us. If your bank asks who pays the charges, choose BEN (beneficiary).'],
   ]
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
       Thanks for choosing the <strong>${plan.name}</strong> plan. Here are the details to pay by
-      bank transfer. Please use your email address as the payment reference so we can match your
-      transfer to your account.
+      bank transfer. Please put <strong>${opts.reference}</strong> in the payment reference field so
+      we can match your transfer to your account.
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
     </table>
     <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
+      Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank
+      charges come out of what we receive, not your pocket.
+    </p>
+    <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#555;">
       Once you have paid, upload your proof of payment and we will switch your plan on, usually
       within a few hours.
     </p>`
   const text = [
     `Hi ${fname},`,
     '',
-    `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and use your email address as the payment reference:`,
+    `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and put ${opts.reference} in the payment reference field:`,
     '',
     ...rows.map(([k, v]) => `  ${k}: ${v}`),
+    '',
+    `Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank charges come out of what we receive, not your pocket.`,
     '',
     `Upload your proof of payment: ${cta}`,
     'We switch your plan on once we verify it, usually within a few hours.',
@@ -695,7 +623,7 @@ export function bankTransferDetailsEmail(opts: {
   ].join('\n')
   return {
     to:      opts.to,
-    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details (${plan.priceLabel})`,
+    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details ($${plan.price} USD, ref ${opts.reference})`,
     html: shell({
       preheader: `Bank transfer details for your ${plan.name} plan.`,
       heading:   'Pay by bank transfer',
@@ -703,6 +631,67 @@ export function bankTransferDetailsEmail(opts: {
       ctaLabel:  'Upload proof of payment',
       ctaHref:   cta,
       footnote:  'Not seeing our emails? Add mulenga@lengamaps.com to your contacts and check your spam folder.',
+    }),
+    text,
+  }
+}
+
+/**
+ * Internal alert to the founder, sent the moment a customer is emailed our
+ * bank details. It says exactly what to expect on the bank statement (amount,
+ * reference, who it is from) and whether the customer's own copy was
+ * delivered, so an incoming transfer can be matched before proof is uploaded.
+ */
+export function bankTransferExpectedAdminEmail(p: {
+  plan:            TierSlug
+  reference:       string
+  userEmail:       string
+  userName:        string
+  customerEmailed: boolean
+  requestedAt:     string
+}): EmailMessage {
+  const plan   = PLANS[p.plan]
+  const amount = `$${plan.price} USD`
+  const cta    = `${APP_URL}/admin/payments`
+  const rows: [string, string][] = [
+    ['Expect',         `${amount} (${plan.name}, once-off), less bank fees`],
+    ['Reference',      p.reference],
+    ['From',           `${p.userName || '(no name)'} <${p.userEmail}>`],
+    ['Fees',           'You cover them. Customer was told to pick BEN, so slightly less than the full amount may arrive.'],
+    ['Customer email', p.customerEmailed ? 'Sent' : 'FAILED, they only saw the details on screen'],
+    ['Requested',      `${new Date(p.requestedAt).toLocaleString('en-GB', { timeZone: 'Africa/Lusaka', dateStyle: 'medium', timeStyle: 'short' })} (Lusaka)`],
+  ]
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      A customer was just sent our bank details. Watch the account for this transfer.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+      ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
+    </table>
+    <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
+      Nothing is activated yet. Once they upload proof it lands in the payments queue, where you
+      approve it after the money shows up.
+    </p>`
+  const text = [
+    'Bank details sent: expect a transfer',
+    '',
+    ...rows.map(([k, v]) => `${k}: ${v}`),
+    '',
+    `Payments queue: ${cta}`,
+  ].join('\n')
+  return {
+    to:      PAYMENT_NOTIFY_EMAIL,
+    replyTo: p.userEmail || undefined,
+    subject: `Expect ${amount} ref ${p.reference} from ${p.userName || p.userEmail}`,
+    html: shell({
+      preheader: `${amount} incoming, reference ${p.reference}.`,
+      heading:   'Expect a bank transfer',
+      bodyHtml,
+      ctaLabel:  'Open payments queue',
+      ctaHref:   cta,
+      footnote:  p.customerEmailed
+        ? 'The customer received the same details and reference by email.'
+        : 'The customer email did not send. Consider replying to them directly with the details.',
     }),
     text,
   }
@@ -775,59 +764,6 @@ The Lenga Maps team`
       ctaLabel:  'Resubmit payment',
       ctaHref:   cta,
       footnote:  'Stuck? Reply to this email and we will help sort it out.',
-    }),
-    text,
-  }
-}
-
-// ── Renewals ──────────────────────────────────────────────────────────────────
-
-/**
- * Reminder that a plan renews soon. Renewal is manual (no silent auto-charge
- * on Zambian rails), so the CTA is a one-tap renew link.
- */
-export function renewalReminderEmail(
-  to: string,
-  fullName: string | null,
-  plan: string,
-  daysLeft: number,
-): EmailMessage {
-  const name       = firstName(fullName)
-  const PLAN       = plan.toUpperCase()
-  const dayLabel   = `${daysLeft} day${daysLeft === 1 ? '' : 's'}`
-  const renewLink  = `${APP_URL}/dashboard/payment?plan=${plan}&renew=1`
-  const cancelLink = `${APP_URL}/dashboard/billing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Heads up, your <strong>${PLAN}</strong> subscription renews in <strong>${dayLabel}</strong>.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Card networks and mobile money in Zambia both require you to approve each
-      renewal yourself, so a quick tap keeps your access going.
-    </p>`
-  const text = `Hi ${name},
-
-Heads up, your Lenga Maps ${PLAN} subscription renews in ${dayLabel}.
-
-Card networks and mobile money in Zambia both require you to approve each renewal yourself, so:
-
-Tap here to renew now: ${renewLink}
-
-Don't want to renew? Cancel anytime from your billing page: ${cancelLink}
-
-Thanks for using Lenga Maps.
-The Lenga Maps team`
-  return {
-    to,
-    subject: `Your Lenga Maps ${PLAN} plan renews in ${dayLabel}`,
-    html: shell({
-      preheader: `Approve your ${PLAN} renewal to keep your access going.`,
-      heading:   `Your ${PLAN} plan renews in ${dayLabel}`,
-      bodyHtml,
-      ctaLabel:  'Renew now',
-      ctaHref:   renewLink,
-      footnote:  `Don't want to renew? Cancel anytime from your <a href="${cancelLink}" style="color:#1E5F8E;">billing page</a>.`,
     }),
     text,
   }

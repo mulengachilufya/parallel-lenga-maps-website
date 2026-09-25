@@ -7,7 +7,7 @@
  * swallow the error — analytics is never load-bearing.
  *
  * Names follow `<surface>_<verb>` so the funnel reads top-to-bottom in a
- * dashboard: signup_started → trial_started → paywall_shown →
+ * dashboard: signup_started → signup_completed → paywall_shown →
  * paywall_cta_clicked → payment_initiated → payment_succeeded →
  * dataset_downloaded.
  */
@@ -15,7 +15,7 @@ import { track as vercelTrack } from '@vercel/analytics'
 
 export type FunnelEvent =
   | 'signup_started'
-  | 'trial_started'
+  | 'signup_completed'
   | 'paywall_shown'
   | 'paywall_cta_clicked'
   | 'payment_initiated'
@@ -24,6 +24,8 @@ export type FunnelEvent =
   | 'continental_bundle_requested'
   | 'continental_bundle_gated'
   | 'continental_bundle_upgrade_clicked'
+  | 'continental_bundle_gate_cta_clicked'
+  | 'payment_page_visited'
 
 export function track(event: FunnelEvent, props?: Record<string, string | number | boolean | null>): void {
   try {

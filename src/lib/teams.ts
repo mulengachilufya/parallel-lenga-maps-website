@@ -8,47 +8,15 @@
 //   internal/product name  →  "Lenga for Projects"
 //   page route             →  /projects
 //
-// Pricing model (locked 2026-06-12 exec meeting, decision D2):
-//   flat $45/seat, two named bundles each carrying a $20/mo discount shown
-//   against the crossed-out per-seat original. Custom stays full rate.
+// Pricing model (updated 2026-09): fixed once-off packages, not per seat —
+//   up to 4 seats for $350, up to 12 seats for $1,000. Defined in
+//   TEAM_PACKAGES (src/lib/pricing.ts). Larger teams are quoted.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DatasetSlug } from './pricing'
 
 export const TEAM_TIER_TITLE   = 'For Project Teams and Businesses'
 export const TEAM_PRODUCT_NAME = 'Lenga for Projects'
-export const TEAM_SEAT_PRICE   = 45 // USD / seat / month
-
-export interface TeamBlock {
-  id:         'team-3' | 'team-10' | 'custom'
-  label:      string
-  seats:      number | null   // null = custom
-  price:      string          // what they pay
-  original:   string | null   // crossed-out "(instead of $X)" anchor; bundles only
-  perSeat:    string | null   // shown ONLY on the custom block
-  blurb:      string
-}
-
-// The two bundles deliberately do NOT show a per-seat rate — the visible
-// price is the bundle price with its saving. $45/seat appears only on Custom
-// so the page never contradicts itself.
-export const TEAM_BLOCKS: TeamBlock[] = [
-  {
-    id: 'team-3', label: '3 seats', seats: 3,
-    price: '$115/mo', original: '$135', perSeat: null,
-    blurb: 'For small project teams getting a shared workspace for the first time.',
-  },
-  {
-    id: 'team-10', label: '10 seats', seats: 10,
-    price: '$430/mo', original: '$450', perSeat: null,
-    blurb: 'For departments and multi-project teams that live in GIS data.',
-  },
-  {
-    id: 'custom', label: 'Custom', seats: null,
-    price: '$45/seat', original: null, perSeat: '$45',
-    blurb: 'Any team size. Tell us your seat count and we will quote it.',
-  },
-]
 
 export const QUOTE_SECTORS = [
   { value: 'mining',   label: 'Mining' },

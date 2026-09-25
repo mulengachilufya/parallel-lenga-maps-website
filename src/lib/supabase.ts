@@ -11,13 +11,15 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 // session into the same cookies that `await createServerSupabase()` reads.
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
-export type PlanTier = 'starter' | 'pro' | 'max' | 'enterprise' | 'team'
+export type PlanTier = 'individual' | 'team'
 
 // plan_status is independent of plan:
-//   - 'free'    : user has an account but has not paid for any plan yet (default)
+//   - 'free'    : user has an account but has not paid yet (default)
 //   - 'pending' : user submitted manual payment, awaiting admin verification
 //   - 'active'  : admin verified payment — their `plan` field grants download access
 // Only 'active' lets a user actually download. 'plan' alone means nothing without 'active'.
+// Once-off model: there is no renewal state. 'active' stays active forever
+// once granted — see isPlanActive() below.
 export type PlanStatus = 'free' | 'pending' | 'active'
 
 export type UserProfile = {
@@ -25,42 +27,27 @@ export type UserProfile = {
   email:            string
   plan:             PlanTier | null
   plan_status:      PlanStatus
-  plan_expires_at:  string | null
-  trial_started_at: string | null
   created_at:       string
 }
-// Shared helper: is this plan still within its paid window?
-// null expiry means "no expiry set" — treat as valid (e.g. lifetime/comped accounts).
-export function isPlanActive(planStatus: PlanStatus, expiresAt: string | null | undefined): boolean {
-  if (planStatus !== 'active') return false
-  if (!expiresAt) return true
-  return new Date(expiresAt).getTime() > Date.now()
+
+// Shared helper: is this account entitled to download?
+// Once-off plans never expire — this is just an alias for plan_status
+// being 'active'. Kept as a named helper (rather than inlining
+// `status === 'active'` everywhere) so the "no expiry" decision lives in
+// one place if that ever changes again.
+export function isPlanActive(planStatus: PlanStatus): boolean {
+  return planStatus === 'active'
 }
 
 /**
- * Datasets are split into THREE tiers and the user's plan unlocks a
- * specific level:
- *
- *   Tier "basic"  (4 datasets):  Admin Boundaries, Rivers, Rainfall, Temperature
- *   Tier "pro"    (+4 = 8):      + Lakes, LULC, Drought Index, Watersheds
- *   Tier "max"    (+rest = 12+): + Aquifers, Population, Protected Areas, …
- *
- *   Plan starter → starter datasets only
- *   Plan pro     → starter + pro datasets
- *   Plan max     → all datasets
- *   Plan enterprise → all datasets + custom sub-country
+ * Datasets carry a `tier` field purely for CATALOGUE DISPLAY ORDER now —
+ * it no longer gates access. Every paid account (individual or team) can
+ * download every dataset; see canAccessDataset() in pricing.ts. This just
+ * keeps the grid on /datasets and /dashboard showing "core" datasets
+ * before "advanced" ones, same visual order as before the pricing change.
  */
 export type DatasetTier = 'starter' | 'pro' | 'max' | 'enterprise'
 
-// Access helpers moved to src/lib/pricing.ts — import from there.
-// These shims keep old call sites compiling during migration.
-import { canAccessDataset, PLAN_ORDER, type TierSlug } from './pricing'
-
-// Display order for the catalogue. Starter first (cheapest tier), then Pro,
-// then Max — so users scrolling through the grid see what's included in
-// their own tier (or the cheapest entry point) before what they'd need to
-// upgrade for. Investors flagged the previous mixed order as a credibility
-// hit on both /datasets and /dashboard.
 const TIER_RANK: Record<DatasetTier, number> = {
   starter:    0,
   pro:        1,
@@ -68,8 +55,8 @@ const TIER_RANK: Record<DatasetTier, number> = {
   enterprise: 3,
 }
 
-/** Sort by tier (starter → pro → max), then by dataset id within each
- *  tier to keep the order deterministic between renders. */
+/** Sort by display tier (starter → pro → max → enterprise), then by
+ *  dataset id within each tier to keep the order deterministic. */
 export function sortDatasetsByTier<T extends { tier: DatasetTier; id: number }>(
   list: readonly T[],
 ): T[] {
@@ -79,30 +66,6 @@ export function sortDatasetsByTier<T extends { tier: DatasetTier; id: number }>(
     if (ta !== tb) return ta - tb
     return a.id - b.id
   })
-}
-
-export function planLevel(plan: PlanTier | null | undefined): number {
-  if (!plan) return 0
-  return PLAN_ORDER.indexOf(plan as TierSlug) + 1
-}
-
-export function canAccessDatasetTier(
-  plan: PlanTier | null | undefined,
-  _accountType: unknown,
-  datasetTier: DatasetTier,
-): boolean {
-  if (!plan) return false
-  const tierToSlug: Record<string, import('./pricing').DatasetSlug> = {
-    starter: 'admin-boundaries',
-    pro:     'watersheds',
-    max:     'lulc',
-    enterprise: 'lulc',
-  }
-  return canAccessDataset(plan as TierSlug, tierToSlug[datasetTier] ?? 'admin-boundaries')
-}
-
-export function hasFullDatasetAccess(plan: PlanTier | null | undefined): boolean {
-  return canAccessDatasetTier(plan, null, 'pro')
 }
 
 
@@ -143,10 +106,7 @@ export type Dataset = {
   format: string
   resolution: string
   icon: string
-  // Three-tier model. See canAccessDatasetTier() for the access rule.
-  // basic = unlocked at any active plan
-  // pro   = unlocked at plan='pro', plan='max', or any business plan
-  // max   = unlocked at plan='max' or any business plan only
+  // Display order only now, not an access gate — see DatasetTier above.
   tier: DatasetTier
   color: string
   sources?: DatasetSource[]

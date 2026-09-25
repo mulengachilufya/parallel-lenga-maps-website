@@ -9,8 +9,7 @@ import { Loader2, ArrowLeft, Globe2, FileDown, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import {
-  PLANS, PLAN_ORDER, PLAN_CARD_UI, DATASET_MIN_TIER, getUserState, formatTrialCountdown,
-  TRIAL_DOWNLOAD_CAP, planCardCount,
+  PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
@@ -34,13 +33,7 @@ const PLAN_STYLE: Record<string, {
   bg: string; border: string; nameColor: string;
   priceColor: string; btnBg: string;
 }> = {
-  starter:    { bg: '#EAF3DE', border: '#97C459', nameColor: '#3B6D11', priceColor: '#27500A', btnBg: '#639922' },
-  pro:        { bg: '#E6F1FB', border: '#85B7EB', nameColor: '#185FA5', priceColor: '#0C447C', btnBg: '#185FA5' },
-  max:        { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
-  enterprise: { bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806', btnBg: '#854F0B' },
-  team:       { bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF', btnBg: '#F5B800' },
-  free_trial: { bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489', btnBg: '#534AB7' },
-  free:       { bg: '#F1EFE8', border: '#B4B2A9', nameColor: '#5F5E5A', priceColor: '#444441', btnBg: '#5F5E5A' },
+  free: { bg: '#F1EFE8', border: '#B4B2A9', nameColor: '#5F5E5A', priceColor: '#444441', btnBg: '#5F5E5A' },
 }
 
 // ─── Section registry ─────────────────────────────────────────
@@ -261,11 +254,13 @@ function ContinentalBundle({ datasetSlug, userState }: { datasetSlug: string; us
   const [result,   setResult]   = useState<{ file_count: number; size_mb: number; format: string } | null>(null)
   const [showGate, setShowGate] = useState(false)
 
-  const isMax = userState === 'max' || userState === 'enterprise' || userState === 'team'
+  // Once-off model: any paid account (individual or team) can pull the
+  // continental bundle — it's no longer a Max/Enterprise-only feature.
+  const isPaid = userState !== 'free'
 
   async function handleClick() {
-    // Everyone can see the card; only Max/Enterprise can download it.
-    if (!isMax) {
+    // Everyone can see the card; only paid accounts can download it.
+    if (!isPaid) {
       track('continental_bundle_gated', { dataset: datasetSlug, user_state: userState })
       setShowGate(true)
       return
@@ -368,31 +363,32 @@ function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose:
               <Lock size={17} />
             </div>
             <h2 className="text-lg font-bold text-white leading-tight">
-              Continental bundle is a Max feature
+              Get full access to download this
             </h2>
           </div>
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-3 text-xl leading-none">✕</button>
         </div>
 
         <p className="text-blue-300 text-sm leading-relaxed mb-5">
-          Downloading all 54 countries as one ready-for-QGIS file is available on{' '}
-          <span className="text-white font-semibold">Max</span> and{' '}
-          <span className="text-white font-semibold">Enterprise</span>. You can still download
-          countries individually on your current plan.
+          Downloading all 54 countries as one ready-for-QGIS file needs an active plan.
+          One-time payment, every dataset, no expiry.
         </p>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/payment?plan=max"
-            onClick={() => { track('continental_bundle_upgrade_clicked', { dataset: datasetSlug }); onClose() }}
-            className="flex-1 text-center bg-[#534AB7] hover:bg-[#3C3489] text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
-          >
-            Upgrade to Max · {PLANS.max.priceLabel}/mo
-          </Link>
-          <button onClick={onClose} className="text-blue-400 hover:text-white text-sm transition-colors px-2">
-            Not now
-          </button>
+        <div className="grid grid-cols-2 gap-2.5 mb-4">
+          {PLAN_ORDER.map((slug) => (
+            <Link
+              key={slug}
+              href={planCtaHref(slug)}
+              onClick={() => { track('continental_bundle_gate_cta_clicked', { dataset: datasetSlug, plan: slug }); onClose() }}
+              className="text-center bg-[#534AB7] hover:bg-[#3C3489] text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              {PLANS[slug].name} · {PLANS[slug].priceLabel}
+            </Link>
+          ))}
         </div>
+        <button onClick={onClose} className="w-full text-blue-400 hover:text-white text-sm transition-colors px-2">
+          Not now
+        </button>
       </div>
     </div>
   )
@@ -406,12 +402,10 @@ function DashboardContent() {
   const sectionKey  = params.get('section')
   const sectionData = sectionKey ? SECTIONS[ROUTE_TO_SECTION[sectionKey] ?? sectionKey] : null
 
-  const [loading,        setLoading]        = useState(true)
-  const [userState,      setUserState]      = useState<UserState>('free')
-  const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null)
-  const [trialUsed,      setTrialUsed]      = useState(0)
-  const [userName,       setUserName]       = useState('')
-  const [isAdmin,        setIsAdmin]        = useState(false)
+  const [loading,   setLoading]   = useState(true)
+  const [userState, setUserState] = useState<UserState>('free')
+  const [userName,  setUserName]  = useState('')
+  const [isAdmin,   setIsAdmin]   = useState(false)
 
   // The verified user id this dashboard's data belongs to. Used by the auth
   // listener below to detect an account switch (e.g. a different account
@@ -489,8 +483,6 @@ function DashboardContent() {
           // (the "screen goes back to login, then dashboard, then login again"
           // production bug reported 2026-06-18). Render safe defaults and bail.
           setUserState('free')
-          setTrialStartedAt(null)
-          setTrialUsed(0)
           setUserName('')
           setIsAdmin(false)
           return
@@ -498,7 +490,7 @@ function DashboardContent() {
 
         const profilePromise = supabase
           .from('profiles')
-          .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
+          .select('plan, plan_status, full_name')
           .eq('id', user.id)
           .single()
 
@@ -513,9 +505,11 @@ function DashboardContent() {
         if (cancelled) return
         let profile = profileRes?.data ?? null
 
-        // Self-heal: only attempt if we actually got a row back. We don't
-        // want a slow profile query to also stall the self-heal calls.
-        if (profile && !profile.trial_started_at && !profile.plan) {
+        // Self-heal: only attempt if we actually got a row back and it
+        // looks like a fresh account (no plan set yet — init-profile may
+        // not have run). We don't want a slow profile query to also stall
+        // the self-heal calls.
+        if (profile && !profile.plan) {
           try {
             await withTimeout(
               fetch('/api/account/init-profile', { method: 'POST' }),
@@ -524,7 +518,7 @@ function DashboardContent() {
             const retry = await withTimeout(
               supabase
                 .from('profiles')
-                .select('plan, plan_status, trial_started_at, trial_downloads_used, full_name')
+                .select('plan, plan_status, full_name')
                 .eq('id', user.id)
                 .single(),
               3_000,
@@ -534,13 +528,7 @@ function DashboardContent() {
         }
         if (cancelled) return
 
-        setUserState(getUserState(
-          profile?.plan,
-          profile?.trial_started_at,
-          profile?.plan_status,
-        ))
-        setTrialStartedAt(profile?.trial_started_at ?? null)
-        setTrialUsed(profile?.trial_downloads_used ?? 0)
+        setUserState(getUserState(profile?.plan, profile?.plan_status))
         setUserName(profile?.full_name || user.user_metadata?.full_name || '')
         setIsAdmin(Boolean(adminRes?.isAdmin))
       } catch (err) {
@@ -569,15 +557,10 @@ function DashboardContent() {
     )
   }
 
-  const isTrial   = userState === 'free_trial'
   const isFree    = userState === 'free'
-  const planLabel = isTrial ? 'Free Trial' : isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
-  const planPrice = (!isTrial && !isFree) ? PLANS[userState as TierSlug]?.priceLabel : null
-  // Self-serve upgrades stop at Max. Team plans are quote-based via
-  // /projects, never an automatic upsell target here.
-  const nextPlan  = isFree || isTrial ? 'starter' :
-                    userState === 'starter' ? 'pro' :
-                    userState === 'pro'     ? 'max' : null
+  const isPaid    = !isFree
+  const planLabel = isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
+  const planPrice = isPaid ? PLANS[userState as TierSlug]?.priceLabel : null
 
   // ── Section view ──────────────────────────────────────────
   if (sectionData) {
@@ -598,25 +581,18 @@ function DashboardContent() {
             {sectionData.subtitle && (
               <p className="text-xs text-gray-400 mt-1">{sectionData.subtitle}</p>
             )}
-            {/* Trial expiry + download cap warning inside section */}
-            {isTrial && trialStartedAt && (
-              <div className="mt-3 inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2 text-sm text-yellow-800">
-                ⏱ Free trial — {formatTrialCountdown(trialStartedAt)} left ·{' '}
-                {Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)} / {TRIAL_DOWNLOAD_CAP} downloads remaining
-              </div>
-            )}
             {isFree && (
               <div className="mt-3 inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-700">
-                🔒 Your trial has ended — subscribe to download files
-                <Link href="/dashboard/payment?plan=starter" className="font-semibold underline ml-1">
-                  Subscribe
+                🔒 No active plan — get access to download files
+                <Link href="/pricing" className="font-semibold underline ml-1">
+                  See plans
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Continental bundle — visible to everyone (drives upgrades); the
-              download itself is Max/Enterprise-only, enforced in the component
+          {/* Continental bundle — visible to everyone (drives sign-ups); the
+              download itself needs any active plan, enforced in the component
               and again server-side in the bundle route.
               Only shown for datasets that actually have a pre-built Africa-wide
               file: the vector layers + the coarse climate rasters. LULC (10 m)
@@ -686,45 +662,18 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Trial banner — time + download cap. Once the cap is reached the
-            user is effectively in 'expired trial' mode for downloads even
-            if hours remain on the clock. */}
-        {isTrial && trialStartedAt && (() => {
-          const remaining = Math.max(0, TRIAL_DOWNLOAD_CAP - trialUsed)
-          const capHit    = remaining === 0
-          return (
-            <div className={`mb-6 ${capHit ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'} border rounded-2xl px-5 py-4 flex items-center justify-between gap-4`}>
-              <div>
-                <p className={`font-semibold text-sm ${capHit ? 'text-red-800' : 'text-yellow-800'}`}>
-                  {capHit ? '🔒 Trial download cap reached' : '⏱ Free trial active'}
-                </p>
-                <p className={`text-xs mt-0.5 ${capHit ? 'text-red-700' : 'text-yellow-700'}`}>
-                  {formatTrialCountdown(trialStartedAt)} left ·{' '}
-                  {remaining} / {TRIAL_DOWNLOAD_CAP} downloads remaining
-                </p>
-              </div>
-              <Link
-                href="/dashboard/payment?plan=starter"
-                className={`shrink-0 text-xs font-bold text-white px-4 py-2 rounded-lg transition-colors ${capHit ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-800 hover:bg-yellow-900'}`}
-              >
-                {capHit ? 'Subscribe to continue' : 'Subscribe now'}
-              </Link>
-            </div>
-          )
-        })()}
-
         {/* Free user banner */}
         {isFree && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
             <div>
-              <p className="font-semibold text-red-800 text-sm">Your free trial has ended</p>
-              <p className="text-red-600 text-xs mt-0.5">Subscribe to download datasets. Browsing is still free.</p>
+              <p className="font-semibold text-red-800 text-sm">No active plan</p>
+              <p className="text-red-600 text-xs mt-0.5">Get access to download datasets. Browsing is still free.</p>
             </div>
             <Link
-              href="/dashboard/payment?plan=starter"
+              href="/pricing"
               className="shrink-0 text-xs font-bold bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
-              Subscribe from $5/mo
+              See plans
             </Link>
           </div>
         )}
@@ -736,48 +685,39 @@ function DashboardContent() {
           .dash-plan-card:active { transform: scale(.98); }
         `}</style>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
-          {/* Current plan */}
-          <PlanCard
-            current
-            delay={0.05}
-            eyebrow="Current plan"
-            title={planLabel}
-            ui={
-              isTrial
-                ? PLAN_CARD_UI.max
-                : isFree
-                ? { ...PLAN_STYLE.free, dotColor: PLAN_STYLE.free.nameColor, dividerColor: PLAN_STYLE.free.nameColor }
-                : PLAN_CARD_UI[userState as TierSlug]
-            }
-            hero={isTrial || isFree ? 'Free' : planPrice ?? ''}
-            heroUnit={isTrial || isFree ? undefined : '/month'}
-            tagline={
-              isTrial
-                ? 'Full access to every dataset during your trial.'
-                : isFree
-                ? 'No active plan — subscribe to download datasets.'
-                : PLAN_CARD_UI[userState as TierSlug].tagline
-            }
-            note={isTrial && trialStartedAt ? `${formatTrialCountdown(trialStartedAt)} remaining · Full access` : null}
-            count={isTrial ? planCardCount('max') : isFree ? undefined : planCardCount(userState as TierSlug)}
-            datasets={isTrial ? PLAN_CARD_UI.max.datasets : isFree ? undefined : PLAN_CARD_UI[userState as TierSlug].datasets}
-            cta={isTrial ? 'Trial active' : isFree ? 'Browsing only' : '✓ Your current plan'}
-          />
-
-          {/* Upgrade / Subscribe */}
-          {nextPlan && PLANS[nextPlan] && (
+          {isFree ? (
+            // No active plan — show both once-off options side by side,
+            // same cards as /pricing. Neither is bought online; both CTAs
+            // go to that plan's contactHref.
+            PLAN_ORDER.map((slug, i) => (
+              <PlanCard
+                key={slug}
+                delay={0.05 + i * 0.05}
+                eyebrow="Get access"
+                title={PLANS[slug].name}
+                ui={PLAN_CARD_UI[slug]}
+                hero={PLANS[slug].priceLabel}
+                tagline={PLAN_CARD_UI[slug].tagline}
+                count={PLAN_CARD_UI[slug].count}
+                datasets={PLAN_CARD_UI[slug].datasets}
+                cta={PLANS[slug].ctaLabel}
+                href={planCtaHref(slug)}
+              />
+            ))
+          ) : (
+            // Paid — one card, no upsell. Both plans get the same access,
+            // so there's nothing to upgrade to.
             <PlanCard
-              delay={0.1}
-              eyebrow={isTrial || isFree ? 'Subscribe now' : 'Upgrade to'}
-              title={PLANS[nextPlan].name}
-              ui={PLAN_CARD_UI[nextPlan]}
-              hero={PLANS[nextPlan].priceLabel}
-              heroUnit="/month"
-              tagline={PLAN_CARD_UI[nextPlan].tagline}
-              count={planCardCount(nextPlan)}
-              datasets={PLAN_CARD_UI[nextPlan].datasets}
-              cta={`${isTrial || isFree ? 'Subscribe' : 'Upgrade'} · ${PLANS[nextPlan].priceLabel}/mo`}
-              href={`/dashboard/payment?plan=${nextPlan}`}
+              current
+              delay={0.05}
+              eyebrow="Current plan"
+              title={planLabel}
+              ui={PLAN_CARD_UI[userState as TierSlug]}
+              hero={planPrice ?? ''}
+              tagline="No expiry — you're paid up for good."
+              count={PLAN_CARD_UI[userState as TierSlug].count}
+              datasets={PLAN_CARD_UI[userState as TierSlug].datasets}
+              cta="✓ Active — no expiry"
             />
           )}
         </div>
@@ -793,16 +733,6 @@ function DashboardContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sortDatasetsByTier(DATASETS).map((dataset, i) => {
             const isLive = dataset.id in LIVE_DATASET_ROUTES
-
-            const ID_TO_SLUG: Record<number, import('@/lib/pricing').DatasetSlug> = {
-              1: 'admin-boundaries', 3: 'rivers',    4: 'lulc',
-              5: 'drought-index',   6: 'aquifer',    8: 'population',
-              9: 'roads',           11: 'soil',      12: 'protected-areas',
-              13: 'rivers',         14: 'watersheds', 15: 'rainfall',
-              16: 'temperature',    17: 'lakes',
-            }
-            const datasetSlug = ID_TO_SLUG[dataset.id]
-            const minTier     = datasetSlug ? DATASET_MIN_TIER[datasetSlug] : null
 
             return (
               <motion.div
@@ -828,9 +758,9 @@ function DashboardContent() {
                           <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
                           <h3 className="text-sm font-bold text-navy group-hover:text-primary transition-colors leading-tight">{dataset.name}</h3>
                         </div>
-                        {minTier && (
-                          <span style={{ fontSize: '10px', fontWeight: 600, background: PLAN_STYLE[minTier]?.bg ?? '#f3f4f6', color: PLAN_STYLE[minTier]?.nameColor ?? '#555', border: `1px solid ${PLAN_STYLE[minTier]?.border ?? '#ddd'}`, borderRadius: '20px', padding: '2px 7px', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                            {minTier.charAt(0).toUpperCase() + minTier.slice(1)}+
+                        {isFree && (
+                          <span style={{ fontSize: '10px', fontWeight: 600, background: PLAN_STYLE.free.bg, color: PLAN_STYLE.free.nameColor, border: `1px solid ${PLAN_STYLE.free.border}`, borderRadius: '20px', padding: '2px 7px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                            <Lock size={9} className="inline -mt-0.5 mr-0.5" /> Paid
                           </span>
                         )}
                       </div>

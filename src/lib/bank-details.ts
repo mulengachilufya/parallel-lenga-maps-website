@@ -31,3 +31,17 @@ export const BANK_DETAILS: BankDetails = {
   swift:         'SCBLZMLX',
   bankAddress:   'Standard Chartered House, Cairo Road, P.O. Box 32238, Lusaka, Zambia',
 }
+
+/**
+ * Short, stable bank-transfer reference for a user, e.g. "LM-3F9A2C1B".
+ *
+ * Banks truncate or reject long references and many strip "@", so an email
+ * address doesn't reliably survive the trip onto the bank statement. This is
+ * 11 plain characters and is derived from the user id, so the same
+ * customer always gets the same reference, whether they re-open the panel or
+ * submit proof later. The founder alert and the customer email both carry it,
+ * so a line on the statement can be matched to a person at a glance.
+ */
+export function bankReferenceFor(userId: string): string {
+  return `LM-${userId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
+}

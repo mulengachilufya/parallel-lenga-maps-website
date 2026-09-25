@@ -4,7 +4,9 @@
  * Fired when a signed-in user chooses the card / bank-transfer option. It:
  *   1. Emails the customer our bank-transfer details on the dedicated Resend
  *      `manual_payment` channel (see src/lib/email.ts bankTransferDetailsEmail).
- *   2. Returns those details so the panel shows them inline too (not secret),
+ *   2. Emails the founder (PAYMENT_NOTIFY_EMAIL) what to expect in the bank
+ *      account: amount, reference, who from, and whether step 1 delivered.
+ *   3. Returns those details so the panel shows them inline too (not secret),
  *      which keeps things working even if the email is slow / filtered.
  *
  * Best-effort email: returns 200 with `emailed:false` if the send fails.
@@ -13,8 +15,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
-import { BANK_DETAILS } from '@/lib/bank-details'
-import { sendEmail, bankTransferDetailsEmail } from '@/lib/email'
+import { BANK_DETAILS, bankReferenceFor } from '@/lib/bank-details'
+import { sendEmail, bankTransferDetailsEmail, bankTransferExpectedAdminEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +62,8 @@ export async function POST(req: NextRequest) {
     (profile?.full_name || '').split(/\s+/)[0] ||
     ''
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
+  const appUrl    = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
+  const reference = bankReferenceFor(user.id)
 
   // Throttle per user
   const now  = Date.now()
@@ -71,16 +74,32 @@ export async function POST(req: NextRequest) {
     emailed = true // treat as already-sent; don't hammer Resend
   } else {
     emailed = await sendEmail(
-      bankTransferDetailsEmail({ to: user.email, firstName, plan, appUrl }),
+      bankTransferDetailsEmail({ to: user.email, firstName, plan, reference, appUrl }),
       'manual_payment',
     )
     if (emailed) lastSent.set(user.id, now)
+
+    // Founder alert goes out whether or not the customer copy delivered —
+    // a failed customer email is exactly when the founder most needs to know.
+    const adminEmailed = await sendEmail(
+      bankTransferExpectedAdminEmail({
+        plan,
+        reference,
+        userEmail:       user.email,
+        userName:        profile?.full_name || firstName,
+        customerEmailed: emailed,
+        requestedAt:     new Date(now).toISOString(),
+      }),
+      'payments',
+    )
+    if (!adminEmailed) console.error('[bank-details] founder alert failed', { user: user.id, reference })
   }
 
   return NextResponse.json({
     ok:          true,
     emailed,
     email:       user.email,
+    reference,
     bankDetails: BANK_DETAILS,
   })
 }

@@ -23,6 +23,7 @@ import {
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
   KeyRound, Info, MapPin, X,
 } from 'lucide-react'
+import { TEAM_PACKAGES } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -543,7 +544,7 @@ function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: bo
             </button>
             {seatsLeft <= 0 && (
               <p className="mt-2 text-[11px] text-blue-400">
-                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — extra seats are $45/mo each.
+                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — we can move you up to the {TEAM_PACKAGES[1].maxSeats}-seat package or quote a larger team.
               </p>
             )}
             {msg && (
@@ -642,7 +643,7 @@ function SettingsTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: b
         {msg && <p className={`text-xs ${msg.ok ? 'text-emerald-300' : 'text-red-300'}`}>{msg.text}</p>}
       </div>
       <p className="text-[11px] leading-relaxed text-blue-400 border-t border-blue-800/40 pt-4">
-        Seat count, plan status and renewals are managed by Lenga Maps. Email
+        Seat count and plan status are managed by Lenga Maps. Email
         <a className="underline ml-1" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> to change seats or billing.
       </p>
     </form>

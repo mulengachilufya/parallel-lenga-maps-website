@@ -1,13 +1,13 @@
 'use client'
 
 /**
- * BankTransferPanel — primary payment method (replaces the Lipila card redirect,
- * which was unreliable for cards).
+ * BankTransferPanel — the self-serve payment method for the Individual plan.
  *
  * Flow:
  *   1. User clicks "Get bank details".
  *   2. POST /api/payments/bank-details → emails them our bank details (inline
- *      HTML via the dedicated Resend key) AND returns them for inline display.
+ *      HTML via the dedicated Resend key), alerts the founder with the amount
+ *      and reference to expect, AND returns the details for inline display.
  *   3. User transfers from their card/bank, uploads proof of payment.
  *   4. POST /api/payments/manual (payment_method='bank') → pending row +
  *      admin-verify pipeline. We show a "we'll verify shortly" confirmation —
@@ -56,6 +56,7 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
   const [errorMsg,  setErrorMsg]  = useState('')
   const [bank,      setBank]      = useState<BankDetails | null>(null)
   const [emailed,   setEmailed]   = useState(false)
+  const [bankRef,   setBankRef]   = useState('')
 
   // Proof upload
   const [senderName, setSenderName] = useState(userName)
@@ -73,10 +74,11 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ plan }),
       })
-      const d = await r.json() as { emailed?: boolean; email?: string; bankDetails?: BankDetails; error?: string }
+      const d = await r.json() as { emailed?: boolean; email?: string; reference?: string; bankDetails?: BankDetails; error?: string }
       if (!r.ok) { setErrorMsg(d.error ?? 'Could not load bank details.'); return }
       setBank(d.bankDetails ?? null)
       setEmailed(Boolean(d.emailed))
+      setBankRef(d.reference ?? '')
       setPhase('details')
     } catch {
       setErrorMsg('Network error. Please try again.')
@@ -206,7 +208,9 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
       </div>
 
       <h3 className="text-xl font-black text-navy tracking-tight mb-1">Transfer {amountLabel}</h3>
-      <p className="text-sm text-gray-500 mb-5">Use your email <strong className="text-gray-700">{userEmail}</strong> as the payment reference.</p>
+      <p className="text-sm text-gray-500 mb-5">
+        Put <strong className="text-gray-700 font-mono">{bankRef || userEmail}</strong> in the payment reference field so we can match your transfer.
+      </p>
 
       {bank && (
         <div className="space-y-2 mb-6">
@@ -216,7 +220,12 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
           <CopyRow label="Branch code"    value={bank.branchCode} />
           <CopyRow label="SWIFT / BIC"    value={bank.swift} />
           <CopyRow label="Bank address"   value={bank.bankAddress} />
-          <CopyRow label="Payment reference" value={userEmail} />
+          <CopyRow label="Payment reference" value={bankRef || userEmail} />
+          <p className="text-xs text-gray-500 px-1 pt-1 leading-relaxed">
+            <strong className="text-gray-700">Transfer fees are on us.</strong> Send exactly {amountLabel}. If your
+            bank asks who pays the charges, choose <strong className="text-gray-700">BEN</strong> (beneficiary)
+            so the fees come out of what we receive, not your pocket.
+          </p>
         </div>
       )}
 
