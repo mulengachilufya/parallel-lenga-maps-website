@@ -141,13 +141,17 @@ export const DATASET_COUNT = ALL_DATASETS.length
 // Binary now: an account is either paid (any plan) or free. Paid unlocks
 // everything. No trial, no per-dataset gate, no download cap.
 
+const LEGACY_PAID_PLANS = ['starter', 'pro', 'max', 'enterprise']
+
 export function getUserState(
   plan:       string | undefined | null,
   planStatus: string | undefined | null,
 ): UserState {
-  if (planStatus === 'active' && plan && (plan === 'individual' || plan === 'team')) {
-    return plan as TierSlug
-  }
+  if (planStatus !== 'active' || !plan) return 'free'
+  if (plan === 'individual' || plan === 'team') return plan
+  // Legacy monthly tiers: migration 029 rewrites these to 'individual', but
+  // honour them until it has run so a deploy never locks customers out.
+  if (LEGACY_PAID_PLANS.includes(plan)) return 'individual'
   return 'free'
 }
 
