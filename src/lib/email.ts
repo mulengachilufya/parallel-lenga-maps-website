@@ -582,6 +582,7 @@ export const PAYMENT_NOTIFY_EMAIL =
 
 export interface PaymentSubmittedFields {
   reference:     string
+  bankRef:       string
   region:        string
   method:        string
   plan:          string
@@ -601,6 +602,7 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
   const cta = `${APP_URL}/admin/payments`
   const rows = [
     ['Reference',    p.reference],
+    ['Bank ref',     p.bankRef],
     ['Plan',         p.plan.toUpperCase()],
     ['Amount',       p.amountLabel],
     ['Method',       p.method.toUpperCase()],
@@ -649,7 +651,7 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
  * live in src/lib/bank-details.ts.
  */
 export function bankTransferDetailsEmail(opts: {
-  to: string; firstName?: string | null; plan: TierSlug; appUrl?: string
+  to: string; firstName?: string | null; plan: TierSlug; reference: string; appUrl?: string
 }): EmailMessage {
   const fname = (opts.firstName || '').trim() || 'there'
   const plan  = PLANS[opts.plan]
@@ -657,21 +659,21 @@ export function bankTransferDetailsEmail(opts: {
   const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
   const cta   = `${base}/dashboard/payment?plan=${opts.plan}`
   const rows: [string, string][] = [
-    ['Amount',            `${plan.priceLabel} per month`],
+    ['Amount',            `$${plan.price} USD (once-off)`],
     ['Account name',      b.accountName],
     ['Bank',              b.bankName],
     ['Account number',    b.accountNumber],
     ['Branch code',       b.branchCode],
     ['SWIFT / BIC',       b.swift],
     ['Bank address',      b.bankAddress],
-    ['Payment reference', opts.to],
+    ['Payment reference', opts.reference],
   ]
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#333;">
       Thanks for choosing the <strong>${plan.name}</strong> plan. Here are the details to pay by
-      bank transfer. Please use your email address as the payment reference so we can match your
-      transfer to your account.
+      bank transfer. Please put <strong>${opts.reference}</strong> in the payment reference field so
+      we can match your transfer to your account.
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
@@ -683,7 +685,7 @@ export function bankTransferDetailsEmail(opts: {
   const text = [
     `Hi ${fname},`,
     '',
-    `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and use your email address as the payment reference:`,
+    `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and put ${opts.reference} in the payment reference field:`,
     '',
     ...rows.map(([k, v]) => `  ${k}: ${v}`),
     '',
@@ -695,7 +697,7 @@ export function bankTransferDetailsEmail(opts: {
   ].join('\n')
   return {
     to:      opts.to,
-    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details (${plan.priceLabel})`,
+    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details ($${plan.price} USD, ref ${opts.reference})`,
     html: shell({
       preheader: `Bank transfer details for your ${plan.name} plan.`,
       heading:   'Pay by bank transfer',
@@ -703,6 +705,66 @@ export function bankTransferDetailsEmail(opts: {
       ctaLabel:  'Upload proof of payment',
       ctaHref:   cta,
       footnote:  'Not seeing our emails? Add mulenga@lengamaps.com to your contacts and check your spam folder.',
+    }),
+    text,
+  }
+}
+
+/**
+ * Internal alert to the founder, sent the moment a customer is emailed our
+ * bank details. It says exactly what to expect on the bank statement (amount,
+ * reference, who it is from) and whether the customer's own copy was
+ * delivered, so an incoming transfer can be matched before proof is uploaded.
+ */
+export function bankTransferExpectedAdminEmail(p: {
+  plan:            TierSlug
+  reference:       string
+  userEmail:       string
+  userName:        string
+  customerEmailed: boolean
+  requestedAt:     string
+}): EmailMessage {
+  const plan   = PLANS[p.plan]
+  const amount = `$${plan.price} USD`
+  const cta    = `${APP_URL}/admin/payments`
+  const rows: [string, string][] = [
+    ['Expect',         `${amount} (${plan.name}, once-off)`],
+    ['Reference',      p.reference],
+    ['From',           `${p.userName || '(no name)'} <${p.userEmail}>`],
+    ['Customer email', p.customerEmailed ? 'Sent' : 'FAILED, they only saw the details on screen'],
+    ['Requested',      `${new Date(p.requestedAt).toLocaleString('en-GB', { timeZone: 'Africa/Lusaka', dateStyle: 'medium', timeStyle: 'short' })} (Lusaka)`],
+  ]
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      A customer was just sent our bank details. Watch the account for this transfer.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+      ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
+    </table>
+    <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
+      Nothing is activated yet. Once they upload proof it lands in the payments queue, where you
+      approve it after the money shows up.
+    </p>`
+  const text = [
+    'Bank details sent: expect a transfer',
+    '',
+    ...rows.map(([k, v]) => `${k}: ${v}`),
+    '',
+    `Payments queue: ${cta}`,
+  ].join('\n')
+  return {
+    to:      PAYMENT_NOTIFY_EMAIL,
+    replyTo: p.userEmail || undefined,
+    subject: `Expect ${amount} ref ${p.reference} from ${p.userName || p.userEmail}`,
+    html: shell({
+      preheader: `${amount} incoming, reference ${p.reference}.`,
+      heading:   'Expect a bank transfer',
+      bodyHtml,
+      ctaLabel:  'Open payments queue',
+      ctaHref:   cta,
+      footnote:  p.customerEmailed
+        ? 'The customer received the same details and reference by email.'
+        : 'The customer email did not send. Consider replying to them directly with the details.',
     }),
     text,
   }
