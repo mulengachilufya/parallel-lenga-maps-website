@@ -32,14 +32,15 @@ alter table profiles add constraint profiles_plan_check
     'starter', 'pro', 'max', 'enterprise'   -- legacy, read-only
   ]::text[]));
 
--- manual_payments was created outside the migrations folder; if it carries a
--- plan check under this name, widen it the same way.
+-- manual_payments was created outside the migrations folder and holds
+-- historical rows with older plan slugs (e.g. 'basic'). NOT VALID enforces
+-- the check on new and updated rows only, leaving that history untouched.
 alter table manual_payments drop constraint if exists manual_payments_plan_check;
 alter table manual_payments add constraint manual_payments_plan_check
   check (plan is null or plan = any (array[
     'individual', 'team',
     'starter', 'pro', 'max', 'enterprise'
-  ]::text[]));
+  ]::text[])) not valid;
 
 -- 2. Grandfather current customers ──────────────────────────────────────────
 -- Preview before running:
