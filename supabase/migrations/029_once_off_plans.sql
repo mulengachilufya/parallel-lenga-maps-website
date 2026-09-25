@@ -18,7 +18,10 @@
 -- 3. Pending requests on legacy tiers are re-pointed at 'individual' so an
 --    admin approving them after this migration grants the new plan.
 --
--- Run once in the Supabase SQL editor. Wrapped in a transaction: if any
+-- Applied to prod 2026-09-25 via Supabase MCP — do not re-run blindly.
+-- (auto_renew_enabled from 013 does not exist in prod, so it is not touched.)
+--
+-- Originally: run once in the Supabase SQL editor. Wrapped in a transaction: if any
 -- statement fails (e.g. manual_payments has a differently named constraint),
 -- nothing is changed.
 
@@ -52,8 +55,7 @@ where  plan_status = 'active'
   and  plan in ('starter', 'pro', 'max', 'enterprise');
 
 update profiles
-set    plan_expires_at    = null,
-       auto_renew_enabled = false
+set    plan_expires_at = null
 where  plan_status = 'active';
 
 -- 3. Pending requests ───────────────────────────────────────────────────────
