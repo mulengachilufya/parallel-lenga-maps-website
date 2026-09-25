@@ -296,7 +296,7 @@ function PaywallModal({ onClose }: { onClose: () => void }) {
                 <div className="mt-3 pt-3 border-t border-blue-900/40 text-left space-y-1">
                   <p className="text-blue-300 text-xs">All 15 datasets, all 54 countries</p>
                   <p className="text-blue-300 text-xs">No expiry, unlimited downloads</p>
-                  {plan.perSeat && <p className="text-blue-300 text-xs">{plan.minSeats}-seat minimum</p>}
+                  {slug === 'team' && <p className="text-blue-300 text-xs">Up to 4 or 12 seats</p>}
                 </div>
                 <div className="mt-3 bg-[#1E5F8E] group-hover:bg-[#F5B800] group-hover:text-[#0D2B45] text-white text-xs font-semibold py-2 rounded-lg transition-colors">
                   {plan.ctaLabel}

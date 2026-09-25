@@ -23,7 +23,7 @@ import {
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
   KeyRound, Info, MapPin, X,
 } from 'lucide-react'
-import { TEAM_SEAT_PRICE } from '@/lib/teams'
+import { TEAM_PACKAGES } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -544,7 +544,7 @@ function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: bo
             </button>
             {seatsLeft <= 0 && (
               <p className="mt-2 text-[11px] text-blue-400">
-                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — extra seats are ${TEAM_SEAT_PRICE} each, once-off.
+                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — we can move you up to the {TEAM_PACKAGES[1].maxSeats}-seat package or quote a larger team.
               </p>
             )}
             {msg && (

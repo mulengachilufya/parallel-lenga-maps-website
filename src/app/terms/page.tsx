@@ -22,7 +22,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">2. Description of Service</h2>
-              <p>Lenga Maps provides a self-serve digital platform for downloading processed geospatial datasets covering all 54 African countries. Access is provided via once-off plans (Individual, and per-seat Team plans for organisations) paid in USD. All delivery is digital — no physical goods are shipped.</p>
+              <p>Lenga Maps provides a self-serve digital platform for downloading processed geospatial datasets covering all 54 African countries. Access is provided via once-off plans (Individual, and Team packages for organisations) paid in USD. All delivery is digital — no physical goods are shipped.</p>
             </section>
 
             <section>
@@ -32,7 +32,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">4. Plans and Payment</h2>
-              <p>Plans are a one-time payment in USD, made by bank transfer. There is no subscription and no recurring charge. Access is activated once we verify your payment and does not expire. Team plans are priced per seat and confirmed by quote. Creating an account and browsing the catalogue is free; downloading datasets requires an active paid plan.</p>
+              <p>Plans are a one-time payment in USD, made by bank transfer. There is no subscription and no recurring charge. Access is activated once we verify your payment and does not expire. Team plans are sold as packages (up to 4 seats, or up to 12 seats) and confirmed by quote. Creating an account and browsing the catalogue is free; downloading datasets requires an active paid plan.</p>
             </section>
 
             <section>

@@ -16,8 +16,8 @@
  *     → GIS facts text
  *     → Quote form
  *
- * Pricing: flat $350/seat, once-off, 2-seat minimum — $50 below the $400
- * Individual plan per seat. No checkout, ever — every CTA routes to the
+ * Pricing: two once-off packages — up to 4 seats for $350, up to 12 seats
+ * for $1,000 (TEAM_PACKAGES). No checkout, ever — every CTA routes to the
  * quote form.
  */
 
@@ -27,11 +27,11 @@ import Link from 'next/link'
 import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
   Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
-  Mountain, Building2, FlaskConical, ShieldCheck, Calculator, Sparkles,
+  Mountain, Building2, FlaskConical, ShieldCheck, Sparkles,
   Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
-import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE, TEAM_MIN_SEATS } from '@/lib/teams'
-import { PLANS } from '@/lib/pricing'
+import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
+import { TEAM_PACKAGES, type TeamPackage } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -279,8 +279,8 @@ export default function ProjectsPage() {
 // WHITE background. Mirrors the main /pricing card font metrics (inline
 // styles, 48px price, 13px tracked uppercase label). Logo + tracked label
 // at top; glowing "ALL 15 DATASETS" banner above the cards so the catalogue
-// is impossible to miss. Three blocks: 3 seats / 10 seats (FEATURED, navy)
-// / Custom (cream with calculator).
+// is impossible to miss. Two package cards: up to 4 seats (cream) and up to
+// 12 seats (navy, featured).
 
 interface CardPalette {
   bg: string; border: string; nameColor: string; priceColor: string
@@ -319,11 +319,11 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
             Team pricing
           </span>
           <h2 className="font-display" style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.08, color: NAVY, margin: '0 0 1rem' }}>
-            One seat price. Paid once.
+            Two team sizes. Paid once.
           </h2>
           <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
-            ${TEAM_SEAT_PRICE} per seat — ${PLANS.individual.price - TEAM_SEAT_PRICE} less than paying for each teammate on an Individual plan.
-            2-seat minimum. All 54 African countries, every dataset, no expiry.
+            Up to {TEAM_PACKAGES[0].maxSeats} seats for ${TEAM_PACKAGES[0].price.toLocaleString()}, or up to {TEAM_PACKAGES[1].maxSeats} seats
+            for ${TEAM_PACKAGES[1].price.toLocaleString()}. All 54 African countries, every dataset, no expiry.
           </p>
         </div>
 
@@ -360,143 +360,77 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           </div>
         </div>
 
-        {/* ── Card ──────────────────────────────────────────────────── */}
-        <div className="mt-10 flex justify-center">
-          <div
-            className="lm-card"
-            style={{ background: PALETTE_NAVY.bg, border: `1px solid ${PALETTE_NAVY.border}`, color: PALETTE_NAVY.text, maxWidth: '440px', width: '100%' }}
-          >
-            {/* Once-off callout — this is the thing people must not miss. */}
-            <div
-              className="flex items-center gap-2.5 rounded-xl px-4 py-3 mb-5"
-              style={{ background: 'rgba(245,184,0,0.14)', border: `1.5px solid ${GOLD}` }}
-            >
-              <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
-              <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
-                Paid once. Access never expires. Not a subscription.
-              </span>
-            </div>
-
-            <div className="lm-name" style={{ color: PALETTE_NAVY.nameColor }}>{TEAM_BLOCKS[0].label}</div>
-
-            <div className="lm-price-row">
-              <span className="lm-price" style={{ color: PALETTE_NAVY.priceColor }}>${TEAM_SEAT_PRICE}</span>
-              <span className="lm-period" style={{ color: PALETTE_NAVY.muted }}>/seat, once-off</span>
-            </div>
-            <p className="lm-period" style={{ color: PALETTE_NAVY.muted, margin: 0 }}>{TEAM_MIN_SEATS}-seat minimum.</p>
-
-            <p className="lm-blurb" style={{ color: PALETTE_NAVY.muted }}>{TEAM_BLOCKS[0].blurb}</p>
-
-            <div className="lm-divider" style={{ background: PALETTE_NAVY.dividerColor }} />
-
-            <SeatCalculator palette={PALETTE_NAVY} />
-
-            <div className="lm-feat-label" style={{ color: PALETTE_NAVY.muted }}>What you get</div>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-              {[
-                'Shared team workspace & download history',
-                'Owner-managed seats',
-                'API access with rate limits',
-                'Commercial use licence',
-                'Custom sub-country datasets on request',
-              ].map((row) => (
-                <li key={row} className="lm-feat-row" style={{ color: PALETTE_NAVY.text }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: PALETTE_NAVY.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
-                  {row}
-                </li>
-              ))}
-            </ul>
-
-            <div className="lm-cta">
-              <button
-                onClick={() => onQuote(null)}
-                className="lm-cta-btn"
-                style={{ background: PALETTE_NAVY.btnBg, color: PALETTE_NAVY.btnColor }}
-              >
-                Get a quote
-              </button>
-            </div>
-          </div>
+        {/* ── Package cards ─────────────────────────────────────────── */}
+        <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+          <PackageCard pkg={TEAM_PACKAGES[0]} palette={PALETTE_CREAM} onQuote={onQuote} />
+          <PackageCard pkg={TEAM_PACKAGES[1]} palette={PALETTE_NAVY} onQuote={onQuote} featured />
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-7">
-          Quote-based. We provision your team manually within 1 business day. No card needed.
+          Paid once by bank transfer. We provision your team within 1 business day.
+          {` More than ${TEAM_PACKAGES[1].maxSeats} people? Get a quote and we'll size it with you.`}
         </p>
       </div>
     </section>
   )
 }
 
-// Curiosity calculator: type a seat count, see the once-off total instantly
-// at the flat TEAM_SEAT_PRICE rate. Pure display math — the real number is still
-// confirmed on the quote. Honors the card palette so it doesn't fight the
-// cream/navy backgrounds.
-function SeatCalculator({ palette }: { palette: CardPalette }) {
-  const [seats, setSeats] = useState(TEAM_MIN_SEATS)
-  const total = Math.max(0, seats) * TEAM_SEAT_PRICE
-  const onCream = palette === PALETTE_CREAM
-
+function PackageCard({ pkg, palette, onQuote, featured = false }: {
+  pkg: TeamPackage; palette: CardPalette; onQuote: (seats: number | null) => void; featured?: boolean
+}) {
   return (
     <div
-      className="rounded-xl p-4 mb-5"
-      style={{
-        background: onCream ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.08)',
-        border: `1px solid ${onCream ? 'rgba(133,79,11,0.35)' : 'rgba(245,184,0,0.45)'}`,
-      }}
+      className="lm-card"
+      style={{ background: palette.bg, border: `1px solid ${palette.border}`, color: palette.text, width: '100%' }}
     >
-      <label htmlFor="seat-calc" className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide" style={{ color: palette.nameColor }}>
-        <Calculator size={14} /> Estimate your total
-      </label>
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button" aria-label="Fewer seats"
-          onClick={() => setSeats((s) => Math.max(TEAM_MIN_SEATS, s - 1))}
-          className="h-9 w-9 shrink-0 rounded-lg text-lg font-bold transition-colors"
-          style={{
-            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
-            color: palette.text, background: 'transparent',
-          }}
+      {featured && (
+        <div
+          className="flex items-center gap-2.5 rounded-xl px-4 py-3 mb-5"
+          style={{ background: 'rgba(245,184,0,0.14)', border: `1.5px solid ${GOLD}` }}
         >
-          −
-        </button>
-        <input
-          id="seat-calc" type="number" min={TEAM_MIN_SEATS} max={100000} value={seats}
-          onChange={(e) => {
-            const n = parseInt(e.target.value, 10)
-            setSeats(Number.isNaN(n) ? 0 : n)
-          }}
-          className="w-full rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none"
-          style={{
-            background: onCream ? '#fff' : 'rgba(255,255,255,0.08)',
-            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
-            color: palette.text,
-          }}
-        />
-        <button
-          type="button" aria-label="More seats"
-          onClick={() => setSeats((s) => s + 1)}
-          className="h-9 w-9 shrink-0 rounded-lg text-lg font-bold transition-colors"
-          style={{
-            border: `1px solid ${onCream ? '#85571B' : 'rgba(255,255,255,0.25)'}`,
-            color: palette.text, background: 'transparent',
-          }}
-        >
-          +
-        </button>
-      </div>
-      {seats < TEAM_MIN_SEATS && seats > 0 && (
-        <p className="mt-2 text-xs" style={{ color: onCream ? '#a15c1f' : '#ffcf6b' }}>
-          {TEAM_MIN_SEATS}-seat minimum applies.
-        </p>
+          <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
+          <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
+            Paid once. Access never expires.
+          </span>
+        </div>
       )}
-      <div className="mt-3 flex items-baseline justify-between">
-        <span className="text-xs" style={{ color: palette.muted }}>
-          {Math.max(1, seats)} {Math.max(1, seats) === 1 ? 'seat' : 'seats'} × ${TEAM_SEAT_PRICE}
-        </span>
-        <span className="text-2xl font-extrabold tabular-nums" style={{ color: palette.priceColor }}>
-          ${total.toLocaleString()}
-          <span className="text-sm font-normal" style={{ color: palette.muted }}> once-off</span>
-        </span>
+
+      <div className="lm-name" style={{ color: palette.nameColor }}>{pkg.label}</div>
+
+      <div className="lm-price-row">
+        <span className="lm-price" style={{ color: palette.priceColor }}>${pkg.price.toLocaleString()}</span>
+        <span className="lm-period" style={{ color: palette.muted }}>once-off</span>
+      </div>
+      <p className="lm-period" style={{ color: palette.muted, margin: 0 }}>Up to {pkg.maxSeats} seats.</p>
+
+      <p className="lm-blurb" style={{ color: palette.muted }}>{pkg.blurb}</p>
+
+      <div className="lm-divider" style={{ background: palette.dividerColor }} />
+
+      <div className="lm-feat-label" style={{ color: palette.muted }}>What you get</div>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+        {[
+          `${pkg.maxSeats} seats, every dataset, all 54 countries`,
+          'Shared team workspace & download history',
+          'Owner-managed seats',
+          'API access with rate limits',
+          'Commercial use licence',
+        ].map((row) => (
+          <li key={row} className="lm-feat-row" style={{ color: palette.text }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: palette.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
+            {row}
+          </li>
+        ))}
+      </ul>
+
+      <div className="lm-cta">
+        <button
+          onClick={() => onQuote(pkg.maxSeats)}
+          className="lm-cta-btn"
+          style={{ background: palette.btnBg, color: palette.btnColor }}
+        >
+          Get {pkg.maxSeats} seats
+        </button>
       </div>
     </div>
   )

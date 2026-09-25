@@ -8,31 +8,15 @@
 //   internal/product name  →  "Lenga for Projects"
 //   page route             →  /projects
 //
-// Pricing model (updated 2026-08, once-off migration):
-//   flat $350/seat, once-off, 2-seat minimum. No bundles, no discount framing —
-//   $350 is already $50 below the $400 Individual plan per seat, and that's the
-//   whole story. Team size is always confirmed on the quote.
+// Pricing model (updated 2026-09): fixed once-off packages, not per seat —
+//   up to 4 seats for $350, up to 12 seats for $1,000. Defined in
+//   TEAM_PACKAGES (src/lib/pricing.ts). Larger teams are quoted.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DatasetSlug } from './pricing'
 
 export const TEAM_TIER_TITLE   = 'For Project Teams and Businesses'
 export const TEAM_PRODUCT_NAME = 'Lenga for Projects'
-export const TEAM_SEAT_PRICE   = 350 // USD / seat, once-off
-export const TEAM_MIN_SEATS    = 2
-
-export interface TeamBlock {
-  id:      'custom'
-  label:   string
-  blurb:   string
-}
-
-export const TEAM_BLOCKS: TeamBlock[] = [
-  {
-    id: 'custom', label: 'Team plan',
-    blurb: `Once-off, per seat. ${TEAM_MIN_SEATS}-seat minimum. Tell us your seat count and we'll confirm the total.`,
-  },
-]
 
 export const QUOTE_SECTORS = [
   { value: 'mining',   label: 'Mining' },

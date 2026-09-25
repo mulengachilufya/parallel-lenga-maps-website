@@ -221,6 +221,11 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
           <CopyRow label="SWIFT / BIC"    value={bank.swift} />
           <CopyRow label="Bank address"   value={bank.bankAddress} />
           <CopyRow label="Payment reference" value={bankRef || userEmail} />
+          <p className="text-xs text-gray-500 px-1 pt-1 leading-relaxed">
+            <strong className="text-gray-700">Transfer fees are on us.</strong> Send exactly {amountLabel}. If your
+            bank asks who pays the charges, choose <strong className="text-gray-700">BEN</strong> (beneficiary)
+            so the fees come out of what we receive, not your pocket.
+          </p>
         </div>
       )}
 

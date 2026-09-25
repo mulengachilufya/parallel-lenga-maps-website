@@ -20,11 +20,9 @@ export type UserState = 'free' | TierSlug
 export interface Plan {
   slug:         TierSlug
   name:         string
-  price:        number     // USD, per seat for 'team'
+  price:        number     // USD; for 'team' the smallest package
   priceLabel:   string
   description:  string
-  perSeat:      boolean
-  minSeats:     number      // enforced at admin-grant / quote time
   selfServe:    boolean     // true = has its own pay-now flow (bank transfer + proof + admin approval)
   contactHref:  string      // "talk to me first" alternative, for both plans
   ctaLabel:     string
@@ -39,12 +37,34 @@ export interface Plan {
 //     no expiry.
 //   contactHref (both plans) -> talk first, get bank details by email
 //     manually, same admin-approval queue underneath. Team ALWAYS goes
-//     this route (seats need negotiating) -> /projects.
+//     this route (package + seats confirmed on a quote) -> /projects.
+
+// Team is sold as fixed-size packages, not per seat. Admin provisions the
+// org with seat_count = maxSeats of the package that was paid for.
+export interface TeamPackage {
+  id:       'team-4' | 'team-12'
+  label:    string
+  maxSeats: number
+  price:    number   // USD, once-off, whole package
+  blurb:    string
+}
+
+export const TEAM_PACKAGES: TeamPackage[] = [
+  {
+    id: 'team-4', label: 'Small team', maxSeats: 4, price: 350,
+    blurb: 'For project teams getting a shared workspace for the first time.',
+  },
+  {
+    id: 'team-12', label: 'Organisation', maxSeats: 12, price: 1000,
+    blurb: 'For departments and multi-project teams that live in GIS data.',
+  },
+]
+
 export const PLANS: Record<TierSlug, Plan> = {
   individual: {
-    slug: 'individual', name: 'Individual', price: 400, priceLabel: '$400 once-off',
+    slug: 'individual', name: 'Individual', price: 100, priceLabel: '$100 once-off',
     description: 'One-time payment. Every dataset, every country, no expiry.',
-    perSeat: false, minSeats: 1, selfServe: true, contactHref: '/contact-us',
+    selfServe: true, contactHref: '/contact-us',
     ctaLabel: 'Get access',
     features: [
       'All 15 datasets, all 54 African countries',
@@ -55,15 +75,15 @@ export const PLANS: Record<TierSlug, Plan> = {
     ],
   },
   team: {
-    slug: 'team', name: 'Team', price: 350, priceLabel: '$350/seat once-off',
-    description: 'One-time per-seat payment for teams and organisations. 2-seat minimum.',
-    perSeat: true, minSeats: 2, selfServe: false, contactHref: '/projects',
+    slug: 'team', name: 'Team', price: 350, priceLabel: 'From $350 once-off',
+    description: 'One-time payment for teams: up to 4 seats for $350, up to 12 seats for $1,000.',
+    selfServe: false, contactHref: '/projects',
     ctaLabel: 'Contact us',
     features: [
-      'Everything in Individual, per seat',
+      'Everything in Individual, for every seat',
+      'Up to 4 seats for $350, up to 12 seats for $1,000',
       'Shared team workspace and download history',
-      'Pay once per seat — access never expires',
-      'Owner-managed seats, 2-seat minimum',
+      'Pay once — access never expires',
       'Commercial use licence + direct email support',
     ],
   },
@@ -115,7 +135,7 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
     dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
     tagline: 'A shared workspace for GIS teams on real projects.',
     count: '15 datasets',
-    datasets: ['Per-seat team accounts', 'Shared download history', 'Commercial use licence', '2-seat minimum'],
+    datasets: ['Up to 4 seats: $350', 'Up to 12 seats: $1,000', 'Shared download history', 'Commercial use licence'],
   },
 }
 

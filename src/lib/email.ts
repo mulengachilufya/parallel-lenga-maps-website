@@ -187,13 +187,13 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
       When you are ready to download, access is a <strong>one-time payment of ${price}</strong>.
       No subscription and no expiry: every dataset, every country, unlimited downloads, for good.
-      Buying for a team or organisation? Reply to this email and we will quote per seat.
+      Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
     </p>`
   const text = `Hi ${name},
 
 Your Lenga Maps account is live. You can browse the full catalogue now: every dataset across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
 
-When you are ready to download, access is a one-time payment of ${price}. No subscription and no expiry: every dataset, every country, unlimited downloads, for good. Buying for a team or organisation? Reply to this email and we will quote per seat.
+When you are ready to download, access is a one-time payment of ${price}. No subscription and no expiry: every dataset, every country, unlimited downloads, for good. Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
 
 Browse the catalogue: ${cta}
 See pricing: ${cta2}
@@ -586,6 +586,7 @@ export function bankTransferDetailsEmail(opts: {
     ['SWIFT / BIC',       b.swift],
     ['Bank address',      b.bankAddress],
     ['Payment reference', opts.reference],
+    ['Transfer fees',     'Covered by us. If your bank asks who pays the charges, choose BEN (beneficiary).'],
   ]
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
@@ -598,6 +599,10 @@ export function bankTransferDetailsEmail(opts: {
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
     </table>
     <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
+      Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank
+      charges come out of what we receive, not your pocket.
+    </p>
+    <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#555;">
       Once you have paid, upload your proof of payment and we will switch your plan on, usually
       within a few hours.
     </p>`
@@ -607,6 +612,8 @@ export function bankTransferDetailsEmail(opts: {
     `Thanks for choosing the ${plan.name} plan. Pay by bank transfer using these details, and put ${opts.reference} in the payment reference field:`,
     '',
     ...rows.map(([k, v]) => `  ${k}: ${v}`),
+    '',
+    `Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank charges come out of what we receive, not your pocket.`,
     '',
     `Upload your proof of payment: ${cta}`,
     'We switch your plan on once we verify it, usually within a few hours.',
@@ -647,9 +654,10 @@ export function bankTransferExpectedAdminEmail(p: {
   const amount = `$${plan.price} USD`
   const cta    = `${APP_URL}/admin/payments`
   const rows: [string, string][] = [
-    ['Expect',         `${amount} (${plan.name}, once-off)`],
+    ['Expect',         `${amount} (${plan.name}, once-off), less bank fees`],
     ['Reference',      p.reference],
     ['From',           `${p.userName || '(no name)'} <${p.userEmail}>`],
+    ['Fees',           'You cover them. Customer was told to pick BEN, so slightly less than the full amount may arrive.'],
     ['Customer email', p.customerEmailed ? 'Sent' : 'FAILED, they only saw the details on screen'],
     ['Requested',      `${new Date(p.requestedAt).toLocaleString('en-GB', { timeZone: 'Africa/Lusaka', dateStyle: 'medium', timeStyle: 'short' })} (Lusaka)`],
   ]

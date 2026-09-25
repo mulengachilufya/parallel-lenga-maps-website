@@ -1,7 +1,8 @@
 -- 029_once_off_plans.sql
 --
--- Once-off pricing (2026-09): two plans, 'individual' ($400) and 'team'
--- ($350/seat), paid once, never expire. Lipila and monthly billing are gone.
+-- Once-off pricing (2026-09): two plans, 'individual' ($100) and 'team'
+-- (up to 4 seats $350, up to 12 seats $1,000), paid once, never expire.
+-- Lipila and monthly billing are gone.
 --
 -- 1. Allow plan='individual'. Without this, approving a bank-transfer payment
 --    fails: /api/admin/payments/verify writes plan='individual' and the old
