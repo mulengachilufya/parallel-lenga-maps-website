@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title:       'Create your account · Lenga Maps',
-  description: 'Sign up for a Lenga Maps account and start your free trial.',
+  description: 'Sign up for a Lenga Maps account and browse Africa-wide GIS datasets.',
   robots:      { index: false, follow: false, googleBot: { index: false, follow: false } },
 }
 

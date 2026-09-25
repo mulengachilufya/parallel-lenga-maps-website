@@ -2,12 +2,13 @@
  * POST /api/account/init-profile
  *
  * Run once right after signup (and again after email confirmation).
- * Reads user_metadata and writes plan + trial_started_at + full_name
- * into the profiles row.
+ * Reads user_metadata and writes name / country / sector into the
+ * profiles row.
  *
  * Safety:
- *   - Never touches plan_status or plan_expires_at — only admin verify does that.
- *   - Setting plan here is safe: download gate still requires plan_status='active'.
+ *   - Never touches plan or plan_status — only admin verify does that.
+ *     user_metadata is editable by the user, so nothing access-related is
+ *     read from it.
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -22,10 +23,6 @@ function metaString(v: unknown, max = 120): string | null {
   return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
 }
 
-// Self-serve intents only. 'enterprise' delisted 2026-06 (replaced by the
-// quote-based team tier); 'team' is provisioned by admin, never via signup.
-const VALID_PLANS = new Set(['starter', 'pro', 'max'])
-
 export async function POST() {
   const cookieClient = await createServerSupabase()
   const { data: { user } } = await cookieClient.auth.getUser()
@@ -33,8 +30,6 @@ export async function POST() {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const metaPlan           = String(user.user_metadata?.plan ?? '').trim()
-  const metaTrialStartedAt = user.user_metadata?.trial_started_at as string | undefined
   const metaFullName       = typeof user.user_metadata?.full_name === 'string'
     ? user.user_metadata.full_name.trim().slice(0, 200)
     : null
@@ -42,9 +37,6 @@ export async function POST() {
   const metaLastName       = metaString(user.user_metadata?.last_name)
   const metaCountry        = isValidCountry(user.user_metadata?.country) ? user.user_metadata.country : null
   const metaSector         = isValidSector(user.user_metadata?.sector) ? user.user_metadata.sector : null
-
-  // Only accept valid new plan slugs — no account_type, no old slugs
-  const plan = VALID_PLANS.has(metaPlan) ? metaPlan : null
 
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +46,7 @@ export async function POST() {
 
   const { data: existing } = await admin
     .from('profiles')
-    .select('id, plan_status, plan_expires_at, trial_started_at, welcome_email_sent_at')
+    .select('id, welcome_email_sent_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -63,24 +55,16 @@ export async function POST() {
     // account_type removed entirely
   }
 
-  if (plan) updateRow.plan = plan
   if (metaFullName)  updateRow.full_name  = metaFullName
   if (metaFirstName) updateRow.first_name = metaFirstName
   if (metaLastName)  updateRow.last_name  = metaLastName
   if (metaCountry)   updateRow.country    = metaCountry
   if (metaSector)    updateRow.sector     = metaSector
 
-  // Set trial_started_at — use existing value if already set, otherwise
-  // use what came from metadata, otherwise set to now for new signups
-  if (!existing?.trial_started_at) {
-    updateRow.trial_started_at = metaTrialStartedAt ?? new Date().toISOString()
-  }
-
   // Brand-new row — seed defaults
   if (!existing) {
-    updateRow.plan_status     = 'free'
-    updateRow.plan_expires_at = null
-    if (!plan) updateRow.plan = null
+    updateRow.plan_status = 'free'
+    updateRow.plan        = null
   }
 
   const { error } = await admin
@@ -116,9 +100,5 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({
-    ok:          true,
-    plan,
-    plan_status: existing?.plan_status ?? 'free',
-  })
+  return NextResponse.json({ ok: true })
 }

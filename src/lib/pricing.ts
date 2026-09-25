@@ -11,10 +11,8 @@
 // bank transfer (see /api/admin/payments/verify).
 //
 // Old TierSlug values ('starter' | 'pro' | 'max' | 'enterprise') and the
-// dataset-tier ladder (DATASET_MIN_TIER, PLAN_ORDER, datasetCountForTier,
-// canAccessDataset) are gone. Anything still importing them will fail to
-// compile — that's the map for Phase 2 (dataset-access.ts /
-// DownloadGateContext.tsx) and Phase 3 (kill the trial system).
+// dataset-tier ladder are gone. Accounts that were active on a legacy tier
+// were migrated to permanent 'individual' access (migration 029).
 
 export type TierSlug = 'individual' | 'team'
 export type UserState = 'free' | TierSlug
@@ -44,7 +42,7 @@ export interface Plan {
 //     this route (seats need negotiating) -> /projects.
 export const PLANS: Record<TierSlug, Plan> = {
   individual: {
-    slug: 'individual', name: 'Individual', price: 50, priceLabel: '$50 once-off',
+    slug: 'individual', name: 'Individual', price: 400, priceLabel: '$400 once-off',
     description: 'One-time payment. Every dataset, every country, no expiry.',
     perSeat: false, minSeats: 1, selfServe: true, contactHref: '/contact-us',
     ctaLabel: 'Get access',
@@ -57,7 +55,7 @@ export const PLANS: Record<TierSlug, Plan> = {
     ],
   },
   team: {
-    slug: 'team', name: 'Team', price: 45, priceLabel: '$45/seat once-off',
+    slug: 'team', name: 'Team', price: 350, priceLabel: '$350/seat once-off',
     description: 'One-time per-seat payment for teams and organisations. 2-seat minimum.',
     perSeat: true, minSeats: 2, selfServe: false, contactHref: '/projects',
     ctaLabel: 'Contact us',

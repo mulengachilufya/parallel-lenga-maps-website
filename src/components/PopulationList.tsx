@@ -189,12 +189,6 @@ export default function PopulationList({ userPlan = 'starter' }: PopulationListP
           </p>
         </div>
       )}
-
-      {!hasFullAccess && (
-        <p className="text-xs text-gray-400 mt-2">
-          * Population & Settlements is Pro-only. Upgrade to unlock all 54 countries.
-        </p>
-      )}
     </div>
   )
 }

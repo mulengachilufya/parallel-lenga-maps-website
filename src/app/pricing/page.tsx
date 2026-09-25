@@ -1,7 +1,6 @@
 'use client'
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref } from "@/lib/pricing"
 
 // Both plans send buyers to their planCtaHref (see pricing.ts): individual

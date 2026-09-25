@@ -16,7 +16,7 @@
  *     → GIS facts text
  *     → Quote form
  *
- * Pricing: flat $45/seat, once-off, 2-seat minimum — $5 below the $50
+ * Pricing: flat $350/seat, once-off, 2-seat minimum — $50 below the $400
  * Individual plan per seat. No checkout, ever — every CTA routes to the
  * quote form.
  */
@@ -31,6 +31,7 @@ import {
   Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
 import { TEAM_BLOCKS, QUOTE_SECTORS, TEAM_TIER_TITLE, TEAM_SEAT_PRICE, TEAM_MIN_SEATS } from '@/lib/teams'
+import { PLANS } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -321,7 +322,7 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
             One seat price. Paid once.
           </h2>
           <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
-            $45 per seat — $5 less than paying for each teammate on an Individual plan.
+            ${TEAM_SEAT_PRICE} per seat — ${PLANS.individual.price - TEAM_SEAT_PRICE} less than paying for each teammate on an Individual plan.
             2-seat minimum. All 54 African countries, every dataset, no expiry.
           </p>
         </div>
@@ -427,7 +428,7 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
 }
 
 // Curiosity calculator: type a seat count, see the once-off total instantly
-// at the flat $45/seat rate. Pure display math — the real number is still
+// at the flat TEAM_SEAT_PRICE rate. Pure display math — the real number is still
 // confirmed on the quote. Honors the card palette so it doesn't fight the
 // cream/navy backgrounds.
 function SeatCalculator({ palette }: { palette: CardPalette }) {

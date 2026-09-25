@@ -155,12 +155,6 @@ export default function RiversList({
           </div>
         </>
       )}
-
-      {userPlan === 'starter' && (
-        <p className="text-xs text-gray-400 mt-2">
-          * Upgrade to Pro to unlock all 50 countries and unlimited downloads.
-        </p>
-      )}
     </div>
   )
 }

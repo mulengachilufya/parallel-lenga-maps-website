@@ -174,125 +174,44 @@ function firstName(fullName?: string | null): string {
 // ── Templates ───────────────────────────────────────────────────────────────
 
 export function welcomeEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/datasets`
+  const name  = firstName(fullName)
+  const cta   = `${APP_URL}/datasets`
+  const cta2  = `${APP_URL}/pricing`
+  const price = PLANS.individual.priceLabel
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your account is live and your <strong>3-day free trial just started</strong>. For the
-      next 72 hours you have full <strong>Max</strong> access to every dataset across all 54
-      African countries, plus <strong>10 downloads</strong> to spend. No card required.
+      Your Lenga Maps account is live. You can browse the full catalogue now: every dataset
+      across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
     </p>
-    <p style="margin:0 0 10px;font-size:15px;line-height:1.7;color:#333;">
-      The trial only pays off if you pull real data into your map, so do this today while the
-      clock is running:
-    </p>
-    <ol style="margin:0 0 4px;padding-left:20px;font-size:15px;line-height:1.8;color:#333;">
-      <li>Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.</li>
-      <li>Download it, already harmonised to EPSG:4326 and ready for QGIS.</li>
-      <li>Drop it straight into your project. That is one of your 10 downloads working for you.</li>
-    </ol>`
-  const text = `Hi ${name},
-
-Your account is live and your 3-day free trial just started. For the next 72 hours you have full Max access to every dataset across all 54 African countries, plus 10 downloads to spend. No card required.
-
-The trial only pays off if you pull real data into your map, so do this today while the clock is running:
-
-1. Pick a country and a dataset: boundaries, rivers, rainfall, drought, soil, land cover and more.
-2. Download it, already harmonised to EPSG:4326 and ready for QGIS.
-3. Drop it straight into your project.
-
-Start here: ${cta}
-
-Three days goes fast, so dive in now. Need a hand getting started? Just reply to this email.
-
-Thanks,
-The Lenga Maps team`
-  return {
-    to,
-    subject: `${name}, your 3 days of full Lenga Maps access just started`,
-    html: shell({
-      preheader: 'Full Max access + 10 downloads for 3 days. No card required.',
-      heading:   `Your 3-day trial is live, ${name}.`,
-      bodyHtml,
-      ctaLabel:  'Download your first dataset',
-      ctaHref:   cta,
-      footnote:  'Three days goes fast, so dive in now. Stuck on where to start? Just reply to this email.',
-    }),
-    text,
-  }
-}
-
-export function trialEndedEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/pricing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your free trial has ended, but your work doesn't have to stop here.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Keep full access to professional GIS data for all 54 African countries from just
-      <strong>$5/month</strong>. Browsing stays free; a plan unlocks the downloads.
+      When you are ready to download, access is a <strong>one-time payment of ${price}</strong>.
+      No subscription and no expiry: every dataset, every country, unlimited downloads, for good.
+      Buying for a team or organisation? Reply to this email and we will quote per seat.
     </p>`
   const text = `Hi ${name},
 
-Your free trial has ended, but your work doesn't have to stop here.
+Your Lenga Maps account is live. You can browse the full catalogue now: every dataset across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
 
-Keep full access to professional GIS data for all 54 African countries from just $5/month. Browsing stays free; a plan unlocks the downloads.
+When you are ready to download, access is a one-time payment of ${price}. No subscription and no expiry: every dataset, every country, unlimited downloads, for good. Buying for a team or organisation? Reply to this email and we will quote per seat.
 
-See plans: ${cta}
-
-Thanks,
-The Lenga Maps team`
-  return {
-    to,
-    subject: 'Your free trial has ended, plans from $5/mo',
-    html: shell({
-      preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
-      heading:   'Your free trial has ended',
-      bodyHtml,
-      ctaLabel:  'See plans from $5/mo',
-      ctaHref:   cta,
-      footnote:  'No commitment. Cancel anytime from your billing page.',
-    }),
-    text,
-  }
-}
-
-export function trialCapEmail(to: string, fullName?: string | null): EmailMessage {
-  const name = firstName(fullName)
-  const cta  = `${APP_URL}/pricing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      You've now used all 10 downloads included in your free trial. Nice work,
-      that's a real head start on your mapping.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      To keep downloading GIS data for all 54 African countries, pick a plan from
-      just <strong>$5/month</strong>. Browsing stays free either way.
-    </p>`
-  const text = `Hi ${name},
-
-You've now used all 10 downloads included in your free trial. Nice work, that's a real head start on your mapping.
-
-To keep downloading GIS data for all 54 African countries, pick a plan from just $5/month. Browsing stays free either way.
-
-See plans: ${cta}
+Browse the catalogue: ${cta}
+See pricing: ${cta2}
 
 Thanks,
 The Lenga Maps team`
   return {
     to,
-    subject: "You've used all 10 trial downloads",
+    subject: `${name}, your Lenga Maps account is live`,
     html: shell({
-      preheader: 'Keep downloading GIS data for all 54 African countries from $5/mo.',
-      heading:   "You've used your 10 free downloads",
+      preheader: `Browse every dataset now. Full access is ${price}, no subscription.`,
+      heading:   `Welcome to Lenga Maps, ${name}.`,
       bodyHtml,
-      ctaLabel:  'See plans from $5/mo',
+      ctaLabel:  'Browse the catalogue',
       ctaHref:   cta,
-      footnote:  'Your trial browsing stays open. A plan unlocks downloads again.',
+      cta2Label: 'See pricing',
+      cta2Href:  cta2,
+      footnote:  'Questions about which datasets fit your project? Just reply to this email.',
     }),
     text,
   }
@@ -304,7 +223,7 @@ export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd
+      We noticed you have full access but haven't downloaded any GIS datasets yet, and we'd
       hate for your plan to go unused.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
@@ -314,7 +233,7 @@ export function nudgeEmail(to: string, fullName?: string | null): EmailMessage {
     </p>`
   const text = `Hi ${name},
 
-We noticed you're subscribed but haven't downloaded any GIS datasets yet, and we'd hate for your plan to go unused.
+We noticed you have full access but haven't downloaded any GIS datasets yet, and we'd hate for your plan to go unused.
 
 Want ideas on what to build? Our Atlas showcases real maps made from Lenga data, like watershed delineations, solar potential, carbon credits and mining boundaries.
 
@@ -324,7 +243,7 @@ Thanks,
 The Lenga Maps team`
   return {
     to,
-    subject: 'Some ideas for your Lenga Maps subscription',
+    subject: 'Some ideas for getting started with your Lenga Maps data',
     html: shell({
       preheader: 'Real maps built from Lenga data, to spark what you could create next.',
       heading:   `${name}, here's what you could build`,
@@ -837,59 +756,6 @@ The Lenga Maps team`
       ctaLabel:  'Resubmit payment',
       ctaHref:   cta,
       footnote:  'Stuck? Reply to this email and we will help sort it out.',
-    }),
-    text,
-  }
-}
-
-// ── Renewals ──────────────────────────────────────────────────────────────────
-
-/**
- * Reminder that a plan renews soon. Renewal is manual (no silent auto-charge
- * on Zambian rails), so the CTA is a one-tap renew link.
- */
-export function renewalReminderEmail(
-  to: string,
-  fullName: string | null,
-  plan: string,
-  daysLeft: number,
-): EmailMessage {
-  const name       = firstName(fullName)
-  const PLAN       = plan.toUpperCase()
-  const dayLabel   = `${daysLeft} day${daysLeft === 1 ? '' : 's'}`
-  const renewLink  = `${APP_URL}/dashboard/payment?plan=${plan}&renew=1`
-  const cancelLink = `${APP_URL}/dashboard/billing`
-  const bodyHtml = `
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Heads up, your <strong>${PLAN}</strong> subscription renews in <strong>${dayLabel}</strong>.
-    </p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Card networks and mobile money in Zambia both require you to approve each
-      renewal yourself, so a quick tap keeps your access going.
-    </p>`
-  const text = `Hi ${name},
-
-Heads up, your Lenga Maps ${PLAN} subscription renews in ${dayLabel}.
-
-Card networks and mobile money in Zambia both require you to approve each renewal yourself, so:
-
-Tap here to renew now: ${renewLink}
-
-Don't want to renew? Cancel anytime from your billing page: ${cancelLink}
-
-Thanks for using Lenga Maps.
-The Lenga Maps team`
-  return {
-    to,
-    subject: `Your Lenga Maps ${PLAN} plan renews in ${dayLabel}`,
-    html: shell({
-      preheader: `Approve your ${PLAN} renewal to keep your access going.`,
-      heading:   `Your ${PLAN} plan renews in ${dayLabel}`,
-      bodyHtml,
-      ctaLabel:  'Renew now',
-      ctaHref:   renewLink,
-      footnote:  `Don't want to renew? Cancel anytime from your <a href="${cancelLink}" style="color:#1E5F8E;">billing page</a>.`,
     }),
     text,
   }

@@ -52,8 +52,6 @@ export default function SignupPage() {
           last_name:        lastName.trim(),
           country,
           sector,
-          plan:             'free_trial',
-          trial_started_at: new Date().toISOString(),
         },
       },
     })
@@ -64,7 +62,7 @@ export default function SignupPage() {
       return
     }
 
-    track('trial_started', { source: 'signup_page' })
+    track('signup_completed', { source: 'signup_page' })
     // Email confirmation is off, so /auth/callback never runs. Call
     // init-profile directly here so the profile is seeded and the welcome
     // email fires for this brand-new signup. Best-effort; the dashboard
@@ -86,7 +84,7 @@ export default function SignupPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-blue-300 text-sm mt-2">
-            3-day free trial included — full access, no payment needed to start.
+            Browse the full catalogue free. Unlock every download with a one-time payment.
           </p>
         </div>
 
@@ -177,7 +175,7 @@ export default function SignupPage() {
             disabled={loading}
             className="w-full bg-[#F5B800] hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed text-[#0D2B45] font-bold py-3 rounded-xl transition-colors"
           >
-            {loading ? 'Creating account...' : 'Create account — start free trial'}
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
 
           <p className="text-center text-blue-500 text-xs">

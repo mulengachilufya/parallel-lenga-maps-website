@@ -100,7 +100,7 @@ export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
                 !hasAccess ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                 : downloading === layer.id ? 'bg-green-100 text-green-700'
                 : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
-              {!hasAccess ? '🔒 Max plan required'
+              {!hasAccess ? '🔒 Upgrade to download'
                 : downloading === layer.id ? '✓ Downloading…'
                 : <><Download size={13} />Download .tif</>}
             </button>

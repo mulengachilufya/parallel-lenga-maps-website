@@ -1,13 +1,13 @@
 'use client'
 
 /**
- * BankTransferPanel — primary payment method (replaces the Lipila card redirect,
- * which was unreliable for cards).
+ * BankTransferPanel — the self-serve payment method for the Individual plan.
  *
  * Flow:
  *   1. User clicks "Get bank details".
  *   2. POST /api/payments/bank-details → emails them our bank details (inline
- *      HTML via the dedicated Resend key) AND returns them for inline display.
+ *      HTML via the dedicated Resend key), alerts the founder with the amount
+ *      and reference to expect, AND returns the details for inline display.
  *   3. User transfers from their card/bank, uploads proof of payment.
  *   4. POST /api/payments/manual (payment_method='bank') → pending row +
  *      admin-verify pipeline. We show a "we'll verify shortly" confirmation —

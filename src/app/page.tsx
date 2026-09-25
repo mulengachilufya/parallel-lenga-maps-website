@@ -73,10 +73,6 @@ function InlineSignup() {
         options: {
           data: {
             full_name: name,
-            // Same shape as /signup — init-profile reads these. The legacy
-            // `plan: 'basic'` literal was not a valid slug and caused
-            // homepage signups to land as `free` instead of `free_trial`.
-            trial_started_at: new Date().toISOString(),
           },
         },
       })
@@ -86,7 +82,7 @@ function InlineSignup() {
         setLoading(false)
         return
       }
-      track('trial_started', { source: 'home_inline' })
+      track('signup_completed', { source: 'home_inline' })
       // Confirmation is off, so /auth/callback never runs. Fire init-profile
       // directly to seed the profile and send the welcome email for this
       // new signup. Best-effort.

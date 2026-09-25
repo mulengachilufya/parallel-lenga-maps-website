@@ -167,6 +167,7 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
 
   // slug kept in the signature so existing call sites (buttons, dataset
   // lists) don't all need updating in this pass — it's simply unused now.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function checkAccess(_slug: DatasetSlug): boolean {
     if (!user) return false
     return user.userState !== 'free'
@@ -181,10 +182,8 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
     setModal({ open: true, kind: 'unavailable', datasetSlug: slug })
   }
 
-  // TODO (Phase 3): /api/usage/consume-download still enforces the old
-  // trial download cap. There's no cap anymore in the once-off model, so
-  // once that route is simplified/retired, this can become a no-op that
-  // just returns checkAccess(slug) without the network round-trip.
+  // consume-download re-checks the plan server-side and logs a
+  // download_events row (team dashboard history). There is no cap.
   async function consumeDownload(slug: DatasetSlug, country?: string): Promise<boolean> {
     try {
       const res = await fetch('/api/usage/consume-download', {
@@ -265,9 +264,6 @@ function UnavailableModal({ onClose }: { onClose: () => void }) {
 // ─── Paywall modal ────────────────────────────────────────────
 
 function PaywallModal({ onClose }: { onClose: () => void }) {
-  // NOTE (Phase 4): individual's card still links to /dashboard/payment,
-  // the old Lipila checkout route. That gets replaced with a "contact us"
-  // CTA in Phase 4 — left as-is here so this stays a Phase 2-only change.
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
       <div className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-2xl w-full p-8 shadow-2xl">

@@ -37,6 +37,7 @@ export async function callerCanAccessFiles(): Promise<boolean> {
  * download any dataset. The `slug` param is kept so existing call sites
  * don't need to change, but it no longer affects the result.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function callerCanDownloadDataset(_slug: DatasetSlug): Promise<boolean> {
   return callerCanAccessFiles()
 }
@@ -46,6 +47,7 @@ export async function callerCanDownloadDataset(_slug: DatasetSlug): Promise<bool
  * Tier-based gating is gone; this now just checks for any paid plan.
  * New routes should call callerCanAccessFiles() directly.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function callerCanDownloadTier(_tier: string): Promise<boolean> {
   return callerCanAccessFiles()
 }
