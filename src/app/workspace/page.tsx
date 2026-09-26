@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import TitleBar from '@/components/workspace/TitleBar'
 import { api, stamp, timeAgo } from '@/components/workspace/util'
 import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
+import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
 
 interface ListResponse {
   projects: WsProjectSummary[]
@@ -23,6 +24,8 @@ export default function WorkspaceIndex() {
   const [state, setState] = useState<'loading' | 'ready' | 'no_team' | 'error'>('loading')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [template, setTemplate] = useState('')
+  const [country, setCountry] = useState('ZMB')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -40,10 +43,15 @@ export default function WorkspaceIndex() {
     if (!name.trim()) return
     setBusy(true); setErr('')
     try {
-      const d = await api<{ id: string }>('/api/workspace/projects', { method: 'POST', json: { name: name.trim(), description: description.trim() } })
-      router.push(`/workspace/${d.id}`)
+      const d = await api<{ id: string; added?: number; skipped?: string[] }>('/api/workspace/projects', {
+        method: 'POST',
+        json: { name: name.trim(), description: description.trim(), ...(template ? { template, country_iso3: country } : {}) },
+      })
+      const q = template ? `?fit=1${d.skipped?.length ? `&skipped=${encodeURIComponent(d.skipped.join(', '))}` : ''}` : ''
+      router.push(`/workspace/${d.id}${q}`)
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not create the project'); setBusy(false) }
   }
+
 
   return (
     <div className="ws ws-page">
@@ -87,9 +95,11 @@ export default function WorkspaceIndex() {
                         <tr key={p.id}>
                           <td>
                             <Link href={`/workspace/${p.id}`} className="pname">{p.name}</Link>
-                            {' '}<span className={`ws-role-chip ${p.my_role}`} style={{ height: 16, fontSize: 9.5, marginLeft: 4 }}>
-                              {ROLE_LABEL[p.my_role]}{p.visibility === 'private' ? ' · private' : ''}
-                            </span>
+                            {p.my_role && (
+                              <>{' '}<span className={`ws-role-chip ${p.my_role}`} style={{ height: 16, fontSize: 9.5, marginLeft: 4 }}>
+                                {ROLE_LABEL[p.my_role]}{p.visibility === 'private' ? ' · private' : ''}
+                              </span></>
+                            )}
                             {p.description && <div className="muted small" style={{ marginTop: 2, maxWidth: 480 }}>{p.description.length > 160 ? `${p.description.slice(0, 160)}…` : p.description}</div>}
                           </td>
                           <td className="mono">{p.layer_count}</td>
@@ -120,7 +130,26 @@ export default function WorkspaceIndex() {
                   <textarea id="np-desc" className="ws-textarea" rows={4} value={description} maxLength={2000}
                             placeholder="Client, area of interest, deadline" onChange={(e) => setDescription(e.target.value)} />
                 </div>
-                <button className="ws-btn ws-btn-default" disabled={!name.trim() || busy}>{busy ? 'Creating…' : 'Create project'}</button>
+                <div className="ws-field">
+                  <label className="ws-label" htmlFor="np-tpl">Start from</label>
+                  <select id="np-tpl" className="ws-select" style={{ width: '100%' }} value={template} onChange={(e) => setTemplate(e.target.value)}>
+                    <option value="">An empty map</option>
+                    {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  {template && <div className="small muted" style={{ marginTop: 3, lineHeight: 1.5 }}>{TEMPLATES.find((t) => t.id === template)?.blurb}</div>}
+                </div>
+                {template && (
+                  <div className="ws-field">
+                    <label className="ws-label" htmlFor="np-country">Country</label>
+                    <select id="np-country" className="ws-select" style={{ width: '100%' }} value={country} onChange={(e) => setCountry(e.target.value)}>
+                      {AFRICAN_COUNTRIES.map((c) => <option key={c.iso3} value={c.iso3}>{c.name}</option>)}
+                    </select>
+                    <div className="small muted" style={{ marginTop: 3 }}>
+                      {TEMPLATES.find((t) => t.id === template)?.layers.length} Lenga datasets go straight onto the map, styled and in order.
+                    </div>
+                  </div>
+                )}
+                <button className="ws-btn ws-btn-default" disabled={!name.trim() || busy}>{busy ? (template ? 'Building the project…' : 'Creating…') : 'Create project'}</button>
                 {err && <p className="ws-err small" style={{ marginTop: 6 }}>{err}</p>}
               </form>
             </div>

@@ -234,6 +234,29 @@ function Workstation() {
   const canManage = atLeast(myRole, 'manager')
   const readOnly = !!preview || !canEdit
 
+  // Fresh from a template: frame the data once the first vector layer loads.
+  const fitted = useRef(false)
+  useEffect(() => {
+    if (fitted.current || search.get('fit') !== '1') return
+    const target = [...shownLayers].reverse().find((l) => statuses[l.id]?.loaded?.kind === 'vector')
+    if (!target) return
+    fitted.current = true
+    mapRef.current?.zoomToLayer(target.id)
+    const skipped = search.get('skipped')
+    if (skipped) say(`Not available for this country yet, so left out: ${skipped}.`)
+    router.replace(`/workspace/${id}`)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statuses, shownLayers])
+
+  async function duplicateProject() {
+    const n = window.prompt('Name for the copy', `${bundle?.project.name ?? 'Project'} (copy)`)
+    if (n === null) return
+    try {
+      const d = await api<{ id: string }>(`/api/workspace/projects/${id}/duplicate`, { method: 'POST', json: { name: n.trim() } })
+      router.push(`/workspace/${d.id}`)
+    } catch (e) { say(e instanceof Error ? e.message : 'Could not duplicate') }
+  }
+
   // ── Attribute table ──────────────────────────────────────────────────────
   const tableLayerObj = tableLayer ? shownLayers.find((l) => l.id === tableLayer) ?? null : null
   const tableLoaded = tableLayer ? statuses[tableLayer]?.loaded : undefined
@@ -596,7 +619,8 @@ function Workstation() {
             )}
             {tab === 'details' && (
               <DetailsPanel project={bundle.project} members={bundle.members} online={online} me={bundle.me}
-                            onSave={saveDetails} onSetRole={setMemberRole} onArchive={() => setDialog({ kind: 'archive' })} />
+                            onSave={saveDetails} onSetRole={setMemberRole} onDuplicate={canEdit ? () => void duplicateProject() : undefined}
+                            onArchive={() => setDialog({ kind: 'archive' })} />
             )}
           </>
         )}

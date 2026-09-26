@@ -167,6 +167,8 @@ export interface CatalogDataset {
   name:     string
   category: string
   raster:   boolean
+  source?:      string   // original publisher / product, e.g. "HydroSHEDS HydroRIVERS v1.0"
+  description?: string   // what Lenga did to it
 }
 
 export interface CatalogFile {
