@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, messageId } = await params
-  if (!(await loadProject(gate.membership.org_id, id))) return jsonError('not_found', 404)
+  if (!(await loadProject(gate, id))) return jsonError('not_found', 404)
   if (!/^[0-9a-f-]{36}$/i.test(messageId)) return jsonError('not_found', 404)
 
   const { data: m } = await service.from('workspace_messages')

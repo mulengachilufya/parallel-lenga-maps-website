@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TitleBar from '@/components/workspace/TitleBar'
 import { api, stamp, timeAgo } from '@/components/workspace/util'
-import type { WsProjectSummary } from '@/lib/workspace/types'
+import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
 
 interface ListResponse {
   projects: WsProjectSummary[]
@@ -87,6 +87,9 @@ export default function WorkspaceIndex() {
                         <tr key={p.id}>
                           <td>
                             <Link href={`/workspace/${p.id}`} className="pname">{p.name}</Link>
+                            {' '}<span className={`ws-role-chip ${p.my_role}`} style={{ height: 16, fontSize: 9.5, marginLeft: 4 }}>
+                              {ROLE_LABEL[p.my_role]}{p.visibility === 'private' ? ' · private' : ''}
+                            </span>
                             {p.description && <div className="muted small" style={{ marginTop: 2, maxWidth: 480 }}>{p.description.length > 160 ? `${p.description.slice(0, 160)}…` : p.description}</div>}
                           </td>
                           <td className="mono">{p.layer_count}</td>

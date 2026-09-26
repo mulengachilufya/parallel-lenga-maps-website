@@ -2,7 +2,7 @@
  * DELETE /api/workspace/projects/:id/bookmarks/:bookmarkId
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { commit, jsonError, loadProject, requireWorkspace, service } from '@/lib/workspace/server'
+import { commit, jsonError, loadProject, requireWorkspace, service, needRole } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,8 +12,9 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, bookmarkId } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
+  { const denied = needRole(project, 'editor'); if (denied) return denied }
   if (!/^[0-9a-f-]{36}$/i.test(bookmarkId)) return jsonError('not_found', 404)
 
   const { data: bookmark } = await service.from('workspace_bookmarks')

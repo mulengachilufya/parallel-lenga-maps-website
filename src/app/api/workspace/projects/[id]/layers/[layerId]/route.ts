@@ -4,8 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str,
-} from '@/lib/workspace/server'
+  commit, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
 import { defaultStyle, sanitizeStyle, type LayerStyle, type WsLayer } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -33,8 +32,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, layerId } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
+  { const denied = needRole(project, 'editor'); if (denied) return denied }
   const layer = await loadLayer(id, layerId)
   if (!layer) return jsonError('not_found', 404)
 
@@ -68,8 +68,9 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, layerId } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
+  { const denied = needRole(project, 'editor'); if (denied) return denied }
   const layer = await loadLayer(id, layerId)
   if (!layer) return jsonError('not_found', 404)
 

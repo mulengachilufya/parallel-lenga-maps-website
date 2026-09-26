@@ -495,3 +495,6 @@
 .ws-attr-body tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 #f2c94c; }
 .ws-toc-search { padding: 4px 6px; border-bottom: 1px solid var(--rule); }
 .ws-toc-search .ws-input { width: 100%; }
+.ws-role-chip { display: inline-flex; align-items: center; padding: 0 7px; height: 20px; font-size: 10.5px; border: 1px solid var(--rule-strong); color: var(--ink-soft); white-space: nowrap; }
+.ws-role-chip.viewer { border-color: #7fa3cc; color: #b9d0ea; }
+.ws-role-chip.manager { border-color: var(--brass); color: var(--brass); }

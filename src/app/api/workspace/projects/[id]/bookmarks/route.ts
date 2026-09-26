@@ -3,8 +3,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str,
-} from '@/lib/workspace/server'
+  commit, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,8 +17,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
+  { const denied = needRole(project, 'editor'); if (denied) return denied }
 
   const body = await readJson(req)
   const name = str(body.name, 120)

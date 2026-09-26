@@ -1,13 +1,14 @@
 /**
  * GET    /api/workspace/projects/:id  — everything the workstation needs
- * PATCH  /api/workspace/projects/:id  — { name?, description?, map_state? }
- * DELETE /api/workspace/projects/:id  — archive (owner or the project's creator)
+ * PATCH  /api/workspace/projects/:id  — { name?, description?, map_state?,
+ *        visibility?, default_role? }  (manager)
+ * DELETE /api/workspace/projects/:id  — archive (manager)
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str,
+  commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str,
 } from '@/lib/workspace/server'
-import { sanitizeMapState, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
+import { sanitizeMapState, type ProjectRole, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,10 +18,10 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
 
-  const [layers, bookmarks, members, head] = await Promise.all([
+  const [layers, bookmarks, members, head, explicit] = await Promise.all([
     service.from('workspace_layers').select('*').eq('project_id', id)
       .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
     service.from('workspace_bookmarks').select('*').eq('project_id', id)
@@ -29,7 +30,12 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       .eq('org_id', gate.membership.org_id),
     service.from('workspace_revisions').select('seq').eq('project_id', id)
       .order('seq', { ascending: false }).limit(1).maybeSingle(),
+    service.from('workspace_project_members').select('user_id, role').eq('project_id', id),
   ])
+  const explicitRole = new Map((explicit.data ?? []).map((m) => [m.user_id as string, m.role as ProjectRole]))
+  const roleFor = (userId: string, orgRole: string): ProjectRole | null =>
+    orgRole === 'owner' || project.created_by === userId ? 'manager'
+    : explicitRole.get(userId) ?? (project.visibility === 'team' ? project.default_role ?? 'editor' : null)
 
   const bundle: WsProjectBundle = {
     project,
@@ -40,8 +46,10 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       name:    m.member_name?.trim() || m.member_email || 'Team member',
       email:   m.member_email ?? '',
       role:    m.role,
+      project_role: roleFor(m.user_id, m.role),
+      explicit:     explicitRole.has(m.user_id),
     })),
-    me:   { user_id: gate.user.id, name: gate.name, role: gate.membership.role },
+    me:   { user_id: gate.user.id, name: gate.name, role: gate.membership.role, project_role: project.role },
     org:  { id: gate.membership.org_id, name: gate.membership.org.name },
     head: head.data?.seq ?? 0,
   }
@@ -52,12 +60,27 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
+  const denied = needRole(project, 'manager')
+  if (denied) return denied
 
   const body = await readJson(req)
   const patch: Record<string, unknown> = {}
   const notes: string[] = []
+
+  if (body.visibility === 'team' || body.visibility === 'private') {
+    if (body.visibility !== project.visibility) {
+      patch.visibility = body.visibility
+      notes.push(body.visibility === 'private' ? 'made the project private to its members' : 'opened the project to the whole team')
+    }
+  }
+  if (body.default_role === 'viewer' || body.default_role === 'editor') {
+    if (body.default_role !== project.default_role) {
+      patch.default_role = body.default_role
+      notes.push(`set the team's default role to ${body.default_role}`)
+    }
+  }
 
   if ('name' in body) {
     const name = str(body.name, 120)
@@ -86,11 +109,10 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
-  if (gate.membership.role !== 'owner' && project.created_by !== gate.user.id) {
-    return jsonError('forbidden', 403)
-  }
+  const denied = needRole(project, 'manager')
+  if (denied) return denied
   const { error } = await service.from('workspace_projects')
     .update({ archived_at: new Date().toISOString() }).eq('id', id)
   if (error) return jsonError('archive_failed', 500)

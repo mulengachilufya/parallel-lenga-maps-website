@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
 
   const { data, error } = await service.from('workspace_messages').select('*')
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
 
   const isForm = (req.headers.get('content-type') ?? '').startsWith('multipart/form-data')
