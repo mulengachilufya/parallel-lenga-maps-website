@@ -92,8 +92,8 @@ export default function Navbar() {
     window.location.href = '/'
   }
 
-  // Hide on /admin (own header). Allowed on /dashboard now.
-  if (pathname?.startsWith('/admin')) return null
+  // Hide on /admin and /workspace (both have their own title bar).
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/workspace')) return null
 
   const isSignedIn = !!email
 

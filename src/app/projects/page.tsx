@@ -411,7 +411,10 @@ function PackageCard({ pkg, palette, onQuote, featured = false }: {
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
         {[
           `${pkg.maxSeats} seats, every dataset, all 54 countries`,
-          'Shared team workspace & download history',
+          'Project workspace: live web map of every layer',
+          'Team discussion pinned to places on the map',
+          'Full project history with restore',
+          'Shared download history',
           'Owner-managed seats',
           'API access with rate limits',
           'Commercial use licence',

@@ -14,13 +14,15 @@ import type { NextRequest } from 'next/server'
  *
  * Gated route families:
  *   /dashboard, /dashboard/*  — user must be signed in
+ *   /workspace, /workspace/*  — user must be signed in (team membership is
+ *                                checked by the /api/workspace routes)
  *   /admin, /admin/*          — user must be signed in (admin email check
  *                                still happens server-side in /api/admin/me
  *                                and the layout, so non-admins get bounced
  *                                from /admin pages by the API/layout, not
  *                                middleware)
  */
-const GATED_PREFIXES = ['/dashboard', '/admin']
+const GATED_PREFIXES = ['/dashboard', '/admin', '/workspace']
 
 function isGated(pathname: string): boolean {
   return GATED_PREFIXES.some(

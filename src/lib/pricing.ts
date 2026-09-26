@@ -82,7 +82,8 @@ export const PLANS: Record<TierSlug, Plan> = {
     features: [
       'Everything in Individual, for every seat',
       'Up to 4 seats for $350, up to 12 seats for $1,000',
-      'Shared team workspace and download history',
+      'Project workspace: live web map, team discussion, full history',
+      'Shared download history',
       'Pay once — access never expires',
       'Commercial use licence + direct email support',
     ],
@@ -135,7 +136,7 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
     dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
     tagline: 'A shared workspace for GIS teams on real projects.',
     count: '15 datasets',
-    datasets: ['Up to 4 seats: $350', 'Up to 12 seats: $1,000', 'Shared download history', 'Commercial use licence'],
+    datasets: ['Up to 4 seats: $350', 'Up to 12 seats: $1,000', 'Project workspace with live web map', 'Team discussion and project history', 'Commercial use licence'],
   },
 }
 

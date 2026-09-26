@@ -492,6 +492,43 @@ The Lenga Maps team`
   }
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+}
+
+/** A teammate @mentioned someone in a workspace project discussion. */
+export function workspaceMentionEmail(opts: {
+  to: string; fromName: string; projectName: string; excerpt: string; projectId: string
+}): EmailMessage {
+  const cta     = `${APP_URL}/workspace/${opts.projectId}?tab=discussion`
+  const from    = escapeHtml(opts.fromName)
+  const project = escapeHtml(opts.projectName)
+  const excerpt = opts.excerpt.length > 400 ? `${opts.excerpt.slice(0, 400)}…` : opts.excerpt
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      <strong>${from}</strong> mentioned you in <strong>${project}</strong>:
+    </p>
+    <blockquote style="margin:0 0 4px;padding:10px 14px;border-left:3px solid #C9A227;background:#faf8f2;font-size:14px;line-height:1.6;color:#333;white-space:pre-wrap;">${escapeHtml(excerpt)}</blockquote>`
+  const text = `${opts.fromName} mentioned you in ${opts.projectName}:
+
+${excerpt}
+
+Reply in the workspace: ${cta}`
+  return {
+    to:      opts.to,
+    subject: `${opts.fromName} mentioned you in ${opts.projectName}`,
+    html: shell({
+      preheader: excerpt.slice(0, 120),
+      heading:   'You were mentioned',
+      bodyHtml,
+      ctaLabel:  'Open the discussion',
+      ctaHref:   cta,
+      footnote:  'You get this email because a teammate @mentioned you in a Lenga Maps workspace.',
+    }),
+    text,
+  }
+}
+
 // ── Payments ────────────────────────────────────────────────────────────────
 
 // Where manual-payment admin alerts go. Falls back to the quote notify

@@ -161,6 +161,9 @@ export default function TeamPage() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: GOLD }}>Team workspace</p>
             <h1 className="mt-1.5 text-2xl sm:text-3xl font-extrabold">{data.org.name}</h1>
+            <Link href="/workspace" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-2" style={{ color: GOLD }}>
+              Open the projects workspace: shared maps, discussion and history →
+            </Link>
             {data.org.operating_countries.length > 0 && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-blue-300">
                 <MapPin size={13} /> Operating in {data.org.operating_countries.join(', ')}
