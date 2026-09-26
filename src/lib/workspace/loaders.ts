@@ -53,11 +53,21 @@ async function cachePut(key: string, bytes: ArrayBuffer): Promise<void> {
 
 // ── Fetch ───────────────────────────────────────────────────────────────────
 
+/** Layers with this id prefix are catalogue previews, not project layers. */
+export const PREVIEW_PREFIX = 'preview-'
+
+function sourceEndpoint(projectId: string, layer: WsLayer): string {
+  if (layer.id.startsWith(PREVIEW_PREFIX)) {
+    return `/api/workspace/catalog/source?dataset=${encodeURIComponent(layer.dataset_slug)}&key=${encodeURIComponent(layer.r2_key)}`
+  }
+  return `/api/workspace/projects/${projectId}/layers/${layer.id}/source`
+}
+
 async function fetchBytes(projectId: string, layer: WsLayer): Promise<ArrayBuffer> {
   const cached = await cacheGet(layer.r2_key)
   if (cached) return cached
 
-  const res = await fetch(`/api/workspace/projects/${projectId}/layers/${layer.id}/source`)
+  const res = await fetch(sourceEndpoint(projectId, layer))
   if (!res.ok) throw new Error('Could not get access to this file.')
   const { url, proxy } = await res.json() as { url: string; proxy: string }
 
@@ -77,12 +87,13 @@ async function fetchBytes(projectId: string, layer: WsLayer): Promise<ArrayBuffe
 
 // ── Parse ───────────────────────────────────────────────────────────────────
 
-function magic(b: Uint8Array): 'zip' | 'sqlite' | 'tiff' | 'json' | 'unknown' {
+function magic(b: Uint8Array): 'zip' | 'sqlite' | 'tiff' | 'json' | 'xml' | 'unknown' {
   if (b[0] === 0x50 && b[1] === 0x4b) return 'zip'
   if (b.length > 16 && new TextDecoder().decode(b.subarray(0, 15)) === 'SQLite format 3') return 'sqlite'
   if ((b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a) || (b[0] === 0x4d && b[1] === 0x4d && b[3] === 0x2a)) return 'tiff'
   const first = b.subarray(0, 64).find((c) => c > 0x20)
   if (first === 0x7b) return 'json'
+  if (first === 0x3c) return 'xml'
   return 'unknown'
 }
 
@@ -117,7 +128,7 @@ function checkLonLat(fc: FeatureCollection): void {
   }
 }
 
-async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<LoadedLayer> {
+export async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<LoadedLayer> {
   const bytes = new Uint8Array(buf)
   const kind = magic(bytes)
 
@@ -131,6 +142,14 @@ async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<LoadedLay
     if (srsId && srsId !== 4326 && srsId !== 0 && srsId !== -1) checkLonLat(fc)
     return summarise(fc)
   }
+  if (kind === 'xml') {
+    const text = new TextDecoder().decode(bytes)
+    const doc = new DOMParser().parseFromString(text, 'text/xml')
+    const tg = await import('@tmcw/togeojson')
+    if (doc.getElementsByTagName('kml').length) return summarise(tg.kml(doc) as FeatureCollection)
+    if (doc.getElementsByTagName('gpx').length) return summarise(tg.gpx(doc) as FeatureCollection)
+    throw new Error('Unrecognised XML: expected KML or GPX.')
+  }
   if (kind === 'json') {
     const fc = JSON.parse(new TextDecoder().decode(bytes)) as FeatureCollection
     return summarise(fc.type === 'FeatureCollection' ? fc : { type: 'FeatureCollection', features: [] })
@@ -143,6 +162,8 @@ async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<LoadedLay
 
     const geojson = find(/\.(geo)?json$/i)
     if (geojson) return parseBytes(toArrayBuffer(entries[geojson]), ramp)
+    const kmlFile = find(/\.kml$/i)
+    if (kmlFile) return parseBytes(toArrayBuffer(entries[kmlFile]), ramp)
     const gpkg = find(/\.gpkg$/i)
     if (gpkg) return parseBytes(toArrayBuffer(entries[gpkg]), ramp)
     const tif = find(/\.tiff?$/i)
@@ -171,4 +192,14 @@ export function loadLayer(projectId: string, layer: WsLayer): Promise<LoadedLaye
     memo.set(key, p)
   }
   return p
+}
+
+/** Raw file bytes for a layer (from the browser cache when possible). */
+export function getLayerBytes(projectId: string, layer: WsLayer): Promise<ArrayBuffer> {
+  return fetchBytes(projectId, layer)
+}
+
+/** Put freshly uploaded bytes in the cache so the map doesn't re-download them. */
+export function primeCache(key: string, bytes: ArrayBuffer): Promise<void> {
+  return cachePut(key, bytes)
 }

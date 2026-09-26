@@ -27,6 +27,15 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     .select('r2_key').eq('id', layerId).eq('project_id', id).maybeSingle()
   if (!layer) return jsonError('not_found', 404)
 
+  // Team uploads live in Supabase Storage (browser-friendly CORS), not R2.
+  if (layer.r2_key.startsWith('upload:')) {
+    const path = layer.r2_key.slice('upload:'.length)
+    if (!path.startsWith(`${gate.membership.org_id}/`)) return jsonError('not_found', 404)
+    const { data, error } = await service.storage.from('workspace-uploads').createSignedUrl(path, 900)
+    if (error || !data) return jsonError('file_missing', 404)
+    return NextResponse.json({ url: data.signedUrl, proxy: data.signedUrl, key: layer.r2_key })
+  }
+
   if (req.nextUrl.searchParams.get('raw') === '1') {
     try {
       const obj = await getObjectStream(layer.r2_key)

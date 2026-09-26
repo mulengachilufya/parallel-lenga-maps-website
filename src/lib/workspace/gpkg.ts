@@ -17,7 +17,7 @@ function loadSql(): Promise<SqlJsStatic> {
   return sqlPromise
 }
 
-export async function readGeoPackage(bytes: Uint8Array): Promise<{ fc: FeatureCollection; srsId: number | null }> {
+export async function readGeoPackage(bytes: Uint8Array, onlyTable?: string | null): Promise<{ fc: FeatureCollection; srsId: number | null; tables: string[] }> {
   const SQL = await loadSql()
   const db = new SQL.Database(bytes)
   try {
@@ -30,7 +30,9 @@ export async function readGeoPackage(bytes: Uint8Array): Promise<{ fc: FeatureCo
     const features: Feature[] = []
     let srsId: number | null = null
 
+    const names = (tables as [string, string, number][]).map((t) => t[0])
     for (const [table, geomCol, srs] of tables as [string, string, number][]) {
+      if (onlyTable && table.toLowerCase() !== onlyTable.toLowerCase()) continue
       srsId ??= srs
       const stmt = db.prepare(`select * from "${table.replace(/"/g, '""')}"`)
       try {
@@ -53,7 +55,7 @@ export async function readGeoPackage(bytes: Uint8Array): Promise<{ fc: FeatureCo
         stmt.free()
       }
     }
-    return { fc: { type: 'FeatureCollection', features }, srsId }
+    return { fc: { type: 'FeatureCollection', features }, srsId, tables: names }
   } finally {
     db.close()
   }
