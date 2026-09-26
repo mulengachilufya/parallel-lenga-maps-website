@@ -230,7 +230,7 @@ function MessagesInner() {
                         )}
                         {m.body && <div className="body">{m.body}</div>}
                         {mine && lastMine?.id === m.id && (
-                          <div className="seen">{m.read_at ? `Seen ${timeAgo(m.read_at)}` : 'Sent · emailed if they are away'}</div>
+                          <div className="seen">{m.read_at ? `Seen ${timeAgo(m.read_at)}` : 'Sent'}</div>
                         )}
                       </div>
                     )
