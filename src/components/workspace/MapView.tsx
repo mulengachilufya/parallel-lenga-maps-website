@@ -25,6 +25,11 @@ export interface MapViewHandle {
   zoomToLayer: (id: string) => void
   getView: () => { lng: number; lat: number; zoom: number } | null
   getBounds: () => [number, number, number, number] | null
+  /** Features of a vector layer are addressed by their index in its FeatureCollection. */
+  highlight: (layerId: string | null, ids: number[]) => void
+  zoomToFeatures: (layerId: string, ids: number[]) => void
+  filterFeatures: (layerId: string, ids: number[] | null) => void
+  resize: () => void
 }
 
 export interface ViewInfo { lng: number; lat: number; zoom: number; scale: number }
@@ -44,6 +49,8 @@ interface Props {
   onView:        (v: ViewInfo) => void
   onCursor:      (c: { lng: number; lat: number } | null) => void
   onBasemapFailed?: () => void
+  /** A feature was clicked on the map (identify). additive = Ctrl/Cmd/Shift held. */
+  onFeaturePick?: (layerId: string, featureIndex: number, additive: boolean) => void
 }
 
 // ── Basemaps ────────────────────────────────────────────────────────────────
@@ -141,7 +148,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
       return
     }
 
-    if (!m.getSource(src(layer.id))) m.addSource(src(layer.id), { type: 'geojson', data: data.fc, tolerance: 0.4 })
+    if (!m.getSource(src(layer.id))) m.addSource(src(layer.id), { type: 'geojson', data: data.fc, tolerance: 0.4, generateId: true })
     const polys = ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]]
     const lines = ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]]
     const points = ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]]
@@ -164,6 +171,34 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
     m.setPaintProperty(sub(layer.id, 'circle'), 'circle-stroke-width', 0.6)
     m.setPaintProperty(sub(layer.id, 'circle'), 'circle-stroke-opacity', s.opacity)
     for (const k of ['fill', 'line', 'circle'] as const) m.setLayoutProperty(sub(layer.id, k), 'visibility', vis)
+    const f = featureFilter.current.get(layer.id)
+    for (const [k, base] of [['fill', polys], ['line', lines], ['circle', points]] as const) {
+      m.setFilter(sub(layer.id, k), (f ? ['all', base, ['in', ['id'], ['literal', f]]] : base) as never)
+    }
+  }, [])
+
+  // ── Selection highlight (drawn above everything) ─────────────────────────
+  const selection = useRef<{ layerId: string | null; ids: number[] }>({ layerId: null, ids: [] })
+  const featureFilter = useRef(new Map<string, number[]>())
+  const drawHighlight = useCallback(() => {
+    const m = map.current
+    if (!m || !styleReady.current) return
+    const { layerId, ids } = selection.current
+    const d = layerId ? loaded.current.get(layerId)?.data : undefined
+    const feats = d && d.kind === 'vector' ? ids.map((i) => d.fc.features[i]).filter(Boolean) : []
+    const fc = { type: 'FeatureCollection' as const, features: feats }
+    const s = m.getSource('ws-sel') as { setData?: (d: unknown) => void } | undefined
+    if (s?.setData) s.setData(fc)
+    else {
+      m.addSource('ws-sel', { type: 'geojson', data: fc })
+      m.addLayer({ id: 'ws-sel-fill', type: 'fill', source: 'ws-sel', filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]] as never,
+        paint: { 'fill-color': '#f2c94c', 'fill-opacity': 0.28 } })
+      m.addLayer({ id: 'ws-sel-line', type: 'line', source: 'ws-sel', filter: ['!', ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]]] as never,
+        layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#f2c94c', 'line-width': 3 } })
+      m.addLayer({ id: 'ws-sel-circle', type: 'circle', source: 'ws-sel', filter: ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]] as never,
+        paint: { 'circle-color': '#f2c94c', 'circle-radius': 6, 'circle-stroke-color': '#10161c', 'circle-stroke-width': 1.5 } })
+    }
+    for (const id of ['ws-sel-fill', 'ws-sel-line', 'ws-sel-circle']) if (m.getLayer(id)) m.moveLayer(id)
   }, [])
 
   const removeLayer = useCallback((id: string) => {
@@ -237,6 +272,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
         if (m.getLayer(sub(layer.id, k))) m.moveLayer(sub(layer.id, k))
       }
     }
+    for (const id of ['ws-sel-fill', 'ws-sel-line', 'ws-sel-circle']) if (m.getLayer(id)) m.moveLayer(id)
   }
 
   // ── Create the map once ──────────────────────────────────────────────────
@@ -265,7 +301,7 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
       m.addControl(new maplibregl.ScaleControl({ unit: 'metric', maxWidth: 110 }), 'bottom-left')
       m.touchZoomRotate.disableRotation()
 
-      m.on('style.load', () => { styleReady.current = true; sync() })
+      m.on('style.load', () => { styleReady.current = true; sync(); drawHighlight() })
 
       m.on('error', () => fallbackToPaper())
       armFallback()
@@ -309,6 +345,10 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
     const f = hits[0]
     const layerId = f.layer.id.replace(/^ws-(fill|line|circle)-/, '')
     const layer = latest.current.layers.find((l) => l.id === layerId)
+    if (typeof f.id === 'number') {
+      const ev = e.originalEvent as MouseEvent
+      latest.current.onFeaturePick?.(layerId, f.id, ev.ctrlKey || ev.metaKey || ev.shiftKey)
+    }
 
     const root = document.createElement('div')
     root.className = 'ws-identify'
@@ -402,7 +442,33 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
       const b = map.current?.getBounds()
       return b ? [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] : null
     },
-  }), [])
+    highlight: (layerId, ids) => { selection.current = { layerId, ids }; drawHighlight() },
+    zoomToFeatures: (layerId, ids) => {
+      const d = loaded.current.get(layerId)?.data
+      if (!d || d.kind !== 'vector' || !map.current || !ids.length) return
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+      const visit = (c: unknown): void => {
+        if (typeof (c as number[])[0] === 'number') {
+          const [x, y] = c as number[]
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
+        } else (c as unknown[]).forEach(visit)
+      }
+      for (const i of ids) {
+        const g = d.fc.features[i]?.geometry
+        if (g && 'coordinates' in g) visit(g.coordinates)
+      }
+      if (!Number.isFinite(x0)) return
+      const pad = x0 === x1 && y0 === y1 ? 0.01 : 0
+      map.current.fitBounds([[x0 - pad, y0 - pad], [x1 + pad, y1 + pad]], { padding: 40, maxZoom: 14, duration: 600 })
+    },
+    filterFeatures: (layerId, ids) => {
+      if (ids) featureFilter.current.set(layerId, ids); else featureFilter.current.delete(layerId)
+      const layer = latest.current.layers.find((l) => l.id === layerId)
+      const d = loaded.current.get(layerId)?.data
+      if (layer && d) drawLayer(layer, d)
+    },
+    resize: () => map.current?.resize(),
+  }), [drawHighlight, drawLayer])
 
   return <div ref={box} className="ws-map" />
 })
