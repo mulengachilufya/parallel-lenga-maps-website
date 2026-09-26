@@ -22,6 +22,7 @@ import MapView, { type LayerStatus, type MapViewHandle, type ViewInfo } from '@/
 import LayerPanel from '@/components/workspace/LayerPanel'
 import DiscussionPanel from '@/components/workspace/DiscussionPanel'
 import HistoryPanel from '@/components/workspace/HistoryPanel'
+import type { VoiceClip } from '@/components/workspace/VoiceRecorder'
 import DetailsPanel from '@/components/workspace/DetailsPanel'
 import { ConfirmDialog, LayerPropertiesDialog } from '@/components/workspace/Dialogs'
 import AddData from '@/components/workspace/AddData'
@@ -36,6 +37,13 @@ import {
 } from '@/lib/workspace/types'
 
 type Tab = 'discussion' | 'history' | 'details'
+
+const VOICE_ERRORS: Record<string, string> = {
+  voice_too_large: 'That recording is too large to send (4 MB limit).',
+  voice_too_long:  'Voice notes can be up to 5 minutes.',
+  voice_too_short: 'That recording was too short.',
+  voice_format:    'This browser recorded in a format we cannot store.',
+}
 type Dialog =
   | { kind: 'edit'; layerId: string }
   | { kind: 'remove'; layer: WsLayer }
@@ -67,6 +75,8 @@ function Workstation() {
   const [view, setView] = useState<ViewInfo | null>(null)
   const [cursor, setCursor] = useState<{ lng: number; lat: number } | null>(null)
   const [tab, setTab] = useState<Tab>((search.get('tab') as Tab) || 'discussion')
+  const [aboutRev, setAboutRev] = useState<number | null>(null)
+  const [historyFocus, setHistoryFocus] = useState<number | null>(null)
   const [showLeft, setShowLeft] = useState(true)
   const [showRight, setShowRight] = useState(true)
   const [pickMode, setPickMode] = useState<'pin' | 'place' | null>(null)
@@ -183,6 +193,11 @@ function Workstation() {
 
   const pins = useMemo(() => messages.filter((m) => !m.parent_id && !m.deleted_at && m.lng !== null && m.lat !== null), [messages])
   const pinNumbers = useMemo(() => new Map(pins.map((m, i) => [m.id, i + 1])), [pins])
+  const revComments = useMemo(() => {
+    const n = new Map<number, number>()
+    for (const m of messages) if (m.revision_seq && !m.deleted_at) n.set(m.revision_seq, (n.get(m.revision_seq) ?? 0) + 1)
+    return n
+  }, [messages])
   const selectedLayer = shownLayers.find((l) => l.id === selected) ?? null
   const selectedStatus = selected ? statuses[selected] : undefined
 
@@ -310,10 +325,28 @@ function Workstation() {
     revNote(d.rev); refresh()
   }
 
-  async function sendMessage(body: string, mentions: string[], parentId: string | null) {
+  async function sendMessage(body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) {
     const pin = !parentId && draftPin ? draftPin : null
     const d = await api<{ message: WsMessage }>(`/api/workspace/projects/${id}/messages`,
-      { method: 'POST', json: { body, mentions, parent_id: parentId, lng: pin?.lng, lat: pin?.lat } })
+      { method: 'POST', json: { body, mentions, parent_id: parentId, lng: pin?.lng, lat: pin?.lat, revision_seq: revisionSeq ?? undefined } })
+    setMessages((list) => list.some((m) => m.id === d.message.id) ? list : [...list, d.message])
+    if (pin) setDraftPin(null)
+  }
+
+  async function sendVoiceMessage(clip: VoiceClip, body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) {
+    const pin = !parentId && draftPin ? draftPin : null
+    const form = new FormData()
+    const ext = clip.blob.type.includes('mp4') ? 'm4a' : clip.blob.type.includes('ogg') ? 'ogg' : 'webm'
+    form.append('audio', clip.blob, `voice.${ext}`)
+    form.append('seconds', String(clip.seconds))
+    form.append('body', body)
+    if (mentions.length) form.append('mentions', mentions.join(','))
+    if (parentId) form.append('parent_id', parentId)
+    if (pin) { form.append('lng', String(pin.lng)); form.append('lat', String(pin.lat)) }
+    if (revisionSeq) form.append('revision_seq', String(revisionSeq))
+    const res = await fetch(`/api/workspace/projects/${id}/messages`, { method: 'POST', body: form })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(VOICE_ERRORS[d.error] ?? d.error ?? 'Could not send the voice note')
     setMessages((list) => list.some((m) => m.id === d.message.id) ? list : [...list, d.message])
     if (pin) setDraftPin(null)
   }
@@ -494,13 +527,15 @@ function Workstation() {
             </div>
             {tab === 'discussion' && (
               <DiscussionPanel
-                messages={messages} members={bundle.members} me={bundle.me}
+                projectId={id} messages={messages} members={bundle.members} me={bundle.me}
                 pinNumbers={pinNumbers} focusId={focusMsg}
                 draftPin={draftPin} picking={pickMode === 'pin'}
                 onStartPin={() => setPickMode((m) => (m === 'pin' ? null : 'pin'))}
                 onClearPin={() => setDraftPin(null)}
                 onShowPin={(m) => { if (m.lng !== null && m.lat !== null) mapRef.current?.flyTo(m.lng, m.lat, Math.max(view?.zoom ?? 6, 8)) }}
-                onSend={sendMessage} onEdit={editMessage} onDelete={deleteMessage}
+                onSend={sendMessage} onSendVoice={sendVoiceMessage} onEdit={editMessage} onDelete={deleteMessage}
+                aboutRev={aboutRev} onClearRev={() => setAboutRev(null)}
+                onShowRev={(seq) => { setHistoryFocus(seq); setTab('history') }}
               />
             )}
             {tab === 'history' && (
@@ -508,6 +543,8 @@ function Workstation() {
                 projectId={id} revisions={revisions} previewSeq={preview?.seq ?? null}
                 onPreview={(seq, snapshot) => setPreview(head && seq === head.seq ? null : { seq, snapshot })}
                 onRestore={(rev) => setDialog({ kind: 'restore', rev })}
+                onComment={(seq) => { setAboutRev(seq); setTab('discussion') }}
+                commentCounts={revComments} focusSeq={historyFocus}
               />
             )}
             {tab === 'details' && (

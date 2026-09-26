@@ -84,6 +84,9 @@ export interface WsMessage {
   created_at:  string
   edited_at:   string | null
   deleted_at:  string | null
+  voice_path?:    string | null
+  voice_seconds?: number | null
+  revision_seq?:  number | null
 }
 
 /** A one-to-one message between teammates (text, voice note, or both). */

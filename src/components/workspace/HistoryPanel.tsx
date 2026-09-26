@@ -10,10 +10,14 @@ interface Props {
   previewSeq: number | null
   onPreview:  (seq: number, snapshot: WsSnapshot) => void
   onRestore:  (rev: WsRevision) => void
+  onComment:  (seq: number) => void
+  commentCounts: Map<number, number>
+  focusSeq:   number | null
 }
 
-export default function HistoryPanel({ projectId, revisions, previewSeq, onPreview, onRestore }: Props) {
-  const [selected, setSelected] = useState<number | null>(null)
+export default function HistoryPanel({ projectId, revisions, previewSeq, onPreview, onRestore, onComment, commentCounts, focusSeq }: Props) {
+  const [selected, setSelected] = useState<number | null>(focusSeq)
+  useEffect(() => { if (focusSeq !== null) setSelected(focusSeq) }, [focusSeq])
   const [detail, setDetail] = useState<{ seq: number; snapshot: WsSnapshot; diff: DiffLine[] } | null>(null)
   const [err, setErr] = useState('')
 
@@ -47,6 +51,7 @@ export default function HistoryPanel({ projectId, revisions, previewSeq, onPrevi
               <span title={stamp(r.created_at)}>{timeAgo(r.created_at)}</span>
               {r.seq === head && <span style={{ color: 'var(--ink)' }}>(latest)</span>}
               {previewSeq === r.seq && <span style={{ color: 'var(--link)' }}>(previewing)</span>}
+              {(commentCounts.get(r.seq) ?? 0) > 0 && <span title="Comments on this change">· {commentCounts.get(r.seq)} comment{commentCounts.get(r.seq) === 1 ? '' : 's'}</span>}
             </div>
             <div className="line2"><span className="who">{r.author_name}</span> {r.summary.charAt(0).toLowerCase() + r.summary.slice(1)}</div>
             {selected === r.seq && (
@@ -59,6 +64,7 @@ export default function HistoryPanel({ projectId, revisions, previewSeq, onPrevi
                     </div>
                     <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
                       <button className="ws-btn" onClick={() => onPreview(r.seq, detail.snapshot)}>Preview on map</button>
+                      <button className="ws-btn" onClick={() => onComment(r.seq)}>Comment on r{r.seq}</button>
                       {r.seq !== head && (
                         <button className="ws-btn" onClick={() => onRestore(r)}>Restore r{r.seq}…</button>
                       )}
