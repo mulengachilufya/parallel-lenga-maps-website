@@ -1,8 +1,6 @@
 // src/lib/workspace/dms.ts
 //
-// Server-side helpers for teammate direct messages.
-
-import type { WsDirectMessage } from './types'
+// Shared constants for workspace messaging and project voice notes.
 
 export const VOICE_BUCKET = 'workspace-voice'
 export const VOICE_MAX_BYTES = 4 * 1024 * 1024
@@ -17,11 +15,6 @@ export const VOICE_TYPES: Record<string, string> = {
 /** Don't email again while the recipient still hasn't read the last emailed
  *  message from this sender and it went out less than this long ago. */
 export const EMAIL_QUIET_MS = 10 * 60 * 1000
-
-export function preview(m: Pick<WsDirectMessage, 'body' | 'voice_seconds' | 'voice_path'>): string {
-  if (m.body) return m.body.length > 90 ? `${m.body.slice(0, 90)}…` : m.body
-  return m.voice_path ? `Voice note (${clock(m.voice_seconds ?? 0)})` : ''
-}
 
 export function clock(seconds: number): string {
   const s = Math.max(0, Math.round(seconds))

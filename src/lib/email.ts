@@ -534,33 +534,66 @@ Reply in the workspace: ${cta}`
   }
 }
 
-/** A teammate sent you a direct message in the workspace. */
+/**
+ * A teammate sent you a direct message. Messages are end-to-end encrypted,
+ * so this email can only say that one is waiting, never what it says.
+ */
 export function workspaceDirectMessageEmail(opts: {
-  to: string; fromName: string; orgName: string; body: string; fromId: string
+  to: string; fromName: string; orgName: string; fromId: string
 }): EmailMessage {
-  const cta   = `${APP_URL}/workspace/messages?with=${encodeURIComponent(opts.fromId)}`
-  const from  = escapeHtml(opts.fromName)
-  const text0 = opts.body.length > 600 ? `${opts.body.slice(0, 600)}…` : opts.body
+  const cta  = `${APP_URL}/workspace/messages?with=${encodeURIComponent(opts.fromId)}`
+  const from = escapeHtml(opts.fromName)
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      <strong>${from}</strong> sent you a message on your ${escapeHtml(opts.orgName)} workspace:
+      <strong>${from}</strong> sent you a message on your ${escapeHtml(opts.orgName)} workspace.
     </p>
-    <blockquote style="margin:0 0 4px;padding:10px 14px;border-left:3px solid #C9A227;background:#faf8f2;font-size:14px;line-height:1.6;color:#333;white-space:pre-wrap;">${escapeHtml(text0)}</blockquote>`
-  const text = `${opts.fromName} sent you a message on your ${opts.orgName} workspace:
+    <p style="margin:0 0 4px;font-size:14px;line-height:1.6;color:#555;">
+      Direct messages are end-to-end encrypted: only you and ${from} can read them, so we
+      can't include it here. Open the workspace to read and reply.
+    </p>`
+  const text = `${opts.fromName} sent you a message on your ${opts.orgName} workspace.
 
-${text0}
-
-Reply: ${cta}`
+Direct messages are end-to-end encrypted, so only you and ${opts.fromName} can read them. Open the workspace to read and reply: ${cta}`
   return {
     to:      opts.to,
-    subject: `Message from ${opts.fromName}`,
+    subject: `New message from ${opts.fromName}`,
     html: shell({
-      preheader: text0.slice(0, 120),
+      preheader: `${opts.fromName} sent you an encrypted message.`,
       heading:   'New message',
       bodyHtml,
-      ctaLabel:  'Reply',
+      ctaLabel:  'Read the message',
       ctaHref:   cta,
       footnote:  'You get this email when a teammate messages you in a Lenga Maps workspace. While you are chatting live we hold back repeat emails.',
+    }),
+    text,
+  }
+}
+
+/** Someone tried to message you, but you haven't set up secure messages yet. */
+export function workspaceSecureSetupEmail(opts: { to: string; fromName: string; orgName: string }): EmailMessage {
+  const cta  = `${APP_URL}/workspace/messages`
+  const from = escapeHtml(opts.fromName)
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      <strong>${from}</strong> wants to send you a direct message on your ${escapeHtml(opts.orgName)} workspace.
+    </p>
+    <p style="margin:0 0 4px;font-size:14px;line-height:1.6;color:#555;">
+      Direct messages are end-to-end encrypted. Open Messages once and choose a messages passphrase
+      (it takes a minute); after that, ${from} can reach you.
+    </p>`
+  const text = `${opts.fromName} wants to send you a direct message on your ${opts.orgName} workspace.
+
+Direct messages are end-to-end encrypted. Open Messages once and choose a messages passphrase: ${cta}`
+  return {
+    to: opts.to,
+    subject: `${opts.fromName} wants to message you`,
+    html: shell({
+      preheader: `Set up secure messages so ${opts.fromName} can reach you.`,
+      heading:   'Set up secure messages',
+      bodyHtml,
+      ctaLabel:  'Set up now',
+      ctaHref:   cta,
+      footnote:  'We send this at most once a day.',
     }),
     text,
   }

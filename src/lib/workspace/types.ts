@@ -89,24 +89,29 @@ export interface WsMessage {
   revision_seq?:  number | null
 }
 
-/** A one-to-one message between teammates (text, voice note, or both). */
+/** A one-to-one message between teammates. End-to-end encrypted: the
+ *  server only ever holds ciphertext (see lib/workspace/e2e.ts). */
 export interface WsDirectMessage {
-  id:            string
-  org_id:        string
-  sender_id:     string
-  recipient_id:  string
-  sender_name:   string
-  body:          string | null
-  voice_path:    string | null
-  voice_seconds: number | null
-  project_id:    string | null
-  created_at:    string
-  read_at:       string | null
+  id:               string
+  org_id:           string
+  sender_id:        string
+  recipient_id:     string
+  sender_name:      string
+  ciphertext:       string
+  iv:               string
+  sender_key_id:    string
+  recipient_key_id: string
+  project_id:       string | null
+  created_at:       string
+  read_at:          string | null
 }
+
+export interface WsSealedRef { ciphertext: string; iv: string; sender_key_id: string; recipient_key_id: string }
 
 export interface WsConversation {
   member:  WsMember
-  last:    { preview: string; at: string; from_me: boolean } | null
+  key:     { key_id: string; public_jwk: JsonWebKey } | null
+  last:    { at: string; from_me: boolean; sealed: WsSealedRef } | null
   unread:  number
 }
 
