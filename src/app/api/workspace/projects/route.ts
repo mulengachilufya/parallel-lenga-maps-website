@@ -1,11 +1,18 @@
 /**
  * GET  /api/workspace/projects  — the org projects the caller can open (private
  *        ones only if they're on them), newest activity first, with their role
- * POST /api/workspace/projects  — { name, description? } → creates a project (r1)
+ * POST /api/workspace/projects  — { name, description?, template?, country_iso3? }
+ *        → creates a project (r1). With a template, its Lenga datasets for
+ *        that country are added as r2; datasets with no file for the
+ *        country are skipped and reported.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { commit, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import type { ProjectRole } from '@/lib/workspace/types'
+import { findDataset, listFilesForDataset, type ApiFile } from '@/lib/api-datasets'
+import { fileVariant } from '@/lib/workspace/catalog'
+import { AFRICAN_COUNTRIES, findTemplate } from '@/lib/workspace/templates'
+import { defaultStyle } from '@/lib/workspace/types'
 import { DEFAULT_MAP_STATE, type WsProjectSummary } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -72,6 +79,10 @@ export async function POST(req: NextRequest) {
   const name = str(body.name, 120)
   const description = str(body.description, 2000)
   if (!name) return jsonError('name_required', 400)
+  const template = findTemplate(body.template)
+  const country = AFRICAN_COUNTRIES.find((c) => c.iso3 === body.country_iso3)
+  if (body.template && !template) return jsonError('unknown_template', 400)
+  if (template && !country) return jsonError('country_required', 400)
 
   const { data: project, error } = await service
     .from('workspace_projects')
@@ -87,5 +98,40 @@ export async function POST(req: NextRequest) {
   if (error || !project) return jsonError('create_failed', 500)
 
   await commit(project.id, gate, 'create', `Created the project "${name}"`)
-  return NextResponse.json({ id: project.id }, { status: 201 })
+  if (!template || !country) return NextResponse.json({ id: project.id }, { status: 201 })
+
+  // Resolve each template dataset to this country's file.
+  const picked: { spec: NonNullable<ReturnType<typeof findDataset>>; file: ApiFile }[] = []
+  const skipped: string[] = []
+  await Promise.all(template.layers.map(async (tl, order) => {
+    const spec = findDataset(tl.dataset)
+    if (!spec) return
+    const files = (await listFilesForDataset(spec, country.name).catch(() => [] as ApiFile[]))
+      .filter((f) => f.country_iso3 === country.iso3)
+    if (!files.length) { skipped[order] = spec.name; return }
+    const pref = (tl.prefer ?? []).map((v) => files.find((f) => fileVariant(f) === v)).find(Boolean)
+    picked[order] = { spec, file: pref ?? [...files].sort((a, b) => a.file_size_mb - b.file_size_mb)[0] }
+  }))
+  const rows = picked.filter(Boolean).map(({ spec, file }, i) => {
+    const variant = fileVariant(file)
+    return {
+      project_id:   project.id,
+      dataset_slug: spec.id,
+      country:      file.country_name,
+      r2_key:       file.r2_key,
+      file_format:  file.file_format,
+      label:        [spec.name, file.country_name, variant.length <= 24 ? variant : ''].filter(Boolean).join(' · ').slice(0, 160),
+      style:        defaultStyle(spec.id),
+      sort_order:   i,
+      added_by:     gate.user.id,
+      added_by_name: gate.name,
+    }
+  })
+  if (rows.length) {
+    const { error: layerErr } = await service.from('workspace_layers').insert(rows)
+    if (!layerErr) {
+      await commit(project.id, gate, 'template', `Started from the "${template.name}" template for ${country.name}: ${rows.length} Lenga datasets`)
+    }
+  }
+  return NextResponse.json({ id: project.id, added: rows.length, skipped: skipped.filter(Boolean) }, { status: 201 })
 }

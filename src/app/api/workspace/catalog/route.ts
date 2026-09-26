@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
       name:     d.name,
       category: d.category,
       raster:   datasetMeta(d.id)?.raster ?? /tif/i.test(d.id),
+      source:      d.source,
+      description: d.description,
     })).sort((a, b) => a.name.localeCompare(b.name))
     return NextResponse.json({ datasets })
   }

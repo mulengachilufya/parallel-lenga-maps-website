@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { api } from './util'
 import { rampCss } from '@/lib/workspace/raster'
-import type { LayerStyle, RasterRamp, WsLayer } from '@/lib/workspace/types'
+import type { CatalogDataset, LayerStyle, RasterRamp, WsLayer } from '@/lib/workspace/types'
 
 function Dialog({ title, onClose, children, buttons }: {
   title: string; onClose: () => void; children: React.ReactNode; buttons: React.ReactNode
@@ -40,6 +41,12 @@ export function LayerPropertiesDialog({ layer, isRaster, onClose, onSave }: {
   const [style, setStyle] = useState<LayerStyle>(layer.style)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [meta, setMeta] = useState<CatalogDataset | null>(null)
+  useEffect(() => {
+    if (layer.dataset_slug === 'upload') return
+    api<{ datasets: CatalogDataset[] }>('/api/workspace/catalog')
+      .then((d) => setMeta(d.datasets.find((x) => x.id === layer.dataset_slug) ?? null)).catch(() => {})
+  }, [layer.dataset_slug])
   const set = <K extends keyof LayerStyle>(k: K, v: LayerStyle[K]) => setStyle((s) => ({ ...s, [k]: v }))
 
   async function save() {
@@ -118,9 +125,23 @@ export function LayerPropertiesDialog({ layer, isRaster, onClose, onSave }: {
         </tbody>
       </table>
       <hr />
-      <p className="muted small" style={{ margin: 0 }}>
-        Source: <span className="mono">{layer.r2_key.split('/').pop()}</span> · {layer.file_format || 'file'} · added by {layer.added_by_name ?? 'a teammate'}
-      </p>
+      <div className="ws-label" style={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '.07em', fontSize: 10 }}>Where this data comes from</div>
+      <table className="ws-prov">
+        <tbody>
+          {layer.dataset_slug === 'upload' ? (
+            <tr><td>Origin</td><td>Uploaded by the team (imported from a desktop GIS project or file)</td></tr>
+          ) : (
+            <>
+              <tr><td>Publisher</td><td>{meta?.source ?? '…'}</td></tr>
+              <tr><td>Lenga processing</td><td>{meta?.description ?? '…'}</td></tr>
+              <tr><td>Coverage</td><td>{layer.country || '—'}</td></tr>
+              <tr><td>Reference system</td><td>WGS 84 (EPSG:4326)</td></tr>
+            </>
+          )}
+          <tr><td>File</td><td><span className="mono">{layer.r2_key.split('/').pop()}</span> · {layer.file_format || 'file'}</td></tr>
+          <tr><td>Added</td><td>by {layer.added_by_name ?? 'a teammate'}, {new Date(layer.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td></tr>
+        </tbody>
+      </table>
     </Dialog>
   )
 }

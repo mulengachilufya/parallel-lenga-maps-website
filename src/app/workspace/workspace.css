@@ -498,3 +498,6 @@
 .ws-role-chip { display: inline-flex; align-items: center; padding: 0 7px; height: 20px; font-size: 10.5px; border: 1px solid var(--rule-strong); color: var(--ink-soft); white-space: nowrap; }
 .ws-role-chip.viewer { border-color: #7fa3cc; color: #b9d0ea; }
 .ws-role-chip.manager { border-color: var(--brass); color: var(--brass); }
+.ws-prov { border-collapse: collapse; width: 100%; margin-top: 4px; font-size: 11px; }
+.ws-prov td { padding: 3px 0; vertical-align: top; border-top: 1px solid var(--rule); line-height: 1.45; }
+.ws-prov td:first-child { color: var(--muted); width: 120px; white-space: nowrap; padding-right: 8px; }

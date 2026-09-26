@@ -13,12 +13,13 @@ interface Props {
   me:        { user_id: string; role: 'owner' | 'member'; project_role: ProjectRole }
   onSave:    (patch: Patch) => Promise<void>
   onSetRole: (userId: string, role: ProjectRole | null) => Promise<void>
+  onDuplicate?: () => void
   onArchive: () => void
 }
 
 const HEAD: React.CSSProperties = { fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '.07em', fontSize: 10 }
 
-export default function DetailsPanel({ project, members, online, me, onSave, onSetRole, onArchive }: Props) {
+export default function DetailsPanel({ project, members, online, me, onSave, onSetRole, onDuplicate, onArchive }: Props) {
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description)
   const [busy, setBusy] = useState(false)
@@ -125,7 +126,10 @@ export default function DetailsPanel({ project, members, online, me, onSave, onS
       <p className="small muted" style={{ margin: '0 0 8px', lineHeight: 1.6 }}>
         Created {stamp(project.created_at)}. Last changed {stamp(project.updated_at)}.
       </p>
-      {manager && <button className="ws-btn ws-btn-danger" onClick={onArchive}>Archive project…</button>}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {onDuplicate && <button className="ws-btn" onClick={onDuplicate} title="Same layers, styles and saved views in a new project; no discussion or history">Duplicate project…</button>}
+        {manager && <button className="ws-btn ws-btn-danger" onClick={onArchive}>Archive project…</button>}
+      </div>
     </div>
   )
 }
