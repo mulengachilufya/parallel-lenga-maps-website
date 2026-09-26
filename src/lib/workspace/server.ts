@@ -97,3 +97,12 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
 export function str(v: unknown, max: number): string {
   return typeof v === 'string' ? v.trim().slice(0, max) : ''
 }
+
+/** Another member of the caller's organization, or null. */
+export async function teammate(gate: WorkspaceGate, userId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(userId) || userId === gate.user.id) return null
+  const { data } = await service.from('organization_members')
+    .select('user_id, member_name, member_email')
+    .eq('org_id', gate.membership.org_id).eq('user_id', userId).maybeSingle()
+  return data
+}

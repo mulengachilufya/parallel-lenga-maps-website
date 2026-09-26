@@ -468,3 +468,6 @@
 .ws-voice { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .ws-voice audio { height: 30px; max-width: 230px; }
 .ws-composer .row { flex-wrap: wrap; }
+.ws-e2e-foot { border-top: 1px solid var(--rule); padding: 8px 10px; font-size: 10px; color: var(--muted); line-height: 1.5; flex: none; }
+.ws .lock { color: var(--ok); font-size: 8px; vertical-align: 1px; }
+.ws-mention-pop form { display: block; }
