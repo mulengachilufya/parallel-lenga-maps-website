@@ -1,8 +1,8 @@
 /**
  * GET  /api/workspace/dms/:userId — the conversation with one teammate
  *      (latest 300, oldest first). Marks their messages to the caller read.
- * POST /api/workspace/dms/:userId — send. JSON { body, project_id? } for
- *      text; multipart (audio, seconds, body?, project_id?) for a voice note.
+ * POST /api/workspace/dms/:userId — send. JSON { body, project_id? }. Text
+ *      only: voice notes live in project comments (see ../projects/:id/messages).
  *
  * The recipient sees it at once through Realtime and gets an email, unless
  * an earlier emailed message from the same sender is still unread and less
@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail, workspaceDirectMessageEmail } from '@/lib/email'
-import { EMAIL_QUIET_MS, VOICE_BUCKET, VOICE_MAX_BYTES, VOICE_MAX_SECONDS, VOICE_TYPES } from '@/lib/workspace/dms'
+import { EMAIL_QUIET_MS } from '@/lib/workspace/dms'
 import { jsonError, requireWorkspace, service, type WorkspaceGate } from '@/lib/workspace/server'
 import type { WsDirectMessage } from '@/lib/workspace/types'
 
@@ -54,50 +54,16 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const other = await teammate(gate, userId)
   if (!other) return jsonError('not_found', 404)
 
-  let body = ''
-  let projectId: unknown = null
-  let audio: File | null = null
-  let seconds = 0
-  const isForm = (req.headers.get('content-type') ?? '').startsWith('multipart/form-data')
-  if (isForm) {
-    const form = await req.formData().catch(() => null)
-    if (!form) return jsonError('bad_form', 400)
-    const f = form.get('audio')
-    audio = f instanceof File ? f : null
-    seconds = Math.round(Number(form.get('seconds')))
-    body = typeof form.get('body') === 'string' ? String(form.get('body')) : ''
-    projectId = form.get('project_id')
-  } else {
-    const input = await req.json().catch(() => ({})) as Record<string, unknown>
-    body = typeof input.body === 'string' ? input.body : ''
-    projectId = input.project_id
-  }
-  body = body.replace(/\r\n/g, '\n').trim().slice(0, 4000)
-
-  let voicePath: string | null = null
-  if (isForm) {
-    if (!audio || audio.size === 0) return jsonError('audio_required', 400)
-    if (audio.size > VOICE_MAX_BYTES) return jsonError('voice_too_large', 413)
-    if (!Number.isFinite(seconds) || seconds < 1) return jsonError('voice_too_short', 400)
-    if (seconds > VOICE_MAX_SECONDS) return jsonError('voice_too_long', 400)
-    const type = (audio.type || '').split(';')[0].trim().toLowerCase()
-    const ext = VOICE_TYPES[type]
-    if (!ext) return jsonError('voice_format', 415)
-    voicePath = `${gate.membership.org_id}/${gate.user.id}/${crypto.randomUUID()}.${ext}`
-    const { error: upErr } = await service.storage.from(VOICE_BUCKET)
-      .upload(voicePath, new Uint8Array(await audio.arrayBuffer()), { contentType: type, upsert: false })
-    if (upErr) {
-      console.error('[dms] voice upload failed', upErr)
-      return jsonError('voice_upload_failed', 500)
-    }
-  } else if (!body) {
-    return jsonError('body_required', 400)
-  }
+  // Text only. Voice notes belong in project comments, where the team sees them.
+  if (!(req.headers.get('content-type') ?? '').includes('application/json')) return jsonError('text_only', 415)
+  const input = await req.json().catch(() => ({})) as Record<string, unknown>
+  const body = (typeof input.body === 'string' ? input.body : '').replace(/\r\n/g, '\n').trim().slice(0, 4000)
+  if (!body) return jsonError('body_required', 400)
 
   let project: string | null = null
-  if (typeof projectId === 'string' && UUID.test(projectId)) {
+  if (typeof input.project_id === 'string' && UUID.test(input.project_id)) {
     const { data: p } = await service.from('workspace_projects').select('id')
-      .eq('id', projectId).eq('org_id', gate.membership.org_id).maybeSingle()
+      .eq('id', input.project_id).eq('org_id', gate.membership.org_id).maybeSingle()
     project = p?.id ?? null
   }
 
@@ -109,25 +75,19 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const shouldEmail = !!other.member_email && Date.now() - lastEmailed > EMAIL_QUIET_MS
 
   const { data: message, error } = await service.from('workspace_direct_messages').insert({
-    org_id:        gate.membership.org_id,
-    sender_id:     gate.user.id,
-    recipient_id:  userId,
-    sender_name:   gate.name,
-    body:          body || null,
-    voice_path:    voicePath,
-    voice_seconds: voicePath ? seconds : null,
-    project_id:    project,
+    org_id:       gate.membership.org_id,
+    sender_id:    gate.user.id,
+    recipient_id: userId,
+    sender_name:  gate.name,
+    body,
+    project_id:   project,
   }).select('*').single()
-  if (error || !message) {
-    if (voicePath) await service.storage.from(VOICE_BUCKET).remove([voicePath])
-    return jsonError('send_failed', 500)
-  }
+  if (error || !message) return jsonError('send_failed', 500)
 
   let emailed = false
   if (shouldEmail) {
     emailed = await sendEmail(workspaceDirectMessageEmail({
-      to: other.member_email!, fromName: gate.name, orgName: gate.membership.org.name,
-      body: body || null, voiceSeconds: voicePath ? seconds : null, fromId: gate.user.id,
+      to: other.member_email!, fromName: gate.name, orgName: gate.membership.org.name, body, fromId: gate.user.id,
     })).catch(() => false)
     if (emailed) {
       await service.from('workspace_direct_messages').update({ emailed_at: new Date().toISOString() }).eq('id', message.id)

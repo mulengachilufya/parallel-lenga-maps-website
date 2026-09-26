@@ -465,3 +465,6 @@
   .ws-dm-back { display: inline; margin-right: 6px; text-transform: none; letter-spacing: 0; }
   .ws-inbox-link { margin-left: 4px !important; }
 }
+.ws-voice { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ws-voice audio { height: 30px; max-width: 230px; }
+.ws-composer .row { flex-wrap: wrap; }

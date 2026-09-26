@@ -1,10 +1,13 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { clock } from '@/lib/workspace/dms'
 import type { WsMember, WsMessage } from '@/lib/workspace/types'
+import VoiceRecorder, { type VoiceClip } from './VoiceRecorder'
 import { stamp, timeAgo } from './util'
 
 interface Props {
+  projectId:    string
   messages:     WsMessage[]
   members:      WsMember[]
   me:           { user_id: string; role: 'owner' | 'member' }
@@ -15,7 +18,11 @@ interface Props {
   onStartPin:   () => void
   onClearPin:   () => void
   onShowPin:    (m: WsMessage) => void
-  onSend:       (body: string, mentions: string[], parentId: string | null) => Promise<void>
+  onSend:       (body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) => Promise<void>
+  onSendVoice:  (clip: VoiceClip, body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) => Promise<void>
+  aboutRev:     number | null            // composer is commenting on this change
+  onClearRev:   () => void
+  onShowRev:    (seq: number) => void
   onEdit:       (id: string, body: string) => Promise<void>
   onDelete:     (id: string) => Promise<void>
 }
@@ -101,10 +108,17 @@ export default function DiscussionPanel(p: Props) {
     const mentions = p.members.filter((m) => body.includes(`@${m.name}`)).map((m) => m.user_id)
     setBusy(true); setErr('')
     try {
-      await p.onSend(body, mentions, replyTo?.id ?? null)
-      setText(''); setReplyTo(null); nearBottom.current = true
+      await p.onSend(body, mentions, replyTo?.id ?? null, replyTo ? null : p.aboutRev)
+      setText(''); setReplyTo(null); p.onClearRev(); nearBottom.current = true
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not send') }
     finally { setBusy(false) }
+  }
+
+  async function sendVoice(clip: VoiceClip) {
+    const body = text.trim()
+    const mentions = p.members.filter((m) => body.includes(`@${m.name}`)).map((m) => m.user_id)
+    await p.onSendVoice(clip, body, mentions, replyTo?.id ?? null, replyTo ? null : p.aboutRev)
+    setText(''); setReplyTo(null); p.onClearRev(); nearBottom.current = true
   }
 
   function renderMsg(m: WsMessage) {
@@ -119,6 +133,9 @@ export default function DiscussionPanel(p: Props) {
           {pin !== undefined && !deleted && (
             <span className="ws-pin-tag" title="Show on the map" onClick={() => p.onShowPin(m)}>pin {pin}</span>
           )}
+          {m.revision_seq && !deleted && (
+            <span className="ws-pin-tag" title="Show this change in History" onClick={() => p.onShowRev(m.revision_seq!)}>on r{m.revision_seq}</span>
+          )}
         </div>
         {editing?.id === m.id ? (
           <div style={{ marginTop: 4 }}>
@@ -131,11 +148,21 @@ export default function DiscussionPanel(p: Props) {
               <button className="ws-btn" onClick={() => setEditing(null)}>Cancel</button>
             </div>
           </div>
-        ) : <Body text={m.body} members={p.members} deleted={deleted} />}
+        ) : (
+          <>
+            {m.voice_path && !deleted && (
+              <div className="ws-voice">
+                <audio controls preload="none" src={`/api/workspace/projects/${p.projectId}/messages/${m.id}/voice`} />
+                <span className="mono muted">{clock(m.voice_seconds ?? 0)}</span>
+              </div>
+            )}
+            {(m.body || deleted) && <Body text={m.body} members={p.members} deleted={deleted} />}
+          </>
+        )}
         {!deleted && editing?.id !== m.id && (
           <div className="foot">
             {!m.parent_id && <button onClick={() => { setReplyTo(m); box.current?.focus() }}>Reply</button>}
-            {mine && <button onClick={() => setEditing({ id: m.id, text: m.body })}>Edit</button>}
+            {mine && !m.voice_path && <button onClick={() => setEditing({ id: m.id, text: m.body })}>Edit</button>}
             {(mine || p.me.role === 'owner') && (
               <button onClick={() => { if (confirm('Delete this message?')) void p.onDelete(m.id) }}>Delete</button>
             )}
@@ -155,8 +182,9 @@ export default function DiscussionPanel(p: Props) {
         {roots.length === 0 ? (
           <div className="ws-empty">
             <b>No messages yet.</b><br />
-            Talk about the project here. Pin a comment to a place on the map, or type <b>@</b> to
-            mention a teammate; they get an email.
+            Talk about the project here. Pin a comment to a place on the map, comment on a change
+            from the History tab, leave a voice note, or type <b>@</b> to mention a teammate; they
+            get an email.
           </div>
         ) : <div className="ws-thread">{roots.map((m) => <Fragment key={m.id}>{renderMsg(m)}</Fragment>)}</div>}
       </div>
@@ -174,6 +202,11 @@ export default function DiscussionPanel(p: Props) {
         {replyTo && (
           <div className="small" style={{ marginBottom: 4 }}>
             Replying to <b>{replyTo.author_name}</b> · <a href="#" onClick={(e) => { e.preventDefault(); setReplyTo(null) }}>cancel</a>
+          </div>
+        )}
+        {!replyTo && p.aboutRev && (
+          <div className="small" style={{ marginBottom: 4 }}>
+            Commenting on change <span className="ws-pin-tag">r{p.aboutRev}</span> · <a href="#" onClick={(e) => { e.preventDefault(); p.onClearRev() }}>cancel</a>
           </div>
         )}
         <textarea
@@ -203,6 +236,7 @@ export default function DiscussionPanel(p: Props) {
               {p.picking ? 'Click the map…' : 'Pin to map'}
             </button>
           ))}
+          <VoiceRecorder disabled={busy} onSend={sendVoice} />
           <span className="grow ws-err small">{err}</span>
           <button className="ws-btn ws-btn-default" disabled={!text.trim() || busy} onClick={() => void send()}>
             {busy ? 'Sending…' : replyTo ? 'Reply' : 'Post'}

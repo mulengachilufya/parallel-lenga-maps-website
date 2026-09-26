@@ -4,7 +4,8 @@
  * /workspace/messages — one-to-one messages between teammates.
  *
  * Left: everyone on the team, most recent conversation first, with unread
- * counts. Right: the conversation, a composer and a voice-note recorder.
+ * counts. Right: the conversation and a composer. Text only: voice notes
+ * belong in project comments, where the whole team can hear them.
  * New messages arrive over Realtime; each one is also emailed to the
  * recipient (see /api/workspace/dms/:userId for the throttle).
  */
@@ -13,10 +14,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { clock } from '@/lib/workspace/dms'
 import type { WsConversation, WsDirectMessage } from '@/lib/workspace/types'
 import TitleBar from '@/components/workspace/TitleBar'
-import VoiceRecorder, { type VoiceClip } from '@/components/workspace/VoiceRecorder'
 import { api, initials, stamp, tileColor, timeAgo } from '@/components/workspace/util'
 
 interface Inbox {
@@ -27,10 +26,7 @@ interface Inbox {
 }
 
 const ERRORS: Record<string, string> = {
-  voice_too_large: 'That recording is too large to send (4 MB limit).',
-  voice_too_long:  'Voice notes can be up to 5 minutes.',
-  voice_too_short: 'That recording was too short.',
-  voice_format:    'This browser recorded in a format we cannot store.',
+  body_required: 'Write a message first.',
 }
 
 function MessagesInner() {
@@ -132,18 +128,6 @@ function MessagesInner() {
     finally { setBusy(false) }
   }
 
-  async function sendVoice(clip: VoiceClip) {
-    if (!withId) return
-    const form = new FormData()
-    const ext = clip.blob.type.includes('mp4') ? 'm4a' : clip.blob.type.includes('ogg') ? 'ogg' : 'webm'
-    form.append('audio', clip.blob, `voice.${ext}`)
-    form.append('seconds', String(clip.seconds))
-    const res = await fetch(`/api/workspace/dms/${withId}`, { method: 'POST', body: form })
-    const d = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(ERRORS[d.error] ?? d.error ?? 'Could not send')
-    append(d.message)
-  }
-
   const me = inbox?.me.user_id
   const lastMine = [...thread].reverse().find((m) => m.sender_id === me)
 
@@ -195,7 +179,8 @@ function MessagesInner() {
               <div className="ws-empty">
                 <b>Pick a teammate.</b><br />
                 Messages appear on their screen straight away and in their email inbox, so they see them
-                even when they are not signed in. Hold a longer thought? Send a voice note.
+                even when they are not signed in. For a voice note, leave it as a comment on the project
+                so the whole team hears it.
               </div>
             ) : (
               <>
@@ -222,12 +207,6 @@ function MessagesInner() {
                             <span className="when" title={stamp(m.created_at)}>{timeAgo(m.created_at)}</span>
                           </div>
                         )}
-                        {m.voice_path && (
-                          <div className="voice">
-                            <audio controls preload="none" src={`/api/workspace/dms/voice/${m.id}`} />
-                            <span className="mono muted">{clock(m.voice_seconds ?? 0)}</span>
-                          </div>
-                        )}
                         {m.body && <div className="body">{m.body}</div>}
                         {mine && lastMine?.id === m.id && (
                           <div className="seen">{m.read_at ? `Seen ${timeAgo(m.read_at)}` : 'Sent'}</div>
@@ -246,7 +225,6 @@ function MessagesInner() {
                     }}
                   />
                   <div className="row">
-                    <VoiceRecorder disabled={busy} onSend={sendVoice} />
                     <span className="grow ws-err small">{err}</span>
                     <button className="ws-btn ws-btn-default" disabled={!text.trim() || busy} onClick={() => void sendText()}>
                       {busy ? 'Sending…' : 'Send'}

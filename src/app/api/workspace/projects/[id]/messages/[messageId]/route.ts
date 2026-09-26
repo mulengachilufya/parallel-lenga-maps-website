@@ -4,6 +4,7 @@
  *        soft delete so thread structure and Realtime updates stay intact.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { VOICE_BUCKET } from '@/lib/workspace/dms'
 import { jsonError, loadProject, readJson, requireWorkspace, service } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +14,7 @@ type Ctx = { params: Promise<{ id: string; messageId: string }> }
 async function load(projectId: string, messageId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(messageId)) return null
   const { data } = await service.from('workspace_messages')
-    .select('id, author_id, deleted_at').eq('id', messageId).eq('project_id', projectId).maybeSingle()
+    .select('id, author_id, deleted_at, voice_path').eq('id', messageId).eq('project_id', projectId).maybeSingle()
   return data
 }
 
@@ -46,7 +47,9 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (msg.author_id !== gate.user.id && gate.membership.role !== 'owner') return jsonError('forbidden', 403)
 
   const { error } = await service.from('workspace_messages')
-    .update({ deleted_at: new Date().toISOString(), body: '(deleted)' }).eq('id', messageId)
+    .update({ deleted_at: new Date().toISOString(), body: '(deleted)', voice_path: null, voice_seconds: null }).eq('id', messageId)
   if (error) return jsonError('delete_failed', 500)
+  // A deleted voice note is gone for good, not just hidden.
+  if (msg.voice_path) await service.storage.from(VOICE_BUCKET).remove([msg.voice_path])
   return NextResponse.json({ ok: true })
 }

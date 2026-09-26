@@ -534,36 +534,31 @@ Reply in the workspace: ${cta}`
   }
 }
 
-/**
- * A teammate sent you a direct message in the workspace. Text is quoted;
- * a voice note is announced with its length (the audio itself stays behind
- * sign-in, so the link opens the conversation).
- */
+/** A teammate sent you a direct message in the workspace. */
 export function workspaceDirectMessageEmail(opts: {
-  to: string; fromName: string; orgName: string; body: string | null; voiceSeconds: number | null; fromId: string
+  to: string; fromName: string; orgName: string; body: string; fromId: string
 }): EmailMessage {
   const cta   = `${APP_URL}/workspace/messages?with=${encodeURIComponent(opts.fromId)}`
   const from  = escapeHtml(opts.fromName)
-  const text0 = opts.body ? (opts.body.length > 600 ? `${opts.body.slice(0, 600)}…` : opts.body) : ''
-  const secs  = opts.voiceSeconds ?? 0
-  const voice = opts.voiceSeconds ? `a voice note (${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')})` : ''
-  const what  = voice && text0 ? `sent you ${voice} and a message` : voice ? `sent you ${voice}` : 'sent you a message'
+  const text0 = opts.body.length > 600 ? `${opts.body.slice(0, 600)}…` : opts.body
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      <strong>${from}</strong> ${what} on your ${escapeHtml(opts.orgName)} workspace:
+      <strong>${from}</strong> sent you a message on your ${escapeHtml(opts.orgName)} workspace:
     </p>
-    ${text0 ? `<blockquote style="margin:0 0 4px;padding:10px 14px;border-left:3px solid #C9A227;background:#faf8f2;font-size:14px;line-height:1.6;color:#333;white-space:pre-wrap;">${escapeHtml(text0)}</blockquote>` : ''}`
-  const text = `${opts.fromName} ${what} on your ${opts.orgName} workspace${text0 ? ':\n\n' + text0 : '.'}
+    <blockquote style="margin:0 0 4px;padding:10px 14px;border-left:3px solid #C9A227;background:#faf8f2;font-size:14px;line-height:1.6;color:#333;white-space:pre-wrap;">${escapeHtml(text0)}</blockquote>`
+  const text = `${opts.fromName} sent you a message on your ${opts.orgName} workspace:
 
-${voice ? 'Listen and reply' : 'Reply'}: ${cta}`
+${text0}
+
+Reply: ${cta}`
   return {
     to:      opts.to,
-    subject: voice && !text0 ? `${opts.fromName} sent you a voice note` : `Message from ${opts.fromName}`,
+    subject: `Message from ${opts.fromName}`,
     html: shell({
-      preheader: text0 ? text0.slice(0, 120) : `${opts.fromName} ${what}.`,
-      heading:   voice && !text0 ? 'New voice note' : 'New message',
+      preheader: text0.slice(0, 120),
+      heading:   'New message',
       bodyHtml,
-      ctaLabel:  voice ? 'Listen and reply' : 'Reply',
+      ctaLabel:  'Reply',
       ctaHref:   cta,
       footnote:  'You get this email when a teammate messages you in a Lenga Maps workspace. While you are chatting live we hold back repeat emails.',
     }),
