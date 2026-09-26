@@ -722,6 +722,19 @@ function DashboardContent() {
           )}
         </div>
 
+        {userState === 'team' && (
+          <Link
+            href="/workspace"
+            className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-navy/20 bg-white px-5 py-4 text-navy hover:border-navy/40 transition-colors"
+          >
+            <span>
+              <span className="block font-bold">Projects workspace</span>
+              <span className="block text-sm text-gray-500">Put datasets on a shared live map, discuss them with your team, and keep every change in the project history.</span>
+            </span>
+            <span className="text-sm font-semibold underline underline-offset-2">Open workspace →</span>
+          </Link>
+        )}
+
         {/* Dataset grid */}
         <div className="mb-6">
           <h2 className="text-lg font-bold text-navy mb-1">Browse & Download Datasets</h2>

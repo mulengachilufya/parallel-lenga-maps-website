@@ -67,3 +67,16 @@ export async function listFiles(prefix: string, maxKeys = 100) {
 export function buildFileKey(country: string, layerType: string, filename: string) {
   return `datasets/${country.toLowerCase()}/${layerType.toLowerCase()}/${filename}`
 }
+
+/**
+ * Open an object for streaming (used by the workspace's same-origin proxy
+ * when the browser can't fetch a presigned URL directly).
+ */
+export async function getObjectStream(key: string) {
+  const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+  return {
+    body:          res.Body?.transformToWebStream() ?? null,
+    contentLength: res.ContentLength ?? null,
+    contentType:   res.ContentType ?? 'application/octet-stream',
+  }
+}

@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function LoadingScreen() {
+  const pathname = usePathname()
   const [visible, setVisible] = useState(true)
   const [phase, setPhase] = useState<'logo' | 'text' | 'done'>('logo')
   const letters = 'LENGA MAPS'.split('')
@@ -30,6 +32,9 @@ export default function LoadingScreen() {
       clearTimeout(t3)
     }
   }, [])
+
+  // The workspace is a working tool: no splash screen.
+  if (pathname?.startsWith('/workspace')) return null
 
   return (
     <AnimatePresence>
