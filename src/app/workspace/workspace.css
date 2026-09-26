@@ -471,3 +471,27 @@
 .ws-e2e-foot { border-top: 1px solid var(--rule); padding: 8px 10px; font-size: 10px; color: var(--muted); line-height: 1.5; flex: none; }
 .ws .lock { color: var(--ok); font-size: 8px; vertical-align: 1px; }
 .ws-mention-pop form { display: block; }
+
+/* ── Attribute table (docked under the map) ──────────────────────────────── */
+.ws-mapwrap.with-table { display: flex; flex-direction: column; }
+.ws-mapwrap.with-table .ws-map-area { position: relative; flex: 1; min-height: 120px; }
+.ws-map-area { position: absolute; inset: 0; }
+.ws-mapwrap.with-table .ws-map-area { position: relative; inset: auto; }
+.ws-attr { height: 38%; min-height: 150px; display: flex; flex-direction: column; background: var(--panel); border-top: 1px solid var(--rule-strong); outline: none; }
+.ws-attr-bar { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: var(--panel-2); border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.ws-attr-bar .ttl { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-attr-bar .grow { flex: 1; }
+.ws-attr-cols { position: absolute; right: 0; bottom: calc(100% + 2px); z-index: 6; max-height: 260px; overflow: auto; min-width: 180px;
+  background: var(--panel); border: 1px solid var(--rule-strong); box-shadow: 0 6px 18px rgba(0,0,0,.45); padding: 6px 8px; display: flex; flex-direction: column; gap: 3px; }
+.ws-attr-body { flex: 1; overflow: auto; min-height: 0; }
+.ws-attr-body table { border-collapse: separate; border-spacing: 0; font-size: 11px; min-width: 100%; }
+.ws-attr-body th { position: sticky; top: 0; z-index: 1; background: var(--panel-2); color: var(--ink-soft); text-align: left; font-weight: bold;
+  padding: 0 8px; height: 22px; border-bottom: 1px solid var(--rule-strong); border-right: 1px solid var(--rule); white-space: nowrap; cursor: pointer; user-select: none; }
+.ws-attr-body th:hover { color: var(--ink); }
+.ws-attr-body td { padding: 0 8px; height: 22px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.ws-attr-body tbody tr { cursor: default; user-select: none; }
+.ws-attr-body tbody tr:hover td { background: var(--panel-3); }
+.ws-attr-body tbody tr.sel td { background: rgba(242,201,76,.2); }
+.ws-attr-body tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 #f2c94c; }
+.ws-toc-search { padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+.ws-toc-search .ws-input { width: 100%; }

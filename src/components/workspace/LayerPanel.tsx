@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, Crosshair, Settings2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Crosshair, Settings2, Table2, X } from 'lucide-react'
 import { rampCss } from '@/lib/workspace/raster'
 import type { WsBookmark, WsLayer } from '@/lib/workspace/types'
 import type { LayerStatus } from './MapView'
@@ -16,6 +16,7 @@ interface Props {
   onToggle:    (id: string) => void
   onMove:      (id: string, dir: -1 | 1) => void
   onZoom:      (id: string) => void
+  onTable:     (id: string) => void
   onEdit:      (id: string) => void
   onRemove:    (id: string) => void
   onAdd:       () => void
@@ -44,6 +45,9 @@ function statusLine(layer: WsLayer, st?: LayerStatus): { text: string; err?: boo
 
 export default function LayerPanel(p: Props) {
   const [viewName, setViewName] = useState('')
+  const [q, setQ] = useState('')
+  const needle = q.trim().toLowerCase()
+  const shown = needle ? p.layers.filter((l) => `${l.label} ${l.country} ${l.file_format}`.toLowerCase().includes(needle)) : p.layers
 
   return (
     <>
@@ -60,8 +64,16 @@ export default function LayerPanel(p: Props) {
             Lenga dataset on the map. Everyone on the team sees the same layers.
           </div>
         ) : (
+          <>
+          {p.layers.length > 6 && (
+            <div className="ws-toc-search">
+              <input className="ws-input" placeholder={`Search ${p.layers.length} layers…`} value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+          )}
+          {needle && shown.length === 0 && <div className="ws-empty">No layer matches &ldquo;{q}&rdquo;.</div>}
           <ul className="ws-toc">
-            {p.layers.map((l, i) => {
+            {shown.map((l) => {
+              const i = p.layers.indexOf(l)
               const st = p.statuses[l.id]
               const line = statusLine(l, st)
               return (
@@ -73,6 +85,9 @@ export default function LayerPanel(p: Props) {
                   <span className="name" title={l.label}>{l.label}</span>
                   <span className="acts" onClick={(e) => e.stopPropagation()}>
                     <button className="ws-icon-btn" title="Zoom to layer" onClick={() => p.onZoom(l.id)}><Crosshair size={11} /></button>
+                    {st?.loaded?.kind === 'vector' && (
+                      <button className="ws-icon-btn" title="Open attribute table" onClick={() => p.onTable(l.id)}><Table2 size={11} /></button>
+                    )}
                     <button className="ws-icon-btn" title="Move up" disabled={i === 0} onClick={() => p.onMove(l.id, -1)}><ArrowUp size={11} /></button>
                     <button className="ws-icon-btn" title="Move down" disabled={i === p.layers.length - 1} onClick={() => p.onMove(l.id, 1)}><ArrowDown size={11} /></button>
                     <button className="ws-icon-btn" title="Properties…" onClick={() => p.onEdit(l.id)}><Settings2 size={11} /></button>
@@ -83,6 +98,7 @@ export default function LayerPanel(p: Props) {
               )
             })}
           </ul>
+          </>
         )}
       </div>
 

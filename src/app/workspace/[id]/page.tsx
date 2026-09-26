@@ -22,6 +22,7 @@ import MapView, { type LayerStatus, type MapViewHandle, type ViewInfo } from '@/
 import LayerPanel from '@/components/workspace/LayerPanel'
 import DiscussionPanel from '@/components/workspace/DiscussionPanel'
 import HistoryPanel from '@/components/workspace/HistoryPanel'
+import AttributeTable from '@/components/workspace/AttributeTable'
 import type { VoiceClip } from '@/components/workspace/VoiceRecorder'
 import DetailsPanel from '@/components/workspace/DetailsPanel'
 import { ConfirmDialog, LayerPropertiesDialog } from '@/components/workspace/Dialogs'
@@ -71,6 +72,9 @@ function Workstation() {
   const [statuses, setStatuses] = useState<Record<string, LayerStatus>>({})
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<string | null>(null)
+  const [tableLayer, setTableLayer] = useState<string | null>(null)
+  const [tableSel, setTableSel] = useState<number[]>([])
+  const [tableFocus, setTableFocus] = useState<number | null>(null)
   const [basemap, setBasemap] = useState<Basemap>('light')
   const [view, setView] = useState<ViewInfo | null>(null)
   const [cursor, setCursor] = useState<{ lng: number; lat: number } | null>(null)
@@ -227,6 +231,18 @@ function Workstation() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const readOnly = !!preview
+
+  // ── Attribute table ──────────────────────────────────────────────────────
+  const tableLayerObj = tableLayer ? shownLayers.find((l) => l.id === tableLayer) ?? null : null
+  const tableLoaded = tableLayer ? statuses[tableLayer]?.loaded : undefined
+  const tableData = tableLayerObj && tableLoaded?.kind === 'vector' ? tableLoaded : null
+  function openTable(lid: string) {
+    setTableLayer((cur) => (cur === lid ? null : lid))
+    setTableSel([]); setTableFocus(null); setSelected(lid)
+  }
+  useEffect(() => { mapRef.current?.highlight(tableData ? tableLayer : null, tableData ? tableSel : []) }, [tableSel, tableLayer, tableData])
+  useEffect(() => { const t = requestAnimationFrame(() => mapRef.current?.resize()); return () => cancelAnimationFrame(t) }, [tableData])
+  useEffect(() => { if (tableLayer && !tableLayerObj) setTableLayer(null) }, [tableLayer, tableLayerObj])
   const say = (t: string) => { setNote(t); setTimeout(() => setNote((n) => (n === t ? '' : n)), 6000) }
   const revNote = (r?: { seq: number; summary: string } | null) => { if (r) say(`r${r.seq}: ${r.summary}`) }
 
@@ -452,6 +468,7 @@ function Workstation() {
             onSelect={setSelected} onToggle={toggleHidden}
             onMove={(lid, dir) => { if (!readOnly) void moveLayer(lid, dir) }}
             onZoom={(lid) => mapRef.current?.zoomToLayer(lid)}
+            onTable={openTable}
             onEdit={(lid) => { if (!readOnly) setDialog({ kind: 'edit', layerId: lid }) }}
             onRemove={(lid) => { const l = liveLayers.find((x) => x.id === lid); if (l && !readOnly) setDialog({ kind: 'remove', layer: l }) }}
             onAdd={() => { if (!readOnly) setFloating('add') }}
@@ -462,7 +479,8 @@ function Workstation() {
         )}
       </aside>
 
-      <div className={`ws-mapwrap${picking ? ' picking' : ''}`}>
+      <div className={`ws-mapwrap${picking ? ' picking' : ''}${tableData ? ' with-table' : ''}`}>
+        <div className="ws-map-area">
         <MapView
           ref={mapRef}
           projectId={id}
@@ -479,6 +497,11 @@ function Workstation() {
           onView={setView}
           onCursor={setCursor}
           onBasemapFailed={() => say('The basemap could not be loaded, so the map is showing plain paper. Your layers are unaffected.')}
+          onFeaturePick={(lid, fid, additive) => {
+            if (lid !== tableLayer) return
+            setTableSel((s) => additive ? (s.includes(fid) ? s.filter((x) => x !== fid) : [...s, fid]) : [fid])
+            setTableFocus(fid)
+          }}
         />
         {pickMode === 'pin' && <div className="ws-map-note">Click the place this message is about. <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Cancel</a></div>}
         {pickMode === 'place' && <div className="ws-map-note">Click towns or areas to find their data ({places.length} picked). <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Done</a></div>}
@@ -510,6 +533,18 @@ function Workstation() {
               </>
             )}
           </div>
+        )}
+        </div>
+        {tableData && tableLayerObj && (
+          <AttributeTable
+            key={tableLayerObj.id}
+            label={tableLayerObj.label} fc={tableData.fc}
+            selected={tableSel} focus={tableFocus} canExport
+            onSelect={(ids) => { setTableSel(ids); setTableFocus(null) }}
+            onZoom={(ids) => mapRef.current?.zoomToFeatures(tableLayerObj.id, ids)}
+            onFilter={(ids) => mapRef.current?.filterFeatures(tableLayerObj.id, ids)}
+            onClose={() => setTableLayer(null)}
+          />
         )}
       </div>
 
