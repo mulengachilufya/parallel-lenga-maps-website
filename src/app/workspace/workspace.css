@@ -333,6 +333,38 @@
 .ws-pick button.on { background: var(--mark); }
 .ws-pick .kind { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 
+/* ── Floating tool window (Add data, Import) ─────────────────────────────── */
+.ws-float {
+  position: fixed; z-index: 40; top: 70px; left: 276px;
+  width: min(640px, calc(100vw - 24px)); max-height: calc(100vh - 110px);
+  display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid #6f6857; box-shadow: 3px 3px 0 rgba(0,0,0,.18);
+}
+.ws-float .content { padding: 8px 10px; overflow: auto; }
+.ws-float .buttons { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 7px 10px; border-top: 1px solid var(--rule); background: #f1ede3; }
+.ws-pick-search { padding: 5px; border-bottom: 1px solid var(--rule); position: sticky; top: 0; background: var(--white); z-index: 1; }
+.ws-pick-search .ws-input { width: 100%; }
+.ws-pick-group {
+  font-size: 9.5px; font-weight: bold; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-soft);
+  background: #f3f0e7; border-bottom: 1px solid var(--rule); padding: 3px 7px; position: sticky; top: 33px;
+}
+.ws-pick input[type=checkbox] { margin: 0; flex: none; }
+.ws-pick.no-search .ws-pick-group { top: 0; }
+.ws-float.compact { width: min(420px, calc(100vw - 24px)); top: auto; bottom: 34px; }
+.ws-float.compact .hide-compact { display: none !important; }
+.ws-results { border: 1px solid var(--rule-strong); background: var(--white); margin-top: 4px; max-height: 150px; overflow: auto; }
+.ws-results button { display: block; width: 100%; text-align: left; font: inherit; padding: 4px 8px; background: none; border: 0; border-bottom: 1px solid #f0ece2; cursor: pointer; }
+.ws-results button:hover { background: var(--mark); }
+.ws-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 7px 0; min-height: 22px; align-items: center; }
+.ws-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--white); border: 1px solid var(--rule-strong); padding: 1px 2px 1px 7px; }
+.ws-chip button { border: 0; background: none; cursor: pointer; font-size: 13px; line-height: 1; padding: 0 4px; color: var(--muted); }
+.ws-chip button:hover { color: var(--danger); }
+.ws-drop { border: 2px dashed var(--rule-strong); background: var(--white); padding: 18px; text-align: center; line-height: 1.7; }
+.ws-drop.over { border-color: #5d7ea8; background: #f1f5fa; }
+.ws-import-list { list-style: none; margin: 8px 0 0; padding: 0; border: 1px solid var(--rule); background: var(--white); max-height: 220px; overflow: auto; }
+.ws-import-list li { display: flex; gap: 8px; padding: 4px 8px; border-bottom: 1px solid #f0ece2; align-items: baseline; }
+.ws-import-list li .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Index pages ─────────────────────────────────────────────────────────── */
 .ws-page { min-height: 100vh; display: flex; flex-direction: column; }
 .ws-page .ws-titlebar { height: 32px; flex: none; }
@@ -365,4 +397,5 @@
   .ws-toolbar { overflow-x: auto; overflow-y: hidden; }
   .ws-toolbar label { display: none; }
   .ws-toolbar .ws-select { max-width: 132px; }
+  .ws-float { left: 8px; top: 64px; }
 }

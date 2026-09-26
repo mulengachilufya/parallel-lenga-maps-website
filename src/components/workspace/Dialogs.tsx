@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { rampCss } from '@/lib/workspace/raster'
-import type { CatalogDataset, CatalogFile, LayerStyle, RasterRamp, WsLayer } from '@/lib/workspace/types'
-import { api } from './util'
+import type { LayerStyle, RasterRamp, WsLayer } from '@/lib/workspace/types'
 
 function Dialog({ title, onClose, children, buttons }: {
   title: string; onClose: () => void; children: React.ReactNode; buttons: React.ReactNode
@@ -23,85 +22,6 @@ function Dialog({ title, onClose, children, buttons }: {
         <div className="buttons">{buttons}</div>
       </div>
     </div>
-  )
-}
-
-// ── Add data ────────────────────────────────────────────────────────────────
-
-export function AddDataDialog({ onClose, onAdd }: {
-  onClose: () => void
-  onAdd: (datasetSlug: string, file: CatalogFile) => Promise<void>
-}) {
-  const [datasets, setDatasets] = useState<CatalogDataset[] | null>(null)
-  const [slug, setSlug] = useState<string | null>(null)
-  const [files, setFiles] = useState<CatalogFile[] | null>(null)
-  const [pick, setPick] = useState<CatalogFile | null>(null)
-  const [q, setQ] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    api<{ datasets: CatalogDataset[] }>('/api/workspace/catalog')
-      .then((d) => setDatasets(d.datasets)).catch((e) => setErr(e.message))
-  }, [])
-
-  useEffect(() => {
-    if (!slug) return
-    setFiles(null); setPick(null)
-    api<{ files: CatalogFile[] }>(`/api/workspace/catalog?dataset=${encodeURIComponent(slug)}`)
-      .then((d) => setFiles(d.files)).catch((e) => setErr(e.message))
-  }, [slug])
-
-  const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    return (files ?? []).filter((f) => !needle || f.country.toLowerCase().includes(needle) || f.country_iso3.toLowerCase() === needle)
-  }, [files, q])
-
-  async function add(file: CatalogFile | null = pick) {
-    if (!slug || !file || busy) return
-    setBusy(true); setErr('')
-    try { await onAdd(slug, file); onClose() }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Could not add the layer') }
-    finally { setBusy(false) }
-  }
-
-  return (
-    <Dialog title="Add data" onClose={onClose} buttons={<>
-      {err && <span className="ws-err small" style={{ marginRight: 'auto' }}>{err}</span>}
-      <button className="ws-btn" onClick={onClose}>Cancel</button>
-      <button className="ws-btn ws-btn-default" disabled={!pick || busy} onClick={() => void add()}>{busy ? 'Adding…' : 'Add to map'}</button>
-    </>}>
-      <p className="muted" style={{ margin: '0 0 8px' }}>
-        Pick a dataset, then a country. The layer is added for the whole team and recorded in the project history.
-      </p>
-      <div className="ws-pick">
-        <div>
-          {!datasets ? <div className="ws-empty">Loading catalogue…</div> : datasets.map((d) => (
-            <button key={d.id} className={slug === d.id ? 'on' : ''} onClick={() => setSlug(d.id)}>
-              <span>{d.name}</span><span className="kind">{d.raster ? 'raster' : 'vector'}</span>
-            </button>
-          ))}
-        </div>
-        <div>
-          {!slug ? <div className="ws-empty">← Choose a dataset</div> : (
-            <>
-              <div style={{ padding: 5, borderBottom: '1px solid var(--rule)', position: 'sticky', top: 0, background: 'var(--white)' }}>
-                <input className="ws-input" style={{ width: '100%' }} placeholder="Filter by country or ISO code" value={q}
-                       onChange={(e) => setQ(e.target.value)} autoFocus />
-              </div>
-              {!files ? <div className="ws-empty">Loading files…</div> : shown.length === 0 ? <div className="ws-empty">No match.</div> :
-                shown.map((f) => (
-                  <button key={f.r2_key} className={pick?.r2_key === f.r2_key ? 'on' : ''}
-                          onClick={() => setPick(f)} onDoubleClick={() => { setPick(f); void add(f) }}>
-                    <span>{f.country}{f.variant && <span className="muted"> · {f.variant}</span>}</span>
-                    <span className="mono muted">{f.file_size_mb ? `${f.file_size_mb.toFixed(1)} MB` : ''}</span>
-                  </button>
-                ))}
-            </>
-          )}
-        </div>
-      </div>
-    </Dialog>
   )
 }
 

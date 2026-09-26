@@ -24,6 +24,7 @@ export interface MapViewHandle {
   flyTo: (lng: number, lat: number, zoom: number) => void
   zoomToLayer: (id: string) => void
   getView: () => { lng: number; lat: number; zoom: number } | null
+  getBounds: () => [number, number, number, number] | null
 }
 
 export interface ViewInfo { lng: number; lat: number; zoom: number; scale: number }
@@ -396,6 +397,10 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
       if (!m) return null
       const c = m.getCenter()
       return { lng: c.lng, lat: c.lat, zoom: m.getZoom() }
+    },
+    getBounds: () => {
+      const b = map.current?.getBounds()
+      return b ? [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] : null
     },
   }), [])
 

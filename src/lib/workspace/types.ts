@@ -123,12 +123,23 @@ export interface CatalogDataset {
 }
 
 export interface CatalogFile {
+  dataset_slug: string
   country:      string
   country_iso3: string
   r2_key:       string
   file_size_mb: number
   file_format:  string
   variant:      string
+}
+
+export interface WsPlace {
+  name:    string
+  region:  string
+  country: string
+  iso3:    string
+  lng:     number
+  lat:     number
+  bbox:    [number, number, number, number] | null
 }
 
 // ── Defaults ────────────────────────────────────────────────────────────────

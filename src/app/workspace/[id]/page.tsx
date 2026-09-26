@@ -23,18 +23,20 @@ import LayerPanel from '@/components/workspace/LayerPanel'
 import DiscussionPanel from '@/components/workspace/DiscussionPanel'
 import HistoryPanel from '@/components/workspace/HistoryPanel'
 import DetailsPanel from '@/components/workspace/DetailsPanel'
-import { AddDataDialog, ConfirmDialog, LayerPropertiesDialog } from '@/components/workspace/Dialogs'
+import { ConfirmDialog, LayerPropertiesDialog } from '@/components/workspace/Dialogs'
+import AddData from '@/components/workspace/AddData'
+import ImportDialog from '@/components/workspace/ImportDialog'
+import { PREVIEW_PREFIX } from '@/lib/workspace/loaders'
 import { api, initials, tileColor } from '@/components/workspace/util'
 import TitleBar from '@/components/workspace/TitleBar'
 import { rampCss, categoryColor } from '@/lib/workspace/raster'
 import {
-  shortRev, type Basemap, type CatalogFile, type LayerStyle, type WsBookmark, type WsLayer,
+  defaultStyle, shortRev, type Basemap, type CatalogFile, type WsPlace, type LayerStyle, type WsBookmark, type WsLayer,
   type WsMessage, type WsProjectBundle, type WsRevision, type WsSnapshot,
 } from '@/lib/workspace/types'
 
 type Tab = 'discussion' | 'history' | 'details'
 type Dialog =
-  | { kind: 'add' }
   | { kind: 'edit'; layerId: string }
   | { kind: 'remove'; layer: WsLayer }
   | { kind: 'restore'; rev: WsRevision }
@@ -67,7 +69,12 @@ function Workstation() {
   const [tab, setTab] = useState<Tab>((search.get('tab') as Tab) || 'discussion')
   const [showLeft, setShowLeft] = useState(true)
   const [showRight, setShowRight] = useState(true)
-  const [picking, setPicking] = useState(false)
+  const [pickMode, setPickMode] = useState<'pin' | 'place' | null>(null)
+  const picking = pickMode !== null
+  const [floating, setFloating] = useState<'add' | 'import' | null>(null)
+  const [places, setPlaces] = useState<WsPlace[]>([])
+  const [previewFiles, setPreviewFiles] = useState<CatalogFile[]>([])
+  const [exporting, setExporting] = useState('')
   const [draftPin, setDraftPin] = useState<{ lng: number; lat: number } | null>(null)
   const [focusMsg, setFocusMsg] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ seq: number; snapshot: WsSnapshot } | null>(null)
@@ -161,6 +168,15 @@ function Workstation() {
       .sort((a, b) => a.sort_order - b.sort_order)
   }, [preview, liveLayers, id])
   const tocLayers = useMemo(() => [...shownLayers].reverse(), [shownLayers])
+  const previewLayers: WsLayer[] = useMemo(() => previewFiles.map((f, i) => ({
+    id: `${PREVIEW_PREFIX}${i}-${f.r2_key.replace(/[^A-Za-z0-9]/g, '').slice(-24)}`,
+    project_id: id, dataset_slug: f.dataset_slug, country: f.country, r2_key: f.r2_key, file_format: f.file_format,
+    label: `Preview: ${f.country}${f.variant ? ` · ${f.variant}` : ''}`,
+    style: { ...defaultStyle(f.dataset_slug), opacity: 0.75 }, sort_order: 10_000 + i,
+    added_by: null, added_by_name: null, created_at: '',
+  })), [previewFiles, id])
+  const mapLayers = useMemo(() => [...shownLayers, ...previewLayers], [shownLayers, previewLayers])
+  const previewKeys = useMemo(() => new Set(previewFiles.map((f) => `${f.dataset_slug}|${f.r2_key}`)), [previewFiles])
   const bookmarks: WsBookmark[] = preview
     ? preview.snapshot.bookmarks.map((b) => ({ ...b, project_id: id }))
     : bundle?.bookmarks ?? []
@@ -171,7 +187,24 @@ function Workstation() {
   const selectedStatus = selected ? statuses[selected] : undefined
 
   const onStatus = useCallback((layerId: string, st: LayerStatus) => setStatuses((s) => ({ ...s, [layerId]: st })), [])
-  const onPick = useCallback((lng: number, lat: number) => { setDraftPin({ lng, lat }); setPicking(false) }, [])
+
+  // Fly to a new preview once its data has loaded.
+  const zoomedPreview = useRef('')
+  useEffect(() => {
+    const first = previewLayers.find((l) => statuses[l.id]?.state === 'ready')
+    if (first && zoomedPreview.current !== first.id) { zoomedPreview.current = first.id; mapRef.current?.zoomToLayer(first.id) }
+    if (!previewLayers.length) zoomedPreview.current = ''
+  }, [previewLayers, statuses])
+  const onPick = useCallback((lng: number, lat: number) => {
+    if (pickMode === 'pin') { setDraftPin({ lng, lat }); setPickMode(null); return }
+    // Place mode stays on so several places can be clicked in a row.
+    api<{ place: WsPlace | null }>(`/api/workspace/geocode?lat=${lat}&lng=${lng}`)
+      .then(({ place }) => {
+        if (!place) { setNote('That point is outside the African countries Lenga covers.'); return }
+        setPlaces((ps) => ps.some((x) => x.name === place.name && x.iso3 === place.iso3) ? ps : [...ps, place])
+      })
+      .catch(() => setNote('Could not look up that place. Try the search box instead.'))
+  }, [pickMode])
   const onPinClick = useCallback((msgId: string) => {
     setShowRight(true); setTab('discussion'); setFocusMsg(null)
     requestAnimationFrame(() => setFocusMsg(msgId))
@@ -182,10 +215,46 @@ function Workstation() {
   const say = (t: string) => { setNote(t); setTimeout(() => setNote((n) => (n === t ? '' : n)), 6000) }
   const revNote = (r?: { seq: number; summary: string } | null) => { if (r) say(`r${r.seq}: ${r.summary}`) }
 
-  async function addLayer(slug: string, file: CatalogFile) {
-    const d = await api<{ layer: WsLayer; rev: WsRevision }>(`/api/workspace/projects/${id}/layers`,
-      { method: 'POST', json: { dataset_slug: slug, r2_key: file.r2_key } })
-    setSelected(d.layer.id); revNote(d.rev); refresh()
+  async function addLayers(files: CatalogFile[]) {
+    const d = await api<{ layers: WsLayer[]; rev: WsRevision }>(`/api/workspace/projects/${id}/layers`,
+      { method: 'POST', json: { items: files.map((f) => ({ dataset_slug: f.dataset_slug, r2_key: f.r2_key })) } })
+    const added = new Set(files.map((f) => `${f.dataset_slug}|${f.r2_key}`))
+    setPreviewFiles((pf) => pf.filter((f) => !added.has(`${f.dataset_slug}|${f.r2_key}`)))
+    setSelected(d.layers[0]?.id ?? null); revNote(d.rev); refresh()
+  }
+
+  async function importUploads(uploads: { path: string; label: string; file_format: string; style: object }[], hiddenLabels: string[]) {
+    const d = await api<{ layers: WsLayer[]; rev: WsRevision }>(`/api/workspace/projects/${id}/layers`,
+      { method: 'POST', json: { uploads } })
+    // Layers that were switched off in QGIS start switched off here too (for you).
+    const off = d.layers.filter((l) => hiddenLabels.includes(l.label)).map((l) => l.id)
+    if (off.length) setHidden((h) => {
+      const next = new Set([...h, ...off])
+      try { localStorage.setItem(`ws-hidden-${id}`, JSON.stringify([...next])) } catch { /* ignore */ }
+      return next
+    })
+    revNote(d.rev); refresh()
+    setTimeout(() => d.layers[0] && mapRef.current?.zoomToLayer(d.layers[d.layers.length - 1].id), 1500)
+  }
+
+  async function exportDesktop() {
+    if (!bundle || exporting) return
+    setExporting('Preparing…')
+    try {
+      const { buildDesktopPackage } = await import('@/lib/workspace/transfer')
+      const loaded = Object.fromEntries(Object.entries(statuses).map(([k, v]) => [k, v.loaded]))
+      const bounds = mapRef.current?.getBounds() ?? [-20, -36, 55, 38]
+      const { blob, filename, skipped } = await buildDesktopPackage({
+        projectId: id, title: bundle.project.name, layers: tocLayers, hidden, loaded, extent: bounds,
+        onProgress: (n, t) => setExporting(`Packaging ${n} of ${t}…`),
+      })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob); a.download = filename
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 30_000)
+      say(skipped.length ? `Exported ${filename}; ${skipped.length} layer(s) could not be packaged.` : `Exported ${filename}. Unzip and open the .qgs in QGIS.`)
+    } catch (e) { say(e instanceof Error ? e.message : 'Export failed') }
+    finally { setExporting('') }
   }
 
   async function moveLayer(layerId: string, dir: -1 | 1) {
@@ -316,7 +385,13 @@ function Workstation() {
       <div className="ws-toolbar">
         <div className="group">
           <button className={`ws-btn${showLeft ? ' is-on' : ''}`} onClick={() => setShowLeft((v) => !v)}>Layers</button>
-          <button className="ws-btn" onClick={() => setDialog({ kind: 'add' })} disabled={readOnly}>Add data…</button>
+          <button className={`ws-btn${floating === 'add' ? ' is-on' : ''}`} onClick={() => setFloating(floating === 'add' ? null : 'add')} disabled={readOnly}>Add data…</button>
+        </div>
+        <div className="group">
+          <button className={`ws-btn${floating === 'import' ? ' is-on' : ''}`} disabled={readOnly} title="Bring in a QGIS project or files exported from ArcGIS"
+                  onClick={() => setFloating(floating === 'import' ? null : 'import')}>Import…</button>
+          <button className="ws-btn" disabled={!!exporting || tocLayers.length === 0} title="Download a QGIS project with all layers and data, ready for QGIS or ArcGIS Pro"
+                  onClick={() => void exportDesktop()}>{exporting || 'Export to QGIS / ArcGIS'}</button>
         </div>
         <div className="group">
           <label className="small muted" htmlFor="bm">Basemap</label>
@@ -346,7 +421,7 @@ function Workstation() {
             onZoom={(lid) => mapRef.current?.zoomToLayer(lid)}
             onEdit={(lid) => { if (!readOnly) setDialog({ kind: 'edit', layerId: lid }) }}
             onRemove={(lid) => { const l = liveLayers.find((x) => x.id === lid); if (l && !readOnly) setDialog({ kind: 'remove', layer: l }) }}
-            onAdd={() => { if (!readOnly) setDialog({ kind: 'add' }) }}
+            onAdd={() => { if (!readOnly) setFloating('add') }}
             onGoto={(b) => mapRef.current?.flyTo(b.lng, b.lat, b.zoom)}
             onSaveView={(n) => { if (!readOnly) void saveView(n) }}
             onDropView={(b) => { if (!readOnly) void dropView(b) }}
@@ -358,7 +433,7 @@ function Workstation() {
         <MapView
           ref={mapRef}
           projectId={id}
-          layers={shownLayers}
+          layers={mapLayers}
           hidden={hidden}
           basemap={basemap}
           initial={{ center: bundle.project.map_state.center, zoom: bundle.project.map_state.zoom }}
@@ -372,7 +447,8 @@ function Workstation() {
           onCursor={setCursor}
           onBasemapFailed={() => say('The basemap could not be loaded, so the map is showing plain paper. Your layers are unaffected.')}
         />
-        {picking && <div className="ws-map-note">Click the place this message is about. <a href="#" onClick={(e) => { e.preventDefault(); setPicking(false) }}>Cancel</a></div>}
+        {pickMode === 'pin' && <div className="ws-map-note">Click the place this message is about. <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Cancel</a></div>}
+        {pickMode === 'place' && <div className="ws-map-note">Click towns or areas to find their data ({places.length} picked). <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Done</a></div>}
         {preview && (
           <div className="ws-map-note">
             Previewing <b>r{preview.seq}</b> (read-only).{' '}
@@ -420,8 +496,8 @@ function Workstation() {
               <DiscussionPanel
                 messages={messages} members={bundle.members} me={bundle.me}
                 pinNumbers={pinNumbers} focusId={focusMsg}
-                draftPin={draftPin} picking={picking}
-                onStartPin={() => setPicking((v) => !v)}
+                draftPin={draftPin} picking={pickMode === 'pin'}
+                onStartPin={() => setPickMode((m) => (m === 'pin' ? null : 'pin'))}
                 onClearPin={() => setDraftPin(null)}
                 onShowPin={(m) => { if (m.lng !== null && m.lat !== null) mapRef.current?.flyTo(m.lng, m.lat, Math.max(view?.zoom ?? 6, 8)) }}
                 onSend={sendMessage} onEdit={editMessage} onDelete={deleteMessage}
@@ -451,7 +527,20 @@ function Workstation() {
         <span title={head ? `${head.author_name}: ${head.summary}` : ''}>{head ? `r${head.seq} ${shortRev(head.id)}` : 'r0'}</span>
       </div>
 
-      {dialog?.kind === 'add' && <AddDataDialog onClose={() => setDialog(null)} onAdd={addLayer} />}
+      {floating === 'add' && (
+        <AddData
+          places={places} picking={pickMode === 'place'} previewKeys={previewKeys}
+          onClose={() => { setFloating(null); setPreviewFiles([]); if (pickMode === 'place') setPickMode(null) }}
+          onAdd={addLayers}
+          onPreview={(files) => setPreviewFiles(files)}
+          onTogglePick={() => setPickMode((m) => (m === 'place' ? null : 'place'))}
+          onAddPlace={(pl) => { setPlaces((ps) => [...ps, pl]); mapRef.current?.flyTo(pl.lng, pl.lat, 8) }}
+          onRemovePlace={(pl) => setPlaces((ps) => ps.filter((x) => x !== pl))}
+        />
+      )}
+      {floating === 'import' && (
+        <ImportDialog orgId={bundle.org.id} projectId={id} onClose={() => setFloating(null)} onImported={importUploads} />
+      )}
       {dialog?.kind === 'edit' && (() => {
         const layer = liveLayers.find((l) => l.id === dialog.layerId)
         if (!layer) return null

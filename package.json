@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1023.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.100.1",
+    "@tmcw/togeojson": "^7.1.2",
     "@types/nodemailer": "^8.0.0",
     "@vercel/analytics": "^2.0.1",
     "fflate": "^0.8.3",
