@@ -16,7 +16,7 @@
  *     → GIS facts text
  *     → Quote form
  *
- * Pricing: two once-off packages — up to 4 seats for $350, up to 12 seats
+ * Pricing: two 3-month packages — up to 4 seats for $350, up to 12 seats
  * for $1,000 (TEAM_PACKAGES). No checkout, ever — every CTA routes to the
  * quote form.
  */
@@ -319,11 +319,11 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
             Team pricing
           </span>
           <h2 className="font-display" style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.08, color: NAVY, margin: '0 0 1rem' }}>
-            Two team sizes. Paid once.
+            Two team sizes. Three months at a time.
           </h2>
           <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
             Up to {TEAM_PACKAGES[0].maxSeats} seats for ${TEAM_PACKAGES[0].price.toLocaleString()}, or up to {TEAM_PACKAGES[1].maxSeats} seats
-            for ${TEAM_PACKAGES[1].price.toLocaleString()}. All 54 African countries, every dataset, no expiry.
+            for ${TEAM_PACKAGES[1].price.toLocaleString()}. Each payment covers 3 months: all 54 African countries, every dataset.
           </p>
         </div>
 
@@ -390,7 +390,7 @@ function PackageCard({ pkg, palette, onQuote, featured = false }: {
         >
           <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
           <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
-            Paid once. Access never expires.
+            3 months per payment. Nothing renews automatically.
           </span>
         </div>
       )}
@@ -399,7 +399,7 @@ function PackageCard({ pkg, palette, onQuote, featured = false }: {
 
       <div className="lm-price-row">
         <span className="lm-price" style={{ color: palette.priceColor }}>${pkg.price.toLocaleString()}</span>
-        <span className="lm-period" style={{ color: palette.muted }}>once-off</span>
+        <span className="lm-period" style={{ color: palette.muted }}>for 3 months</span>
       </div>
       <p className="lm-period" style={{ color: palette.muted, margin: 0 }}>Up to {pkg.maxSeats} seats.</p>
 

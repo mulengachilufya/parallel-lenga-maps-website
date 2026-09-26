@@ -2,11 +2,14 @@
 // Single source of truth for all pricing and access logic.
 // Every page, component, and API route imports from here.
 //
-// ─── ONCE-OFF MODEL (2026-08) ──────────────────────────────────
+// ─── 3-MONTH ACCESS MODEL (2026-09) ────────────────────────────
 // Replaced the 5-tier monthly system (Starter/Pro/Max/Enterprise/Team)
-// with two flat, once-off, no-expiry plans. Every paid account — either
+// with two flat plans, each paid up front for ACCESS_MONTHS of access.
+// Paying again extends access from the current expiry. Accounts that were
+// active before 2026-09 keep permanent access (plan_expires_at is null for
+// them, and null always means "does not expire"). Every paid account — either
 // plan — gets every dataset. There is no more per-dataset gating, no
-// free trial, no recurring billing, no self-serve checkout. Access is
+// free trial, no automatic billing, no card checkout. Access is
 // granted manually by an admin after the buyer contacts us and pays via
 // bank transfer (see /api/admin/payments/verify).
 //
@@ -15,6 +18,24 @@
 // were migrated to permanent 'individual' access (migration 029).
 
 export type TierSlug = 'individual' | 'team'
+
+/** Length of one paid access period, for both plans. */
+export const ACCESS_MONTHS = 3
+export const TERM_LABEL = 'for 3 months'
+
+/** When access paid for now ends: ACCESS_MONTHS after `from`, or after an
+ *  expiry that is still in the future (so renewing early loses nothing). */
+export function accessExpiry(currentExpiry?: string | null, now = new Date()): string {
+  const cur = currentExpiry ? new Date(currentExpiry) : null
+  const base = cur && cur > now ? new Date(cur) : new Date(now)
+  base.setMonth(base.getMonth() + ACCESS_MONTHS)
+  return base.toISOString()
+}
+
+/** null = never expires (grandfathered accounts). */
+export function isExpired(expiresAt: string | null | undefined, now = Date.now()): boolean {
+  return !!expiresAt && new Date(expiresAt).getTime() <= now
+}
 export type UserState = 'free' | TierSlug
 
 export interface Plan {
@@ -33,8 +54,8 @@ export interface Plan {
 //   selfServe (individual only) -> /dashboard/payment -> BankTransferPanel:
 //     buyer gets bank details immediately (auto-emailed), pays, uploads
 //     proof, lands in the admin queue as 'pending'. Fastest path — no
-//     waiting on a reply first. Admin approval grants access immediately,
-//     no expiry.
+//     waiting on a reply first. Admin approval grants ACCESS_MONTHS of
+//     access immediately.
 //   contactHref (both plans) -> talk first, get bank details by email
 //     manually, same admin-approval queue underneath. Team ALWAYS goes
 //     this route (package + seats confirmed on a quote) -> /projects.
@@ -45,7 +66,7 @@ export interface TeamPackage {
   id:       'team-4' | 'team-12'
   label:    string
   maxSeats: number
-  price:    number   // USD, once-off, whole package
+  price:    number   // USD per 3-month period, whole package
   blurb:    string
 }
 
@@ -62,21 +83,21 @@ export const TEAM_PACKAGES: TeamPackage[] = [
 
 export const PLANS: Record<TierSlug, Plan> = {
   individual: {
-    slug: 'individual', name: 'Individual', price: 100, priceLabel: '$100 once-off',
-    description: 'One-time payment. Every dataset, every country, no expiry.',
+    slug: 'individual', name: 'Individual', price: 100, priceLabel: '$100 for 3 months',
+    description: 'Every dataset, every country, for 3 months. Renew whenever you need more time.',
     selfServe: true, contactHref: '/contact-us',
     ctaLabel: 'Get access',
     features: [
       'All 15 datasets, all 54 African countries',
       'Unlimited downloads',
-      'Pay once — access never expires',
+      '3 months of access; renewing adds 3 more',
       'Shapefile, GeoJSON, GeoTIFF formats',
       'Email support',
     ],
   },
   team: {
-    slug: 'team', name: 'Team', price: 350, priceLabel: 'From $350 once-off',
-    description: 'One-time payment for teams: up to 4 seats for $350, up to 12 seats for $1,000.',
+    slug: 'team', name: 'Team', price: 350, priceLabel: 'From $350 for 3 months',
+    description: 'For teams, per 3 months: up to 4 seats for $350, up to 12 seats for $1,000.',
     selfServe: false, contactHref: '/projects',
     ctaLabel: 'Contact us',
     features: [
@@ -84,7 +105,7 @@ export const PLANS: Record<TierSlug, Plan> = {
       'Up to 4 seats for $350, up to 12 seats for $1,000',
       'Project workspace: live web map, team discussion, full history',
       'Shared download history',
-      'Pay once — access never expires',
+      '3 months of access; renewing adds 3 more',
       'Commercial use licence + direct email support',
     ],
   },
@@ -127,9 +148,9 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
   individual: {
     bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
     dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
-    tagline: 'The full platform, once, no subscription.',
+    tagline: 'The full platform for 3 months. No auto-renewal.',
     count: '15 datasets',
-    datasets: ['Every dataset we have', 'All 54 African countries', 'Unlimited downloads', 'No expiry'],
+    datasets: ['Every dataset we have', 'All 54 African countries', 'Unlimited downloads', '3 months per payment'],
   },
   team: {
     bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
@@ -167,8 +188,10 @@ const LEGACY_PAID_PLANS = ['starter', 'pro', 'max', 'enterprise']
 export function getUserState(
   plan:       string | undefined | null,
   planStatus: string | undefined | null,
+  expiresAt?: string | null,
 ): UserState {
   if (planStatus !== 'active' || !plan) return 'free'
+  if (isExpired(expiresAt)) return 'free'
   if (plan === 'individual' || plan === 'team') return plan
   // Legacy monthly tiers: migration 029 rewrites these to 'individual', but
   // honour them until it has run so a deploy never locks customers out.

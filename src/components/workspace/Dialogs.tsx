@@ -69,7 +69,7 @@ export function LayerPropertiesDialog({ layer, isRaster, onClose, onSave }: {
                   {SWATCHES.map((c) => (
                     <button key={c} title={c} onClick={() => set('color', c)}
                             style={{ width: 18, height: 18, background: c, cursor: 'pointer',
-                              border: style.color === c ? '2px solid #111' : '1px solid rgba(0,0,0,.4)', outline: style.color === c ? '1px solid #fff' : 'none', outlineOffset: -3 }} />
+                              border: style.color === c ? '2px solid #ebe5d6' : '1px solid rgba(255,255,255,.25)', outline: style.color === c ? '1px solid #10161c' : 'none', outlineOffset: -3 }} />
                   ))}
                   <input type="color" value={style.color} onChange={(e) => set('color', e.target.value)} title="Other colour"
                          style={{ width: 26, height: 20, padding: 0, border: '1px solid var(--rule-strong)', background: 'none' }} />
@@ -111,7 +111,7 @@ export function LayerPropertiesDialog({ layer, isRaster, onClose, onSave }: {
                 <select className="ws-select" value={style.ramp} onChange={(e) => set('ramp', e.target.value as RasterRamp)}>
                   {(Object.keys(RAMP_NAMES) as RasterRamp[]).map((r) => <option key={r} value={r}>{RAMP_NAMES[r]}</option>)}
                 </select>
-                <div style={{ marginTop: 5, height: 10, width: 200, border: '1px solid rgba(0,0,0,.4)', background: rampCss(style.ramp) }} />
+                <div style={{ marginTop: 5, height: 10, width: 200, border: '1px solid rgba(255,255,255,.25)', background: rampCss(style.ramp) }} />
               </td>
             </tr>
           )}

@@ -22,7 +22,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">2. Description of Service</h2>
-              <p>Lenga Maps provides a self-serve digital platform for downloading processed geospatial datasets covering all 54 African countries. Access is provided via once-off plans (Individual, and Team packages for organisations) paid in USD. All delivery is digital — no physical goods are shipped.</p>
+              <p>Lenga Maps provides a self-serve digital platform for downloading processed geospatial datasets covering all 54 African countries. Access is provided via plans (Individual, and Team packages for organisations) paid in USD in advance for a fixed access period of three (3) months. Plans do not renew automatically. All delivery is digital — no physical goods are shipped.</p>
             </section>
 
             <section>

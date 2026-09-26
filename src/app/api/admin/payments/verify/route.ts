@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
+import { accessExpiry } from '@/lib/pricing'
 import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
 
 /**
@@ -11,7 +12,9 @@ import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/ema
  * Admin-only. On 'verify':
  *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
  *   - profiles.plan → plan recorded on the payment row
- *   - profiles.plan_status → 'active' (once-off — no expiry, access is permanent)
+ *   - profiles.plan_status → 'active', plan_expires_at → 3 months on from
+ *     today (or from the current expiry if still running). Accounts that
+ *     already have permanent access (active, no expiry) keep it.
  *   - fires Web3Forms email to the customer letting them know access is live
  *
  * On 'reject':
@@ -54,11 +57,12 @@ async function notifyCustomer(
   name: string | null,
   plan: string,
   note: string,
+  expiresAt: string | null = null,
 ) {
   // Customer-facing payment email, on the Resend payments channel
   // (from support@, replies forward to Gmail).
   const msg = action === 'verify'
-    ? paymentVerifiedEmail(email, name, plan)
+    ? paymentVerifiedEmail(email, name, plan, expiresAt)
     : paymentRejectedEmail(email, name, note)
   await sendEmail(msg, 'payments')
 }
@@ -115,16 +119,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
     }
 
-    // Promote pending -> active in one write. Once-off model: no expiry —
-    // access is granted for good the moment an admin approves. Clear
-    // pending_plan so the profile stops advertising a pending request.
-    // account_type is kept for back-compat with older payment rows.
+    // Promote pending -> active in one write, for ACCESS_MONTHS. A payment
+    // made while access is still running extends it from the current
+    // expiry. Grandfathered accounts (active with no expiry) stay
+    // permanent. Clear pending_plan so the profile stops advertising a
+    // pending request. account_type is kept for back-compat.
+    const { data: current } = await service
+      .from('profiles').select('plan_status, plan_expires_at').eq('id', payment.user_id).maybeSingle()
+    const permanent = current?.plan_status === 'active' && !current.plan_expires_at
+    const expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at)
     const { error: profErr } = await service
       .from('profiles')
       .update({
         plan:            payment.plan,
         account_type:    payment.account_type,
         plan_status:     'active',
+        plan_expires_at: expiresAt,
+        expiry_reminder_sent_at: null,
         pending_plan:    null,
       })
       .eq('id', payment.user_id)
@@ -134,7 +145,7 @@ export async function POST(req: NextRequest) {
     }
 
     // fire-and-forget customer email
-    notifyCustomer('verify', payment.user_email, payment.user_name, payment.plan, note)
+    notifyCustomer('verify', payment.user_email, payment.user_name, payment.plan, note, expiresAt)
     return NextResponse.json({ ok: true, action: 'verified' })
   }
 

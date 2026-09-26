@@ -42,7 +42,7 @@ export async function GET(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, plan_status')
+    .select('plan, plan_status, plan_expires_at')
     .eq('id', resolvedUser.id)
     .single()
 
@@ -50,7 +50,7 @@ export async function GET(
     return NextResponse.json({ error: 'Profile not found.', upgrade_url: '/pricing' }, { status: 403 })
   }
 
-  // Once-off plans never expire; any active plan unlocks every dataset.
+  // Any active, unexpired plan unlocks every dataset.
   const slug = type === 'watersheds' ? 'watersheds' : 'rivers'
   const allowed = await callerCanDownloadDataset(slug as 'rivers' | 'watersheds')
   if (!allowed) {

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await service
     .from('profiles')
-    .select('plan, plan_status, downloads_used, email, full_name, org_id')
+    .select('plan, plan_status, plan_expires_at, downloads_used, email, full_name, org_id')
     .eq('id', user.id)
     .single()
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: 'no_access' }, { status: 403 })
   }
 
-  const state = getUserState(profile.plan, profile.plan_status)
+  const state = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
 
   if (state === 'free') {
     return NextResponse.json(

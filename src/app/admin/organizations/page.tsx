@@ -27,6 +27,7 @@ interface Org {
   contact_email: string | null; promo_emails: boolean
   monthly_price_usd: number | null; api_rate_per_min: number
   notes: string | null; created_at: string
+  access_expires_at: string | null
   members: Member[]; pending_invites: Invite[]
 }
 
@@ -136,10 +137,21 @@ export default function AdminOrgsPage() {
                   <p className="mt-1 text-xs text-gray-500">
                     {[o.sector, o.region, o.monthly_price_usd ? `$${o.monthly_price_usd}/mo` : null, `${o.api_rate_per_min} req/min API`].filter(Boolean).join(' · ')}
                     {' · '}since {new Date(o.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                    {' · '}{o.access_expires_at
+                      ? <span className={new Date(o.access_expires_at) < new Date() ? 'text-red-600 font-semibold' : ''}>
+                          access until {new Date(o.access_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      : 'permanent access'}
                   </p>
                   {o.notes && <p className="mt-1.5 text-xs text-gray-500 italic">{o.notes}</p>}
                 </div>
                 <div className="flex items-center gap-2">
+                  {o.access_expires_at && (
+                    <button
+                      onClick={() => { if (confirm(`Record a renewal payment for ${o.name}? Adds 3 months of access for every member.`)) patch(o.id, { extend: true }) }}
+                      className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-gray-50"
+                    >Renew +3 months</button>
+                  )}
                   <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer">
                     <input
                       type="checkbox" checked={o.promo_emails}
@@ -248,7 +260,7 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
         <button disabled={busy} className="rounded-xl bg-gray-900 text-white px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
           {busy ? 'Provisioning…' : 'Create org + owner seat'}
         </button>
-        <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team (active). They manage member invites themselves from /team.</p>
+        <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team, active for 3 months from today. They manage member invites themselves from /team. Use Renew +3 months when the next payment arrives.</p>
       </div>
     </form>
   )

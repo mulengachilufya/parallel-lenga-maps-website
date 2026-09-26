@@ -21,13 +21,13 @@ export async function callerCanAccessFiles(): Promise<boolean> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, plan_status')
+    .select('plan, plan_status, plan_expires_at')
     .eq('id', user.id)
     .single()
 
   if (!profile) return false
 
-  const state = getUserState(profile.plan, profile.plan_status)
+  const state = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
   return canAccessFiles(state)
 }
 
