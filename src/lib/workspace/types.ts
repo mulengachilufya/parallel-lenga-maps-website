@@ -86,6 +86,27 @@ export interface WsMessage {
   deleted_at:  string | null
 }
 
+/** A one-to-one message between teammates (text, voice note, or both). */
+export interface WsDirectMessage {
+  id:            string
+  org_id:        string
+  sender_id:     string
+  recipient_id:  string
+  sender_name:   string
+  body:          string | null
+  voice_path:    string | null
+  voice_seconds: number | null
+  project_id:    string | null
+  created_at:    string
+  read_at:       string | null
+}
+
+export interface WsConversation {
+  member:  WsMember
+  last:    { preview: string; at: string; from_me: boolean } | null
+  unread:  number
+}
+
 export interface WsSnapshot {
   name:        string
   description: string

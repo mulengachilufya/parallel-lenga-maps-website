@@ -9,10 +9,11 @@
  *   * the caller must not already belong to an org (UNIQUE enforces this too).
  *
  * On success the caller becomes a member, their profile flips to plan='team'
- * (active, no expiry — the org's status is the kill switch), and the invite
+ * (active until the org's access_expires_at; org status is the kill switch), and the invite
  * is marked accepted.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { isExpired } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: invite } = await service
     .from('organization_invites')
-    .select('id, org_id, email, role, status, organizations!inner(name, status)')
+    .select('id, org_id, email, role, status, organizations!inner(name, status, access_expires_at)')
     .eq('token', token)
     .maybeSingle()
 
@@ -55,8 +56,8 @@ export async function POST(req: NextRequest) {
     )
   }
   const orgRaw = (invite as { organizations: unknown }).organizations
-  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as { name: string; status: string }
-  if (org.status !== 'active') {
+  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as { name: string; status: string; access_expires_at: string | null }
+  if (org.status !== 'active' || isExpired(org.access_expires_at)) {
     return NextResponse.json(
       { error: 'org_inactive', message: 'This team\'s plan is not active right now.' },
       { status: 403 },
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
       .update({ status: 'accepted', accepted_at: new Date().toISOString() })
       .eq('id', invite.id),
     service.from('profiles')
-      .update({ plan: 'team', plan_status: 'active', plan_expires_at: null })
+      .update({ plan: 'team', plan_status: 'active', plan_expires_at: org.access_expires_at })
       .eq('id', user.id),
   ])
 

@@ -371,7 +371,7 @@ function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose:
 
         <p className="text-blue-300 text-sm leading-relaxed mb-5">
           Downloading all 54 countries as one ready-for-QGIS file needs an active plan.
-          One-time payment, every dataset, no expiry.
+          Every dataset, every country, for 3 months per payment.
         </p>
 
         <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -404,6 +404,7 @@ function DashboardContent() {
 
   const [loading,   setLoading]   = useState(true)
   const [userState, setUserState] = useState<UserState>('free')
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [userName,  setUserName]  = useState('')
   const [isAdmin,   setIsAdmin]   = useState(false)
 
@@ -490,7 +491,7 @@ function DashboardContent() {
 
         const profilePromise = supabase
           .from('profiles')
-          .select('plan, plan_status, full_name')
+          .select('plan, plan_status, plan_expires_at, full_name')
           .eq('id', user.id)
           .single()
 
@@ -518,7 +519,7 @@ function DashboardContent() {
             const retry = await withTimeout(
               supabase
                 .from('profiles')
-                .select('plan, plan_status, full_name')
+                .select('plan, plan_status, plan_expires_at, full_name')
                 .eq('id', user.id)
                 .single(),
               3_000,
@@ -528,7 +529,8 @@ function DashboardContent() {
         }
         if (cancelled) return
 
-        setUserState(getUserState(profile?.plan, profile?.plan_status))
+        setUserState(getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at))
+        setExpiresAt(profile?.plan_expires_at ?? null)
         setUserName(profile?.full_name || user.user_metadata?.full_name || '')
         setIsAdmin(Boolean(adminRes?.isAdmin))
       } catch (err) {
@@ -714,10 +716,13 @@ function DashboardContent() {
               title={planLabel}
               ui={PLAN_CARD_UI[userState as TierSlug]}
               hero={planPrice ?? ''}
-              tagline="No expiry — you're paid up for good."
+              tagline={expiresAt
+                ? `Access runs until ${new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Pay again any time to add 3 months.`
+                : 'Permanent access: you were with us before 3-month plans.'}
               count={PLAN_CARD_UI[userState as TierSlug].count}
               datasets={PLAN_CARD_UI[userState as TierSlug].datasets}
-              cta="✓ Active — no expiry"
+              cta={expiresAt ? '✓ Active · renew to add 3 months' : '✓ Active — permanent'}
+              href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
             />
           )}
         </div>

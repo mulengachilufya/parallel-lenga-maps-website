@@ -101,7 +101,7 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       const profileRes = await withTimeout(
         supabase
           .from('profiles')
-          .select('plan, plan_status')
+          .select('plan, plan_status, plan_expires_at')
           .eq('id', session.user.id)
           .single(),
         6_000,
@@ -110,7 +110,7 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
 
       if (!profile) { setUser(null); return }
 
-      const userState = getUserState(profile.plan, profile.plan_status)
+      const userState = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
 
       setUser({
         plan:       profile.plan as TierSlug | null,
@@ -272,7 +272,7 @@ function PaywallModal({ onClose }: { onClose: () => void }) {
           <div>
             <h2 className="text-xl font-bold text-white mb-1">Get full access</h2>
             <p className="text-blue-300 text-sm">
-              One-time payment. Every dataset, every country, no expiry.
+              Every dataset, every country, for 3 months. Nothing renews automatically.
             </p>
           </div>
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-4 text-xl leading-none">✕</button>
@@ -295,7 +295,7 @@ function PaywallModal({ onClose }: { onClose: () => void }) {
                 <p className="text-2xl font-bold text-white group-hover:text-[#F5B800] transition-colors">{plan.priceLabel}</p>
                 <div className="mt-3 pt-3 border-t border-blue-900/40 text-left space-y-1">
                   <p className="text-blue-300 text-xs">All 15 datasets, all 54 countries</p>
-                  <p className="text-blue-300 text-xs">No expiry, unlimited downloads</p>
+                  <p className="text-blue-300 text-xs">3 months, unlimited downloads</p>
                   {slug === 'team' && <p className="text-blue-300 text-xs">Up to 4 or 12 seats</p>}
                 </div>
                 <div className="mt-3 bg-[#1E5F8E] group-hover:bg-[#F5B800] group-hover:text-[#0D2B45] text-white text-xs font-semibold py-2 rounded-lg transition-colors">

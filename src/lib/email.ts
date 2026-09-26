@@ -167,6 +167,11 @@ function shell(opts: {
 </html>`
 }
 
+/** 26 December 2026 — unambiguous in every locale our customers use. */
+export function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Lusaka' })
+}
+
 function firstName(fullName?: string | null): string {
   return (fullName || '').trim().split(/\s+/)[0] || 'there'
 }
@@ -185,15 +190,15 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
       across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
     </p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      When you are ready to download, access is a <strong>one-time payment of ${price}</strong>.
-      No subscription and no expiry: every dataset, every country, unlimited downloads, for good.
-      Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
+      When you are ready to download, access is <strong>${price}</strong>.
+      No subscription and nothing renews automatically: every dataset, every country, unlimited downloads.
+      Buying for a team? Team packages start at $350 for up to 4 seats for 3 months; just reply to this email.
     </p>`
   const text = `Hi ${name},
 
 Your Lenga Maps account is live. You can browse the full catalogue now: every dataset across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
 
-When you are ready to download, access is a one-time payment of ${price}. No subscription and no expiry: every dataset, every country, unlimited downloads, for good. Buying for a team? Team packages start at $350 for up to 4 seats; just reply to this email.
+When you are ready to download, access is ${price}. No subscription and nothing renews automatically: every dataset, every country, unlimited downloads. Buying for a team? Team packages start at $350 for up to 4 seats for 3 months; just reply to this email.
 
 Browse the catalogue: ${cta}
 See pricing: ${cta2}
@@ -529,6 +534,43 @@ Reply in the workspace: ${cta}`
   }
 }
 
+/**
+ * A teammate sent you a direct message in the workspace. Text is quoted;
+ * a voice note is announced with its length (the audio itself stays behind
+ * sign-in, so the link opens the conversation).
+ */
+export function workspaceDirectMessageEmail(opts: {
+  to: string; fromName: string; orgName: string; body: string | null; voiceSeconds: number | null; fromId: string
+}): EmailMessage {
+  const cta   = `${APP_URL}/workspace/messages?with=${encodeURIComponent(opts.fromId)}`
+  const from  = escapeHtml(opts.fromName)
+  const text0 = opts.body ? (opts.body.length > 600 ? `${opts.body.slice(0, 600)}…` : opts.body) : ''
+  const secs  = opts.voiceSeconds ?? 0
+  const voice = opts.voiceSeconds ? `a voice note (${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')})` : ''
+  const what  = voice && text0 ? `sent you ${voice} and a message` : voice ? `sent you ${voice}` : 'sent you a message'
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
+      <strong>${from}</strong> ${what} on your ${escapeHtml(opts.orgName)} workspace:
+    </p>
+    ${text0 ? `<blockquote style="margin:0 0 4px;padding:10px 14px;border-left:3px solid #C9A227;background:#faf8f2;font-size:14px;line-height:1.6;color:#333;white-space:pre-wrap;">${escapeHtml(text0)}</blockquote>` : ''}`
+  const text = `${opts.fromName} ${what} on your ${opts.orgName} workspace${text0 ? ':\n\n' + text0 : '.'}
+
+${voice ? 'Listen and reply' : 'Reply'}: ${cta}`
+  return {
+    to:      opts.to,
+    subject: voice && !text0 ? `${opts.fromName} sent you a voice note` : `Message from ${opts.fromName}`,
+    html: shell({
+      preheader: text0 ? text0.slice(0, 120) : `${opts.fromName} ${what}.`,
+      heading:   voice && !text0 ? 'New voice note' : 'New message',
+      bodyHtml,
+      ctaLabel:  voice ? 'Listen and reply' : 'Reply',
+      ctaHref:   cta,
+      footnote:  'You get this email when a teammate messages you in a Lenga Maps workspace. While you are chatting live we hold back repeat emails.',
+    }),
+    text,
+  }
+}
+
 // ── Payments ────────────────────────────────────────────────────────────────
 
 // Where manual-payment admin alerts go. Falls back to the quote notify
@@ -615,7 +657,7 @@ export function bankTransferDetailsEmail(opts: {
   const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
   const cta   = `${base}/dashboard/payment?plan=${opts.plan}`
   const rows: [string, string][] = [
-    ['Amount',            `$${plan.price} USD (once-off)`],
+    ['Amount',            `$${plan.price} USD (3 months of access)`],
     ['Account name',      b.accountName],
     ['Bank',              b.bankName],
     ['Account number',    b.accountNumber],
@@ -691,7 +733,7 @@ export function bankTransferExpectedAdminEmail(p: {
   const amount = `$${plan.price} USD`
   const cta    = `${APP_URL}/admin/payments`
   const rows: [string, string][] = [
-    ['Expect',         `${amount} (${plan.name}, once-off), less bank fees`],
+    ['Expect',         `${amount} (${plan.name}, 3 months), less bank fees`],
     ['Reference',      p.reference],
     ['From',           `${p.userName || '(no name)'} <${p.userEmail}>`],
     ['Fees',           'You cover them. Customer was told to pick BEN, so slightly less than the full amount may arrive.'],
@@ -735,19 +777,20 @@ export function bankTransferExpectedAdminEmail(p: {
 }
 
 /** Confirmation to the customer when their payment is verified. */
-export function paymentVerifiedEmail(to: string, name: string | null, plan: string): EmailMessage {
+export function paymentVerifiedEmail(to: string, name: string | null, plan: string, expiresAt: string | null = null): EmailMessage {
   const fname = firstName(name)
   const cta   = `${APP_URL}/dashboard`
   const PLAN  = plan.toUpperCase()
+  const until = expiresAt ? ` until ${longDate(expiresAt)}` : ''
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
       Great news, we have verified your payment. Your <strong>${PLAN}</strong> plan is now
-      active, and you can download datasets right away.
+      active${until}, and you can download datasets right away.
     </p>`
   const text = `Hi ${fname},
 
-Great news, we have verified your payment. Your ${PLAN} plan is now active, and you can download datasets right away at ${cta}.
+Great news, we have verified your payment. Your ${PLAN} plan is now active${until}, and you can download datasets right away at ${cta}.
 
 If you need anything, just reply to this email.
 
@@ -801,6 +844,53 @@ The Lenga Maps team`
       ctaLabel:  'Resubmit payment',
       ctaHref:   cta,
       footnote:  'Stuck? Reply to this email and we will help sort it out.',
+    }),
+    text,
+  }
+}
+
+// ── Access periods (3-month plans) ──────────────────────────────────────────
+
+/**
+ * Sent once, about a week before a paid period ends (and again, with
+ * `ended`, on the day it lapses). For teams it goes to the team owner.
+ * Nothing renews automatically, so this is the customer's only prompt.
+ */
+export function accessPeriodEmail(opts: {
+  to: string; name?: string | null; planName: string; expiresAt: string; ended: boolean; team?: string | null
+}): EmailMessage {
+  const fname = firstName(opts.name)
+  const when  = longDate(opts.expiresAt)
+  const cta   = opts.team ? `${APP_URL}/projects` : `${APP_URL}/dashboard/payment?plan=individual`
+  const whose = opts.team ? `${escapeHtml(opts.team)}'s ${escapeHtml(opts.planName)}` : `your ${escapeHtml(opts.planName)}`
+  const whoseText = opts.team ? `${opts.team}'s ${opts.planName}` : `your ${opts.planName}`
+  const lead = opts.ended
+    ? `Access on ${whose} plan ended on ${when}. Your account, projects and download history are all kept; pay for another 3 months and everything switches straight back on.`
+    : `Access on ${whose} plan runs until <strong>${when}</strong>. Nothing renews automatically. Pay for another 3 months before then and there is no gap; the new period starts when the current one ends.`
+  const leadText = opts.ended
+    ? `Access on ${whoseText} plan ended on ${when}. Your account, projects and download history are all kept; pay for another 3 months and everything switches straight back on.`
+    : `Access on ${whoseText} plan runs until ${when}. Nothing renews automatically. Pay for another 3 months before then and there is no gap; the new period starts when the current one ends.`
+  const bodyHtml = `
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">${lead}</p>`
+  const text = `Hi ${fname},
+
+${leadText}
+
+Renew: ${cta}
+
+Thanks,
+The Lenga Maps team`
+  return {
+    to: opts.to,
+    subject: opts.ended ? 'Your Lenga Maps access has ended' : `Your Lenga Maps access ends on ${when}`,
+    html: shell({
+      preheader: opts.ended ? 'Renew to switch your access back on.' : `Renew before ${when} to avoid a gap.`,
+      heading:   opts.ended ? 'Your access has ended' : 'Your access ends soon',
+      bodyHtml,
+      ctaLabel:  opts.ended ? 'Renew access' : 'Renew for 3 more months',
+      ctaHref:   cta,
+      footnote:  'Questions about renewing? Just reply to this email.',
     }),
     text,
   }

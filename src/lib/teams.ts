@@ -8,12 +8,13 @@
 //   internal/product name  →  "Lenga for Projects"
 //   page route             →  /projects
 //
-// Pricing model (updated 2026-09): fixed once-off packages, not per seat —
-//   up to 4 seats for $350, up to 12 seats for $1,000. Defined in
+// Pricing model (updated 2026-09): fixed 3-month packages, not per seat —
+//   up to 4 seats for $350, up to 12 seats for $1,000, per 3 months.
+//   organizations.access_expires_at ends the period (null = permanent). Defined in
 //   TEAM_PACKAGES (src/lib/pricing.ts). Larger teams are quoted.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { DatasetSlug } from './pricing'
+import { isExpired, type DatasetSlug } from './pricing'
 
 export const TEAM_TIER_TITLE   = 'For Project Teams and Businesses'
 export const TEAM_PRODUCT_NAME = 'Lenga for Projects'
@@ -78,6 +79,7 @@ export interface Membership {
     contact_email:       string | null
     promo_emails:        boolean
     api_rate_per_min:    number
+    access_expires_at:   string | null   // null = permanent (grandfathered)
     created_at:          string
   }
 }
@@ -93,7 +95,7 @@ export async function getMembership(
 ): Promise<Membership | null> {
   const { data, error } = await service
     .from('organization_members')
-    .select('org_id, role, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, created_at)')
+    .select('org_id, role, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, access_expires_at, created_at)')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -105,7 +107,7 @@ export async function getMembership(
   return { org_id: data.org_id, role: data.role as 'owner' | 'member', org }
 }
 
-/** Active = the org pays the bills and members keep access. */
+/** Active = the org is in good standing and its paid period hasn't ended. */
 export function isOrgActive(m: Membership | null): m is Membership {
-  return !!m && m.org.status === 'active'
+  return !!m && m.org.status === 'active' && !isExpired(m.org.access_expires_at)
 }

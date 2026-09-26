@@ -9,6 +9,7 @@
  *                            monthly_price_usd?, notes? }
  *                          The owner must already have a Lenga Maps account.
  * PATCH /api/admin/orgs  — { id, ...changes } update seats / status / promo /
+ *                          renewal ({ extend: true } adds 3 months) /
  *                          price / notes. Changing status ALSO flips every
  *                          member's plan_status (active ⇄ free) so suspension
  *                          revokes download access in one move.
@@ -16,6 +17,7 @@
  * Auth: cookie session + ADMIN_EMAILS allow-list.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { accessExpiry } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
@@ -96,6 +98,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // One paid period from today; `permanent: true` only for deals agreed
+  // before 3-month plans existed.
+  const expiresAt = body.permanent === true ? null : accessExpiry()
+
   const { data: org, error: orgErr } = await service
     .from('organizations')
     .insert({
@@ -106,6 +112,7 @@ export async function POST(req: NextRequest) {
       contact_email:     ownerEmail,
       monthly_price_usd: Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null,
       notes:             typeof body.notes === 'string' ? body.notes.slice(0, 2000) : null,
+      access_expires_at: expiresAt,
     })
     .select('*')
     .single()
@@ -128,10 +135,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'member_failed', message: memErr.message }, { status: 500 })
   }
 
-  // Entitlement: members ride plan='team'. No expiry date — renewals are
-  // manual and org.status is the kill switch (PATCH below flips everyone).
+  // Entitlement: members ride plan='team' and share the org's expiry.
+  // Renewal is PATCH { extend: true }; org.status is the kill switch.
   await service.from('profiles')
-    .update({ plan: 'team', plan_status: 'active', plan_expires_at: null })
+    .update({ plan: 'team', plan_status: 'active', plan_expires_at: expiresAt })
     .eq('id', profile.id)
 
   return NextResponse.json({ ok: true, org })
@@ -155,6 +162,19 @@ export async function PATCH(req: NextRequest) {
   if (Number.isFinite(Number(body.api_rate_per_min)) && Number(body.api_rate_per_min) >= 1) changes.api_rate_per_min = Math.round(Number(body.api_rate_per_min))
   if (typeof body.status === 'string' && ['active', 'suspended', 'cancelled'].includes(body.status)) changes.status = body.status
 
+  // Renewal: add one paid period, counted from the current expiry if it is
+  // still running so an early renewal loses nothing.
+  if (body.extend === true) {
+    const { data: cur } = await service.from('organizations').select('access_expires_at').eq('id', id).maybeSingle()
+    if (!cur) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    if (!cur.access_expires_at) {
+      return NextResponse.json({ error: 'validation', message: 'This team has permanent access; nothing to renew.' }, { status: 400 })
+    }
+    changes.access_expires_at = accessExpiry(cur.access_expires_at)
+    changes.status = 'active'
+    changes.expiry_notice_sent = null
+  }
+
   if (Object.keys(changes).length === 0) {
     return NextResponse.json({ error: 'validation', message: 'No valid changes.' }, { status: 400 })
   }
@@ -173,7 +193,10 @@ export async function PATCH(req: NextRequest) {
       .data?.map((m) => m.user_id) ?? []
     if (memberIds.length > 0) {
       await service.from('profiles')
-        .update({ plan_status: changes.status === 'active' ? 'active' : 'free' })
+        .update({
+          plan_status: changes.status === 'active' ? 'active' : 'free',
+          ...('access_expires_at' in changes ? { plan_expires_at: changes.access_expires_at, expiry_reminder_sent_at: null } : {}),
+        })
         .in('id', memberIds)
         .eq('plan', 'team')
     }

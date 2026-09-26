@@ -51,7 +51,7 @@ export default function PricingPage() {
             Simple, honest pricing
           </h1>
           <p style={{ fontSize: '15px', color: '#555', margin: 0 }}>
-            One-time payment. Every dataset, every one of 54 African countries, no expiry.
+            Pay for 3 months at a time. Every dataset, every one of 54 African countries. Nothing renews automatically.
           </p>
         </div>
 
