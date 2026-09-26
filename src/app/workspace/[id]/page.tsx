@@ -34,8 +34,7 @@ import TitleBar from '@/components/workspace/TitleBar'
 import { rampCss, categoryColor } from '@/lib/workspace/raster'
 import {
   defaultStyle, shortRev, type Basemap, type CatalogFile, type WsPlace, type LayerStyle, type WsBookmark, type WsLayer,
-  type WsMessage, type WsProjectBundle, type WsRevision, type WsSnapshot,
-} from '@/lib/workspace/types'
+  type WsMessage, type WsProjectBundle, type WsRevision, type WsSnapshot, atLeast, ROLE_HELP, ROLE_LABEL, type ProjectRole } from '@/lib/workspace/types'
 
 type Tab = 'discussion' | 'history' | 'details'
 
@@ -230,7 +229,10 @@ function Workstation() {
   }, [])
 
   // ── Mutations ────────────────────────────────────────────────────────────
-  const readOnly = !!preview
+  const myRole: ProjectRole = bundle?.me.project_role ?? 'viewer'
+  const canEdit = atLeast(myRole, 'editor')
+  const canManage = atLeast(myRole, 'manager')
+  const readOnly = !!preview || !canEdit
 
   // ── Attribute table ──────────────────────────────────────────────────────
   const tableLayerObj = tableLayer ? shownLayers.find((l) => l.id === tableLayer) ?? null : null
@@ -336,9 +338,14 @@ function Workstation() {
     } catch (e) { say(e instanceof Error ? e.message : 'Could not save') }
   }
 
-  async function saveDetails(patch: { name: string; description: string }) {
+  async function saveDetails(patch: { name?: string; description?: string; visibility?: 'team' | 'private'; default_role?: 'viewer' | 'editor' }) {
     const d = await api<{ rev?: WsRevision }>(`/api/workspace/projects/${id}`, { method: 'PATCH', json: patch })
     revNote(d.rev); refresh()
+  }
+
+  async function setMemberRole(userId: string, role: ProjectRole | null) {
+    await api(`/api/workspace/projects/${id}/members`, { method: 'PUT', json: { user_id: userId, role } })
+    refresh()
   }
 
   async function sendMessage(body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) {
@@ -439,7 +446,8 @@ function Workstation() {
         <div className="group">
           <button className={`ws-btn${floating === 'import' ? ' is-on' : ''}`} disabled={readOnly} title="Bring in a QGIS project or files exported from ArcGIS"
                   onClick={() => setFloating(floating === 'import' ? null : 'import')}>Import…</button>
-          <button className="ws-btn" disabled={!!exporting || tocLayers.length === 0} title="Download a QGIS project with all layers and data, ready for QGIS or ArcGIS Pro"
+          <button className="ws-btn" disabled={!!exporting || tocLayers.length === 0 || !canEdit}
+                  title={canEdit ? 'Download a QGIS project with all layers and data, ready for QGIS or ArcGIS Pro' : 'Viewers can look but not export. Ask a project manager for editor access.'}
                   onClick={() => void exportDesktop()}>{exporting || 'Export to QGIS / ArcGIS'}</button>
         </div>
         <div className="group">
@@ -451,12 +459,15 @@ function Workstation() {
         <div className="group hide-sm">
           <button className="ws-btn" title="Fly to the project's saved view"
                   onClick={() => { const s = bundle.project.map_state; mapRef.current?.flyTo(s.center[0], s.center[1], s.zoom) }}>Project view</button>
-          <button className="ws-btn" disabled={readOnly} title="Make the current extent and basemap the view everyone opens to"
+          <button className="ws-btn" disabled={!!preview || !canManage} title={canManage ? 'Make the current extent and basemap the view everyone opens to' : 'Only project managers can change the project view'}
                   onClick={setProjectView}>Set as project view</button>
           <button className="ws-btn" onClick={() => mapRef.current?.flyTo(20, 2, 2.6)}>Africa</button>
         </div>
         <span className="grow" />
         <div className="group">
+          <span className={`ws-role-chip ${myRole}`} title={ROLE_HELP[myRole]}>
+            {ROLE_LABEL[myRole]}{bundle.project.visibility === 'private' ? ' · private project' : ''}
+          </span>
           <button className={`ws-btn${showRight ? ' is-on' : ''}`} onClick={() => setShowRight((v) => !v)}>Panel</button>
         </div>
       </div>
@@ -539,7 +550,7 @@ function Workstation() {
           <AttributeTable
             key={tableLayerObj.id}
             label={tableLayerObj.label} fc={tableData.fc}
-            selected={tableSel} focus={tableFocus} canExport
+            selected={tableSel} focus={tableFocus} canExport={canEdit}
             onSelect={(ids) => { setTableSel(ids); setTableFocus(null) }}
             onZoom={(ids) => mapRef.current?.zoomToFeatures(tableLayerObj.id, ids)}
             onFilter={(ids) => mapRef.current?.filterFeatures(tableLayerObj.id, ids)}
@@ -578,13 +589,14 @@ function Workstation() {
                 projectId={id} revisions={revisions} previewSeq={preview?.seq ?? null}
                 onPreview={(seq, snapshot) => setPreview(head && seq === head.seq ? null : { seq, snapshot })}
                 onRestore={(rev) => setDialog({ kind: 'restore', rev })}
+                canRestore={canEdit}
                 onComment={(seq) => { setAboutRev(seq); setTab('discussion') }}
                 commentCounts={revComments} focusSeq={historyFocus}
               />
             )}
             {tab === 'details' && (
               <DetailsPanel project={bundle.project} members={bundle.members} online={online} me={bundle.me}
-                            onSave={saveDetails} onArchive={() => setDialog({ kind: 'archive' })} />
+                            onSave={saveDetails} onSetRole={setMemberRole} onArchive={() => setDialog({ kind: 'archive' })} />
             )}
           </>
         )}

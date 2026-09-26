@@ -1,6 +1,6 @@
 /**
  * PATCH  /api/workspace/projects/:id/messages/:messageId  — { body } author only
- * DELETE /api/workspace/projects/:id/messages/:messageId  — author or org owner;
+ * DELETE /api/workspace/projects/:id/messages/:messageId  — author or project manager;
  *        soft delete so thread structure and Realtime updates stay intact.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, messageId } = await params
-  if (!(await loadProject(gate.membership.org_id, id))) return jsonError('not_found', 404)
+  if (!(await loadProject(gate, id))) return jsonError('not_found', 404)
   const msg = await load(id, messageId)
   if (!msg || msg.deleted_at) return jsonError('not_found', 404)
   if (msg.author_id !== gate.user.id) return jsonError('forbidden', 403)
@@ -41,10 +41,11 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, messageId } = await params
-  if (!(await loadProject(gate.membership.org_id, id))) return jsonError('not_found', 404)
+  const project = await loadProject(gate, id)
+  if (!project) return jsonError('not_found', 404)
   const msg = await load(id, messageId)
   if (!msg || msg.deleted_at) return jsonError('not_found', 404)
-  if (msg.author_id !== gate.user.id && gate.membership.role !== 'owner') return jsonError('forbidden', 403)
+  if (msg.author_id !== gate.user.id && project.role !== 'manager') return jsonError('forbidden', 403)
 
   const { error } = await service.from('workspace_messages')
     .update({ deleted_at: new Date().toISOString(), body: '(deleted)', voice_path: null, voice_seconds: null }).eq('id', messageId)

@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
-import type { WsProject, WsRevision } from './types'
+import { atLeast, type ProjectRole, type WsProject, type WsRevision } from './types'
 
 export const service: SupabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,16 +53,36 @@ export async function requireWorkspace(): Promise<WorkspaceGate | { denied: Next
   return { user, membership, name }
 }
 
-export async function loadProject(orgId: string, projectId: string): Promise<WsProject | null> {
+export type LoadedProject = WsProject & { role: ProjectRole }
+
+/**
+ * The project, with the caller's role on it, or null when it doesn't exist,
+ * belongs to another org, is archived, or is private and the caller isn't
+ * on it. Role rules mirror the SQL function workspace_project_role
+ * (migration 037): org owner → manager; creator → manager; explicit
+ * project member row; else the project's default role if it is a 'team'
+ * project.
+ */
+export async function loadProject(gate: WorkspaceGate, projectId: string): Promise<LoadedProject | null> {
   if (!/^[0-9a-f-]{36}$/i.test(projectId)) return null
-  const { data } = await service
-    .from('workspace_projects')
-    .select('id, org_id, name, description, map_state, created_by, created_at, updated_at')
-    .eq('id', projectId)
-    .eq('org_id', orgId)
-    .is('archived_at', null)
-    .maybeSingle()
-  return (data as WsProject | null) ?? null
+  const [{ data }, { data: pm }] = await Promise.all([
+    service.from('workspace_projects')
+      .select('id, org_id, name, description, map_state, created_by, created_at, updated_at, visibility, default_role')
+      .eq('id', projectId).eq('org_id', gate.membership.org_id).is('archived_at', null).maybeSingle(),
+    service.from('workspace_project_members').select('role')
+      .eq('project_id', projectId).eq('user_id', gate.user.id).maybeSingle(),
+  ])
+  if (!data) return null
+  const p = data as WsProject & { visibility: 'team' | 'private'; default_role: 'viewer' | 'editor' }
+  const role: ProjectRole | null =
+    gate.membership.role === 'owner' || p.created_by === gate.user.id ? 'manager'
+    : (pm?.role as ProjectRole | undefined) ?? (p.visibility === 'team' ? p.default_role : null)
+  return role ? { ...p, role } : null
+}
+
+/** 403 unless the caller's role on the project is at least `need`. */
+export function needRole(project: LoadedProject, need: ProjectRole): NextResponse | null {
+  return atLeast(project.role, need) ? null : jsonError(`needs_${need}`, 403)
 }
 
 /** Append the current project state as the next revision. */

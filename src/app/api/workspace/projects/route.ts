@@ -1,9 +1,11 @@
 /**
- * GET  /api/workspace/projects  — the caller's org projects, newest activity first
+ * GET  /api/workspace/projects  — the org projects the caller can open (private
+ *        ones only if they're on them), newest activity first, with their role
  * POST /api/workspace/projects  — { name, description? } → creates a project (r1)
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { commit, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
+import type { ProjectRole } from '@/lib/workspace/types'
 import { DEFAULT_MAP_STATE, type WsProjectSummary } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -14,13 +16,20 @@ export async function GET() {
 
   const { data: projects, error } = await service
     .from('workspace_projects')
-    .select('id, org_id, name, description, map_state, created_by, created_at, updated_at')
+    .select('id, org_id, name, description, map_state, created_by, created_at, updated_at, visibility, default_role')
     .eq('org_id', gate.membership.org_id)
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
   if (error) return jsonError('list_failed', 500)
 
-  const ids = (projects ?? []).map((p) => p.id)
+  const { data: mine } = await service.from('workspace_project_members').select('project_id, role').eq('user_id', gate.user.id)
+  const explicit = new Map((mine ?? []).map((m) => [m.project_id as string, m.role as ProjectRole]))
+  const roleOf = (p: { id: string; created_by: string | null; visibility: string; default_role: string }): ProjectRole | null =>
+    gate.membership.role === 'owner' || p.created_by === gate.user.id ? 'manager'
+    : explicit.get(p.id) ?? (p.visibility === 'team' ? p.default_role as ProjectRole : null)
+  const visible = (projects ?? []).map((p) => ({ ...p, my_role: roleOf(p) })).filter((p) => p.my_role !== null)
+
+  const ids = visible.map((p) => p.id)
   const [layers, revs] = await Promise.all([
     ids.length
       ? service.from('workspace_layers').select('project_id').in('project_id', ids)
@@ -41,8 +50,9 @@ export async function GET() {
   const latest = new Map<string, WsProjectSummary['last_rev']>()
   for (const r of revs) if (r.data) latest.set(r.data.project_id, r.data)
 
-  const out: WsProjectSummary[] = (projects ?? []).map((p) => ({
+  const out: WsProjectSummary[] = visible.map((p) => ({
     ...p,
+    my_role:     p.my_role as ProjectRole,
     layer_count: counts.get(p.id) ?? 0,
     last_rev:    latest.get(p.id) ?? null,
   }))

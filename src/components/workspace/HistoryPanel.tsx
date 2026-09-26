@@ -11,11 +11,12 @@ interface Props {
   onPreview:  (seq: number, snapshot: WsSnapshot) => void
   onRestore:  (rev: WsRevision) => void
   onComment:  (seq: number) => void
+  canRestore: boolean
   commentCounts: Map<number, number>
   focusSeq:   number | null
 }
 
-export default function HistoryPanel({ projectId, revisions, previewSeq, onPreview, onRestore, onComment, commentCounts, focusSeq }: Props) {
+export default function HistoryPanel({ projectId, revisions, previewSeq, onPreview, onRestore, onComment, canRestore, commentCounts, focusSeq }: Props) {
   const [selected, setSelected] = useState<number | null>(focusSeq)
   useEffect(() => { if (focusSeq !== null) setSelected(focusSeq) }, [focusSeq])
   const [detail, setDetail] = useState<{ seq: number; snapshot: WsSnapshot; diff: DiffLine[] } | null>(null)
@@ -65,7 +66,7 @@ export default function HistoryPanel({ projectId, revisions, previewSeq, onPrevi
                     <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
                       <button className="ws-btn" onClick={() => onPreview(r.seq, detail.snapshot)}>Preview on map</button>
                       <button className="ws-btn" onClick={() => onComment(r.seq)}>Comment on r{r.seq}</button>
-                      {r.seq !== head && (
+                      {r.seq !== head && canRestore && (
                         <button className="ws-btn" onClick={() => onRestore(r)}>Restore r{r.seq}…</button>
                       )}
                     </div>

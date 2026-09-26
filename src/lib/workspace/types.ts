@@ -57,9 +57,25 @@ export interface WsProject {
   created_by:  string | null
   created_at:  string
   updated_at:  string
+  visibility?:   'team' | 'private'
+  default_role?: 'viewer' | 'editor'
+}
+
+/** What a person can do inside one project (separate from their org role). */
+export type ProjectRole = 'viewer' | 'editor' | 'manager'
+const ROLE_RANK: Record<ProjectRole, number> = { viewer: 1, editor: 2, manager: 3 }
+export function atLeast(role: ProjectRole | null | undefined, need: ProjectRole): boolean {
+  return !!role && ROLE_RANK[role] >= ROLE_RANK[need]
+}
+export const ROLE_LABEL: Record<ProjectRole, string> = { viewer: 'Viewer', editor: 'Editor', manager: 'Manager' }
+export const ROLE_HELP: Record<ProjectRole, string> = {
+  viewer:  'Sees the map, layers and history, and can comment. Cannot change or export anything.',
+  editor:  'Adds, removes and restyles layers, saves views, restores revisions and exports.',
+  manager: 'Everything an editor can, plus project settings, members and visibility.',
 }
 
 export interface WsProjectSummary extends WsProject {
+  my_role:      ProjectRole
   layer_count:  number
   last_rev:     { seq: number; author_name: string; summary: string; created_at: string } | null
 }
@@ -69,6 +85,8 @@ export interface WsMember {
   name:    string
   email:   string
   role:    'owner' | 'member'
+  project_role?: ProjectRole | null   // effective role on the open project (null = no access)
+  explicit?:     boolean              // role set on this project rather than inherited
 }
 
 export interface WsMessage {
@@ -139,7 +157,7 @@ export interface WsProjectBundle {
   layers:    WsLayer[]
   bookmarks: WsBookmark[]
   members:   WsMember[]
-  me:        { user_id: string; name: string; role: 'owner' | 'member' }
+  me:        { user_id: string; name: string; role: 'owner' | 'member'; project_role: ProjectRole }
   org:       { id: string; name: string }
   head:      number   // latest revision seq, 0 if none
 }

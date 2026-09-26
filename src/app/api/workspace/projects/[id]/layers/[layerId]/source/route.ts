@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
   if ('denied' in gate) return gate.denied
   const { id, layerId } = await params
-  const project = await loadProject(gate.membership.org_id, id)
+  const project = await loadProject(gate, id)
   if (!project) return jsonError('not_found', 404)
 
   const { data: layer } = await service.from('workspace_layers')

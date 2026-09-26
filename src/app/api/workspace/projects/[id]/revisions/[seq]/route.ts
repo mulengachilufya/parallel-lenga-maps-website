@@ -5,7 +5,7 @@
  *      revision. History is never rewritten: the restore is a new revision.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { jsonError, loadProject, requireWorkspace, service } from '@/lib/workspace/server'
+import { jsonError, loadProject, requireWorkspace, service, needRole, type LoadedProject } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   if ('denied' in gate) return gate.denied
   const { id, seq: rawSeq } = await params
   const seq = parseSeq(rawSeq)
-  if (!seq || !(await loadProject(gate.membership.org_id, id))) return jsonError('not_found', 404)
+  if (!seq || !(await loadProject(gate, id))) return jsonError('not_found', 404)
 
   const { data: revs } = await service.from('workspace_revisions').select('*')
     .eq('project_id', id).in('seq', [seq, seq - 1])
@@ -38,7 +38,9 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
   if ('denied' in gate) return gate.denied
   const { id, seq: rawSeq } = await params
   const seq = parseSeq(rawSeq)
-  if (!seq || !(await loadProject(gate.membership.org_id, id))) return jsonError('not_found', 404)
+  let project: LoadedProject | null = null
+  if (!seq || !(project = await loadProject(gate, id))) return jsonError('not_found', 404)
+  { const denied = needRole(project, 'editor'); if (denied) return denied }
 
   const { data, error } = await service.rpc('workspace_restore', {
     p_project: id, p_seq: seq, p_author: gate.user.id, p_author_name: gate.name,
