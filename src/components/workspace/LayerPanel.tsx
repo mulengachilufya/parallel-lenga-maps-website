@@ -85,8 +85,8 @@ export default function LayerPanel(p: Props) {
                   <Swatch layer={l} status={st} />
                   <span className="name" title={l.label}>{l.label}</span>
                   {l.dataset_slug === 'upload'
-                    ? <span className="ws-src yours" title="Uploaded by your team. Kept in your team's private folder, never mixed with the Lenga library.">Yours</span>
-                    : <span className="ws-src lenga" title="From the Lenga Maps data library">Lenga</span>}
+                    ? <span className="ws-src yours" title="Uploaded by your team. Kept in your team's private folder, never mixed with the Lenga database.">Yours</span>
+                    : <span className="ws-src lenga" title="From the Lenga Maps GIS database">Lenga</span>}
                   <span className="acts" onClick={(e) => e.stopPropagation()}>
                     <button className="ws-icon-btn" title="Zoom to layer" onClick={() => p.onZoom(l.id)}><Crosshair size={11} /></button>
                     {!p.phone && st?.loaded?.kind === 'vector' && (
