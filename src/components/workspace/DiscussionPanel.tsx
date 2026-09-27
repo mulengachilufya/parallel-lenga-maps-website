@@ -211,7 +211,7 @@ export default function DiscussionPanel(p: Props) {
         )}
         <textarea
           ref={box} className="ws-textarea" rows={3} value={text} maxLength={4000}
-          placeholder={replyTo ? 'Write a reply…' : 'Write a message. @ to mention, Ctrl+Enter to send.'}
+          placeholder={replyTo ? 'Write a reply…' : typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? 'Write a message. @ to mention a teammate.' : 'Write a message. @ to mention, Ctrl+Enter to send.'}
           onChange={(e) => onType(e.target.value)}
           onKeyDown={(e) => {
             if (candidates.length) {

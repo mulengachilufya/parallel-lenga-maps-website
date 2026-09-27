@@ -23,9 +23,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* Slide-in animations start a little off-screen; never let that make the
+     page scroll sideways on phones. `clip` (not `hidden`) keeps sticky headers working. */
+  overflow-x: clip;
 }
 
 body {
+  overflow-x: clip;
   color: #ffffff;
   background: #0f1923;
   font-family: 'Inter', system-ui, sans-serif;

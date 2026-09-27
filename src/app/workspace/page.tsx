@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TitleBar from '@/components/workspace/TitleBar'
+import { usePhone } from '@/components/workspace/usePhone'
 import { api, stamp, timeAgo } from '@/components/workspace/util'
 import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
 import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
@@ -25,6 +26,7 @@ export default function WorkspaceIndex() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [template, setTemplate] = useState('')
+  const phone = usePhone()
   const [country, setCountry] = useState('ZMB')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -118,6 +120,12 @@ export default function WorkspaceIndex() {
                 )}
               </div>
 
+              {phone ? (
+                <div className="ws-note small">
+                  <b>Phone view.</b> Open any project to look at the map, read and post comments, leave voice notes and
+                  check the history. Starting a project or changing one is done on a computer.
+                </div>
+              ) : (
               <form className="ws-box" onSubmit={create}>
                 <h2 style={{ fontSize: 16, marginBottom: 8 }}>Start a project</h2>
                 <div className="ws-field">
@@ -152,6 +160,7 @@ export default function WorkspaceIndex() {
                 <button className="ws-btn ws-btn-default" disabled={!name.trim() || busy}>{busy ? (template ? 'Building the project…' : 'Creating…') : 'Create project'}</button>
                 {err && <p className="ws-err small" style={{ marginTop: 6 }}>{err}</p>}
               </form>
+              )}
             </div>
           </>
         )}

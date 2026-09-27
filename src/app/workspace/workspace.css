@@ -403,6 +403,10 @@
 .ws-cols { display: grid; grid-template-columns: 1fr 260px; gap: 18px; align-items: start; }
 .ws-err { color: var(--danger); }
 
+@media (max-width: 600px) {
+  .ws-table th:nth-child(2), .ws-table td:nth-child(2) { display: none; }
+  .ws-table th:nth-child(3) { width: auto !important; }
+}
 @media (max-width: 900px) {
   .ws-app { grid-template-columns: 0 1fr 0; }
   .ws-app.show-left { grid-template-columns: 240px 1fr 0; }
@@ -501,3 +505,58 @@
 .ws-prov { border-collapse: collapse; width: 100%; margin-top: 4px; font-size: 11px; }
 .ws-prov td { padding: 3px 0; vertical-align: top; border-top: 1px solid var(--rule); line-height: 1.45; }
 .ws-prov td:first-child { color: var(--muted); width: 120px; white-space: nowrap; padding-right: 8px; }
+
+/* ── Phone view ──────────────────────────────────────────────────────────── */
+.ws-app.phone {
+  grid-template-rows: 44px minmax(0, 1fr) 56px; grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "title" "map" "tabs";
+  height: 100dvh; position: fixed; inset: 0;
+}
+.ws-app.phone .ws-toolbar, .ws-app.phone .ws-statusbar, .ws-app.phone .ws-left, .ws-app.phone .ws-right { display: none; }
+.ws-app.phone .ws-titlebar { font-size: 12px; min-width: 0; overflow: hidden; }
+.ws-app.phone .ws-titlebar .hide-phone, .ws-app.phone .ws-presence .small { display: none; }
+.ws-app.phone .ws-crumbs { min-width: 0; flex: 1; }
+.ws-phone-tabs button { min-width: 0; }
+.ws-app.phone .ws-titlebar .small { font-size: 11px; }
+.ws-app.phone .ws-mapwrap { grid-area: map; }
+.ws-phone-tabs {
+  grid-area: tabs; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--navy); border-top: 1px solid var(--rule); padding-bottom: env(safe-area-inset-bottom);
+}
+.ws-phone-tabs button {
+  font: inherit; font-size: 12px; color: var(--muted); background: none; border: 0; border-top: 2px solid transparent;
+  padding: 0 2px; min-height: 48px; position: relative;
+}
+.ws-phone-tabs button.on { color: var(--ink); border-top-color: var(--brass); font-weight: bold; }
+.ws-phone-tabs .n { position: absolute; top: 6px; margin-left: 3px; font-size: 9.5px; background: var(--brass); color: #1b1606; padding: 0 4px; font-weight: bold; }
+.ws-sheet {
+  position: fixed; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom)); z-index: 30;
+  height: min(68dvh, calc(100dvh - 44px - 56px - 90px));
+  display: flex; flex-direction: column; background: var(--panel);
+  border-top: 1px solid var(--rule-strong); box-shadow: 0 -8px 24px rgba(0,0,0,.45);
+}
+.ws-sheet-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel-2); border-bottom: 1px solid var(--rule); flex: none; font-size: 13px; }
+.ws-sheet-head .spacer { flex: 1; }
+.ws-sheet-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.ws-sheet-body > .ws-panel-head:first-child { display: none; }
+.ws-sheet-body .ws-panel-body { flex: 1 1 auto; }
+.ws-phone-info { padding: 10px; border-bottom: 1px solid var(--rule); }
+.ws-phone-info .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.ws-phone-notice {
+  position: fixed; left: 8px; right: 8px; top: 52px; z-index: 25;
+  display: flex; gap: 8px; align-items: flex-start;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--brass); padding: 8px 10px; font-size: 12px; line-height: 1.45;
+  box-shadow: 0 6px 16px rgba(0,0,0,.4);
+}
+/* Bigger touch targets in phone view */
+.ws-app.phone .ws-btn, .ws-sheet .ws-btn { min-height: 34px; padding: 4px 12px; font-size: 13px; }
+.ws-app.phone .ws-toc li { padding: 7px 8px; grid-template-columns: 22px 16px 1fr auto; }
+.ws-app.phone .ws-toc li input[type=checkbox] { width: 18px; height: 18px; }
+.ws-app.phone .ws-toc li .acts { display: flex; }
+.ws-app.phone .ws-icon-btn { width: 30px; height: 30px; }
+.ws-app.phone .ws-list li { padding: 10px; font-size: 13px; }
+.ws-sheet .ws-textarea, .ws-sheet .ws-input, .ws-sheet .ws-select { font-size: 16px; } /* no iOS zoom on focus */
+.ws-sheet .ws-msg .foot { font-size: 12.5px; gap: 16px; }
+.ws-sheet .ws-log li { padding: 8px 10px 9px 28px; }
+.ws-app.phone .maplibregl-popup-content { max-width: 86vw; }
+.ws-app.phone .ws-map-note { top: auto; bottom: 10px; max-width: calc(100vw - 20px); }

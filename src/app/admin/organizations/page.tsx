@@ -185,8 +185,8 @@ export default function AdminOrgsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-gray-100 pt-3">
-                <table className="w-full text-left text-xs">
+              <div className="mt-4 border-t border-gray-100 pt-3 overflow-x-auto">
+                <table className="w-full min-w-[420px] text-left text-xs">
                   <thead className="text-gray-400">
                     <tr><th className="py-1 font-semibold">Member</th><th className="py-1 font-semibold">Email</th><th className="py-1 font-semibold">Role</th><th className="py-1 font-semibold">Joined</th></tr>
                   </thead>

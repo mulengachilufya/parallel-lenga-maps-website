@@ -23,6 +23,7 @@ import LayerPanel from '@/components/workspace/LayerPanel'
 import DiscussionPanel from '@/components/workspace/DiscussionPanel'
 import HistoryPanel from '@/components/workspace/HistoryPanel'
 import AttributeTable from '@/components/workspace/AttributeTable'
+import { usePhone } from '@/components/workspace/usePhone'
 import type { VoiceClip } from '@/components/workspace/VoiceRecorder'
 import DetailsPanel from '@/components/workspace/DetailsPanel'
 import { ConfirmDialog, LayerPropertiesDialog } from '@/components/workspace/Dialogs'
@@ -78,6 +79,11 @@ function Workstation() {
   const [view, setView] = useState<ViewInfo | null>(null)
   const [cursor, setCursor] = useState<{ lng: number; lat: number } | null>(null)
   const [tab, setTab] = useState<Tab>((search.get('tab') as Tab) || 'discussion')
+  // Phone view: full-screen map, bottom tabs, and no changes to the project.
+  const phone = usePhone()
+  const [phoneTab, setPhoneTab] = useState<'map' | 'layers' | 'discussion' | 'history' | 'details'>('map')
+  const [phoneNotice, setPhoneNotice] = useState(true)
+  useEffect(() => { try { if (sessionStorage.getItem('lm-phone-notice') === 'off') setPhoneNotice(false) } catch { /* private mode */ } }, [])
   const [aboutRev, setAboutRev] = useState<number | null>(null)
   const [historyFocus, setHistoryFocus] = useState<number | null>(null)
   const [showLeft, setShowLeft] = useState(true)
@@ -230,8 +236,10 @@ function Workstation() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
   const myRole: ProjectRole = bundle?.me.project_role ?? 'viewer'
-  const canEdit = atLeast(myRole, 'editor')
-  const canManage = atLeast(myRole, 'manager')
+  // On a phone nobody edits the project, whatever their role: the notice
+  // explains it and every change control is disabled. Commenting stays on.
+  const canEdit = atLeast(myRole, 'editor') && !phone
+  const canManage = atLeast(myRole, 'manager') && !phone
   const readOnly = !!preview || !canEdit
 
   // Fresh from a template: frame the data once the first vector layer loads.
@@ -440,12 +448,54 @@ function Workstation() {
     )
   }
 
+  const layerPanel = (
+    <LayerPanel
+  layers={tocLayers} statuses={statuses} hidden={hidden} selected={selected} bookmarks={bookmarks}
+  onSelect={setSelected} onToggle={toggleHidden}
+  onMove={(lid, dir) => { if (!readOnly) void moveLayer(lid, dir) }}
+  onZoom={(lid) => mapRef.current?.zoomToLayer(lid)}
+  onTable={openTable} phone={phone}
+  onEdit={(lid) => { if (!readOnly) setDialog({ kind: 'edit', layerId: lid }) }}
+  onRemove={(lid) => { const l = liveLayers.find((x) => x.id === lid); if (l && !readOnly) setDialog({ kind: 'remove', layer: l }) }}
+  onAdd={() => { if (!readOnly) setFloating('add') }}
+  onGoto={(b) => mapRef.current?.flyTo(b.lng, b.lat, b.zoom)}
+  onSaveView={(n) => { if (!readOnly) void saveView(n) }}
+  onDropView={(b) => { if (!readOnly) void dropView(b) }}
+/>
+  )
+  const discussionPanel = (
+    <DiscussionPanel
+  projectId={id} messages={messages} members={bundle.members} me={bundle.me}
+  pinNumbers={pinNumbers} focusId={focusMsg}
+  draftPin={draftPin} picking={pickMode === 'pin'}
+  onStartPin={() => setPickMode((m) => (m === 'pin' ? null : 'pin'))}
+  onClearPin={() => setDraftPin(null)}
+  onShowPin={(m) => { if (m.lng !== null && m.lat !== null) { setPhoneTab('map'); mapRef.current?.flyTo(m.lng, m.lat, Math.max(view?.zoom ?? 6, 8)) } }}
+  onSend={sendMessage} onSendVoice={sendVoiceMessage} onEdit={editMessage} onDelete={deleteMessage}
+  aboutRev={aboutRev} onClearRev={() => setAboutRev(null)}
+  onShowRev={(seq) => { setHistoryFocus(seq); setTab('history'); setPhoneTab('history') }}
+/>
+  )
+  const historyPanel = (
+    <HistoryPanel
+  projectId={id} revisions={revisions} previewSeq={preview?.seq ?? null}
+  onPreview={(seq, snapshot) => setPreview(head && seq === head.seq ? null : { seq, snapshot })}
+  onRestore={(rev) => setDialog({ kind: 'restore', rev })}
+  canRestore={canEdit}
+  onComment={(seq) => { setAboutRev(seq); setTab('discussion'); setPhoneTab('discussion') }}
+  commentCounts={revComments} focusSeq={historyFocus}
+/>
+  )
+  const detailsPanel = (
+    <DetailsPanel project={bundle.project} members={bundle.members} online={online} me={bundle.me}
+              onSave={saveDetails} onSetRole={setMemberRole} onDuplicate={canEdit ? () => void duplicateProject() : undefined}
+              onArchive={() => setDialog({ kind: 'archive' })} locked={phone} />
+  )
+
   const head = revisions?.[0]
-  const frame = [
-    'ws-app',
-    showLeft ? 'show-left' : 'no-left',
-    showRight ? 'show-right' : 'no-right',
-  ].join(' ')
+  const frame = phone
+    ? `ws-app phone${phoneTab !== 'map' && !pickMode ? ' sheet-open' : ''}`
+    : ['ws-app', showLeft ? 'show-left' : 'no-left', showRight ? 'show-right' : 'no-right'].join(' ')
 
   return (
     <div className={`ws ${frame}`}>
@@ -496,21 +546,7 @@ function Workstation() {
       </div>
 
       <aside className="ws-left">
-        {showLeft && (
-          <LayerPanel
-            layers={tocLayers} statuses={statuses} hidden={hidden} selected={selected} bookmarks={bookmarks}
-            onSelect={setSelected} onToggle={toggleHidden}
-            onMove={(lid, dir) => { if (!readOnly) void moveLayer(lid, dir) }}
-            onZoom={(lid) => mapRef.current?.zoomToLayer(lid)}
-            onTable={openTable}
-            onEdit={(lid) => { if (!readOnly) setDialog({ kind: 'edit', layerId: lid }) }}
-            onRemove={(lid) => { const l = liveLayers.find((x) => x.id === lid); if (l && !readOnly) setDialog({ kind: 'remove', layer: l }) }}
-            onAdd={() => { if (!readOnly) setFloating('add') }}
-            onGoto={(b) => mapRef.current?.flyTo(b.lng, b.lat, b.zoom)}
-            onSaveView={(n) => { if (!readOnly) void saveView(n) }}
-            onDropView={(b) => { if (!readOnly) void dropView(b) }}
-          />
-        )}
+        {showLeft && !phone && layerPanel}
       </aside>
 
       <div className={`ws-mapwrap${picking ? ' picking' : ''}${tableData ? ' with-table' : ''}`}>
@@ -583,7 +619,7 @@ function Workstation() {
       </div>
 
       <aside className="ws-right">
-        {showRight && (
+        {showRight && !phone && (
           <>
             <div className="ws-tabs" role="tablist">
               {(['discussion', 'history', 'details'] as Tab[]).map((t) => (
@@ -594,37 +630,68 @@ function Workstation() {
                 </button>
               ))}
             </div>
-            {tab === 'discussion' && (
-              <DiscussionPanel
-                projectId={id} messages={messages} members={bundle.members} me={bundle.me}
-                pinNumbers={pinNumbers} focusId={focusMsg}
-                draftPin={draftPin} picking={pickMode === 'pin'}
-                onStartPin={() => setPickMode((m) => (m === 'pin' ? null : 'pin'))}
-                onClearPin={() => setDraftPin(null)}
-                onShowPin={(m) => { if (m.lng !== null && m.lat !== null) mapRef.current?.flyTo(m.lng, m.lat, Math.max(view?.zoom ?? 6, 8)) }}
-                onSend={sendMessage} onSendVoice={sendVoiceMessage} onEdit={editMessage} onDelete={deleteMessage}
-                aboutRev={aboutRev} onClearRev={() => setAboutRev(null)}
-                onShowRev={(seq) => { setHistoryFocus(seq); setTab('history') }}
-              />
-            )}
-            {tab === 'history' && (
-              <HistoryPanel
-                projectId={id} revisions={revisions} previewSeq={preview?.seq ?? null}
-                onPreview={(seq, snapshot) => setPreview(head && seq === head.seq ? null : { seq, snapshot })}
-                onRestore={(rev) => setDialog({ kind: 'restore', rev })}
-                canRestore={canEdit}
-                onComment={(seq) => { setAboutRev(seq); setTab('discussion') }}
-                commentCounts={revComments} focusSeq={historyFocus}
-              />
-            )}
-            {tab === 'details' && (
-              <DetailsPanel project={bundle.project} members={bundle.members} online={online} me={bundle.me}
-                            onSave={saveDetails} onSetRole={setMemberRole} onDuplicate={canEdit ? () => void duplicateProject() : undefined}
-                            onArchive={() => setDialog({ kind: 'archive' })} />
-            )}
+            {tab === 'discussion' && discussionPanel}
+            {tab === 'history' && historyPanel}
+            {tab === 'details' && detailsPanel}
           </>
         )}
       </aside>
+
+      {phone && (
+        <>
+          {phoneNotice && (
+            <div className="ws-phone-notice" role="note">
+              <span><b>Phone view.</b> Look around, comment and leave voice notes. To change layers, styles or settings, open this project on a computer.</span>
+              <button className="ws-icon-btn" aria-label="Dismiss" onClick={() => { setPhoneNotice(false); try { sessionStorage.setItem('lm-phone-notice', 'off') } catch { /* private mode */ } }}>×</button>
+            </div>
+          )}
+          {phoneTab !== 'map' && !pickMode && (
+            <section className="ws-sheet" aria-label={phoneTab}>
+              <div className="ws-sheet-head">
+                <b>{phoneTab === 'layers' ? 'Layers and saved views' : phoneTab === 'discussion' ? 'Discussion' : phoneTab === 'history' ? 'History' : 'Project'}</b>
+                <span className="spacer" />
+                <button className="ws-btn" onClick={() => setPhoneTab('map')}>Map</button>
+              </div>
+              <div className="ws-sheet-body">
+                {phoneTab === 'layers' && layerPanel}
+                {phoneTab === 'discussion' && discussionPanel}
+                {phoneTab === 'history' && historyPanel}
+                {phoneTab === 'details' && (
+                  <>
+                    <div className="ws-phone-info">
+                      <div className="ws-note small">
+                        Editing is switched off on phones so nothing gets changed by accident on a small screen.
+                        You can still comment, leave voice notes, switch layers on and off for yourself and look back
+                        through the history. Everything else works on a computer.
+                      </div>
+                      <div className="row">
+                        <label className="small muted" htmlFor="bm-phone">Basemap</label>
+                        <select id="bm-phone" className="ws-select" value={basemap} onChange={(e) => setBasemap(e.target.value as Basemap)}>
+                          {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="row">
+                        <button className="ws-btn" onClick={() => { const s = bundle.project.map_state; setPhoneTab('map'); mapRef.current?.flyTo(s.center[0], s.center[1], s.zoom) }}>Project view</button>
+                        <button className="ws-btn" onClick={() => { setPhoneTab('map'); mapRef.current?.flyTo(20, 2, 2.6) }}>Africa</button>
+                        <span className={`ws-role-chip ${myRole}`}>{ROLE_LABEL[myRole]}</span>
+                      </div>
+                    </div>
+                    {detailsPanel}
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+          <nav className="ws-phone-tabs" aria-label="Project sections">
+            {([['map', 'Map'], ['layers', 'Layers'], ['discussion', 'Discuss'], ['history', 'History'], ['details', 'Project']] as const).map(([k, label]) => (
+              <button key={k} className={phoneTab === k ? 'on' : ''} onClick={() => { setPickMode(null); setPhoneTab(k) }}>
+                {label}
+                {k === 'discussion' && messages.filter((m) => !m.deleted_at).length > 0 && <span className="n">{messages.filter((m) => !m.deleted_at).length}</span>}
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
 
       <div className="ws-statusbar">
         <span className="hide-sm" style={{ minWidth: 190 }}>{cursor ? `Lat ${cursor.lat.toFixed(5)}  Lon ${cursor.lng.toFixed(5)}` : 'Lat —  Lon —'}</span>
