@@ -256,7 +256,7 @@ export default function HomePage() {
               className="text-[1.08rem] leading-[1.6] text-white/90 font-medium max-w-[620px] mb-8"
             >
               Building Africa&apos;s largest and most centralized environmental GIS
-              database, and a shared workspace where your team maps, discusses and
+              database, and a shared GIS workspace where your team maps, shares and
               delivers projects together. We fuse satellite grade observation with the
               lived African context to solve real geospatial challenges.
             </motion.p>

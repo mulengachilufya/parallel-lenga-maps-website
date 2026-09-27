@@ -560,3 +560,8 @@
 .ws-sheet .ws-log li { padding: 8px 10px 9px 28px; }
 .ws-app.phone .maplibregl-popup-content { max-width: 86vw; }
 .ws-app.phone .ws-map-note { top: auto; bottom: 10px; max-width: calc(100vw - 20px); }
+
+/* Where a layer comes from: the Lenga library or the team's own upload */
+.ws-src { flex-shrink: 0; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+.ws-src.lenga { color: var(--brass); border: 1px solid rgba(212,173,59,.45); }
+.ws-src.yours { color: #9fb0c0; border: 1px solid rgba(159,176,192,.4); }
