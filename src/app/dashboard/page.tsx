@@ -308,7 +308,7 @@ function ContinentalBundle({ datasetSlug, userState, allowed }: { datasetSlug: s
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-navy">
-              Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">Max</span>
+              Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">All 54 countries</span>
             </p>
             <p className="text-xs text-gray-600 leading-snug mt-0.5">
               All 54 countries merged into one file — attribute tables included, ready to drop straight into QGIS. No more downloading countries one at a time.
@@ -766,7 +766,7 @@ function DashboardContent() {
         <div className="mb-6">
           <h2 className="text-lg font-bold text-navy mb-1">Browse & Download Datasets</h2>
           <p className="text-sm text-gray-500">
-            Click any dataset to browse country files. Download buttons enforce your plan tier in real time.
+            Click any dataset to browse country files. Paid plans download everything; the free plan downloads your 3 chosen datasets.
           </p>
         </div>
 

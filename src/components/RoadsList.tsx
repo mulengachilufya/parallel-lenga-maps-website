@@ -130,7 +130,7 @@ export default function RoadsList({ userPlan = 'starter' }: RoadsListProps) {
                     : 'bg-orange-600 hover:bg-orange-700 text-white'
               }`}
             >
-              {!hasAccess ? '🔒 Upgrade to download' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
+              {!hasAccess ? '🔒 Unlock to download' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
             </button>
           </motion.div>
         ))}
