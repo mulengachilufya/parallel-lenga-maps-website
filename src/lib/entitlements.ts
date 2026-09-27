@@ -1,0 +1,78 @@
+// src/lib/entitlements.ts
+//
+// Server-only. The one answer to "what can this account download?", used by
+// every dataset route, the workspace catalogue and GET /api/account/access.
+//
+//   Paid (individual or team plan, not expired)  every dataset
+//   Free                                         the 3 datasets the person
+//                                                picked, plus the 3 their
+//                                                free team picked, if any
+
+import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  FREE_DATASET_LIMIT, cleanPicks, getUserState, type DatasetSlug, type UserState,
+} from './pricing'
+import { getMembership, isOrgActive, type Membership } from './teams'
+
+export interface Access {
+  state:      UserState
+  paid:       boolean
+  /** Datasets a free account can download (empty for paid: they get all). */
+  datasets:   DatasetSlug[]
+  personal:   { picks: DatasetSlug[]; left: number }
+  team:       null | {
+    org_id: string; name: string; plan: 'paid' | 'free'; role: 'owner' | 'member'
+    active: boolean; picks: DatasetSlug[]; left: number; seats: number
+  }
+}
+
+export async function accessFor(db: SupabaseClient, userId: string, membership?: Membership | null): Promise<Access> {
+  const [{ data: profile }, m] = await Promise.all([
+    db.from('profiles').select('plan, plan_status, plan_expires_at, free_datasets').eq('id', userId).maybeSingle(),
+    membership !== undefined ? Promise.resolve(membership) : getMembership(db, userId),
+  ])
+  const state = getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at)
+  const personal = cleanPicks(profile?.free_datasets)
+  const team = m ? {
+    org_id: m.org_id, name: m.org.name, plan: (m.org.plan ?? 'paid') as 'paid' | 'free', role: m.role,
+    active: isOrgActive(m), picks: cleanPicks(m.org.free_datasets), left: 0, seats: m.org.seat_count,
+  } : null
+  if (team) team.left = team.plan === 'free' ? Math.max(0, FREE_DATASET_LIMIT - team.picks.length) : 0
+
+  // A member of a free team never counts as paid, whatever the profile says.
+  const paid = state !== 'free' && !(state === 'team' && team?.plan === 'free')
+  const teamPicks = team && team.plan === 'free' && team.active ? team.picks : []
+  return {
+    state: paid ? state : 'free',
+    paid,
+    datasets: paid ? [] : [...new Set([...personal, ...teamPicks])],
+    personal: { picks: personal, left: Math.max(0, FREE_DATASET_LIMIT - personal.length) },
+    team,
+  }
+}
+
+export function canDownload(a: Access, slug: string): boolean {
+  return a.paid || (a.datasets as string[]).includes(slug)
+}
+
+/**
+ * Datasets a team workspace may put on its maps: everything for a paid
+ * team, the team's 3 picks for a free one.
+ */
+export function workspaceDatasets(m: Membership): 'all' | DatasetSlug[] {
+  return m.org.plan === 'free' ? cleanPicks(m.org.free_datasets) : 'all'
+}
+
+/**
+ * Add picks (never remove or swap). Returns the new list, or an error
+ * message when the request would go over the limit.
+ */
+export function addPicks(current: DatasetSlug[], wanted: unknown): { picks: DatasetSlug[] } | { error: string } {
+  const add = cleanPicks(wanted).filter((s) => !current.includes(s))
+  if (!add.length) return { error: 'Choose at least one dataset you have not picked yet.' }
+  const next = [...current, ...add]
+  if (next.length > FREE_DATASET_LIMIT) {
+    return { error: `The free plan includes ${FREE_DATASET_LIMIT} datasets. You have ${Math.max(0, FREE_DATASET_LIMIT - current.length)} left to choose.` }
+  }
+  return { picks: next }
+}

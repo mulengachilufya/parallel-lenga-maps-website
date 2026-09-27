@@ -379,7 +379,7 @@ const BUCKETS: { label: string; stages: Stage[] }[] = [
   { label: 'On the radar', stages: ['target'] },
   { label: 'Contacted', stages: ['contacted'] },
   { label: 'Talking', stages: ['replied', 'meeting'] },
-  { label: 'Pilot or proposal', stages: ['pilot', 'proposal'] },
+  { label: 'Free plan or proposal', stages: ['free', 'proposal'] },
   { label: 'Customers', stages: ['won', 'acquired'] },
 ]
 

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DATASETS, findDataset, listFilesForDataset } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
 import { datasetMeta } from '@/lib/teams'
-import { jsonError, requireWorkspace } from '@/lib/workspace/server'
+import { datasetAllowed, jsonError, requireWorkspace } from '@/lib/workspace/server'
 import type { CatalogDataset, CatalogFile } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
   const countries = new Set((sp.get('countries') ?? '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean))
 
   if (!slugs.length && !countries.size) {
+    // Free teams see every dataset (so they know what upgrading brings) but
+    // only their 3 are marked available.
     const datasets: CatalogDataset[] = DATASETS.map((d) => ({
       id:       d.id,
       name:     d.name,
@@ -51,11 +53,13 @@ export async function GET(req: NextRequest) {
       raster:   datasetMeta(d.id)?.raster ?? /tif/i.test(d.id),
       source:      d.source,
       description: d.description,
+      locked:      !datasetAllowed(gate, d.id),
     })).sort((a, b) => a.name.localeCompare(b.name))
     return NextResponse.json({ datasets })
   }
 
-  const wanted = slugs.length ? slugs.filter((s) => findDataset(s)) : DATASETS.map((d) => d.id)
+  const wanted = (slugs.length ? slugs.filter((s) => findDataset(s)) : DATASETS.map((d) => d.id))
+    .filter((s) => datasetAllowed(gate, s))
   if (!wanted.length) return jsonError('unknown_dataset', 404)
 
   try {

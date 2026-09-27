@@ -7,7 +7,7 @@
  *        country are skipped and reported.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { commit, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
+import { commit, datasetAllowed, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import type { ProjectRole } from '@/lib/workspace/types'
 import { findDataset, listFilesForDataset, type ApiFile } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
@@ -66,7 +66,7 @@ export async function GET() {
 
   return NextResponse.json({
     projects: out,
-    org: { id: gate.membership.org_id, name: gate.membership.org.name },
+    org: { id: gate.membership.org_id, name: gate.membership.org.name, plan: gate.membership.org.plan ?? 'paid', free_datasets: gate.membership.org.free_datasets ?? [] },
     me:  { user_id: gate.user.id, name: gate.name, role: gate.membership.role },
   })
 }
@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
   await Promise.all(template.layers.map(async (tl, order) => {
     const spec = findDataset(tl.dataset)
     if (!spec) return
+    if (!datasetAllowed(gate, spec.id)) { skipped[order] = `${spec.name} (not in your free datasets)`; return }
     const files = (await listFilesForDataset(spec, country.name).catch(() => [] as ApiFile[]))
       .filter((f) => f.country_iso3 === country.iso3)
     if (!files.length) { skipped[order] = spec.name; return }

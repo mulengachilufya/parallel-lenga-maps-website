@@ -74,6 +74,7 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
           'Plan': p?.plan ?? 'none', 'Access': p?.plan_status ?? 'free',
           'Access ends': p?.plan_status === 'active' ? (p?.plan_expires_at ?? 'never (permanent)') : '—',
           'Team': member ? `${(member.organizations as unknown as { name: string })?.name} (${member.role})` : 'none',
+          'Free datasets chosen': (p?.free_datasets as string[] | null)?.join(', ') || 'none yet',
           'Secure messages set up': key ? 'yes' : 'no',
           'Recent payments': (pays ?? []).map((x) => `${x.reference} · ${x.plan} · ${x.status}`).join('; ') || 'none',
         },
@@ -136,6 +137,19 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       if (!u) return done({ ok: false, message: `No account found for ${email}.` })
       const { error } = await db.from('workspace_user_keys').update({ retired_at: new Date().toISOString() }).eq('user_id', u.id).is('retired_at', null)
       return done(error ? { ok: false, message: error.message } : { ok: true, message: `${email} will be asked to set up secure messages again. Their old messages stay unreadable; nobody can recover them.` })
+    }
+
+    case 'reset_free_datasets': {
+      const u = await findUser(email)
+      if (!u) return done({ ok: false, message: `No account found for ${email}.` })
+      const { error } = await db.from('profiles').update({ free_datasets: null, free_datasets_at: null }).eq('id', u.id)
+      let team = ''
+      const { data: m } = await db.from('organization_members').select('org_id, role, organizations(plan)').eq('user_id', u.id).maybeSingle()
+      if (!error && m?.role === 'owner' && (m.organizations as unknown as { plan?: string })?.plan === 'free') {
+        await db.from('organizations').update({ free_datasets: null, free_datasets_at: null }).eq('id', m.org_id)
+        team = ' Their free team\'s choice was cleared too.'
+      }
+      return done(error ? { ok: false, message: error.message } : { ok: true, message: `${email} can choose their 3 free datasets again.${team}` })
     }
 
     case 'clear_rate_limits': {

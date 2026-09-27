@@ -104,7 +104,7 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
   // kills its keys immediately — no need to revoke each key by hand.
   const { data: membership } = await supabase
     .from('organization_members')
-    .select('org_id, organizations!inner(id, name, status, api_rate_per_min)')
+    .select('org_id, organizations!inner(id, name, status, api_rate_per_min, plan)')
     .eq('user_id', key.user_id)
     .maybeSingle()
 
@@ -112,9 +112,10 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
     ? (membership as { organizations: unknown }).organizations
     : null
   const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as
-    { id: string; name: string; status: string; api_rate_per_min: number } | null
+    { id: string; name: string; status: string; api_rate_per_min: number; plan?: string } | null
 
-  if (!org || org.status !== 'active') {
+  // The API is a paid-team feature: free teams (migration 041) don't get it.
+  if (!org || org.status !== 'active' || org.plan === 'free') {
     return { ok: false, failure: { type: 'plan-inactive' } }
   }
 

@@ -10,6 +10,8 @@
  *                          The owner must already have a Lenga Maps account.
  * PATCH /api/admin/orgs  — { id, ...changes } update seats / status / promo /
  *                          renewal ({ extend: true } adds 3 months) /
+ *                          upgrade ({ upgrade: true, seat_count } turns a
+ *                          free team into a paid one) /
  *                          price / notes. Changing status ALSO flips every
  *                          member's plan_status (active ⇄ free) so suspension
  *                          revokes download access in one move.
@@ -21,7 +23,7 @@ import { accessExpiry } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
-import { provisionOrg } from '@/lib/teams-admin'
+import { provisionOrg, upgradeOrg } from '@/lib/teams-admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,6 +117,16 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.notes === 'string') changes.notes = body.notes.slice(0, 2000)
   if (Number.isFinite(Number(body.api_rate_per_min)) && Number(body.api_rate_per_min) >= 1) changes.api_rate_per_min = Math.round(Number(body.api_rate_per_min))
   if (typeof body.status === 'string' && ['active', 'suspended', 'cancelled'].includes(body.status)) changes.status = body.status
+
+  // A free team has paid: it becomes a paid team in place (projects and
+  // members kept), with the seats paid for and 3 months from today.
+  if (body.upgrade === true) {
+    const seats = Number.isFinite(Number(body.seat_count)) && Number(body.seat_count) >= 1 ? Math.round(Number(body.seat_count)) : 4
+    const price = Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null
+    const r = await upgradeOrg(service, id, { seats, price, expiresAt: accessExpiry() })
+    if (!r.ok) return NextResponse.json({ error: 'update_failed', message: r.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
 
   // Renewal: add one paid period, counted from the current expiry if it is
   // still running so an early renewal loses nothing.

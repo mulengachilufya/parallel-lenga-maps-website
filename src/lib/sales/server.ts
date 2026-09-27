@@ -276,7 +276,7 @@ export function contactFields(body: Record<string, unknown>) {
 export async function teamStatus(orgId: string | null) {
   if (!orgId) return null
   const [org, members, invites, projects] = await Promise.all([
-    db.from('organizations').select('id, name, status, seat_count, access_expires_at, created_at').eq('id', orgId).maybeSingle(),
+    db.from('organizations').select('id, name, status, seat_count, access_expires_at, created_at, plan, free_datasets').eq('id', orgId).maybeSingle(),
     db.from('organization_members').select('user_id, member_name, member_email, role, joined_at').eq('org_id', orgId),
     db.from('organization_invites').select('id', { count: 'exact', head: true }).eq('org_id', orgId).eq('status', 'pending'),
     db.from('workspace_projects').select('id, updated_at').eq('org_id', orgId).is('archived_at', null).order('updated_at', { ascending: false }),
@@ -289,4 +289,40 @@ export async function teamStatus(orgId: string | null) {
     project_count:    projects.data?.length ?? 0,
     last_project_at:  projects.data?.[0]?.updated_at ?? null,
   }
+}
+
+/**
+ * Link accounts to the team their people are on. When someone we are
+ * talking to starts a free team (or joins one), the account picks it up and
+ * moves to "On the free plan". Returns the names of accounts linked.
+ */
+export async function linkTeams(onlyAccountId?: string): Promise<string[]> {
+  let q = db.from('sales_accounts').select('*').is('org_id', null).not('stage', 'in', '(lost)')
+  if (onlyAccountId) q = q.eq('id', onlyAccountId)
+  const { data: accounts } = await q.limit(2000)
+  if (!accounts?.length) return []
+  const { data: contacts } = await db.from('sales_contacts').select('account_id, email')
+    .in('account_id', accounts.map((a) => a.id)).not('email', 'is', null)
+  const emails = [...new Set((contacts ?? []).map((c) => (c.email as string).toLowerCase()))]
+  if (!emails.length) return []
+  const { data: members } = await db.from('organization_members').select('org_id, member_email')
+    .in('member_email', emails)
+  if (!members?.length) return []
+  const orgByEmail = new Map(members.map((m) => [String(m.member_email).toLowerCase(), m.org_id as string]))
+
+  const linked: string[] = []
+  for (const a of accounts as (AccountRow & { stage_history: Record<string, string> })[]) {
+    const orgId = (contacts ?? []).filter((c) => c.account_id === a.id).map((c) => orgByEmail.get(String(c.email).toLowerCase())).find(Boolean)
+    if (!orgId) continue
+    const { data: org } = await db.from('organizations').select('name, plan').eq('id', orgId).maybeSingle()
+    await db.from('sales_accounts').update({ org_id: orgId, updated_at: new Date().toISOString() }).eq('id', a.id)
+    await logActivity({ account_id: a.id, kind: 'system', created_by: 'system',
+      subject: `Linked to their ${org?.plan === 'free' ? 'free ' : ''}team "${org?.name ?? ''}"`, meta: { org_id: orgId } })
+    if (org?.plan === 'free' && (stageIndex(a.stage) < stageIndex('free') || a.stage === 'nurture')) {
+      await moveStage(a, 'free', 'system', { note: 'They started a free team.' })
+      await db.from('sales_tasks').insert({ account_id: a.id, kind: 'email', template: 'free_checkin', title: 'Check in on their free team', due_on: dueDate(3) })
+    }
+    linked.push(a.name)
+  }
+  return linked
 }

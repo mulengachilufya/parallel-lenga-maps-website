@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { LOST_REASONS } from '@/lib/sales/playbook'
 import {
-  accountPatch, db, getSettings, isoDate, jsonError, loadAccount, moveStage, requireAdmin, str, teamStatus, validStage,
+  accountPatch, db, getSettings, isoDate, linkTeams, jsonError, loadAccount, moveStage, requireAdmin, str, teamStatus, validStage,
 } from '@/lib/sales/server'
 
 export const dynamic = 'force-dynamic'
@@ -20,8 +20,10 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const gate = await requireAdmin()
   if ('denied' in gate) return gate.denied
   const { id } = await params
-  const account = await loadAccount(id)
+  let account = await loadAccount(id)
   if (!account) return jsonError('not_found', 404, 'That account no longer exists.')
+  // Pick up a free team their people started since we last looked.
+  if (!account.org_id && (await linkTeams(id)).length) account = (await loadAccount(id))!
 
   const [contacts, activities, tasks, team, settings] = await Promise.all([
     db.from('sales_contacts').select('*').eq('account_id', id).order('is_primary', { ascending: false }).order('created_at'),

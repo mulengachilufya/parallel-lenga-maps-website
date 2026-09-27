@@ -215,6 +215,7 @@ function Fix({ settings, reload, via }: { settings: Overview['settings']; reload
         </div>
         <div className="btns">
           {b('reset_messages_key', 'Reset their secure messages', {}, `Reset secure messages for ${email}? Their old direct messages become unreadable forever.`)}
+          {b('reset_free_datasets', 'Let them re-choose free datasets', {}, `Clear ${email}'s 3 free datasets so they can choose again? (Also their free team's, if they own one.)`)}
         </div>
       </Tool>
 

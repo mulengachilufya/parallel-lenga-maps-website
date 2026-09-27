@@ -177,7 +177,7 @@ export default function HydrologyList({
                   <td className="px-4 py-3 text-center">
                     <motion.button
                       onClick={() => handleDownload(layer)}
-                      disabled={!layer.download_url || downloading === layer.id}
+                      disabled={downloading === layer.id}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${

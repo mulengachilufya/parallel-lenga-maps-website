@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
 import { getDownloadUrl, getObjectStream } from '@/lib/r2'
-import { jsonError, requireWorkspace } from '@/lib/workspace/server'
+import { datasetAllowed, jsonError, lockedDataset, requireWorkspace } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const spec = findDataset(sp.get('dataset') ?? '')
   const key = sp.get('key') ?? ''
   if (!spec || !key) return jsonError('bad_request', 400)
+  if (!datasetAllowed(gate, spec.id)) return lockedDataset()
   const files = await listFilesForDataset(spec).catch(() => [])
   if (!files.some((f) => f.r2_key === key)) return jsonError('unknown_file', 404)
 

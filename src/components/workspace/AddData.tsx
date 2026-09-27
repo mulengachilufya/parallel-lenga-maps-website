@@ -127,7 +127,7 @@ export default function AddData(p: Props) {
   // ── By dataset ───────────────────────────────────────────────────────────
   const shownDatasets = useMemo(() => {
     const n = dq.trim().toLowerCase()
-    return (datasets ?? []).filter((d) => !n || d.name.toLowerCase().includes(n) || d.id.includes(n) || (n === 'raster' && d.raster) || (n === 'vector' && !d.raster))
+    return (datasets ?? []).filter((d) => !d.locked).filter((d) => !n || d.name.toLowerCase().includes(n) || d.id.includes(n) || (n === 'raster' && d.raster) || (n === 'vector' && !d.raster))
   }, [datasets, dq])
   const dsel = useSelection(shownDatasets, (d: CatalogDataset) => d.id)
   const chosen = useMemo(() => [...dsel.sel].sort().join(','), [dsel.sel])
@@ -204,6 +204,12 @@ export default function AddData(p: Props) {
                     <span>{d.name}</span><span className="kind">{d.raster ? 'raster' : 'vector'}</span>
                   </button>
                 ))}
+              {datasets && datasets.some((d) => d.locked) && (
+                <div className="small muted" style={{ padding: '8px 6px', lineHeight: 1.5 }}>
+                  Your free team has {datasets.filter((d) => !d.locked).length || 'no'} of its 3 datasets{datasets.every((d) => d.locked) ? ' chosen yet. The team owner chooses them on the Team page.' : '.'}{' '}
+                  <a href="/projects">Upgrade</a> to add any of the other {datasets.filter((d) => d.locked).length}.
+                </div>
+              )}
             </div>
             <div>
               {!chosen ? (

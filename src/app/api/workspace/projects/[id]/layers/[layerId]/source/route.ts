@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getDownloadUrl, getObjectStream } from '@/lib/r2'
-import { jsonError, loadProject, requireWorkspace, service } from '@/lib/workspace/server'
+import { datasetAllowed, jsonError, loadProject, lockedDataset, requireWorkspace, service } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   if (!project) return jsonError('not_found', 404)
 
   const { data: layer } = await service.from('workspace_layers')
-    .select('r2_key').eq('id', layerId).eq('project_id', id).maybeSingle()
+    .select('r2_key, dataset_slug').eq('id', layerId).eq('project_id', id).maybeSingle()
   if (!layer) return jsonError('not_found', 404)
 
   // Team uploads live in Supabase Storage (browser-friendly CORS), not R2.
@@ -35,6 +35,8 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     if (error || !data) return jsonError('file_missing', 404)
     return NextResponse.json({ url: data.signedUrl, proxy: data.signedUrl, key: layer.r2_key })
   }
+
+  if (!datasetAllowed(gate, layer.dataset_slug)) return lockedDataset()
 
   if (req.nextUrl.searchParams.get('raw') === '1') {
     try {

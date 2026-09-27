@@ -8,7 +8,7 @@
 // Copy style: no em dashes in anything a prospect reads.
 
 export const STAGES = [
-  'target', 'contacted', 'replied', 'meeting', 'pilot', 'proposal', 'won', 'acquired',
+  'target', 'contacted', 'replied', 'meeting', 'free', 'proposal', 'won', 'acquired',
 ] as const
 export const SIDE_STAGES = ['nurture', 'lost'] as const
 export type Stage = typeof STAGES[number] | typeof SIDE_STAGES[number]
@@ -61,19 +61,19 @@ export const STAGE: Record<Stage, StageInfo> = {
     doNow: [
       'Fill in the discovery notes: the project, the countries, the data they struggle to get, team size, who signs, budget timing.',
       'Show the workspace on a real area they care about, not a generic demo.',
-      'Offer a 14 day pilot on one live project, with success agreed up front.',
+      'Invite them to start a free team (2 people, 3 datasets) and use it on one live project.',
     ],
-    moveOn: 'They agree to a pilot, or ask for a proposal.',
+    moveOn: 'They start a free team, or ask for a proposal.',
   },
-  pilot: {
-    label: 'Pilot running', short: 'Pilot', probability: 0.5, tone: 'bg-amber-100 text-amber-800',
-    goal: 'Their team uses it on a real project and hits the success you agreed.',
+  free: {
+    label: 'On the free plan', short: 'Free', probability: 0.4, tone: 'bg-amber-100 text-amber-800',
+    goal: 'Their team uses the free workspace on a real project, then outgrows it.',
     doNow: [
-      'Start the pilot below. They get 14 days of team access straight away.',
-      'Check in on day 3 (are they in, any blockers) and day 10 (what have they made).',
-      'Before it ends, ask who needs to approve a purchase and how they buy.',
+      'Send the "Start your free team" email. When they create it, it links to this page by itself.',
+      'Check in after a few days: are they in, which 3 datasets did they choose, any blockers?',
+      'When they need a third person or a fourth dataset, send the proposal. Ask who approves purchases and how they buy.',
     ],
-    moveOn: 'The pilot worked and they want a price.',
+    moveOn: 'They want more seats or every dataset and ask for a price.',
   },
   proposal: {
     label: 'Proposal sent', short: 'Proposal', probability: 0.7, tone: 'bg-orange-100 text-orange-800',
@@ -157,7 +157,6 @@ export const LOST_REASONS = [
   'Data they needed was missing', 'Other',
 ]
 
-export const PILOT_DAYS = 14
 
 // ── Templates ───────────────────────────────────────────────────────────────
 
@@ -226,33 +225,35 @@ Best,
 {my_name}`,
   },
   {
-    id: 'pilot', channel: 'email', label: 'Pilot is ready', when: 'When you start a pilot',
-    subject: 'Your Lenga Maps pilot is ready',
+    id: 'free_team', channel: 'email', label: 'Start your free team', when: 'After a good first call',
+    subject: 'Try Lenga Maps free with your team',
     body: `Hi {first_name},
 
-Your team's 14 day pilot is live. Sign in at https://www.lengamaps.com/login with this email address, open the Workspace, and invite your colleagues from the Team page.
+Thanks for the call. The easiest way to see if this works for {company} is to use it on a real project, free:
 
-As agreed, we will call it a success if: [success criteria].
+  1. Create an account at https://www.lengamaps.com/signup with this email address.
+  2. Open https://www.lengamaps.com/team and press "Start a free team". It is free for 2 people, with no end date.
+  3. Choose the 3 datasets your project needs most, then invite a colleague and open the Workspace.
 
-I will check in on day 3 to make sure everyone is in, and on day 10 to look at what you have made. Reply here any time you get stuck.
+Everything you build carries over if you upgrade later for more people and every dataset. Reply here any time you get stuck.
 
 Best,
 {my_name}`,
   },
   {
-    id: 'pilot_checkin', channel: 'email', label: 'Pilot check-in', when: 'Day 3 and day 10 of a pilot',
-    subject: 'How is the pilot going?',
+    id: 'free_checkin', channel: 'email', label: 'Free team check-in', when: 'A few days after they start',
+    subject: 'How is the workspace going?',
     body: `Hi {first_name},
 
-Quick check-in on the pilot. Is everyone in, and is there anything stopping the team from using it on the project?
+Quick check-in. Is your colleague in, and is there anything stopping you from using the workspace on the project?
 
-If it helps, I can join a 15 minute call with the team this week.
+If it helps, I can join a 15 minute call with the two of you this week.
 
 Best,
 {my_name}`,
   },
   {
-    id: 'proposal', channel: 'email', label: 'Proposal', when: 'After a pilot or when they ask for a price',
+    id: 'proposal', channel: 'email', label: 'Proposal', when: 'When they outgrow the free team or ask for a price',
     subject: 'Lenga Maps for {company}: proposal',
     body: `Hi {first_name},
 
@@ -342,4 +343,4 @@ export const todayIso = () => new Date().toISOString().slice(0, 10)
 
 /** Accounts in these stages with no touch for this long show as going cold. */
 export const STALE_DAYS = 14
-export const ACTIVE_STAGES: Stage[] = ['contacted', 'replied', 'meeting', 'pilot', 'proposal', 'won']
+export const ACTIVE_STAGES: Stage[] = ['contacted', 'replied', 'meeting', 'free', 'proposal', 'won']

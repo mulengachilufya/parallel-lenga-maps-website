@@ -209,7 +209,7 @@ export default function RainfallClimateList({
 
                 <motion.button
                   onClick={() => handleDownload(layer)}
-                  disabled={!layer.download_url || downloading === layer.id}
+                  disabled={downloading === layer.id}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition ${

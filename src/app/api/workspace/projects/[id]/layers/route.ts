@@ -7,8 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
-import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
+import { commit, datasetAllowed, jsonError, loadProject, lockedDataset, needRole, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import { defaultStyle, sanitizeStyle, type LayerStyle } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -57,6 +56,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const spec = findDataset(str(it.dataset_slug, 60))
     const key = str(it.r2_key, 500)
     if (!spec || !key) return jsonError('bad_request', 400)
+    if (!datasetAllowed(gate, spec.id)) return lockedDataset()
     if (!bySlug.has(spec.id)) bySlug.set(spec.id, await listFilesForDataset(spec).catch(() => []))
     const file = bySlug.get(spec.id)!.find((f) => f.r2_key === key)
     if (!file) return jsonError('unknown_file', 400)

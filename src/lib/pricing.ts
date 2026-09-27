@@ -8,8 +8,9 @@
 // Paying again extends access from the current expiry. Accounts that were
 // active before 2026-09 keep permanent access (plan_expires_at is null for
 // them, and null always means "does not expire"). Every paid account — either
-// plan — gets every dataset. There is no more per-dataset gating, no
-// free trial, no automatic billing, no card checkout. Access is
+// plan — gets every dataset. No free trial, no automatic billing, no card
+// checkout. Free accounts get 3 datasets they choose (see "Free plans"
+// below). Paid access is
 // granted manually by an admin after the buyer contacts us and pays via
 // bank transfer (see /api/admin/payments/verify).
 //
@@ -178,6 +179,49 @@ export const ALL_DATASETS: DatasetSlug[] = [
 ]
 
 export const DATASET_COUNT = ALL_DATASETS.length
+
+// ─── Free plans (2026-09) ─────────────────────────────────────
+// Individual free: any signed-in account picks FREE_DATASET_LIMIT datasets
+// and can download those, for every country, for good. Team free: a
+// workspace for FREE_TEAM_SEATS people whose owner picks the team's
+// FREE_DATASET_LIMIT datasets. Picks are permanent until the account pays
+// (paid = every dataset). Enforced server-side in src/lib/entitlements.ts.
+
+export const FREE_DATASET_LIMIT = 3
+export const FREE_TEAM_SEATS    = 2
+
+/** Datasets a free account may pick: the ones that have files today. */
+export const FREE_PICKABLE: DatasetSlug[] = [
+  'admin-boundaries', 'rivers', 'lakes', 'watersheds', 'roads', 'population',
+  'protected-areas', 'soil', 'lulc', 'aquifer', 'rainfall', 'temperature', 'drought-index',
+]
+
+export interface FreeOffer {
+  name: string; priceLabel: string; tagline: string; count: string
+  items: string[]; cta: string; href: string
+}
+
+/** The two free plans, as shown on /pricing, /projects and the dashboard. */
+export const FREE_OFFERS: Record<TierSlug, FreeOffer> = {
+  individual: {
+    name: 'Free', priceLabel: '$0', tagline: 'Choose 3 datasets and keep them. No card, no time limit.',
+    count: `${FREE_DATASET_LIMIT} datasets you choose`,
+    items: ['Any 3 datasets, for all 54 countries', 'Unlimited downloads of those 3', 'Your 3 stay yours; upgrade any time for every dataset'],
+    cta: 'Sign up free', href: '/signup',
+  },
+  team: {
+    name: 'Free team', priceLabel: '$0', tagline: 'A shared project workspace for 2 people.',
+    count: `${FREE_DATASET_LIMIT} datasets your team chooses`,
+    items: [`${FREE_TEAM_SEATS} seats`, 'Project workspace: live web map, discussion, full history', '3 datasets on your maps and downloads', 'Upgrade to 4 or 12 seats and every dataset'],
+    cta: 'Start a free team', href: '/team?start=free',
+  },
+}
+
+/** Keep only valid, pickable, distinct slugs. */
+export function cleanPicks(v: unknown): DatasetSlug[] {
+  if (!Array.isArray(v)) return []
+  return [...new Set(v.filter((s): s is DatasetSlug => typeof s === 'string' && (FREE_PICKABLE as string[]).includes(s)))]
+}
 
 // ─── Access ───────────────────────────────────────────────────
 // Binary now: an account is either paid (any plan) or free. Paid unlocks

@@ -161,6 +161,12 @@ Every organisation you are going after lives here, from "On the radar" to "Acqui
 - **Outreach:** on a prospect's page, press "Start 3 week sequence" next to a person. It plans an email, a LinkedIn connection, a follow-up email, a LinkedIn message, a call and a last email. Each one shows up on Today when it is due; press "Do it".
 - **Email** is sent from the founder address (mulenga@lengamaps.com). Replies land in your Gmail. When someone replies, press "They replied" on their page, and the sequence stops by itself.
 - **LinkedIn** can't be sent automatically (LinkedIn doesn't allow it). Press "Copy message", open their profile, paste, send, then press "I sent it".
-- **Pilots and payment:** "Start 14 day pilot" gives their team access straight away. "Payment received" starts their 3 months. Once two people have joined and there is a project, the deal moves to Acquired by itself.
+- **Free team, then payment:** after a good call, send the "Start your free team" email. When they create their free team (2 people, 3 datasets), it links to their page in the pipeline by itself and they move to "On the free plan". When they pay, press "Payment received": their free team becomes a paid one, keeping its projects. Once two people have joined and there is a project, the deal moves to Acquired by itself.
 - **Opt-outs:** every email has a small "rather not hear from me" link. If someone uses it, emailing them is blocked and their page says so.
 - **If emails won't send:** the email key is `RESEND_SALES_API_KEY` in Vercel. If that isn't set, the manual-payments key is used, which already sends as mulenga@. Meanwhile use "Open in my email app" and send it from Gmail. It is still logged.
+
+## 9. Free plans
+
+- **Individual free:** every account can choose 3 datasets and download them for all countries, for good. The choice can't be changed by the user. If someone chose by mistake, open **Ops → Fix → Look up a user** and press **Let them re-choose free datasets**.
+- **Free team:** anyone can start one on the Team page: 2 seats, 3 datasets chosen by the team owner, the full workspace, no end date. No API access.
+- **Upgrading a free team:** Admin → Organizations → **Upgrade to paid** (or "Payment received" in the sales pipeline). The team keeps its projects and members, gets the seats paid for and every dataset, for 3 months.
