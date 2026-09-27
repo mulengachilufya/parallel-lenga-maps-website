@@ -1,40 +1,44 @@
 'use client'
 
 /**
- * Home page: how the workspace works, as a simple left-to-right flow
+ * Home page: how the GIS workspace works, as a simple left-to-right flow
  * (top-to-bottom on phones) that anyone can follow. Four stations, each
  * with a small drawing of what you actually see, joined by arrows:
- *   Lenga data → your project map → your team → your delivery.
+ *   Lenga's African GIS data → your own files (kept apart) → one shared
+ *   map for the team → back out to your desktop GIS.
+ * Then the desktop tools whose data works here (official logos from the
+ * CC0 Simple Icons set in /public/images/tools; a name badge where no
+ * official icon is available).
  */
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Database, Map as MapIcon, MessageSquare, History } from 'lucide-react'
+import { ArrowRight, Database, FolderLock, Map as MapIcon, Download } from 'lucide-react'
 
 const STEPS = [
   {
     icon: Database,
-    title: 'Pick the data',
-    text: 'Choose from our cleaned GIS layers for all 54 African countries: boundaries, rivers, roads, soils, land cover and more. Or upload your own.',
+    title: 'Start with African GIS data',
+    text: 'Our geospatial library covers all 54 African countries: environmental, climate, water, soils, mining and infrastructure layers, cleaned and ready in EPSG:4326.',
     art: 'library',
   },
   {
+    icon: FolderLock,
+    title: 'Bring your own files',
+    text: 'Import shapefiles, GeoPackage, KML, GeoTIFF or a whole QGIS project. Your files stay in your team\'s private folder, marked as yours, and never mix with the Lenga library.',
+    art: 'yours',
+  },
+  {
     icon: MapIcon,
-    title: 'Build your project map',
-    text: 'Drop the layers onto one live map in your browser. Style them, filter them, measure, and open the attribute table. No software to install.',
+    title: 'Map it together',
+    text: 'Everyone on the team works on the same live GIS map in the browser: style layers, open attribute tables, pin comments to places, and see every change in the history.',
     art: 'map',
   },
   {
-    icon: MessageSquare,
-    title: 'Work on it together',
-    text: 'Everyone on your team sees the same map. Pin comments to places, reply, leave a voice note, and mention a colleague so they get an email.',
-    art: 'team',
-  },
-  {
-    icon: History,
-    title: 'Deliver with confidence',
-    text: 'Every change is saved in the project history, so you can see who changed what and go back. Export for QGIS or your report when you are done.',
-    art: 'history',
+    icon: Download,
+    title: 'Take it back to your desktop',
+    text: 'Export the layers you need as shapefile, GeoJSON or GeoTIFF and carry on in QGIS, ArcGIS or Global Mapper. Your report maps start from clean data.',
+    art: 'export',
   },
 ] as const
 
@@ -65,46 +69,60 @@ function Art({ kind }: { kind: typeof STEPS[number]['art'] }) {
       </svg>
     )
   }
-  if (kind === 'team') {
+  if (kind === 'yours') {
     return (
       <svg viewBox="0 0 200 92" className={common} aria-hidden="true">
-        <path d="M16 72 C 60 44, 110 76, 184 40" stroke="#38BDF8" strokeWidth="3" fill="none" strokeOpacity="0.5" />
-        <circle cx="100" cy="58" r="6" fill="#F5B800" />
-        <rect x="108" y="12" width="80" height="30" rx="6" fill="#123049" stroke="#F5B800" strokeOpacity="0.6" />
-        <text x="116" y="31" fontSize="10" fill="#E8F1F8" fontFamily="Inter, sans-serif">Site access here?</text>
-        <path d="M112 42 L 104 52" stroke="#F5B800" strokeOpacity="0.6" />
-        {[0, 1, 2].map((i) => (
-          <circle key={i} cx={24 + i * 18} cy="24" r="10" fill={['#534AB7', '#1E5F8E', '#C9A227'][i]} stroke="#0a121c" strokeWidth="2" />
-        ))}
+        <g transform="translate(12,14)">
+          <rect width="84" height="64" rx="6" fill="#123049" stroke="#F5B800" strokeOpacity="0.7" />
+          <text x="8" y="18" fontSize="8" fontWeight="700" fill="#F5B800" fontFamily="Inter, sans-serif">LENGA LIBRARY</text>
+          {[0, 1, 2].map((i) => <rect key={i} x="10" y={27 + i * 11} width={i === 2 ? 40 : 62} height="6" rx="3" fill="#F5B800" fillOpacity="0.35" />)}
+        </g>
+        <g transform="translate(106,14)">
+          <rect width="82" height="64" rx="6" fill="#16222e" stroke="#9fb0c0" strokeOpacity="0.6" strokeDasharray="4 3" />
+          <text x="10" y="18" fontSize="9" fontWeight="700" fill="#9fb0c0" fontFamily="Inter, sans-serif">YOUR FILES</text>
+          {['site.shp', 'survey.kml', 'model.qgz'].map((t, i) => (
+            <text key={t} x="10" y={33 + i * 12} fontSize="9" fill="#E8F1F8" fontFamily="Inter, sans-serif">{t}</text>
+          ))}
+        </g>
       </svg>
     )
   }
   return (
     <svg viewBox="0 0 200 92" className={common} aria-hidden="true">
-      <line x1="30" y1="14" x2="30" y2="80" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="2" />
-      {['r3  Added soils', 'r2  Styled rivers', 'r1  Created project'].map((t, i) => (
-        <g key={t} transform={`translate(0, ${16 + i * 24})`}>
-          <circle cx="30" cy="6" r="5" fill={i === 0 ? '#F5B800' : '#1E5F8E'} />
-          <text x="44" y="10" fontSize="10" fill="#E8F1F8" fontFamily="Inter, sans-serif">{t}</text>
+      {['.shp', '.geojson', '.tif'].map((t, i) => (
+        <g key={t} transform={`translate(${14 + i * 44}, 22)`}>
+          <path d="M0 0 h26 l10 10 v38 h-36 z" fill="#123049" stroke="#E8F1F8" strokeOpacity="0.3" />
+          <text x="18" y="32" fontSize="8.5" textAnchor="middle" fill="#E8F1F8" fontFamily="Inter, sans-serif">{t}</text>
         </g>
       ))}
-      <rect x="140" y="58" width="48" height="22" rx="5" fill="#F5B800" />
-      <text x="149" y="73" fontSize="10" fill="#1a1200" fontWeight="700" fontFamily="Inter, sans-serif">Export</text>
+      <path d="M150 46 h24 m-8 -8 l8 8 l-8 8" stroke="#F5B800" strokeWidth="2.5" fill="none" />
+      <text x="162" y="80" fontSize="9" textAnchor="middle" fill="#F5B800" fontWeight="700" fontFamily="Inter, sans-serif">Desktop</text>
     </svg>
   )
 }
+
+const TOOLS: { name: string; icon?: string }[] = [
+  { name: 'QGIS', icon: '/images/tools/qgis.svg' },
+  { name: 'ArcGIS', icon: '/images/tools/arcgis.svg' },
+  { name: 'Global Mapper' },
+  { name: 'Google Earth', icon: '/images/tools/googleearth.svg' },
+  { name: 'AutoCAD', icon: '/images/tools/autocad.svg' },
+  { name: 'GDAL', icon: '/images/tools/gdal.svg' },
+]
 
 export default function HowItWorks() {
   return (
     <section id="how-it-works" className="py-16 lg:py-24 bg-dark border-t border-white/[0.06] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-12">
         <div className="max-w-2xl">
-          <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">The workspace</span>
+          <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">The GIS workspace</span>
           <h2 className="mt-3 font-display text-[clamp(1.9rem,3.6vw,2.7rem)] font-bold text-white leading-tight">
-            From raw data to a finished project map, with your whole team.
+            African geospatial data and your team, on one GIS map.
           </h2>
           <p className="mt-4 text-white/65 leading-relaxed">
-            Four steps, all in the browser. Here is how a project moves through Lenga Maps.
+            Environmental, climate, water, mining and infrastructure data for all 54 African countries,
+            in a workspace built for GIS teams. Share shapefiles, map together, and take clean data back
+            to your desktop GIS.
           </p>
         </div>
 
@@ -133,6 +151,25 @@ export default function HowItWorks() {
               )}
             </div>
           ))}
+        </div>
+
+        <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+          <p className="text-sm font-semibold text-white">Data from your desktop GIS works here</p>
+          <p className="mt-1 text-xs text-white/55">Shapefile, GeoPackage, GeoJSON, KML/KMZ, GPX, GeoTIFF, and QGIS projects (.qgz / .qgs).</p>
+          <ul className="mt-5 grid grid-cols-3 sm:grid-cols-6 gap-4">
+            {TOOLS.map((t) => (
+              <li key={t.name} className="flex flex-col items-center gap-2 text-center">
+                <span className="w-12 h-12 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                  {t.icon
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={t.icon} alt="" width={26} height={26} />
+                    : <span className="text-[10px] font-bold leading-tight text-white/85 px-1">GLOBAL<br />MAPPER</span>}
+                </span>
+                <span className="text-xs text-white/70">{t.name}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-[11px] text-white/35">Product names and logos belong to their owners and are shown to indicate file compatibility only.</p>
         </div>
 
         <div className="mt-10 flex flex-wrap items-center gap-4">
