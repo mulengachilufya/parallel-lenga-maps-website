@@ -47,6 +47,16 @@ const KNOWN: Record<string, Explanation> = {
     impact: 'Reminders and access expiry are paused.',
     fix: 'Press Ops → Fix → "Run the daily job now". Check Vercel → Settings → Cron Jobs is enabled.',
   },
+  'jobs:sales-digest_failed': {
+    title: 'The morning sales list did not go out',
+    impact: 'Nothing is lost. You may not have had today\'s list of follow-ups, and won teams were not checked for Acquired.',
+    fix: 'Open Admin → Sales pipeline → Today. That tab always shows the same list. If this repeats, the problem log shows why.',
+  },
+  'email:sales_send_failed': {
+    title: 'An outreach email could not be sent',
+    impact: 'One prospect did not get your email. The pipeline shows it was not sent.',
+    fix: 'Check that RESEND_SALES_API_KEY (or RESEND_MANUAL_PAYMENTS_API_KEY) is set in Vercel. Meanwhile send it from Gmail and log it with "Log activity".',
+  },
   'workspace:commit_failed': {
     title: 'A project change was saved but not recorded in its history',
     impact: 'The change is live but its history entry is missing. No data lost.',

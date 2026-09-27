@@ -27,7 +27,7 @@ const LOGO_URL = `${APP_URL}/images/branding/logo.png`
 // Channels map an email to a Resend API key + a verified sender address.
 // Each channel's key is set in Vercel (and .env.local). An unset key causes
 // the send to be skipped and logged, never thrown.
-export type EmailChannel = 'account' | 'newsletter' | 'payments' | 'manual_payment'
+export type EmailChannel = 'account' | 'newsletter' | 'payments' | 'manual_payment' | 'sales'
 
 function channelConfig(channel: EmailChannel): { key?: string; from: string } {
   switch (channel) {
@@ -48,6 +48,13 @@ function channelConfig(channel: EmailChannel): { key?: string; from: string } {
         key:  process.env.RESEND_MANUAL_PAYMENTS_API_KEY,
         from: process.env.RESEND_MANUAL_PAYMENTS_FROM || 'Lenga Maps <mulenga@lengamaps.com>',
       }
+    case 'sales':
+      // 1-to-1 outreach from /admin/sales, sent as the founder. Falls back
+      // to the manual-payments key, which already sends as mulenga@.
+      return {
+        key:  process.env.RESEND_SALES_API_KEY || process.env.RESEND_MANUAL_PAYMENTS_API_KEY,
+        from: process.env.RESEND_SALES_FROM || process.env.RESEND_MANUAL_PAYMENTS_FROM || 'Mulenga at Lenga Maps <mulenga@lengamaps.com>',
+      }
     case 'account':
     default:
       return {
@@ -63,6 +70,7 @@ export interface EmailMessage {
   html:     string
   text:     string
   replyTo?: string
+  headers?: Record<string, string>
 }
 
 /**
@@ -96,6 +104,7 @@ export async function sendEmail(
         html:     msg.html,
         text:     msg.text,
         reply_to: msg.replyTo || undefined,
+        headers:  msg.headers,
       }),
     })
     if (!res.ok) {
@@ -383,7 +392,7 @@ export interface QuoteRequestFields {
 
 /** Internal notification to the founder when a quote request lands. */
 export function quoteRequestAdminEmail(q: QuoteRequestFields): EmailMessage {
-  const cta  = `${APP_URL}/admin/quotes`
+  const cta  = `${APP_URL}/admin/sales`
   const rows = [
     ['Organisation / project', q.org_name],
     ['Contact',                q.contact_name ?? ''],
@@ -409,7 +418,7 @@ export function quoteRequestAdminEmail(q: QuoteRequestFields): EmailMessage {
       preheader: `${q.org_name} requested a team quote.`,
       heading:   'New team quote request',
       bodyHtml,
-      ctaLabel:  'Open quote pipeline',
+      ctaLabel:  'Open the sales pipeline',
       ctaHref:   cta,
       footnote:  'Reply to the requester within 1 business day, that is the promise on the form.',
     }),
