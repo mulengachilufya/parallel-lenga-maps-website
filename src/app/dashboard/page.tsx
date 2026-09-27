@@ -5,13 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Globe2, FileDown, Lock } from 'lucide-react'
+import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Map as MapIcon, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
 import type { Access } from '@/lib/entitlements'
 import {
-  PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
+  FREE_DATASET_LIMIT, PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
@@ -141,7 +141,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
 // just more compact for the dashboard. Clickable when `href` is set.
 function PlanCard({
   eyebrow, title, hero, heroUnit, ui, tagline, note, count, datasets,
-  cta, href, current = false, delay = 0,
+  cta, href, onClick, current = false, delay = 0,
 }: {
   eyebrow:   string
   title:     string
@@ -157,10 +157,14 @@ function PlanCard({
   datasets?: string[]
   cta:       string
   href?:     string
+  onClick?:  () => void
   current?:  boolean
   delay?:    number
 }) {
-  const MAX_ITEMS = 5
+  const MAX_ITEMS = 4
+  const dark = ui.bg === '#0D2B45'
+  const ink = dark ? '#E8F1F8' : '#1a1a1a'
+  const muted = dark ? '#BFD7EA' : '#444'
   const shown = datasets?.slice(0, MAX_ITEMS) ?? []
   const extra = (datasets?.length ?? 0) - shown.length
 
@@ -170,10 +174,10 @@ function PlanCard({
         {eyebrow} · {title}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '0.6rem' }}>
-        <span style={{ fontSize: '40px', lineHeight: 1, fontWeight: 400, color: ui.priceColor }}>{hero}</span>
+        <span style={{ fontSize: '26px', lineHeight: 1.1, fontWeight: 500, color: ui.priceColor }}>{hero}</span>
         {heroUnit && <span style={{ fontSize: '12px', color: '#555' }}>{heroUnit}</span>}
       </div>
-      {tagline && <p style={{ fontSize: '12.5px', color: '#444', margin: '0 0 0.75rem', lineHeight: 1.5 }}>{tagline}</p>}
+      {tagline && <p style={{ fontSize: '12.5px', color: muted, margin: '0 0 0.75rem', lineHeight: 1.5 }}>{tagline}</p>}
       {note && (
         <div style={{ fontSize: '12px', color: ui.nameColor, background: '#fff', border: `1px solid ${ui.border}`, borderRadius: '8px', padding: '6px 10px', marginBottom: '0.85rem', display: 'inline-block' }}>
           {note}
@@ -183,13 +187,13 @@ function PlanCard({
         <>
           <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 0.75rem' }} />
           {count && (
-            <div style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#444', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: muted, marginBottom: '0.5rem' }}>
               {count}
             </div>
           )}
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
             {shown.map((d) => (
-              <li key={d} style={{ fontSize: '12px', color: '#1a1a1a', padding: '2.5px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
+              <li key={d} style={{ fontSize: '12px', color: ink, padding: '2.5px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
                 <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ui.dotColor, flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
                 {d}
               </li>
@@ -205,8 +209,8 @@ function PlanCard({
       <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
         <div style={{
           width: '100%', padding: '9px 0', borderRadius: '10px', fontSize: '12.5px', fontWeight: 600, textAlign: 'center',
-          background: current ? 'transparent' : ui.btnBg,
-          color:      current ? ui.nameColor : '#fff',
+          background: current && !onClick ? 'transparent' : ui.btnBg,
+          color:      current && !onClick ? ui.nameColor : dark ? '#1a1200' : '#fff',
           border:     current ? `1px solid ${ui.border}` : '1px solid transparent',
         }}>
           {cta}
@@ -221,10 +225,35 @@ function PlanCard({
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+    <motion.div className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
       {href
         ? <Link href={href} className="dash-plan-card" style={cardStyle}>{body}</Link>
+        : onClick
+        ? <button type="button" onClick={onClick} className="dash-plan-card text-left w-full" style={cardStyle}>{body}</button>
         : <div style={cardStyle}>{body}</div>}
+    </motion.div>
+  )
+}
+
+const FREE_CARD_UI = {
+  bg: '#FFFFFF', border: '#D9D6CC', nameColor: '#1E5F8E', priceColor: '#0D2B45',
+  dotColor: '#1E5F8E', btnBg: '#0D2B45', dividerColor: '#0D2B45',
+}
+
+/** A dashboard card that opens a place (workspace, team), sized like the plan cards. */
+function ActionCard({ href, icon, title, text, cta, delay = 0 }: {
+  href: string; icon: React.ReactNode; title: string; text: string; cta: string; delay?: number
+}) {
+  return (
+    <motion.div className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+      <Link href={href} className="dash-plan-card flex flex-col h-full rounded-2xl border border-gray-200 bg-white p-5 text-navy">
+        <span className="w-11 h-11 rounded-xl bg-blue-50 text-primary flex items-center justify-center">{icon}</span>
+        <span className="mt-4 text-lg font-bold">{title}</span>
+        <span className="mt-1.5 text-[13px] leading-relaxed text-gray-600">{text}</span>
+        <span className="mt-auto pt-5">
+          <span className="block w-full rounded-[10px] bg-navy py-[9px] text-center text-[12.5px] font-semibold text-white">{cta} →</span>
+        </span>
+      </Link>
     </motion.div>
   )
 }
@@ -411,6 +440,7 @@ function DashboardContent() {
   const [userName,  setUserName]  = useState('')
   const [isAdmin,   setIsAdmin]   = useState(false)
   const [access,    setAccess]    = useState<Access | null>(null)
+  const [showPicker, setShowPicker] = useState(false)
 
   // The verified user id this dashboard's data belongs to. Used by the auth
   // listener below to detect an account switch (e.g. a different account
@@ -681,43 +711,38 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Free plan: the 3 datasets this account keeps */}
-        {isFree && access && (
-          <div className="mb-8 space-y-3">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Free plan</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Download your free datasets for every country, as often as you like. Upgrade any time for all {PLAN_CARD_UI.individual.count}.
-                </p>
-              </div>
-              <Link href="/pricing" className="shrink-0 text-xs font-bold bg-navy text-white px-4 py-2 rounded-lg">See plans</Link>
-            </div>
-            <FreeDatasetPicker picks={access.personal.picks} endpoint="/api/account/free-datasets" onSaved={reloadAccess} />
-            {access.team?.plan === 'free' && (
-              <p className="text-xs text-gray-500">
-                Your free team &quot;{access.team.name}&quot; adds: {access.team.picks.length ? access.team.picks.map(freeDatasetName).join(', ') : 'nothing yet (the team owner chooses them on the Team page)'}.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Plan cards row — pricing-style blocks (shared look with /pricing) */}
+        {/* Top row: one set of equal cards — your plan, what you can open
+            next, and (for free accounts) the paid plans — so anyone can read
+            their situation at a glance. */}
         <style>{`
           .dash-plan-card { transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
           .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
           .dash-plan-card:active { transform: scale(.98); }
         `}</style>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-4 items-stretch">
+          {isFree && access && (
+            <PlanCard
+              current
+              delay={0.05}
+              eyebrow="Your plan"
+              title="Free"
+              ui={FREE_CARD_UI}
+              hero="$0"
+              tagline={`${access.personal.picks.length} of ${FREE_DATASET_LIMIT} free datasets chosen. Download them for every country, as often as you like.`}
+              count="Your free datasets"
+              datasets={access.personal.picks.length
+                ? [...access.personal.picks.map(freeDatasetName), ...(access.team?.plan === 'free' ? access.team.picks.map((x) => `${freeDatasetName(x)} (team)`) : [])]
+                : ['None chosen yet']}
+              cta={access.personal.left > 0 ? (showPicker ? 'Hide the list' : `Choose ${access.personal.left === FREE_DATASET_LIMIT ? 'your 3' : `${access.personal.left} more`} datasets`) : '✓ All 3 chosen'}
+              onClick={access.personal.left > 0 ? () => setShowPicker((v) => !v) : undefined}
+            />
+          )}
           {isFree ? (
-            // No active plan — show both once-off options side by side,
-            // same cards as /pricing. Neither is bought online; both CTAs
-            // go to that plan's contactHref.
             PLAN_ORDER.map((slug, i) => (
               <PlanCard
                 key={slug}
-                delay={0.05 + i * 0.05}
-                eyebrow="Get access"
+                delay={0.1 + i * 0.05}
+                eyebrow="Upgrade"
                 title={PLANS[slug].name}
                 ui={PLAN_CARD_UI[slug]}
                 hero={PLANS[slug].priceLabel}
@@ -729,38 +754,45 @@ function DashboardContent() {
               />
             ))
           ) : (
-            // Paid — one card, no upsell. Both plans get the same access,
-            // so there's nothing to upgrade to.
             <PlanCard
               current
               delay={0.05}
-              eyebrow="Current plan"
+              eyebrow="Your plan"
               title={planLabel}
               ui={PLAN_CARD_UI[userState as TierSlug]}
-              hero={planPrice ?? ''}
+              hero={expiresAt ? `Active until ${new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Permanent access'}
               tagline={expiresAt
-                ? `Access runs until ${new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Pay again any time to add 3 months.`
-                : 'Permanent access: you were with us before 3-month plans.'}
-              count={PLAN_CARD_UI[userState as TierSlug].count}
-              datasets={PLAN_CARD_UI[userState as TierSlug].datasets}
-              cta={expiresAt ? '✓ Active · renew to add 3 months' : '✓ Active — permanent'}
+                ? `${planPrice ?? ''}. Pay again any time to add 3 months.`
+                : 'You were with us before 3-month plans, so your access never ends.'}
+              count="Included"
+              datasets={['Every dataset, all 54 countries', 'Unlimited downloads']}
+              cta={expiresAt ? 'Renew: add 3 months' : '✓ Active, permanent'}
               href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
             />
           )}
+          {(userState === 'team' || access?.team) && (
+            <ActionCard delay={0.1} href="/workspace" icon={<MapIcon size={22} />} title="Projects workspace"
+                        text="Put datasets on a shared live map, discuss them with your team, and keep every change in the project history."
+                        cta="Open workspace" />
+          )}
+          {(userState === 'team' || access?.team) && (
+            <ActionCard delay={0.15} href="/team" icon={<Users size={22} />} title="Your team"
+                        text="See who is on the team, invite colleagues, and check what everyone has downloaded."
+                        cta="Open team page" />
+          )}
+          {!isFree && userState !== 'team' && !access?.team && (
+            <ActionCard delay={0.1} href="/team?start=free" icon={<Users size={22} />} title="Work with a colleague"
+                        text="Start a free team: a shared project workspace for 2 people. Upgrade to 4 or 12 seats when you need more."
+                        cta="Start a free team" />
+          )}
         </div>
-
-        {(userState === 'team' || access?.team) && (
-          <Link
-            href="/workspace"
-            className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-navy/20 bg-white px-5 py-4 text-navy hover:border-navy/40 transition-colors"
-          >
-            <span>
-              <span className="block font-bold">Projects workspace</span>
-              <span className="block text-sm text-gray-500">Put datasets on a shared live map, discuss them with your team, and keep every change in the project history.</span>
-            </span>
-            <span className="text-sm font-semibold underline underline-offset-2">Open workspace →</span>
-          </Link>
+        {isFree && access && showPicker && (
+          <div className="mb-4">
+            <FreeDatasetPicker picks={access.personal.picks} endpoint="/api/account/free-datasets"
+                               onSaved={() => { reloadAccess(); setShowPicker(false) }} />
+          </div>
         )}
+        <div className="mb-10" />
 
         {/* Dataset grid */}
         <div className="mb-6">
