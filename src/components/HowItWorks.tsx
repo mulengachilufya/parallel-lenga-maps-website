@@ -4,7 +4,7 @@
  * Home page: how the GIS workspace works, as a simple left-to-right flow
  * (top-to-bottom on phones) that anyone can follow. Four stations, each
  * with a small drawing of what you actually see, joined by arrows:
- *   Lenga's African GIS data → your own files (kept apart) → one shared
+ *   Lenga's African GIS database → your own files (kept apart) → one shared
  *   map for the team → back out to your desktop GIS.
  * Then the desktop tools whose data works here (official logos from the
  * CC0 Simple Icons set in /public/images/tools; a name badge where no
@@ -19,13 +19,13 @@ const STEPS = [
   {
     icon: Database,
     title: 'Start with African GIS data',
-    text: 'Our geospatial library covers all 54 African countries: environmental, climate, water, soils, mining and infrastructure layers, cleaned and ready in EPSG:4326.',
+    text: 'Our African GIS database covers all 54 African countries: environmental, climate, water, soils, mining and infrastructure layers, cleaned and ready in EPSG:4326.',
     art: 'library',
   },
   {
     icon: FolderLock,
     title: 'Bring your own files',
-    text: 'Import shapefiles, GeoPackage, KML, GeoTIFF or a whole QGIS project. Your files stay in your team\'s private folder, marked as yours, and never mix with the Lenga library.',
+    text: 'Import shapefiles, GeoPackage, KML, GeoTIFF or a whole QGIS project. Your files stay in your team\'s private folder, marked as yours, and never mix with the Lenga database.',
     art: 'yours',
   },
   {
@@ -74,7 +74,7 @@ function Art({ kind }: { kind: typeof STEPS[number]['art'] }) {
       <svg viewBox="0 0 200 92" className={common} aria-hidden="true">
         <g transform="translate(12,14)">
           <rect width="84" height="64" rx="6" fill="#123049" stroke="#F5B800" strokeOpacity="0.7" />
-          <text x="8" y="18" fontSize="8" fontWeight="700" fill="#F5B800" fontFamily="Inter, sans-serif">LENGA LIBRARY</text>
+          <text x="8" y="18" fontSize="8" fontWeight="700" fill="#F5B800" fontFamily="Inter, sans-serif">LENGA DATABASE</text>
           {[0, 1, 2].map((i) => <rect key={i} x="10" y={27 + i * 11} width={i === 2 ? 40 : 62} height="6" rx="3" fill="#F5B800" fillOpacity="0.35" />)}
         </g>
         <g transform="translate(106,14)">
