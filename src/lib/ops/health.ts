@@ -122,12 +122,23 @@ export async function runHealthChecks(): Promise<Check[]> {
 
   // Configuration
   const need = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CLOUDFLARE_R2_ACCOUNT_ID',
-    'CLOUDFLARE_R2_ACCESS_KEY_ID', 'CLOUDFLARE_R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_R2_BUCKET_NAME', 'CRON_SECRET', 'OPS_EMERGENCY_KEY_HASHES']
+    'CLOUDFLARE_R2_ACCESS_KEY_ID', 'CLOUDFLARE_R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_R2_BUCKET_NAME', 'CRON_SECRET']
   const gone = need.filter((k) => !process.env[k])
   out.push(gone.length
-    ? { id: 'config', name: 'Settings (environment variables)', status: gone.some((k) => k !== 'OPS_EMERGENCY_KEY_HASHES' && k !== 'CRON_SECRET') ? 'fail' : 'warn',
+    ? { id: 'config', name: 'Settings (environment variables)', status: gone.some((k) => k !== 'CRON_SECRET') ? 'fail' : 'warn',
         summary: `Missing: ${gone.join(', ')}.`, fix: `Add them in ${VERCEL_ENV}, ${REDEPLOY}.${gone.includes('CRON_SECRET') ? ' Without CRON_SECRET the daily job refuses to run.' : ''}` }
     : { id: 'config', name: 'Settings (environment variables)', status: 'ok', summary: 'All required settings are present.' })
+
+  // Emergency keys
+  const { data: ek } = await db.from('ops_settings').select('value, updated_at').eq('key', 'emergency_keys').maybeSingle()
+  const envCopy = /[0-9a-f]{64}/.test(process.env.OPS_EMERGENCY_KEY_HASHES ?? '')
+  out.push(!ek
+    ? { id: 'keys', name: 'Emergency keys', status: 'warn', summary: 'Not set up yet. Without them, losing both email accounts means losing access.',
+        fix: 'Fix → Emergency keys → Create new keys. Save both, then paste the fingerprint line into Vercel as the page explains.' }
+    : !envCopy
+      ? { id: 'keys', name: 'Emergency keys', status: 'warn', summary: `Set up ${new Date(ek.updated_at).toDateString()}, but there's no copy in Vercel, so they won't work if the database is down.`,
+          fix: `Fix → Emergency keys shows the fingerprint line. Paste it into OPS_EMERGENCY_KEY_HASHES in ${VERCEL_ENV}, ${REDEPLOY}.` }
+      : { id: 'keys', name: 'Emergency keys', status: 'ok', summary: `Set up ${new Date(ek.updated_at).toDateString()}, with a copy in Vercel.` })
 
   return out
 }

@@ -20,7 +20,7 @@ interface Problem {
 interface AuditRow { id: number; at: string; actor: string; via: string; action: string; target: string | null; ok: boolean }
 interface Overview {
   you: { actor: string; via: string }; status: Status; checks: Check[]; problems: Problem[]; audit: AuditRow[]
-  settings: { banner?: { text: string }; maintenance?: { on: boolean; message?: string } }
+  settings: { banner?: { text: string }; maintenance?: { on: boolean; message?: string }; emergency_keys?: { hashes: string[]; created_at: string; by: string } }
   jobs: { job: string; last_run_at: string; ok: boolean }[]
 }
 
@@ -73,7 +73,7 @@ export default function OpsPage() {
           </nav>
           {tab === 'health' && <Health checks={data.checks} />}
           {tab === 'problems' && <Problems problems={data.problems} reload={load} />}
-          {tab === 'fix' && <Fix settings={data.settings} reload={load} />}
+          {tab === 'fix' && <Fix settings={data.settings} reload={load} via={data.you.via} />}
           {tab === 'log' && <Log rows={data.audit} />}
           {tab === 'help' && <Help />}
         </main>
@@ -161,7 +161,7 @@ function Tool({ title, help, children }: { title: string; help: string; children
   return <div className="tool"><b>{title}</b><p className="muted">{help}</p>{children}</div>
 }
 
-function Fix({ settings, reload }: { settings: Overview['settings']; reload: () => void }) {
+function Fix({ settings, reload, via }: { settings: Overview['settings']; reload: () => void; via: string }) {
   const [email, setEmail] = useState('')
   const [months, setMonths] = useState('3')
   const [plan, setPlan] = useState('individual')
@@ -193,6 +193,8 @@ function Fix({ settings, reload }: { settings: Overview['settings']; reload: () 
           )}
         </div>
       )}
+
+      <EmergencyKeys saved={settings.emergency_keys} via={via} reload={reload} />
 
       <Tool title="A customer" help="Type their email, then pick what to do. Look them up first if you're not sure what's wrong.">
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="customer@example.com" type="email" style={{ width: '100%', maxWidth: 360 }} />
@@ -245,6 +247,83 @@ function Fix({ settings, reload }: { settings: Overview['settings']; reload: () 
   )
 }
 
+// ── Emergency keys: made in this browser, shown once, only fingerprints leave it ──
+
+const KEY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'   // no 0/O, 1/I: easy to copy by hand
+function newKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(25))
+  const raw = Array.from(bytes, (b) => KEY_ALPHABET[b % KEY_ALPHABET.length]).join('')   // 32 divides 256: no bias
+  return `LENGA-${raw.match(/.{5}/g)!.join('-')}`
+}
+async function fingerprint(key: string): Promise<string> {
+  const norm = key.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(norm))
+  return Array.from(new Uint8Array(h), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function EmergencyKeys({ saved, via, reload }: { saved?: { hashes: string[]; created_at: string; by: string }; via: string; reload: () => void }) {
+  const [keys, setKeys] = useState<{ a: string; b: string; ha: string; hb: string } | null>(null)
+  const [stored, setStored] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const line = keys ? `${keys.ha},${keys.hb}` : saved?.hashes.join(',') ?? ''
+
+  if (via !== 'console') {
+    return <Tool title="Emergency keys" help="You're in with an emergency key. To make new keys, sign in with an owner email; that way a lost key can't be used to lock you out."><span /></Tool>
+  }
+  return (
+    <Tool title="Emergency keys" help="Two keys that open this console without email sign-in, for when you've lost both email accounts or sign-in is broken. They're made here in your browser and shown once. Lenga's server only ever sees fingerprints, so nobody (including a developer or Claude) can recover a lost key: you just make new ones.">
+      {!keys && (
+        <>
+          <p style={{ margin: '0 0 8px' }}>{saved ? <>Keys are set up (made {new Date(saved.created_at).toDateString()} by {saved.by}). Making new ones switches the old ones off.</> : <b>No keys yet.</b>}</p>
+          <div className="btns">
+            <button disabled={busy} onClick={async () => {
+              if (saved && !confirm('Make new keys? The current keys A and B stop working as soon as you turn the new ones on.')) return
+              const a = newKey(), b = newKey()
+              setKeys({ a, b, ha: await fingerprint(a), hb: await fingerprint(b) }); setStored(false); setMsg('')
+            }}>{saved ? 'Make new keys' : 'Create emergency keys'}</button>
+          </div>
+        </>
+      )}
+      {keys && (
+        <div className="keys">
+          <p><b>Write these down now. They are shown only once.</b> Keep A in your password manager and B printed on paper, somewhere safe away from your laptop.</p>
+          <div className="keybox"><span>Key A</span><code>{keys.a}</code></div>
+          <div className="keybox"><span>Key B</span><code>{keys.b}</code></div>
+          <div className="btns">
+            <button onClick={() => void navigator.clipboard.writeText(`Lenga Maps emergency keys (open lengamaps.com/ops)\nKey A: ${keys.a}\nKey B: ${keys.b}`)}>Copy both</button>
+            <button onClick={() => window.print()}>Print</button>
+          </div>
+          <label style={{ display: 'block', margin: '10px 0' }}><input type="checkbox" checked={stored} onChange={(e) => setStored(e.target.checked)} /> I have saved both keys somewhere safe</label>
+          <div className="btns">
+            <button disabled={!stored || busy} onClick={async () => {
+              setBusy(true); setMsg('')
+              const res = await fetch('/api/ops/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'set_emergency_keys', hashes: [keys.ha, keys.hb] }) }).catch(() => null)
+              const d = await res?.json().catch(() => null)
+              setBusy(false)
+              if (d?.ok) { setMsg(d.message); setKeys({ ...keys, a: '', b: '' }); reload() } else setMsg(d?.message ?? 'Could not save.')
+            }}>{busy ? 'Saving…' : 'Turn these keys on'}</button>
+            <button className="link" onClick={() => { setKeys(null); setMsg('') }}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {msg && <p className={msg.startsWith('The new keys') ? '' : 'err'}>{msg}</p>}
+      {line && (!keys || !keys.a) && (
+        <details style={{ marginTop: 8 }} open={!!keys}>
+          <summary><b>Also save a copy in Vercel</b> (so the keys work even if the database is down)</summary>
+          <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
+            <li>Copy this fingerprint line (it is not a key and can&apos;t be used to get in):
+              <div className="keybox"><code style={{ fontSize: 12, wordBreak: 'break-all' }}>{line}</code></div>
+              <button onClick={() => void navigator.clipboard.writeText(line)}>Copy fingerprint line</button></li>
+            <li>vercel.com → the lenga maps project → Settings → Environment Variables → <b>OPS_EMERGENCY_KEY_HASHES</b> → Edit → paste → Save.</li>
+            <li>Deployments → ⋯ on the latest → Redeploy.</li>
+          </ol>
+        </details>
+      )}
+    </Tool>
+  )
+}
+
 function Log({ rows }: { rows: AuditRow[] }) {
   if (!rows.length) return <section><p>No actions yet. Everything done from here or the emergency tools is recorded, with who did it.</p></section>
   return (
@@ -265,7 +344,7 @@ function Help() {
       <h2>Ways in (keep more than one working)</h2>
       <ol>
         <li><b>Your email:</b> sign in at lengamaps.com/login with cmulenga672@gmail.com or lengamaps@gmail.com. Both are permanent owners in the code itself, so no setting can remove them.</li>
-        <li><b>Emergency keys A and B:</b> open lengamaps.com/ops and type a key. Works even if both email accounts are lost or sign-in is broken. Keep A in a password manager and B printed, somewhere safe away from your laptop.</li>
+        <li><b>Emergency keys A and B:</b> make them under Fix → Emergency keys (your browser creates them; nobody else ever sees them). Then open lengamaps.com/ops and type a key: it works even if both email accounts are lost or sign-in is broken. Keep A in a password manager and B printed, somewhere safe away from your laptop.</li>
         <li><b>GitHub:</b> if the website itself is down, the Actions tab of the repository has &ldquo;Emergency&rdquo; buttons that act directly on the database (see the runbook).</li>
         <li><b>The services themselves:</b> Supabase (data and sign-in), Vercel (the website), Cloudflare (dataset files), Resend (emails), GitHub (the code). Make both of your emails owners of each, with two-step verification on.</li>
       </ol>
@@ -321,5 +400,9 @@ const CSS = `
 .ops .result td { padding: 3px 12px 3px 0; vertical-align: top; } .ops .result td:first-child { color: #555; white-space: nowrap; }
 .ops table.log { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
 .ops table.log th, .ops table.log td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e6e6e2; vertical-align: top; }
+.ops .keybox { display: flex; gap: 10px; align-items: center; background: #f2f2ef; border: 1px solid #ddd; padding: 8px 10px; border-radius: 4px; margin: 6px 0; }
+.ops .keybox span { font-weight: 700; width: 50px; }
+.ops .keybox code { font-size: 17px; letter-spacing: .04em; }
+@media print { .ops header, .ops nav, .ops .banner, .ops .tool:not(:has(.keys)), .ops .btns, .ops label { display: none !important; } }
 .ops .help dt { font-weight: 600; margin-top: 10px; } .ops .help dd { margin: 2px 0 0 0; }
 `

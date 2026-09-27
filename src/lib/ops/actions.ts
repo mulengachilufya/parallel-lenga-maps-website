@@ -201,6 +201,24 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       return done({ ok: true, message: `${org?.name}: every member has access until ${new Date(next).toDateString()} (+${ACCESS_MONTHS} months).` })
     }
 
+    case 'set_emergency_keys': {
+      // Only from a real email sign-in: someone holding a key must not be
+      // able to replace the keys and lock the owner out.
+      if (actor.via !== 'console') return { ok: false, message: 'Sign in with an owner email to change the emergency keys.' }
+      const hashes = Array.isArray(input.hashes) ? input.hashes.filter((h): h is string => typeof h === 'string' && /^[0-9a-f]{64}$/.test(h)) : []
+      if (hashes.length !== 2 || hashes[0] === hashes[1]) return { ok: false, message: 'Expected two different key fingerprints.' }
+      const { error } = await db.from('ops_settings').upsert({
+        key: 'emergency_keys', value: { hashes, created_at: new Date().toISOString(), by: actor.actor },
+        updated_by: actor.actor, updated_at: new Date().toISOString(),
+      })
+      if (error) return done({ ok: false, message: error.message }, null)
+      const { sendToOwners } = await import('./alerts')
+      await sendToOwners('Lenga Maps: new emergency keys were created',
+        `${actor.actor} created new emergency keys A and B for the ops console. The old keys no longer work. If this wasn't you, sign in and create new ones immediately.`,
+        `<p style="font-family:Arial,sans-serif"><b>${actor.actor}</b> created new emergency keys A and B for the ops console. The old keys no longer work.</p><p style="font-family:Arial,sans-serif">If this wasn't you, sign in at <a href="${APP_URL}/ops">${APP_URL}/ops</a> and create new ones immediately.</p>`)
+      return done({ ok: true, message: 'The new keys are on. The old ones stopped working.' }, null)
+    }
+
     case 'resolve_problem': {
       const id = Number(input.id)
       const q = db.from('ops_events').update({ resolved_at: new Date().toISOString(), resolved_by: actor.actor }).is('resolved_at', null)

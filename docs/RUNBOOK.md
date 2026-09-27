@@ -11,7 +11,7 @@ the top: most problems are solved in the first two sections.
 |---|---|---|---|
 | 1 | Sign in with **cmulenga672@gmail.com** | Normal days | lengamaps.com/login → then /admin or /ops |
 | 2 | Sign in with **lengamaps@gmail.com** | You've lost access to #1 | Same |
-| 3 | **Emergency key A** (password manager) | Both emails lost, or sign-in is broken | lengamaps.com/ops → "Open with emergency key" |
+| 3 | **Emergency key A** (password manager) | Both emails lost, or sign-in is broken | lengamaps.com/ops → "Open with emergency key" (make the keys first: section 7) |
 | 4 | **Emergency key B** (printed, kept offline) | Password manager lost too | Same |
 | 5 | **GitHub → Actions → Emergency** | The website itself is down | github.com/mulengachilufya/parallel-lenga-maps-website/actions |
 | 6 | The service dashboards directly | Anything else | Supabase, Vercel, Cloudflare, Resend, GitHub (section 6) |
@@ -130,15 +130,23 @@ thing on this page.
 
 ---
 
-## 7. Changing the emergency keys
+## 7. Making (or changing) the emergency keys
 
-1. Ask your developer (or Claude) for two new keys and their fingerprints,
-   or make them yourself: any 25+ random letters/digits. The fingerprint is
-   the SHA-256 of the key in capitals with spaces and dashes removed.
-2. vercel.com → project → Settings → Environment Variables →
-   `OPS_EMERGENCY_KEY_HASHES` → replace with the two fingerprints,
-   comma-separated → Save → Deployments → Redeploy.
-3. Old keys stop working as soon as the redeploy finishes.
+Do this once now, and again whenever a key might have been seen by someone else.
 
-The server only ever stores fingerprints, never the keys, so nobody who
-sees Vercel's settings or the code can work a key out.
+1. Sign in with an owner email and open lengamaps.com/ops → **Fix →
+   Emergency keys → Create emergency keys**.
+2. Your browser makes two keys, **A** and **B**, and shows them **once**.
+   Save A in your password manager and print B (or write it down) and keep
+   it somewhere safe away from your laptop. Tick "I have saved both", then
+   **Turn these keys on**. Both owner emails get a notice that new keys were made.
+3. Copy the **fingerprint line** it shows and paste it into
+   vercel.com → project → Settings → Environment Variables →
+   `OPS_EMERGENCY_KEY_HASHES`, then Deployments → Redeploy. This copy
+   lets the keys work even when the database is down.
+
+The keys never leave your browser: Lenga's server, Vercel and the code
+only hold fingerprints, which can't be turned back into keys. Nobody can
+recover a lost key, not a developer and not Claude; you simply make new
+ones, and the old ones stop working. Keys can only be changed after
+signing in with an owner email, so a stolen key can't be used to lock you out.

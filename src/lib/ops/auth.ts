@@ -6,8 +6,10 @@
 //      link or password): cmulenga672@gmail.com, lengamaps@gmail.com, and
 //      anyone in ADMIN_EMAILS.
 //   2. An emergency key: works even if both email accounts are lost or the
-//      sign-in service is down. Only SHA-256 fingerprints of the keys live
-//      on the server (OPS_EMERGENCY_KEY_HASHES), never the keys. Five wrong
+//      sign-in service is down. The owner makes the keys in their own
+//      browser (Ops → Fix → Emergency keys); only SHA-256 fingerprints reach
+//      the server: in ops_settings, and as a copy that works while the
+//      database is down, in OPS_EMERGENCY_KEY_HASHES. Five wrong
 //      tries per hour per network address and you're locked out; every use
 //      (right or wrong) is logged and emailed to both owners.
 //
@@ -74,8 +76,20 @@ export async function requireOps(): Promise<OpsActor | { denied: NextResponse }>
   return a ?? { denied: NextResponse.json({ error: 'forbidden' }, { status: 403 }) }
 }
 
-function keyHashes(): string[] {
-  return (process.env.OPS_EMERGENCY_KEY_HASHES ?? '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => /^[0-9a-f]{64}$/.test(s))
+const HEX64 = /^[0-9a-f]{64}$/
+
+export function envKeyHashes(): string[] {
+  return (process.env.OPS_EMERGENCY_KEY_HASHES ?? '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => HEX64.test(s))
+}
+
+/** Fingerprints the owner saved from the console (database), then the Vercel copy. */
+export async function keyHashes(): Promise<string[]> {
+  let fromDb: string[] = []
+  try {
+    const { data } = await opsDb().from('ops_settings').select('value').eq('key', 'emergency_keys').maybeSingle()
+    fromDb = ((data?.value as { hashes?: string[] } | undefined)?.hashes ?? []).filter((h) => HEX64.test(h))
+  } catch { /* database down: the Vercel copy still works */ }
+  return [...new Set([...fromDb, ...envKeyHashes()])]
 }
 
 /** Normalise what a person types: case, spaces and dashes don't matter. */
@@ -104,8 +118,8 @@ export async function tryEmergencyKey(req: NextRequest, key: string): Promise<{ 
   }
   if (tries > MAX_TRIES_PER_HOUR) return { ok: false, reason: 'Too many tries from this network. Wait an hour.' }
 
-  const hashes = keyHashes()
-  if (!hashes.length) return { ok: false, reason: 'No emergency keys are configured on the server.' }
+  const hashes = await keyHashes()
+  if (!hashes.length) return { ok: false, reason: 'No emergency keys have been set up yet. Sign in with an owner email and use Ops → Fix → Emergency keys.' }
   const h = Buffer.from(hashKey(key))
   const idx = hashes.findIndex((x) => { const b = Buffer.from(x); return b.length === h.length && timingSafeEqual(b, h) })
   if (idx < 0) {
