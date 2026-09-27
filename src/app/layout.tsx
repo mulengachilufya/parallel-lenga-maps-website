@@ -3,6 +3,7 @@ import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import LoadingScreen from "@/components/LoadingScreen";
+import SiteNotice from "@/components/SiteNotice";
 import { Analytics } from '@vercel/analytics/next'
 
 // Distinct display typeface for eyebrow labels / accents. Loaded once here and
@@ -40,6 +41,7 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1550056060479056"
           crossOrigin="anonymous"
         />
+        <SiteNotice />
         <LoadingScreen />
         <Navbar />
         <main>{children}</main>
