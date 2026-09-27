@@ -23,7 +23,8 @@ import {
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
   KeyRound, Info, MapPin, X,
 } from 'lucide-react'
-import { TEAM_PACKAGES } from '@/lib/pricing'
+import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES } from '@/lib/pricing'
+import FreeDatasetPicker from '@/components/FreeDatasetPicker'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -45,6 +46,7 @@ interface TeamPayload {
     id: string; name: string; sector: string | null; region: string | null
     operating_countries: string[]; seat_count: number; status: string
     contact_email: string | null; promo_emails: boolean
+    plan?: 'paid' | 'free'; free_datasets?: string[] | null
   }
   members: Member[]; invites: Invite[]; events: Ev[]
   seats: { total: number; used: number; pending: number }
@@ -103,15 +105,20 @@ export default function TeamPage() {
           <Users size={40} className="mx-auto" style={{ color: GOLD }} />
           <h1 className="mt-5 text-2xl font-extrabold">Sign in to open your team</h1>
           <p className="mt-3 text-sm leading-relaxed text-blue-200">
-            Your session ended. Sign back in to load your team workspace.
+            Sign in to open your team workspace. New here? Create a free account first: a free team for {FREE_TEAM_SEATS} people costs nothing.
           </p>
-          <Link
-            href="/login?next=%2Fteam"
-            className="mt-7 inline-block rounded-xl px-7 py-3 text-sm font-bold"
-            style={{ background: GOLD, color: '#1a1200' }}
-          >
-            Sign in
-          </Link>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/login?next=%2Fteam"
+              className="inline-block rounded-xl px-7 py-3 text-sm font-bold"
+              style={{ background: GOLD, color: '#1a1200' }}
+            >
+              Sign in
+            </Link>
+            <Link href="/signup" className="inline-block rounded-xl px-7 py-3 text-sm font-bold border border-blue-700 text-white">
+              Create a free account
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -125,17 +132,14 @@ export default function TeamPage() {
           <Users size={40} className="mx-auto" style={{ color: GOLD }} />
           <h1 className="mt-5 text-2xl font-extrabold">You&apos;re not on a team yet</h1>
           <p className="mt-3 text-sm leading-relaxed text-blue-200">
-            The team workspace is part of <strong>For Project Teams and Businesses</strong>.
-            If your organisation already has seats, ask your team owner for an invite.
-            Otherwise, get a quote and we&apos;ll set you up within a business day.
+            Start a free team now: a shared project workspace for {FREE_TEAM_SEATS} people, with {FREE_DATASET_LIMIT} datasets
+            you choose. If your organisation already has a team, ask its owner for an invite instead.
           </p>
-          <Link
-            href="/projects"
-            className="mt-7 inline-block rounded-xl px-7 py-3 text-sm font-bold"
-            style={{ background: GOLD, color: '#1a1200' }}
-          >
-            About team plans
-          </Link>
+          <CreateFreeTeam onCreated={refresh} />
+          <p className="mt-6 text-xs text-blue-300">
+            Need more seats or every dataset?{' '}
+            <Link href="/projects" className="underline" style={{ color: GOLD }}>See team plans</Link>
+          </p>
         </div>
       </div>
     )
@@ -180,6 +184,20 @@ export default function TeamPage() {
             )}
           </div>
         </div>
+
+        {data.org.plan === 'free' && (
+          <div className="mt-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#F5B800]/40 bg-[#F5B800]/10 p-4 text-sm text-blue-100">
+              <p>
+                <strong className="text-white">Free team.</strong> {FREE_TEAM_SEATS} seats and {FREE_DATASET_LIMIT} datasets for your maps and downloads,
+                with no end date. Upgrading keeps your projects and adds seats and every dataset.
+              </p>
+              <Link href="/projects" className="shrink-0 rounded-lg px-4 py-2 text-xs font-bold" style={{ background: GOLD, color: '#1a1200' }}>Upgrade</Link>
+            </div>
+            <FreeDatasetPicker dark who="team" picks={data.org.free_datasets ?? []} endpoint="/api/team/free-datasets"
+                               canPick={isOwner} onSaved={refresh} />
+          </div>
+        )}
 
         {suspended && (
           <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-200">
@@ -294,11 +312,11 @@ function Overview({ data, goto }: { data: TeamPayload; goto: (t: Tab) => void })
             EPSG:4326 reprojected from Goode Homolosine; use nearest-neighbour if you
             resample it again — it&apos;s categorical data.
           </li>
-          <li>
+          {data.org.plan !== 'free' && <li>
             <strong className="text-white">API access.</strong> Your plan includes the REST
             API. Mint keys from <Link href="/dashboard/api-keys" className="underline decoration-dotted hover:text-white">API keys</Link>
             <KeyRound size={12} className="inline ml-1 -mt-0.5" style={{ color: GOLD }} />.
-          </li>
+          </li>}
         </ul>
       </div>
     </div>
@@ -650,5 +668,37 @@ function SettingsTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: b
         <a className="underline ml-1" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> to change seats or billing.
       </p>
     </form>
+  )
+}
+
+// ── Start a free team ──────────────────────────────────────────────────────
+
+function CreateFreeTeam({ onCreated }: { onCreated: () => Promise<void> }) {
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  async function create(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true); setErr('')
+    try {
+      const res = await fetch('/api/team/create-free', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
+      const j = await res.json().catch(() => ({}))
+      if (res.status === 401) { window.location.href = '/login?next=%2Fteam'; return }
+      if (!res.ok) throw new Error(j.message || 'Could not create the team')
+      await onCreated()
+    } catch (e2) { setErr(e2 instanceof Error ? e2.message : 'Could not create the team') }
+    finally { setBusy(false) }
+  }
+  return (
+    <div className="mt-7 text-left">
+    <form onSubmit={create} className="flex flex-col sm:flex-row gap-2">
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Team or organisation name" maxLength={120}
+             className="flex-1 rounded-xl border border-blue-700 bg-[#102f4e] px-4 py-3 text-sm text-white placeholder:text-blue-400" />
+      <button disabled={busy || name.trim().length < 2} className="rounded-xl px-6 py-3 text-sm font-bold disabled:opacity-50" style={{ background: GOLD, color: '#1a1200' }}>
+        {busy ? 'Creating…' : 'Start a free team'}
+      </button>
+    </form>
+    {err && <p className="mt-2 text-xs text-red-300">{err}</p>}
+    </div>
   )
 }

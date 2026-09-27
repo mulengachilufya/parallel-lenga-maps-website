@@ -79,8 +79,10 @@ export interface Membership {
     contact_email:       string | null
     promo_emails:        boolean
     api_rate_per_min:    number
-    access_expires_at:   string | null   // null = permanent (grandfathered)
+    access_expires_at:   string | null   // null = permanent (grandfathered, or a free team)
     created_at:          string
+    plan:                'paid' | 'free'  // 'free' = the 2-seat free team (migration 041)
+    free_datasets:       string[] | null  // a free team's 3 chosen datasets
   }
 }
 
@@ -95,7 +97,7 @@ export async function getMembership(
 ): Promise<Membership | null> {
   const { data, error } = await service
     .from('organization_members')
-    .select('org_id, role, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, access_expires_at, created_at)')
+    .select('org_id, role, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, access_expires_at, created_at, plan, free_datasets)')
     .eq('user_id', userId)
     .maybeSingle()
 

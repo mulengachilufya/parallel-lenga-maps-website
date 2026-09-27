@@ -50,11 +50,11 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
   )
   const membership = await getMembership(service, user.id)
 
-  if (!membership) {
+  if (!membership || membership.org.plan === 'free') {
     return NextResponse.json(
       {
         error:   'team_only',
-        message: 'API access is part of "For Project Teams and Businesses". Request a quote at /projects.',
+        message: 'API access is part of the paid team plans. Request a quote at /projects.',
       },
       { status: 403 },
     )

@@ -8,6 +8,8 @@ import { motion } from 'framer-motion'
 import { Loader2, ArrowLeft, Globe2, FileDown, Lock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
+import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
+import type { Access } from '@/lib/entitlements'
 import {
   PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
@@ -247,16 +249,16 @@ const BUNDLE_DATASETS = new Set<string>([
   'rainfall', 'temperature', 'drought-index',
 ])
 
-function ContinentalBundle({ datasetSlug, userState }: { datasetSlug: string; userState: UserState }) {
+function ContinentalBundle({ datasetSlug, userState, allowed }: { datasetSlug: string; userState: UserState; allowed: boolean }) {
   const [busy,     setBusy]     = useState(false)
   const [error,    setError]    = useState('')
   const [notReady, setNotReady] = useState(false)
   const [result,   setResult]   = useState<{ file_count: number; size_mb: number; format: string } | null>(null)
   const [showGate, setShowGate] = useState(false)
 
-  // Once-off model: any paid account (individual or team) can pull the
-  // continental bundle — it's no longer a Max/Enterprise-only feature.
-  const isPaid = userState !== 'free'
+  // Paid accounts get every bundle; free accounts get the bundles of the
+  // datasets they picked.
+  const isPaid = allowed
 
   async function handleClick() {
     // Everyone can see the card; only paid accounts can download it.
@@ -370,8 +372,9 @@ function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose:
         </div>
 
         <p className="text-blue-300 text-sm leading-relaxed mb-5">
-          Downloading all 54 countries as one ready-for-QGIS file needs an active plan.
-          Every dataset, every country, for 3 months per payment.
+          Downloading all 54 countries as one ready-for-QGIS file needs a paid plan, or this
+          dataset as one of your 3 free datasets (choose them on your dashboard, or with any
+          download button on this page). Paid plans: every dataset, every country, for 3 months per payment.
         </p>
 
         <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -407,6 +410,7 @@ function DashboardContent() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [userName,  setUserName]  = useState('')
   const [isAdmin,   setIsAdmin]   = useState(false)
+  const [access,    setAccess]    = useState<Access | null>(null)
 
   // The verified user id this dashboard's data belongs to. Used by the auth
   // listener below to detect an account switch (e.g. a different account
@@ -499,10 +503,16 @@ function DashboardContent() {
           .then((r) => r.ok ? r.json() : { isAdmin: false })
           .catch(() => ({ isAdmin: false }))
 
-        const [profileRes, adminRes] = await Promise.all([
+        const accessPromise = fetch('/api/account/access', { cache: 'no-store' })
+          .then((r) => r.ok ? r.json() as Promise<Access> : null)
+          .catch(() => null)
+
+        const [profileRes, adminRes, accessRes] = await Promise.all([
           withTimeout(profilePromise, 8_000),
           withTimeout(adminPromise,   3_000),
+          withTimeout(accessPromise,  8_000),
         ])
+        setAccess(accessRes ?? null)
         if (cancelled) return
         let profile = profileRes?.data ?? null
 
@@ -560,6 +570,9 @@ function DashboardContent() {
   }
 
   const isFree    = userState === 'free'
+  const freeSet   = new Set(access?.datasets ?? [])
+  const canGet    = (slug: string) => !isFree || freeSet.has(slug as never)
+  const reloadAccess = () => { void fetch('/api/account/access', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((a) => a && setAccess(a)) }
   const isPaid    = !isFree
   const planLabel = isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
   const planPrice = isPaid ? PLANS[userState as TierSlug]?.priceLabel : null
@@ -583,12 +596,16 @@ function DashboardContent() {
             {sectionData.subtitle && (
               <p className="text-xs text-gray-400 mt-1">{sectionData.subtitle}</p>
             )}
-            {isFree && (
-              <div className="mt-3 inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-700">
-                🔒 No active plan — get access to download files
-                <Link href="/pricing" className="font-semibold underline ml-1">
-                  See plans
-                </Link>
+            {isFree && sectionKey && canGet(sectionKey) && (
+              <div className="mt-3 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2 text-sm text-green-800">
+                ✓ One of your free datasets: download it for any country.
+              </div>
+            )}
+            {isFree && sectionKey && !canGet(sectionKey) && (
+              <div className="mt-3 inline-flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">
+                🔒 Not one of your free datasets.
+                {(access?.personal.left ?? 0) > 0 ? ' Press any download button to choose it as one, or ' : ' '}
+                <Link href="/pricing" className="font-semibold underline">see plans</Link>
               </div>
             )}
           </div>
@@ -602,7 +619,7 @@ function DashboardContent() {
               native resolution is far too large to host/download — so we don't
               tease a bundle that will never exist for them. */}
           {sectionKey && BUNDLE_DATASETS.has(sectionKey) && (
-            <ContinentalBundle datasetSlug={sectionKey} userState={userState} />
+            <ContinentalBundle datasetSlug={sectionKey} userState={userState} allowed={canGet(sectionKey)} />
           )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -664,19 +681,24 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Free user banner */}
-        {isFree && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-red-800 text-sm">No active plan</p>
-              <p className="text-red-600 text-xs mt-0.5">Get access to download datasets. Browsing is still free.</p>
+        {/* Free plan: the 3 datasets this account keeps */}
+        {isFree && access && (
+          <div className="mb-8 space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Free plan</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Download your free datasets for every country, as often as you like. Upgrade any time for all {PLAN_CARD_UI.individual.count}.
+                </p>
+              </div>
+              <Link href="/pricing" className="shrink-0 text-xs font-bold bg-navy text-white px-4 py-2 rounded-lg">See plans</Link>
             </div>
-            <Link
-              href="/pricing"
-              className="shrink-0 text-xs font-bold bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              See plans
-            </Link>
+            <FreeDatasetPicker picks={access.personal.picks} endpoint="/api/account/free-datasets" onSaved={reloadAccess} />
+            {access.team?.plan === 'free' && (
+              <p className="text-xs text-gray-500">
+                Your free team &quot;{access.team.name}&quot; adds: {access.team.picks.length ? access.team.picks.map(freeDatasetName).join(', ') : 'nothing yet (the team owner chooses them on the Team page)'}.
+              </p>
+            )}
           </div>
         )}
 
@@ -727,7 +749,7 @@ function DashboardContent() {
           )}
         </div>
 
-        {userState === 'team' && (
+        {(userState === 'team' || access?.team) && (
           <Link
             href="/workspace"
             className="mb-8 flex flex-wrap items-center justify-between gap-3 border border-navy/20 bg-white px-5 py-4 text-navy hover:border-navy/40 transition-colors"
@@ -776,7 +798,12 @@ function DashboardContent() {
                           <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
                           <h3 className="text-sm font-bold text-navy group-hover:text-primary transition-colors leading-tight">{dataset.name}</h3>
                         </div>
-                        {isFree && (
+                        {isFree && freeSet.has(String(LIVE_DATASET_ROUTES[dataset.id]).split('section=')[1] as never) && (
+                          <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 whitespace-nowrap shrink-0">
+                            ✓ Free
+                          </span>
+                        )}
+                        {isFree && !freeSet.has(String(LIVE_DATASET_ROUTES[dataset.id]).split('section=')[1] as never) && (
                           <span style={{ fontSize: '10px', fontWeight: 600, background: PLAN_STYLE.free.bg, color: PLAN_STYLE.free.nameColor, border: `1px solid ${PLAN_STYLE.free.border}`, borderRadius: '20px', padding: '2px 7px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                             <Lock size={9} className="inline -mt-0.5 mr-0.5" /> Paid
                           </span>

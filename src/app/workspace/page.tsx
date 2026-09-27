@@ -12,10 +12,11 @@ import { usePhone } from '@/components/workspace/usePhone'
 import { api, stamp, timeAgo } from '@/components/workspace/util'
 import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
 import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
+import { freeDatasetName } from '@/components/FreeDatasetPicker'
 
 interface ListResponse {
   projects: WsProjectSummary[]
-  org:      { id: string; name: string }
+  org:      { id: string; name: string; plan?: 'paid' | 'free'; free_datasets?: string[] }
   me:       { user_id: string; name: string; role: 'owner' | 'member' }
 }
 
@@ -65,7 +66,8 @@ export default function WorkspaceIndex() {
             <p className="ws-lede">
               Teams get shared projects: one live map with every Lenga dataset on it, a discussion
               pinned to places on that map, and a full history of who changed what. It comes with the
-              4-seat and 12-seat team plans. <Link href="/projects">See team plans</Link>, or ask your
+              4-seat and 12-seat team plans, and there is a free team for 2 people with 3 datasets.{' '}
+              <Link href="/team?start=free">Start a free team</Link>, <Link href="/projects">see team plans</Link>, or ask your
               team owner to invite you from the <Link href="/team">Team</Link> page.
             </p>
           </>
@@ -80,6 +82,14 @@ export default function WorkspaceIndex() {
               Shared maps for {data.org.name}. Everyone on the team sees the same layers, the same
               saved views and the same discussion, and every change is kept in the project&apos;s history.
             </p>
+            {data.org.plan === 'free' && (
+              <p className="ws-note">
+                <b>Free team:</b> 2 seats and 3 datasets
+                {data.org.free_datasets?.length ? ` (${data.org.free_datasets.map(freeDatasetName).join(', ')})` : ''}.{' '}
+                {(data.org.free_datasets?.length ?? 0) < 3 && <>{data.me.role === 'owner' ? 'Choose them' : 'The team owner chooses them'} on the <Link href="/team">Team</Link> page. </>}
+                <Link href="/projects">Upgrade</Link> for more seats and every dataset.
+              </p>
+            )}
             <div className="ws-cols">
               <div>
                 {data.projects.length === 0 ? (

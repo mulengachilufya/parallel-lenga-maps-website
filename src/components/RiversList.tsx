@@ -123,7 +123,7 @@ export default function RiversList({
                     <td className="px-4 py-3 text-center">
                       <motion.button
                         onClick={() => handleDownload(river)}
-                        disabled={!river.download_url || downloading === river.id}
+                        disabled={downloading === river.id}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${

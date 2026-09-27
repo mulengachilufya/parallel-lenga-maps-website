@@ -78,3 +78,26 @@ export async function provisionOrg(db: SupabaseClient, input: ProvisionInput): P
 
   return { ok: true, org }
 }
+
+/**
+ * A team has paid: start (or extend) its 3 months. Turns a free team into a
+ * paid one, keeping its projects and members; every member moves onto the
+ * team plan. Used by Admin → Organizations and the sales pipeline.
+ */
+export async function upgradeOrg(db: SupabaseClient, orgId: string, opts: {
+  seats: number; price?: number | null; expiresAt: string
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { error } = await db.from('organizations').update({
+    plan: 'paid', status: 'active', seat_count: Math.max(1, Math.round(opts.seats)),
+    access_expires_at: opts.expiresAt, expiry_notice_sent: null,
+    ...(opts.price !== null && opts.price !== undefined ? { monthly_price_usd: opts.price } : {}),
+  }).eq('id', orgId)
+  if (error) return { ok: false, message: error.message }
+  const ids = ((await db.from('organization_members').select('user_id').eq('org_id', orgId)).data ?? []).map((m) => m.user_id)
+  if (ids.length) {
+    await db.from('profiles')
+      .update({ plan: 'team', plan_status: 'active', plan_expires_at: opts.expiresAt, expiry_reminder_sent_at: null })
+      .in('id', ids)
+  }
+  return { ok: true }
+}

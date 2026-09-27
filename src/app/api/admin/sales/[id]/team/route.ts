@@ -1,24 +1,22 @@
 /**
- * POST /api/admin/sales/:id/team — give the prospect a team account.
+ * POST /api/admin/sales/:id/team — { action: 'paid', contact_id?, seats, value_usd? }
  *
- *   { action: 'pilot', contact_id, seats? }
- *       A 14 day pilot: creates the team with the contact as owner, moves
- *       the account to "Pilot running" and books the check-ins.
+ * Payment has arrived: starts 3 months of paid team access, moves the
+ * account to "Won" and books onboarding. The team is, in order:
+ *   1. the team already linked to this account (usually their free team),
+ *   2. the team the chosen owner is already on (a free team they started),
+ *   3. a new team with the chosen contact as owner.
+ * A free team becomes paid in place, keeping its projects and members.
+ * The owner must already have a Lenga Maps account.
  *
- *   { action: 'paid', contact_id?, seats, value_usd? }
- *       Payment has arrived: starts 3 months of access (turning the pilot
- *       team into the real one, or creating the team if there was no
- *       pilot), moves the account to "Won" and books onboarding.
- *
- * The owner must already have a Lenga Maps account, the same rule as
- * Organizations in the admin panel.
+ * POST { action: 'link' } — look for a team their people are on now.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { accessExpiry } from '@/lib/pricing'
-import { provisionOrg } from '@/lib/teams-admin'
-import { PILOT_DAYS, dueDate, stageIndex } from '@/lib/sales/playbook'
+import { provisionOrg, upgradeOrg } from '@/lib/teams-admin'
+import { dueDate } from '@/lib/sales/playbook'
 import {
-  countryName, db, isUuid, jsonError, loadAccount, logActivity, moveStage, num, requireAdmin,
+  countryName, db, isUuid, jsonError, linkTeams, loadAccount, logActivity, moveStage, num, requireAdmin,
 } from '@/lib/sales/server'
 import { audit } from '@/lib/ops/log'
 
@@ -44,45 +42,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return { contact: c }
   }
 
-  if (body.action === 'pilot') {
-    if (account.org_id) return jsonError('has_team', 409, 'This account already has a team. Use "Payment received" when they pay.')
-    const o = await owner()
-    if ('error' in o) return o.error
-    const ends = new Date(Date.now() + PILOT_DAYS * 86400_000).toISOString()
-    const r = await provisionOrg(db, {
-      name: account.name, ownerEmail: o.contact.email!, seats,
-      sector: account.sector, region: countryName(account.country_iso3) || null,
-      price: value, notes: `Pilot from the sales pipeline, started ${new Date().toISOString().slice(0, 10)}.`, expiresAt: ends,
-    })
-    if (!r.ok) return jsonError(r.error, r.status, r.message)
-
-    await db.from('sales_accounts').update({ org_id: r.org.id, seats_estimate: seats, updated_at: new Date().toISOString() }).eq('id', id)
-    if (stageIndex(account.stage) < stageIndex('pilot')) await moveStage(account, 'pilot', gate.email)
-    await db.from('sales_tasks').insert([
-      { account_id: id, contact_id: o.contact.id, kind: 'email', template: 'pilot_checkin', title: 'Pilot day 3: is everyone in?', due_on: dueDate(3) },
-      { account_id: id, contact_id: o.contact.id, kind: 'call', title: 'Pilot day 10: look at what they have made', due_on: dueDate(10) },
-      { account_id: id, contact_id: o.contact.id, kind: 'email', template: 'proposal', title: 'Pilot ends soon: send the proposal', due_on: dueDate(PILOT_DAYS - 2) },
-    ])
-    await logActivity({ account_id: id, contact_id: o.contact.id, kind: 'system', created_by: gate.email,
-      subject: `${PILOT_DAYS} day pilot started, ${seats} seats, owner ${o.contact.email}`, meta: { org_id: r.org.id, ends } })
-    await audit(gate.email, 'console', 'sales_pilot', account.name, { org_id: r.org.id, seats })
-    return NextResponse.json({ ok: true, org_id: r.org.id, ends })
+  if (body.action === 'link') {
+    const linked = await linkTeams(id)
+    return NextResponse.json({ ok: true, linked: linked.length > 0 })
   }
 
   if (body.action === 'paid') {
-    const expires = accessExpiry()
+    let expires = accessExpiry()
     let orgId = account.org_id
     let ownerContact: string | null = null
-    if (orgId) {
-      const { error } = await db.from('organizations').update({
-        status: 'active', access_expires_at: expires, expiry_notice_sent: null, seat_count: seats,
-        ...(value !== null ? { monthly_price_usd: value } : {}),
-      }).eq('id', orgId)
-      if (error) return jsonError('update_failed', 500, error.message)
-      const ids = ((await db.from('organization_members').select('user_id').eq('org_id', orgId)).data ?? []).map((m) => m.user_id)
-      if (ids.length) {
-        await db.from('profiles').update({ plan: 'team', plan_status: 'active', plan_expires_at: expires, expiry_reminder_sent_at: null }).in('id', ids)
+    if (!orgId && isUuid(body.contact_id)) {
+      // The owner may already have started a free team: upgrade that one.
+      const { data: c } = await db.from('sales_contacts').select('id, email').eq('id', body.contact_id).eq('account_id', id).maybeSingle()
+      if (c?.email) {
+        const { data: prof } = await db.from('profiles').select('org_id').ilike('email', c.email).maybeSingle()
+        if (prof?.org_id) { orgId = prof.org_id as string; ownerContact = c.id }
       }
+    }
+    if (orgId) {
+      // A paid team renewing early keeps its remaining time; a free team
+      // starts its 3 months today.
+      const { data: cur } = await db.from('organizations').select('plan, access_expires_at').eq('id', orgId).maybeSingle()
+      if (cur?.plan === 'paid' && cur.access_expires_at) expires = accessExpiry(cur.access_expires_at)
+      const r = await upgradeOrg(db, orgId, { seats, price: value, expiresAt: expires })
+      if (!r.ok) return jsonError('update_failed', 500, r.message)
     } else {
       const o = await owner()
       if ('error' in o) return o.error

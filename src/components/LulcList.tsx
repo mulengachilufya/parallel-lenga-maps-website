@@ -227,7 +227,7 @@ export default function LulcList({
 
               <button
                 onClick={() => handleDownload(layer)}
-                disabled={isDownloading || !layer.download_url}
+                disabled={isDownloading}
                 className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-lg transition-colors
                            ${isDownloading
                              ? 'bg-green-100 text-green-700'

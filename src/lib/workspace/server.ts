@@ -12,6 +12,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { logEvent } from '@/lib/ops/log'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
 import { atLeast, type ProjectRole, type WsProject, type WsRevision } from './types'
+import { workspaceDatasets } from '@/lib/entitlements'
 
 export const service: SupabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -105,6 +106,22 @@ export async function commit(
   const rev = data as WsRevision & { snapshot?: unknown }
   delete rev.snapshot
   return rev
+}
+
+/**
+ * May this team put this catalogue dataset on its maps? Paid teams: any.
+ * Free teams: only the 3 datasets the owner chose.
+ */
+export function datasetAllowed(gate: WorkspaceGate, slug: string): boolean {
+  const allowed = workspaceDatasets(gate.membership)
+  return allowed === 'all' || (allowed as string[]).includes(slug)
+}
+
+export function lockedDataset() {
+  return NextResponse.json({
+    error: 'free_dataset_locked',
+    message: 'Your free team includes 3 datasets. Upgrade to put any dataset on your maps.',
+  }, { status: 403 })
 }
 
 export async function readJson(req: Request): Promise<Record<string, unknown>> {

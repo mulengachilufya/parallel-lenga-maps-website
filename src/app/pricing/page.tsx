@@ -1,11 +1,43 @@
 'use client'
 
 import Link from "next/link"
-import { PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref } from "@/lib/pricing"
+import { FREE_OFFERS, PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref, type FreeOffer } from "@/lib/pricing"
 
 // Both plans send buyers to their planCtaHref (see pricing.ts): individual
 // -> /dashboard/payment (self-serve bank transfer, fastest path), team ->
-// /projects (quote-based, seats need negotiating).
+// /projects (quote-based, seats need negotiating). Each sits next to its
+// free version (FREE_OFFERS): 3 chosen datasets, and for teams 2 seats.
+
+function FreeCard({ offer }: { offer: FreeOffer }) {
+  return (
+    <Link href={offer.href} className="plan-card" style={{ background: '#ffffff', border: '1px solid #d9d6cc' }}>
+      <div className="plan-text" style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        {offer.name}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '1.25rem' }}>
+        <span className="price-num plan-text" style={{ fontSize: '40px', lineHeight: 1, fontWeight: 400 }}>{offer.priceLabel}</span>
+      </div>
+      <p className="plan-muted" style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5 }}>{offer.tagline}</p>
+      <div style={{ height: '0.5px', background: '#1a1a1a', opacity: 0.15, margin: '0 0 1rem' }} />
+      <div className="plan-muted" style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+        {offer.count}
+      </div>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
+        {offer.items.map(d => (
+          <li key={d} className="plan-text" style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4 }}>
+            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#1E5F8E', flexShrink: 0, marginTop: '5px', display: 'inline-block' }} />
+            {d}
+          </li>
+        ))}
+      </ul>
+      <div style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
+        <div style={{ width: '100%', padding: '10px 0', borderRadius: '10px', fontSize: '13px', fontWeight: 500, background: '#0D2B45', color: '#fff', textAlign: 'center' }}>
+          {offer.cta}
+        </div>
+      </div>
+    </Link>
+  )
+}
 
 export default function PricingPage() {
   const cards = PLAN_ORDER.map((slug) => ({
@@ -47,18 +79,23 @@ export default function PricingPage() {
 
       <div style={{ padding: '2.5rem 1rem 3rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '36px', fontWeight: 400, margin: '0 0 0.5rem', lineHeight: 1.1, color: '#1a1a1a' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 400, margin: '0 0 0.5rem', lineHeight: 1.1, color: '#ffffff' }}>
             Simple, honest pricing
           </h1>
-          <p style={{ fontSize: '15px', color: '#555', margin: 0 }}>
-            Pay for 3 months at a time. Every dataset, every one of 54 African countries. Nothing renews automatically.
+          <p style={{ fontSize: '15px', color: '#b8c2cc', margin: 0 }}>
+            Start free with 3 datasets of your choice. Pay for 3 months at a time for every dataset, every one of 54 African countries. Nothing renews automatically.
           </p>
         </div>
 
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px', maxWidth: '640px', margin: '0 auto' }}>
-          {cards.map(({ id, plan, ui }) => {
+        {cards.map(({ id, plan, ui }) => {
             const isTeam = id === 'team'
             return (
+        <section key={id} style={{ maxWidth: '640px', margin: '0 auto 2rem' }}>
+          <h2 style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9fb0c0', margin: '0 0 0.75rem' }}>
+            {isTeam ? 'For teams' : 'For individuals'}
+          </h2>
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+              <FreeCard offer={FREE_OFFERS[id]} />
               <Link
                 key={id}
                 href={planCtaHref(id)}
@@ -90,12 +127,13 @@ export default function PricingPage() {
                   </div>
                 </div>
               </Link>
+        </div>
+        </section>
             )
           })}
-        </div>
 
         <div style={{ maxWidth: '640px', margin: '2rem auto 0', textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: '#9fb0c0', margin: 0 }}>
             Pay by bank transfer. We activate your account within 24 hours of payment.
           </p>
         </div>

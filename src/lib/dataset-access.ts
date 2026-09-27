@@ -1,53 +1,38 @@
 // src/lib/dataset-access.ts
 // Server-side gate for all dataset download API routes.
 //
-// Once-off model: no trial, no per-dataset tier. A caller can either
-// download everything (active individual or team plan) or nothing.
+// Paid accounts (individual or team plan) download everything. Free
+// accounts download the 3 datasets they picked, plus the 3 their free team
+// picked (src/lib/entitlements.ts).
 
+import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from './supabase-server'
-import { getUserState, canAccessFiles, type DatasetSlug } from './pricing'
+import { accessFor, canDownload, type Access } from './entitlements'
+import type { DatasetSlug } from './pricing'
 
 export type { DatasetSlug }
 
-/**
- * Can the current caller access any files at all?
- * true  = active individual or team plan
- * false = anonymous, no profile, or free/unpaid
- */
-export async function callerCanAccessFiles(): Promise<boolean> {
+const service = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } },
+)
+
+/** The signed-in caller's access, or null when signed out. */
+export async function callerAccess(): Promise<Access | null> {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan, plan_status, plan_expires_at')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) return false
-
-  const state = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
-  return canAccessFiles(state)
+  if (!user) return null
+  return accessFor(service, user.id)
 }
 
-/**
- * Can the current caller download from a specific dataset?
- * There's no more per-dataset tier — a paid account (either plan) can
- * download any dataset. The `slug` param is kept so existing call sites
- * don't need to change, but it no longer affects the result.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function callerCanDownloadDataset(_slug: DatasetSlug): Promise<boolean> {
-  return callerCanAccessFiles()
+/** Does the caller have a paid plan (every dataset)? */
+export async function callerCanAccessFiles(): Promise<boolean> {
+  return (await callerAccess())?.paid ?? false
 }
 
-/**
- * Back-compat shim — old API routes call callerCanDownloadTier('basic'|'pro'|'max').
- * Tier-based gating is gone; this now just checks for any paid plan.
- * New routes should call callerCanAccessFiles() directly.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function callerCanDownloadTier(_tier: string): Promise<boolean> {
-  return callerCanAccessFiles()
+/** Can the caller download files of this dataset? */
+export async function callerCanDownloadDataset(slug: DatasetSlug): Promise<boolean> {
+  const a = await callerAccess()
+  return !!a && canDownload(a, slug)
 }

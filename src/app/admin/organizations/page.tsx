@@ -28,6 +28,7 @@ interface Org {
   monthly_price_usd: number | null; api_rate_per_min: number
   notes: string | null; created_at: string
   access_expires_at: string | null
+  plan?: 'paid' | 'free'; free_datasets?: string[] | null
   members: Member[]; pending_invites: Invite[]
 }
 
@@ -129,6 +130,7 @@ export default function AdminOrgsPage() {
                       : o.status === 'suspended' ? 'bg-amber-100 text-amber-800'
                       : 'bg-gray-200 text-gray-600'
                     }`}>{o.status}</span>
+                    {o.plan === 'free' && <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-blue-100 text-blue-800">free team</span>}
                     <span className="text-[11px] text-gray-500">
                       {o.members.length}/{o.seat_count} seats
                       {o.pending_invites.length > 0 && ` · ${o.pending_invites.length} pending`}
@@ -137,7 +139,9 @@ export default function AdminOrgsPage() {
                   <p className="mt-1 text-xs text-gray-500">
                     {[o.sector, o.region, o.monthly_price_usd ? `$${o.monthly_price_usd}/mo` : null, `${o.api_rate_per_min} req/min API`].filter(Boolean).join(' · ')}
                     {' · '}since {new Date(o.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
-                    {' · '}{o.access_expires_at
+                    {' · '}{o.plan === 'free'
+                      ? <>free plan: {o.free_datasets?.length ? o.free_datasets.join(', ') : 'no datasets chosen yet'}</>
+                      : o.access_expires_at
                       ? <span className={new Date(o.access_expires_at) < new Date() ? 'text-red-600 font-semibold' : ''}>
                           access until {new Date(o.access_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
@@ -146,7 +150,18 @@ export default function AdminOrgsPage() {
                   {o.notes && <p className="mt-1.5 text-xs text-gray-500 italic">{o.notes}</p>}
                 </div>
                 <div className="flex items-center gap-2">
-                  {o.access_expires_at && (
+                  {o.plan === 'free' && (
+                    <button
+                      onClick={() => {
+                        const seats = Number(prompt(`Payment received from ${o.name}. How many seats did they pay for? (4 or 12)`, '4'))
+                        if (!Number.isFinite(seats) || seats < Math.max(1, o.members.length)) return
+                        const price = Number(prompt('Amount paid, USD per 3 months', seats <= 4 ? '350' : '1000'))
+                        patch(o.id, { upgrade: true, seat_count: seats, ...(Number.isFinite(price) ? { monthly_price_usd: price } : {}) })
+                      }}
+                      className="rounded-lg bg-[#0D2B45] text-white px-2.5 py-1.5 text-xs font-semibold"
+                    >Upgrade to paid</button>
+                  )}
+                  {o.plan !== 'free' && o.access_expires_at && (
                     <button
                       onClick={() => { if (confirm(`Record a renewal payment for ${o.name}? Adds 3 months of access for every member.`)) patch(o.id, { extend: true }) }}
                       className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-gray-50"

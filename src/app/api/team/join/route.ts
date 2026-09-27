@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: invite } = await service
     .from('organization_invites')
-    .select('id, org_id, email, role, status, organizations!inner(name, status, access_expires_at)')
+    .select('id, org_id, email, role, status, organizations!inner(name, status, access_expires_at, plan)')
     .eq('token', token)
     .maybeSingle()
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     )
   }
   const orgRaw = (invite as { organizations: unknown }).organizations
-  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as { name: string; status: string; access_expires_at: string | null }
+  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as { name: string; status: string; access_expires_at: string | null; plan?: string }
   if (org.status !== 'active' || isExpired(org.access_expires_at)) {
     return NextResponse.json(
       { error: 'org_inactive', message: 'This team\'s plan is not active right now.' },
@@ -101,7 +101,10 @@ export async function POST(req: NextRequest) {
     service.from('organization_invites')
       .update({ status: 'accepted', accepted_at: new Date().toISOString() })
       .eq('id', invite.id),
-    service.from('profiles')
+    // Paid teams carry every member on plan 'team'. A free team's members
+    // keep their own free profile; the team's 3 datasets come through the
+    // membership (src/lib/entitlements.ts).
+    org.plan === 'free' ? Promise.resolve() : service.from('profiles')
       .update({ plan: 'team', plan_status: 'active', plan_expires_at: org.access_expires_at })
       .eq('id', user.id),
   ])

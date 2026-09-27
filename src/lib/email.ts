@@ -195,27 +195,28 @@ function firstName(fullName?: string | null): string {
 
 export function welcomeEmail(to: string, fullName?: string | null): EmailMessage {
   const name  = firstName(fullName)
-  const cta   = `${APP_URL}/datasets`
+  const cta   = `${APP_URL}/dashboard`
   const cta2  = `${APP_URL}/pricing`
   const price = PLANS.individual.priceLabel
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${name},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Your Lenga Maps account is live. You can browse the full catalogue now: every dataset
-      across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
+      Your Lenga Maps account is live, and it comes with <strong>3 free datasets</strong>. Open your
+      dashboard, choose the 3 you need most, and download them for all 54 African countries,
+      harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
     </p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      When you are ready to download, access is <strong>${price}</strong>.
-      No subscription and nothing renews automatically: every dataset, every country, unlimited downloads.
-      Buying for a team? Team packages start at $350 for up to 4 seats for 3 months; just reply to this email.
+      Need everything? Full access is <strong>${price}</strong>: every dataset, every country, unlimited downloads,
+      and nothing renews automatically. Working with a colleague? Start a free team for 2 people from the Team page;
+      paid teams start at $350 for up to 4 seats for 3 months.
     </p>`
   const text = `Hi ${name},
 
-Your Lenga Maps account is live. You can browse the full catalogue now: every dataset across all 54 African countries, harmonised to EPSG:4326 and ready for QGIS.
+Your Lenga Maps account is live, and it comes with 3 free datasets. Open your dashboard, choose the 3 you need most, and download them for all 54 African countries, harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
 
-When you are ready to download, access is ${price}. No subscription and nothing renews automatically: every dataset, every country, unlimited downloads. Buying for a team? Team packages start at $350 for up to 4 seats for 3 months; just reply to this email.
+Need everything? Full access is ${price}: every dataset, every country, unlimited downloads, and nothing renews automatically. Working with a colleague? Start a free team for 2 people from the Team page; paid teams start at $350 for up to 4 seats for 3 months.
 
-Browse the catalogue: ${cta}
+Choose your free datasets: ${cta}
 See pricing: ${cta2}
 
 Thanks,
@@ -224,10 +225,10 @@ The Lenga Maps team`
     to,
     subject: `${name}, your Lenga Maps account is live`,
     html: shell({
-      preheader: `Browse every dataset now. Full access is ${price}, no subscription.`,
+      preheader: `Choose your 3 free datasets. Full access is ${price}, no subscription.`,
       heading:   `Welcome to Lenga Maps, ${name}.`,
       bodyHtml,
-      ctaLabel:  'Browse the catalogue',
+      ctaLabel:  'Choose my free datasets',
       ctaHref:   cta,
       cta2Label: 'See pricing',
       cta2Href:  cta2,

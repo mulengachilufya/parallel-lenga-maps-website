@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadTier } from '@/lib/dataset-access'
+import { callerCanDownloadDataset } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Anonymous browsing is fine for the catalogue, but no free download URLs.
     let boundaries: AdminBoundary[] = data || []
 
-    const allowed = includeUrl ? await callerCanDownloadTier('basic') : false
+    const allowed = includeUrl ? await callerCanDownloadDataset('admin-boundaries') : false
     if (allowed && boundaries.length > 0) {
       boundaries = await Promise.all(
         boundaries.map(async (boundary) => {

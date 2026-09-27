@@ -15,7 +15,7 @@ import {
   ExternalLink, Copy, Check, Circle, Flag, Users, Play, BadgeDollarSign, Search, Send,
 } from 'lucide-react'
 import {
-  LOST_REASONS, PILOT_DAYS, SECTORS, SOURCES, STAGE, STAGES, TEMPLATES, fill, sectorLabel, stageIndex, template,
+  LOST_REASONS, SECTORS, SOURCES, STAGE, STAGES, TEMPLATES, fill, sectorLabel, stageIndex, template,
   type Channel, type MergeFields, type Stage,
 } from '@/lib/sales/playbook'
 import {
@@ -35,6 +35,7 @@ interface Team {
   id: string; name: string; status: string; seat_count: number; access_expires_at: string | null
   members: { user_id: string; member_name: string | null; member_email: string | null; role: string }[]
   pending_invites: number; project_count: number; last_project_at: string | null
+  plan: 'paid' | 'free'; free_datasets: string[] | null
 }
 interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings }
 
@@ -46,7 +47,7 @@ const DISCOVERY: { key: string; label: string; hint: string }[] = [
   { key: 'team', label: 'Team', hint: 'How many people touch GIS data, and their roles.' },
   { key: 'decision', label: 'Who decides and who pays', hint: 'Name the person who signs, and how they buy (PO, tender, card).' },
   { key: 'budget', label: 'Budget and timing', hint: 'Budget cycle, when a decision could happen.' },
-  { key: 'success', label: 'What success looks like', hint: 'Agree this before a pilot starts.' },
+  { key: 'success', label: 'What success looks like', hint: 'Agree this before they start their free team.' },
 ]
 
 type ComposeState = { channel: Channel; templateId: string; contactId: string; taskId?: string }
@@ -56,7 +57,7 @@ type Dialog =
   | { kind: 'contact'; contact?: Contact }
   | { kind: 'task' }
   | { kind: 'stage'; to: Stage }
-  | { kind: 'team'; action: 'pilot' | 'paid' }
+  | { kind: 'team'; action: 'paid' }
   | { kind: 'edit' }
 
 export default function Wrapper() {
@@ -259,7 +260,9 @@ function AccountPage() {
           </Box>
 
           {/* Team */}
-          <TeamBox account={a} team={d.team} onPilot={() => setDialog({ kind: 'team', action: 'pilot' })} onPaid={() => setDialog({ kind: 'team', action: 'paid' })} />
+          <TeamBox account={a} team={d.team} onPaid={() => setDialog({ kind: 'team', action: 'paid' })}
+                   onInvite={() => setDialog({ kind: 'compose', init: { channel: 'email', templateId: 'free_team', contactId: primary?.id ?? '' } })}
+                   onLinked={load} />
 
           {a.notes && <Box title="Notes"><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.notes}</p></Box>}
 
@@ -281,7 +284,7 @@ function AccountPage() {
 
 function suggest(stage: Stage, channel: 'email' | 'linkedin'): string {
   if (channel === 'linkedin') return stage === 'target' ? 'li_connect' : 'li_message'
-  return ({ target: 'intro', contacted: 'follow_up', replied: 'meeting', meeting: 'proposal', pilot: 'pilot_checkin', proposal: 'proposal', won: 'onboarding', nurture: 'nurture' } as Record<string, string>)[stage] ?? 'intro'
+  return ({ target: 'intro', contacted: 'follow_up', replied: 'meeting', meeting: 'free_team', free: 'free_checkin', proposal: 'proposal', won: 'onboarding', nurture: 'nurture' } as Record<string, string>)[stage] ?? 'intro'
 }
 
 function Action({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
@@ -385,42 +388,56 @@ function Discovery({ account, onSaved }: { account: Account; onSaved: () => void
   )
 }
 
-function TeamBox({ account, team, onPilot, onPaid }: { account: Account; team: Team | null; onPilot: () => void; onPaid: () => void }) {
+function TeamBox({ account, team, onPaid, onInvite, onLinked }: {
+  account: Account; team: Team | null; onPaid: () => void; onInvite: () => void; onLinked: () => void
+}) {
+  const [checking, setChecking] = useState(false)
+  const [msg, setMsg] = useState('')
   const at = stageIndex(account.stage)
   if (!team) {
-    if (at < stageIndex('meeting') && account.stage !== 'nurture') return null
+    if (at < stageIndex('replied') && account.stage !== 'nurture') return null
     return (
       <Box title="Team account">
-        <p className="text-sm text-gray-600">No team yet. Start a {PILOT_DAYS} day pilot so they can try it on a real project, or go straight to payment.</p>
+        <p className="text-sm text-gray-600">
+          No team yet. Invite them to start a free team (2 people, 3 datasets, no end date). When they do, it links here by itself.
+        </p>
         <div className="flex flex-wrap gap-2 mt-3">
-          <button onClick={onPilot} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-xs font-semibold px-3 py-2"><Play size={12} /> Start {PILOT_DAYS} day pilot</button>
+          <button onClick={onInvite} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-xs font-semibold px-3 py-2"><Mail size={12} /> Send the free team email</button>
           <button onClick={onPaid} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 text-xs font-semibold px-3 py-2 text-gray-700"><BadgeDollarSign size={13} /> Payment received</button>
+          <button disabled={checking} onClick={async () => {
+            setChecking(true); setMsg('')
+            try { const r = await api<{ linked: boolean }>(`/api/admin/sales/${account.id}/team`, { method: 'POST', body: { action: 'link' } }); if (r.linked) onLinked(); else setMsg('No team found yet for the people on this account.') }
+            catch (e) { setMsg(e instanceof Error ? e.message : 'Failed') } finally { setChecking(false) }
+          }} className="text-xs text-blue-700 px-1">{checking ? 'Checking…' : 'Check now'}</button>
         </div>
+        {msg && <p className="text-xs text-gray-500 mt-2">{msg}</p>}
       </Box>
     )
   }
+  const free = team.plan === 'free'
   const ends = team.access_expires_at ? new Date(team.access_expires_at) : null
   const daysLeft = ends ? Math.ceil((ends.getTime() - Date.now()) / 86400_000) : null
   const steps = [
-    { ok: true, label: 'Team account created' },
-    { ok: team.members.length >= 1, label: 'Owner signed in' },
-    { ok: team.members.length + team.pending_invites >= 2, label: `Colleagues invited (${team.members.length - 1 + team.pending_invites})` },
+    { ok: true, label: free ? 'Free team created' : 'Team account created' },
+    ...(free ? [{ ok: (team.free_datasets?.length ?? 0) >= 3, label: `Datasets chosen (${team.free_datasets?.length ?? 0} of 3)` }] : []),
+    { ok: team.members.length + team.pending_invites >= 2, label: `Colleagues invited (${Math.max(0, team.members.length - 1) + team.pending_invites})` },
     { ok: team.members.length >= 2, label: `Colleagues joined (${Math.max(0, team.members.length - 1)})` },
     { ok: team.project_count >= 1, label: `First project made${team.project_count ? ` (${team.project_count})` : ''}` },
   ]
-  const isPilot = account.stage === 'pilot' || (at >= 0 && at < stageIndex('won'))
   return (
-    <Box title={isPilot ? 'Pilot team' : 'Customer team'} right={<Link href="/admin/organizations" className="text-xs text-blue-700 inline-flex items-center gap-1"><Users size={12} /> Organizations</Link>}>
+    <Box title={free ? 'Free team' : 'Customer team'} right={<Link href="/admin/organizations" className="text-xs text-blue-700 inline-flex items-center gap-1"><Users size={12} /> Organizations</Link>}>
       <p className="text-sm text-gray-700">
+        <b>{team.name}</b>.{' '}
         {team.status !== 'active' ? <span className="text-red-700 font-semibold">Access is {team.status}. </span> : null}
-        {ends ? (daysLeft! > 0 ? <>Access until <b>{ends.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</b> ({daysLeft} days).</> : <span className="text-red-700 font-semibold">Access ended {ends.toLocaleDateString('en-GB')}.</span>) : 'Permanent access.'}
-        {' '}{team.seat_count} seats.
+        {free ? <>Free plan: {team.seat_count} seats{team.free_datasets?.length ? `, datasets: ${team.free_datasets.join(', ')}` : ''}.</>
+          : ends ? (daysLeft! > 0 ? <>Paid until <b>{ends.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</b> ({daysLeft} days), {team.seat_count} seats.</> : <span className="text-red-700 font-semibold">Access ended {ends.toLocaleDateString('en-GB')}.</span>)
+          : <>Permanent access, {team.seat_count} seats.</>}
       </p>
       <ul className="mt-3 space-y-1.5 text-sm">
         {steps.map((s) => <li key={s.label} className={`flex items-center gap-2 ${s.ok ? 'text-gray-800' : 'text-gray-400'}`}>{s.ok ? <Check size={14} className="text-green-600" /> : <Circle size={14} />}{s.label}</li>)}
       </ul>
       {team.last_project_at && <p className="text-xs text-gray-500 mt-2">Last project activity {ago(team.last_project_at)}.</p>}
-      {isPilot && <button onClick={onPaid} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-xs font-semibold px-3 py-2"><BadgeDollarSign size={13} /> Payment received</button>}
+      {(free || at < stageIndex('won')) && <button onClick={onPaid} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-xs font-semibold px-3 py-2"><BadgeDollarSign size={13} /> Payment received</button>}
     </Box>
   )
 }
@@ -668,22 +685,22 @@ function TaskDialog({ accountId, contacts, onClose, onDone }: { accountId: strin
   )
 }
 
-function StageDialog({ account, to, onClose, onDone, onTeam }: { account: Account; to: Stage; onClose: () => void; onDone: () => void; onTeam: (a: 'pilot' | 'paid') => void }) {
+function StageDialog({ account, to, onClose, onDone, onTeam }: { account: Account; to: Stage; onClose: () => void; onDone: () => void; onTeam: (a: 'paid') => void }) {
   const [note, setNote] = useState('')
   const [reason, setReason] = useState(LOST_REASONS[0])
   const [other, setOther] = useState('')
   const [until, setUntil] = useState(new Date(Date.now() + 90 * 86400_000).toISOString().slice(0, 10))
   const s = useSubmit(onDone)
-  // Pilot and Won are best done through the team tools, which also set up access.
-  const viaTeam = (to === 'pilot' && !account.org_id) || (to === 'won' && account.stage !== 'acquired')
+  // Won is best done through "Payment received", which also sets up access.
+  const viaTeam = to === 'won' && account.stage !== 'acquired'
   return (
     <Modal title={`Move to ${STAGE[to].label}`} onClose={onClose}>
       <div className="space-y-3">
         <p className="text-sm text-gray-600">{STAGE[to].goal}</p>
         {viaTeam && (
           <div className="rounded-lg bg-blue-50 p-3 text-sm text-[#0D2B45]">
-            {to === 'pilot' ? `Starting the pilot here also gives them ${PILOT_DAYS} days of team access.` : 'Recording the payment here also starts their 3 months of team access.'}
-            <div className="mt-2"><Primary onClick={() => onTeam(to === 'pilot' ? 'pilot' : 'paid')}>{to === 'pilot' ? 'Start the pilot' : 'Payment received'}</Primary></div>
+            Recording the payment here also starts their 3 months of team access.
+            <div className="mt-2"><Primary onClick={() => onTeam('paid')}>Payment received</Primary></div>
             <p className="text-xs mt-2 text-gray-600">Or just move the stage without changing access:</p>
           </div>
         )}
@@ -705,24 +722,24 @@ function StageDialog({ account, to, onClose, onDone, onTeam }: { account: Accoun
 }
 
 function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
-  account: Account; action: 'pilot' | 'paid'; contacts: Contact[]; hasTeam: boolean; onClose: () => void; onDone: () => void
+  account: Account; action: 'paid'; contacts: Contact[]; hasTeam: boolean; onClose: () => void; onDone: () => void
 }) {
   const withEmail = contacts.filter((c) => c.email)
   const [contactId, setContactId] = useState(withEmail.find((c) => c.is_primary)?.id ?? withEmail[0]?.id ?? '')
   const [seats, setSeats] = useState(String(account.seats_estimate ?? 4))
   const [value, setValue] = useState(account.value_usd !== null ? String(account.value_usd) : Number(seats) <= 4 ? '350' : '1000')
   const s = useSubmit(onDone)
-  const needOwner = action === 'pilot' || !hasTeam
+  const needOwner = !hasTeam
   return (
-    <Modal title={action === 'pilot' ? `Start a ${PILOT_DAYS} day pilot` : 'Payment received'} onClose={onClose}>
+    <Modal title="Payment received" onClose={onClose}>
       <div className="space-y-3">
         <p className="text-sm text-gray-600">
-          {action === 'pilot'
-            ? `Creates the team with this person as owner. They get ${PILOT_DAYS} days of full team access, and check-ins are added to your next steps.`
-            : hasTeam ? 'Turns the pilot team into a paying one: 3 months of access from today for everyone on it.' : 'Creates the team with this person as owner and starts 3 months of access from today.'}
+          {hasTeam
+            ? 'Starts 3 months of paid access for their team: a free team becomes paid in place, with its projects and members, and gets the seats below and every dataset.'
+            : 'If this person already started a free team, that team is upgraded. Otherwise a new team is created with them as owner. Either way, 3 months of access start today.'}
         </p>
         {needOwner && (
-          <Field label="Team owner" hint="They must already have a Lenga Maps account with this email. If not, ask them to sign up first (it is free).">
+          <Field label="Team owner" hint="They need a Lenga Maps account with this email. If not, ask them to sign up first (it is free).">
             <select className={inputCls} value={contactId} onChange={(e) => setContactId(e.target.value)}>
               {withEmail.length === 0 && <option value="">Add a contact with an email first</option>}
               {withEmail.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
@@ -731,12 +748,12 @@ function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
         )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Seats"><input type="number" min={1} className={inputCls} value={seats} onChange={(e) => setSeats(e.target.value)} /></Field>
-          {action === 'paid' && <Field label="Paid, USD per 3 months"><input type="number" min={0} className={inputCls} value={value} onChange={(e) => setValue(e.target.value)} /></Field>}
+          {<Field label="Paid, USD per 3 months"><input type="number" min={0} className={inputCls} value={value} onChange={(e) => setValue(e.target.value)} /></Field>}
         </div>
         {s.err && <p className="text-sm text-red-600">{s.err}</p>}
         <Primary className="w-full" disabled={s.busy || (needOwner && !contactId)} onClick={() => s.run(() => api(`/api/admin/sales/${account.id}/team`, {
           method: 'POST', body: { action, contact_id: contactId || null, seats: Number(seats), value_usd: action === 'paid' ? Number(value) : undefined },
-        }))}>{s.busy ? 'Working…' : action === 'pilot' ? 'Start the pilot' : 'Record payment and start access'}</Primary>
+        }))}>{s.busy ? 'Working…' : 'Record payment and start access'}</Primary>
       </div>
     </Modal>
   )

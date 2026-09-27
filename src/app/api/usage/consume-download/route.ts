@@ -1,14 +1,15 @@
 /**
  * POST /api/usage/consume-download
  *
- * Once-off model: no trial, no download cap. This route now only does two
- * things - (1) confirm the caller has an active plan, (2) log a
- * download_events row (still powers the shared team dashboard: who pulled
- * what, where, CRS/format). The old trial-counter/cap-email logic is gone.
+ * No download cap. This route does two things: (1) confirm the caller may
+ * download this dataset (paid plan, or one of their free-plan picks), and
+ * (2) log a download_events row (powers the shared team dashboard: who
+ * pulled what, where, CRS/format). The real gate is the dataset route that
+ * signs the file URL; this is the second check and the log.
  *
- * Behaviour by user state:
- *   paid (individual / team)  -> records event, returns ok=true
- *   free / anonymous          -> ok=false, reason="no_access"
+ * Behaviour:
+ *   paid, or a free pick      -> records event, returns ok=true
+ *   anything else / anonymous -> ok=false, reason="no_access"
  *
  * Body (optional, for analytics):
  *   { dataset: string, country: string }
@@ -16,7 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { getUserState } from '@/lib/pricing'
+import { accessFor, canDownload } from '@/lib/entitlements'
 import { datasetMeta } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
@@ -56,9 +57,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: 'no_access' }, { status: 403 })
   }
 
-  const state = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
+  const access = await accessFor(service, user.id)
 
-  if (state === 'free') {
+  if (!canDownload(access, dataset)) {
     return NextResponse.json(
       { ok: false, reason: 'no_access' },
       { status: 403 },
@@ -102,5 +103,5 @@ export async function POST(req: NextRequest) {
 
   await recordEvent()
 
-  return NextResponse.json({ ok: true, paid: true })
+  return NextResponse.json({ ok: true, paid: access.paid })
 }

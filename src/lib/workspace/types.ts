@@ -169,6 +169,7 @@ export interface CatalogDataset {
   raster:   boolean
   source?:      string   // original publisher / product, e.g. "HydroSHEDS HydroRIVERS v1.0"
   description?: string   // what Lenga did to it
+  locked?:      boolean  // a free team cannot use this dataset (not one of its 3)
 }
 
 export interface CatalogFile {

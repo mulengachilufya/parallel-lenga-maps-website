@@ -31,7 +31,7 @@ import {
   Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
 import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
-import { TEAM_PACKAGES, type TeamPackage } from '@/lib/pricing'
+import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES, type TeamPackage } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -364,6 +364,19 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
         <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
           <PackageCard pkg={TEAM_PACKAGES[0]} palette={PALETTE_CREAM} onQuote={onQuote} />
           <PackageCard pkg={TEAM_PACKAGES[1]} palette={PALETTE_NAVY} onQuote={onQuote} featured />
+        </div>
+
+        <div className="mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-6 py-5">
+          <div>
+            <p className="font-bold text-gray-900">Try it free with your team</p>
+            <p className="text-sm text-gray-600 mt-1">
+              A free team gets the full project workspace for {FREE_TEAM_SEATS} people and {FREE_DATASET_LIMIT} datasets you choose, with no end date.
+              Upgrade whenever you need more seats or every dataset; your projects carry over.
+            </p>
+          </div>
+          <Link href="/team?start=free" className="shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold text-white" style={{ background: NAVY }}>
+            Start a free team
+          </Link>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-7">

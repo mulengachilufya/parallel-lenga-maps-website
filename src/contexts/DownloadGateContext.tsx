@@ -6,24 +6,24 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
-  getUserState, PLANS, PLAN_ORDER as TIERS, planCtaHref,
-  type UserState, type TierSlug, type DatasetSlug,
+  FREE_DATASET_LIMIT, PLANS, PLAN_ORDER as TIERS, planCtaHref,
+  type UserState, type DatasetSlug,
 } from '@/lib/pricing'
+import { DATASET_META } from '@/lib/teams'
+import type { Access } from '@/lib/entitlements'
 import Link from 'next/link'
 import { track } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────
 //
-// Once-off model: no trial, no per-dataset tier ladder. A profile either
-// has an active plan (individual or team) — full catalogue, no cap — or
-// it doesn't. `checkAccess` no longer needs the dataset slug to decide;
-// it's kept as a parameter so call sites throughout the app don't all
-// need to change in the same pass.
+// A paid plan (individual or team) opens every dataset. A free account
+// opens the 3 datasets it picked, plus its free team's 3. The server
+// decides (GET /api/account/access); this context only mirrors it so the
+// buttons know whether to download or explain.
 
 interface GateUser {
-  plan:            TierSlug | null
-  planStatus:      string
-  userState:       UserState
+  userState: UserState
+  access:    Access
 }
 
 interface ModalState {
@@ -98,25 +98,10 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       const session = sessionRes?.data.session ?? null
       if (!session) { setUser(null); return }
 
-      const profileRes = await withTimeout(
-        supabase
-          .from('profiles')
-          .select('plan, plan_status, plan_expires_at')
-          .eq('id', session.user.id)
-          .single(),
-        6_000,
-      )
-      const profile = profileRes?.data ?? null
-
-      if (!profile) { setUser(null); return }
-
-      const userState = getUserState(profile.plan, profile.plan_status, profile.plan_expires_at)
-
-      setUser({
-        plan:       profile.plan as TierSlug | null,
-        planStatus: profile.plan_status,
-        userState,
-      })
+      const res = await withTimeout(fetch('/api/account/access', { cache: 'no-store' }), 8_000)
+      if (!res || !res.ok) { setUser(null); return }
+      const access = await res.json() as Access
+      setUser({ userState: access.state, access })
     } catch (err) {
       console.error('[gate] load failed:', err)
       setUser(null)
@@ -165,12 +150,9 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
     }
   }, [load])
 
-  // slug kept in the signature so existing call sites (buttons, dataset
-  // lists) don't all need updating in this pass — it's simply unused now.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function checkAccess(_slug: DatasetSlug): boolean {
+  function checkAccess(slug: DatasetSlug): boolean {
     if (!user) return false
-    return user.userState !== 'free'
+    return user.access.paid || user.access.datasets.includes(slug)
   }
 
   function openGate(slug: DatasetSlug) {
@@ -216,6 +198,8 @@ export default function DownloadGateProvider({ children }: { children: React.Rea
       )}
       {modal.open && modal.kind === 'paywall' && (
         <PaywallModal
+          user={user}
+          slug={modal.datasetSlug}
           onClose={() => setModal({ open: false, kind: 'paywall', datasetSlug: null })}
         />
       )}
@@ -263,10 +247,78 @@ function UnavailableModal({ onClose }: { onClose: () => void }) {
 
 // ─── Paywall modal ────────────────────────────────────────────
 
-function PaywallModal({ onClose }: { onClose: () => void }) {
+const datasetName = (slug: string) => DATASET_META[slug as DatasetSlug]?.name ?? slug
+
+/**
+ * The free-plan part of the paywall: pick this dataset as one of your 3,
+ * or see which 3 you already have. Signed-out visitors are sent to sign up.
+ */
+function FreePick({ user, slug }: { user: GateUser | null; slug: DatasetSlug | null }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [confirming, setConfirming] = useState(false)
+  if (!slug) return null
+  const name = datasetName(slug)
+
+  if (!user) {
+    return (
+      <div className="bg-[#112236] border border-[#F5B800]/40 rounded-xl p-4 mb-5">
+        <p className="text-white text-sm font-semibold">Free: choose {FREE_DATASET_LIMIT} datasets and keep them</p>
+        <p className="text-blue-300 text-xs mt-1">Create a free account, pick {name} and two more, and download them for every country.</p>
+        <Link href="/signup" className="mt-3 inline-block bg-[#F5B800] text-[#0D2B45] text-xs font-bold px-4 py-2 rounded-lg">Sign up free</Link>
+      </div>
+    )
+  }
+  const { personal } = user.access
+  const picks = personal.picks
+  if (personal.left <= 0) {
+    return (
+      <div className="bg-[#112236] border border-blue-900/60 rounded-xl p-4 mb-5">
+        <p className="text-white text-sm font-semibold">You have used your {FREE_DATASET_LIMIT} free datasets</p>
+        <p className="text-blue-300 text-xs mt-1">Your free datasets: {picks.map(datasetName).join(', ')}. They stay yours. Upgrade to add {name} and everything else.</p>
+      </div>
+    )
+  }
+  async function pick() {
+    setBusy(true); setErr('')
+    try {
+      const res = await fetch('/api/account/free-datasets', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datasets: [slug] }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j.message || 'Could not save your choice')
+      track('free_pick', { dataset: slug })
+      window.location.reload()
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save your choice'); setBusy(false) }
+  }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-2xl w-full p-8 shadow-2xl">
+    <div className="bg-[#112236] border border-[#F5B800]/50 rounded-xl p-4 mb-5">
+      <p className="text-white text-sm font-semibold">Or make {name} one of your {FREE_DATASET_LIMIT} free datasets</p>
+      <p className="text-blue-300 text-xs mt-1">
+        You have {personal.left} of {FREE_DATASET_LIMIT} left{picks.length ? ` (you already have ${picks.map(datasetName).join(', ')})` : ''}.
+        Once chosen, a free dataset is yours for every country, but it can&apos;t be swapped for another later.
+      </p>
+      {confirming ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button disabled={busy} onClick={() => void pick()} className="bg-[#F5B800] text-[#0D2B45] text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-60">
+            {busy ? 'Saving…' : `Yes, keep ${name} for good`}
+          </button>
+          <button onClick={() => setConfirming(false)} className="text-blue-300 text-xs">Not now</button>
+        </div>
+      ) : (
+        <button onClick={() => setConfirming(true)} className="mt-3 bg-[#F5B800] text-[#0D2B45] text-xs font-bold px-4 py-2 rounded-lg">
+          Choose {name} for free
+        </button>
+      )}
+      {err && <p className="text-red-300 text-xs mt-2">{err}</p>}
+    </div>
+  )
+}
+
+function PaywallModal({ onClose, user, slug }: { onClose: () => void; user: GateUser | null; slug: DatasetSlug | null }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 overflow-y-auto py-6">
+      <div className="bg-[#0D2B45] border border-blue-900/60 rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl">
 
         <div className="flex items-start justify-between mb-6">
           <div>
@@ -278,7 +330,9 @@ function PaywallModal({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-4 text-xl leading-none">✕</button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <FreePick user={user} slug={slug} />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           {TIERS.map((slug) => {
             const plan = PLANS[slug]
             return (
