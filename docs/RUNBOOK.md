@@ -150,3 +150,17 @@ only hold fingerprints, which can't be turned back into keys. Nobody can
 recover a lost key, not a developer and not Claude; you simply make new
 ones, and the old ones stop working. Keys can only be changed after
 signing in with an owner email, so a stolen key can't be used to lock you out.
+
+## 8. The sales pipeline (Admin → Sales)
+
+Every organisation you are going after lives here, from "On the radar" to "Acquired".
+
+- **Every morning:** open the **Today** tab. It lists what is due (emails, LinkedIn messages, calls), who replied and is waiting on you, and deals going quiet. The same list arrives by email at about 08:00 Lusaka time when something is due.
+- **Focus countries:** Settings → Focus countries. The lists, board and numbers start with these. Change them any time.
+- **Adding prospects:** "Add prospect" for one, "Import list" to paste many from a spreadsheet.
+- **Outreach:** on a prospect's page, press "Start 3 week sequence" next to a person. It plans an email, a LinkedIn connection, a follow-up email, a LinkedIn message, a call and a last email. Each one shows up on Today when it is due; press "Do it".
+- **Email** is sent from the founder address (mulenga@lengamaps.com). Replies land in your Gmail. When someone replies, press "They replied" on their page, and the sequence stops by itself.
+- **LinkedIn** can't be sent automatically (LinkedIn doesn't allow it). Press "Copy message", open their profile, paste, send, then press "I sent it".
+- **Pilots and payment:** "Start 14 day pilot" gives their team access straight away. "Payment received" starts their 3 months. Once two people have joined and there is a project, the deal moves to Acquired by itself.
+- **Opt-outs:** every email has a small "rather not hear from me" link. If someone uses it, emailing them is blocked and their page says so.
+- **If emails won't send:** the email key is `RESEND_SALES_API_KEY` in Vercel. If that isn't set, the manual-payments key is used, which already sends as mulenga@. Meanwhile use "Open in my email app" and send it from Gmail. It is still logged.

@@ -21,6 +21,7 @@ import { accessExpiry } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
+import { provisionOrg } from '@/lib/teams-admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,68 +79,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // The owner must already have an account: provisioning attaches a seat to
-  // an existing profile, it does not create logins.
-  const { data: profile } = await service
-    .from('profiles')
-    .select('id, email, full_name, org_id')
-    .ilike('email', ownerEmail)
-    .maybeSingle()
-  if (!profile) {
-    return NextResponse.json(
-      { error: 'owner_not_found', message: `No Lenga Maps account exists for ${ownerEmail}. Ask them to sign up first.` },
-      { status: 404 },
-    )
-  }
-  if (profile.org_id) {
-    return NextResponse.json(
-      { error: 'already_in_org', message: 'That account already belongs to an organization.' },
-      { status: 409 },
-    )
-  }
-
   // One paid period from today; `permanent: true` only for deals agreed
-  // before 3-month plans existed.
-  const expiresAt = body.permanent === true ? null : accessExpiry()
-
-  const { data: org, error: orgErr } = await service
-    .from('organizations')
-    .insert({
-      name,
-      sector:            typeof body.sector === 'string' ? body.sector.slice(0, 40) : null,
-      region:            typeof body.region === 'string' ? body.region.slice(0, 200) : null,
-      seat_count:        Math.round(seats),
-      contact_email:     ownerEmail,
-      monthly_price_usd: Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null,
-      notes:             typeof body.notes === 'string' ? body.notes.slice(0, 2000) : null,
-      access_expires_at: expiresAt,
-    })
-    .select('*')
-    .single()
-  if (orgErr || !org) {
-    console.error('[admin/orgs] create failed:', orgErr)
-    return NextResponse.json({ error: 'create_failed' }, { status: 500 })
-  }
-
-  const { error: memErr } = await service.from('organization_members').insert({
-    org_id:       org.id,
-    user_id:      profile.id,
-    role:         'owner',
-    member_name:  profile.full_name,
-    member_email: profile.email,
-    joined_at:    new Date().toISOString(),
+  // before 3-month plans existed. Renewal is PATCH { extend: true };
+  // org.status is the kill switch.
+  const result = await provisionOrg(service, {
+    name, ownerEmail, seats,
+    sector: typeof body.sector === 'string' ? body.sector : null,
+    region: typeof body.region === 'string' ? body.region : null,
+    price:  Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null,
+    notes:  typeof body.notes === 'string' ? body.notes : null,
+    expiresAt: body.permanent === true ? null : accessExpiry(),
   })
-  if (memErr) {
-    console.error('[admin/orgs] owner membership failed:', memErr)
-    await service.from('organizations').delete().eq('id', org.id) // don't leave a headless org
-    return NextResponse.json({ error: 'member_failed', message: memErr.message }, { status: 500 })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error, message: result.message }, { status: result.status })
   }
-
-  // Entitlement: members ride plan='team' and share the org's expiry.
-  // Renewal is PATCH { extend: true }; org.status is the kill switch.
-  await service.from('profiles')
-    .update({ plan: 'team', plan_status: 'active', plan_expires_at: expiresAt })
-    .eq('id', profile.id)
+  const org = result.org
 
   return NextResponse.json({ ok: true, org })
 }

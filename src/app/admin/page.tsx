@@ -83,16 +83,16 @@ export default function AdminPage() {
             </p>
           </Link>
 
-          <Link
-            href="/admin/quotes"
+<Link
+            href="/admin/sales"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
             <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center mb-4">
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#534AB7' }}>QTE</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#534AB7' }}>SAL</span>
             </div>
-            <h2 className="text-base font-bold text-navy mb-1">Team quotes</h2>
+            <h2 className="text-base font-bold text-navy mb-1">Sales pipeline</h2>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Quote requests for For Project Teams and Businesses: new → contacted → quoted → won → lost.
+              Every organisation you are going after, by country: outreach by email and LinkedIn, next steps, pilots, and website quote requests.
             </p>
           </Link>
 

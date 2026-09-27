@@ -18,10 +18,11 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, CreditCard, Users, LayoutGrid, Wrench } from 'lucide-react'
+import { ArrowLeft, CreditCard, Users, LayoutGrid, Wrench, Target } from 'lucide-react'
 
 const NAV = [
   { href: '/admin',          label: 'Overview', icon: LayoutGrid },
+  { href: '/admin/sales',    label: 'Sales',    icon: Target },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/users',    label: 'Users',    icon: Users },
   { href: '/ops',            label: 'Ops & fixes', icon: Wrench },

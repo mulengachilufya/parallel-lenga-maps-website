@@ -71,14 +71,38 @@ export async function POST(req: NextRequest) {
 
   const fields = { org_name, contact_name, email, sector, region, seats, datasets_interest, notes }
 
-  const { error } = await service.from('quote_requests').insert(fields)
-  if (error) {
+  const { data: quote, error } = await service.from('quote_requests').insert(fields).select('id').single()
+  if (error || !quote) {
     console.error('[quotes] insert failed:', error)
     return NextResponse.json(
       { error: 'server', message: 'Could not submit your request. Please email lengamaps@gmail.com.' },
       { status: 500 },
     )
   }
+
+  // Into the sales pipeline as an organisation that has already replied
+  // (they came to us). Best-effort: the quote row is the record either way.
+  try {
+    const now = new Date().toISOString()
+    const { data: acct } = await service.from('sales_accounts').insert({
+      name: org_name, sector: sector === 'gov' ? 'government' : sector, source: 'website_form', stage: 'replied',
+      seats_estimate: seats, quote_request_id: quote.id, stage_history: { replied: now }, last_touch_at: now,
+      notes: [region && `Region: ${region}`, datasets_interest && `Datasets: ${datasets_interest}`].filter(Boolean).join('\n') || null,
+    }).select('id').single()
+    if (acct) {
+      const { data: c } = await service.from('sales_contacts').insert({
+        account_id: acct.id, name: contact_name || email.split('@')[0], email: email.toLowerCase(), is_primary: true,
+      }).select('id').single()
+      await service.from('sales_activities').insert({
+        account_id: acct.id, contact_id: c?.id ?? null, kind: 'reply', direction: 'in',
+        subject: 'Quote request from the website', body: notes, created_by: 'website',
+      })
+      await service.from('sales_tasks').insert({
+        account_id: acct.id, contact_id: c?.id ?? null, kind: 'email', template: 'meeting',
+        title: 'Reply to the quote request and book a call', due_on: now.slice(0, 10),
+      })
+    }
+  } catch (e) { console.error('[quotes] pipeline copy failed:', e) }
 
   // Notifications are best-effort: the row is safely in the pipeline either
   // way and the admin view shows it. Never fail the submission over email.
