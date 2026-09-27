@@ -127,7 +127,7 @@ export default function WatershedsList({ userPlan = 'starter' }: WatershedsListP
                     : 'bg-teal-600 hover:bg-teal-700 text-white'
               }`}
             >
-              {!hasAccess ? '🔒 Upgrade to download' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
+              {!hasAccess ? '🔒 Unlock to download' : downloading === layer.id ? '✓ Downloading…' : <><Download size={13} />Download .gpkg</>}
             </button>
           </motion.div>
         ))}

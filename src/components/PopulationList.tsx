@@ -173,7 +173,7 @@ export default function PopulationList({ userPlan = 'starter' }: PopulationListP
                     Wait…
                   </>
                 ) : !hasFullAccess ? (
-                  <>🔒 Upgrade</>
+                  <>🔒 Unlock</>
                 ) : (
                   <>
                     <Download size={12} />

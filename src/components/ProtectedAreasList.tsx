@@ -180,7 +180,7 @@ export default function ProtectedAreasList({ userPlan = 'starter', hasFullAccess
                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
               >
                 {isPro ? (
-                  <>🔒 Upgrade to download</>
+                  <>🔒 Unlock to download</>
                 ) : isDownloading ? (
                   <>✓ Downloading…</>
                 ) : (

@@ -15,7 +15,7 @@ const navLinks = [
   { href: '/projects', label: 'For Teams' },
   { href: '/atlas', label: 'Atlas' },
   { href: '/datasets', label: 'Download GIS Data' },
-  { href: '/docs/api', label: 'API' },
+  { href: '/request-data', label: 'Request Data' },
   { href: '/contact-us', label: 'Contact Us' },
 ]
 
