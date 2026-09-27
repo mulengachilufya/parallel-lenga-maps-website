@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logEvent } from '@/lib/ops/log'
 import { createClient } from '@supabase/supabase-js'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
     }))
   } catch (err) {
     console.error('[ManualPayment] R2 upload failed:', err)
+    void logEvent('critical', 'payments', 'proof_failed', 'A customer tried to upload proof of payment but the file could not be stored.', { error: String(err), reference })
     return NextResponse.json({ error: 'Could not store screenshot. Try again.' }, { status: 500 })
   }
 
@@ -170,6 +172,7 @@ export async function POST(request: NextRequest) {
   })
   if (dbErr) {
     console.error('[ManualPayment] DB insert failed:', dbErr)
+    void logEvent('critical', 'payments', 'proof_failed', 'A proof of payment was uploaded but could not be recorded.', { error: dbErr.message, reference })
     return NextResponse.json({ error: 'Could not record submission.' }, { status: 500 })
   }
 

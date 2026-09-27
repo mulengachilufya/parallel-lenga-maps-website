@@ -12,6 +12,7 @@
  * Best-effort email: returns 200 with `emailed:false` if the send fails.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { logEvent } from '@/lib/ops/log'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
       'payments',
     )
     if (!adminEmailed) console.error('[bank-details] founder alert failed', { user: user.id, reference })
+    if (!emailed) void logEvent('critical', 'payments', 'bank_details_failed', `A customer asked for bank details (reference ${reference}) but the email to them failed.`, { reference, plan }, `payments:bank_details_failed:${reference}`)
   }
 
   return NextResponse.json({

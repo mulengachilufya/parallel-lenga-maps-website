@@ -20,6 +20,7 @@
 
 import { PLANS, type TierSlug } from './pricing'
 import { BANK_DETAILS } from './bank-details'
+import { logEvent } from './ops/log'
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lengamaps.com').replace(/\/$/, '')
 const LOGO_URL = `${APP_URL}/images/branding/logo.png`
@@ -78,6 +79,7 @@ export async function sendEmail(
   const { key, from } = channelConfig(channel)
   if (!key) {
     console.error(`[email] no Resend key for channel "${channel}", skipped send to`, msg.to)
+    void logEvent('warn', 'email', 'no_key', `The "${channel}" email channel has no Resend key, so an email was skipped.`, { channel }, `email:no_key:${channel}`)
     return false
   }
   try {
@@ -97,13 +99,17 @@ export async function sendEmail(
       }),
     })
     if (!res.ok) {
-      console.error('[email] resend error', { channel, status: res.status }, await res.text())
+      const body = await res.text()
+      console.error('[email] resend error', { channel, status: res.status }, body)
+      void logEvent(res.status === 401 || res.status === 403 ? 'critical' : 'error', 'email', 'send_failed',
+        `Resend refused an email on the "${channel}" channel (HTTP ${res.status}).`, { channel, status: res.status, reply: body.slice(0, 300), subject: msg.subject }, `email:send_failed:${channel}`)
       return false
     }
     console.log('[email] sent', { channel, to: msg.to })
     return true
   } catch (err) {
     console.error('[email] resend exception', { channel }, err)
+    void logEvent('error', 'email', 'send_failed', `Could not reach Resend to send an email on the "${channel}" channel.`, { channel, error: String(err) }, `email:send_failed:${channel}`)
     return false
   }
 }

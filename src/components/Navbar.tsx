@@ -93,7 +93,7 @@ export default function Navbar() {
   }
 
   // Hide on /admin and /workspace (both have their own title bar).
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/workspace')) return null
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/workspace') || pathname?.startsWith('/ops')) return null
 
   const isSignedIn = !!email
 

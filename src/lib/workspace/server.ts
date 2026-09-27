@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { logEvent } from '@/lib/ops/log'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
 import { atLeast, type ProjectRole, type WsProject, type WsRevision } from './types'
 
@@ -98,6 +99,7 @@ export async function commit(
   })
   if (error) {
     console.error('[workspace] commit failed', { projectId, action, error })
+    void logEvent('warn', 'workspace', 'commit_failed', `A change to a project (${action}) was saved but its history entry failed: ${error.message}`, { projectId, action })
     return null
   }
   const rev = data as WsRevision & { snapshot?: unknown }

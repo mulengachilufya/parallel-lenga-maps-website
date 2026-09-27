@@ -34,7 +34,7 @@ export default function LoadingScreen() {
   }, [])
 
   // The workspace is a working tool: no splash screen.
-  if (pathname?.startsWith('/workspace')) return null
+  if (pathname?.startsWith('/workspace') || pathname?.startsWith('/ops')) return null
 
   return (
     <AnimatePresence>
