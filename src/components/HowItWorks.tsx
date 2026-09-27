@@ -74,7 +74,7 @@ function Art({ kind }: { kind: typeof STEPS[number]['art'] }) {
       <svg viewBox="0 0 200 92" className={common} aria-hidden="true">
         <g transform="translate(12,14)">
           <rect width="84" height="64" rx="6" fill="#123049" stroke="#F5B800" strokeOpacity="0.7" />
-          <text x="8" y="18" fontSize="8" fontWeight="700" fill="#F5B800" fontFamily="Inter, sans-serif">LENGA DATABASE</text>
+          <text x="7" y="18" fontSize="7.2" fontWeight="700" fill="#F5B800" fontFamily="Inter, sans-serif">LENGA DATABASE</text>
           {[0, 1, 2].map((i) => <rect key={i} x="10" y={27 + i * 11} width={i === 2 ? 40 : 62} height="6" rx="3" fill="#F5B800" fillOpacity="0.35" />)}
         </g>
         <g transform="translate(106,14)">
