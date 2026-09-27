@@ -17,6 +17,7 @@ interface Props {
   onMove:      (id: string, dir: -1 | 1) => void
   onZoom:      (id: string) => void
   onTable:     (id: string) => void
+  phone?:      boolean   // phone view: look only (show/hide, zoom), no changes
   onEdit:      (id: string) => void
   onRemove:    (id: string) => void
   onAdd:       () => void
@@ -54,7 +55,7 @@ export default function LayerPanel(p: Props) {
       <div className="ws-panel-head">
         Layers <span className="muted" style={{ fontWeight: 'normal', letterSpacing: 0, textTransform: 'none' }}>({p.layers.length})</span>
         <span className="spacer" />
-        <button className="ws-btn" onClick={p.onAdd} title="Add a dataset to this map">Add data…</button>
+        {!p.phone && <button className="ws-btn" onClick={p.onAdd} title="Add a dataset to this map">Add data…</button>}
       </div>
       <div className="ws-panel-body ws-section" style={{ flex: '1 1 60%' }}>
         {p.layers.length === 0 ? (
@@ -78,20 +79,22 @@ export default function LayerPanel(p: Props) {
               const line = statusLine(l, st)
               return (
                 <li key={l.id} className={p.selected === l.id ? 'sel' : ''} onClick={() => p.onSelect(l.id)}
-                    onDoubleClick={() => p.onEdit(l.id)}>
+                    onDoubleClick={() => { if (!p.phone) p.onEdit(l.id) }}>
                   <input type="checkbox" checked={!p.hidden.has(l.id)} title="Show / hide (only for you)"
                          onClick={(e) => e.stopPropagation()} onChange={() => p.onToggle(l.id)} />
                   <Swatch layer={l} status={st} />
                   <span className="name" title={l.label}>{l.label}</span>
                   <span className="acts" onClick={(e) => e.stopPropagation()}>
                     <button className="ws-icon-btn" title="Zoom to layer" onClick={() => p.onZoom(l.id)}><Crosshair size={11} /></button>
-                    {st?.loaded?.kind === 'vector' && (
+                    {!p.phone && st?.loaded?.kind === 'vector' && (
                       <button className="ws-icon-btn" title="Open attribute table" onClick={() => p.onTable(l.id)}><Table2 size={11} /></button>
                     )}
+                    {!p.phone && <>
                     <button className="ws-icon-btn" title="Move up" disabled={i === 0} onClick={() => p.onMove(l.id, -1)}><ArrowUp size={11} /></button>
                     <button className="ws-icon-btn" title="Move down" disabled={i === p.layers.length - 1} onClick={() => p.onMove(l.id, 1)}><ArrowDown size={11} /></button>
                     <button className="ws-icon-btn" title="Properties…" onClick={() => p.onEdit(l.id)}><Settings2 size={11} /></button>
                     <button className="ws-icon-btn" title="Remove from project" onClick={() => p.onRemove(l.id)}><X size={11} /></button>
+                    </>}
                   </span>
                   <span className={`meta${line.err ? ' err' : ''}`}>{line.text}</span>
                 </li>
@@ -112,17 +115,17 @@ export default function LayerPanel(p: Props) {
               <li key={b.id}>
                 <a href="#" className="grow" onClick={(e) => { e.preventDefault(); p.onGoto(b) }} title={`Saved by ${b.created_by_name ?? 'a teammate'}`}>{b.name}</a>
                 <span className="mono muted small">z{b.zoom.toFixed(1)}</span>
-                <button className="ws-icon-btn" title="Delete view" onClick={() => p.onDropView(b)}><X size={11} /></button>
+                {!p.phone && <button className="ws-icon-btn" title="Delete view" onClick={() => p.onDropView(b)}><X size={11} /></button>}
               </li>
             ))}
           </ul>
         )}
-        <form style={{ display: 'flex', gap: 4, padding: '7px 8px' }}
+        {!p.phone && <form style={{ display: 'flex', gap: 4, padding: '7px 8px' }}
               onSubmit={(e) => { e.preventDefault(); if (viewName.trim()) { p.onSaveView(viewName.trim()); setViewName('') } }}>
           <input className="ws-input" style={{ flex: 1, minWidth: 0 }} placeholder="Name this view" value={viewName}
                  onChange={(e) => setViewName(e.target.value)} maxLength={120} />
           <button className="ws-btn" type="submit" disabled={!viewName.trim()}>Save</button>
-        </form>
+        </form>}
       </div>
     </>
   )

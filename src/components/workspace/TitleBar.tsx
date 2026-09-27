@@ -21,8 +21,8 @@ export default function TitleBar({ crumbs, right }: { crumbs: { label: string; h
       <Link href="/workspace/messages" className="small ws-inbox-link" style={{ marginLeft: 10 }} title={unread ? `${unread} unread` : 'Messages'}>
         Messages{unread > 0 && <span className="badge">{unread > 99 ? '99+' : unread}</span>}
       </Link>
-      <Link href="/dashboard" className="small">Dashboard</Link>
-      <Link href="/team" className="small">Team</Link>
+      <Link href="/dashboard" className="small hide-phone">Dashboard</Link>
+      <Link href="/team" className="small hide-phone">Team</Link>
     </div>
   )
 }

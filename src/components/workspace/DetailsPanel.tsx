@@ -15,18 +15,19 @@ interface Props {
   onSetRole: (userId: string, role: ProjectRole | null) => Promise<void>
   onDuplicate?: () => void
   onArchive: () => void
+  locked?:   boolean   // phone view: read only
 }
 
 const HEAD: React.CSSProperties = { fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '.07em', fontSize: 10 }
 
-export default function DetailsPanel({ project, members, online, me, onSave, onSetRole, onDuplicate, onArchive }: Props) {
+export default function DetailsPanel({ project, members, online, me, onSave, onSetRole, onDuplicate, onArchive, locked }: Props) {
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [accessMsg, setAccessMsg] = useState('')
   useEffect(() => { setName(project.name); setDescription(project.description) }, [project.name, project.description])
-  const manager = me.project_role === 'manager'
+  const manager = me.project_role === 'manager' && !locked
   const dirty = name.trim() !== project.name || description.trim() !== project.description
   const visibility = project.visibility ?? 'team'
   const defaultRole = project.default_role ?? 'editor'
