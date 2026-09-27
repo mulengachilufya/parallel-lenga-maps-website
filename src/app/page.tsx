@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import HowItWorks from '@/components/HowItWorks'
 import { ArrowRight, Download, Pickaxe, Globe2, Briefcase, Landmark, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
@@ -206,7 +207,7 @@ export default function HomePage() {
   return (
     <>
       {/* ── HERO ─────────────────────────────────────────── */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[82vh] flex items-center overflow-hidden">
         <motion.div style={{ y: bgY }} className="absolute inset-0 z-0">
           <Image
             src={heroImage}
@@ -219,13 +220,13 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a121c]/80 via-[#0a121c]/40 to-[#0a121c]/10" />
         </motion.div>
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-24">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-12 pt-24 pb-10">
           <motion.div style={{ y: textY }} className="max-w-[680px]">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex items-center gap-3.5 mb-7"
+              className="flex items-center gap-3.5 mb-4"
             >
               <span className="font-display text-[0.78rem] font-bold tracking-[0.18em] text-gold uppercase">
                 Geospatial Intelligence
@@ -236,7 +237,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="font-display text-[clamp(2.8rem,6vw,4.6rem)] font-bold leading-[1.08] text-white tracking-tight mb-7"
+              className="font-display text-[clamp(2.2rem,4.4vw,3.5rem)] font-bold leading-[1.08] text-white tracking-tight mb-5"
             >
               Unmasking{' '}
               <span className="text-gold">Africa</span> with
@@ -252,11 +253,12 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="text-[1.3rem] leading-[1.55] text-white/90 font-medium max-w-[620px] mb-12"
+              className="text-[1.08rem] leading-[1.6] text-white/90 font-medium max-w-[620px] mb-8"
             >
               Building Africa&apos;s largest and most centralized environmental GIS
-              database. We fuse satellite grade observation with the lived African
-              context to solve real geospatial challenges.
+              database, and a shared workspace where your team maps, discusses and
+              delivers projects together. We fuse satellite grade observation with the
+              lived African context to solve real geospatial challenges.
             </motion.p>
 
             <motion.div
@@ -267,17 +269,23 @@ export default function HomePage() {
             >
               <Link
                 href="/datasets"
-                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.92rem] font-bold px-7 py-3.5 hover:bg-gold-light transition-all hover:-translate-y-0.5"
               >
                 <Download size={18} />
                 Download GIS Data
               </Link>
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.95rem] font-semibold px-8 py-4 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.92rem] font-semibold px-7 py-3.5 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
               >
                 Get Started
               </Link>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center gap-2 text-white text-[0.92rem] font-semibold px-2 py-3.5 underline underline-offset-4 decoration-gold/70 hover:decoration-gold"
+              >
+                See how the workspace works <ArrowRight size={16} />
+              </a>
             </motion.div>
           </motion.div>
         </div>
@@ -348,6 +356,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── HOW THE WORKSPACE WORKS ───────────────────────── */}
+      <HowItWorks />
 
       {/* ── GIS DATABASE SHOWCASE ─────────────────────────── */}
       <section className="py-20 lg:py-28 bg-dark-light border-t border-white/[0.06]">
