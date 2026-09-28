@@ -20,7 +20,7 @@ export default function ImageMosaic() {
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-[#07121d]/55" />
+      <div className="absolute inset-0 bg-[#07121d]/75" />
     </div>
   )
 }

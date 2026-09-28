@@ -84,30 +84,30 @@ export default function SignupPage() {
   }
 
   const inputClass =
-    'w-full bg-[#0D2B45]/75 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm'
+    'w-full bg-[#0D2B45]/75 border border-white/10 rounded-xl px-4 py-2 sm:py-2.5 text-white placeholder-blue-300/60 focus:outline-none focus:border-[#F5B800]/70 text-base'
 
   return (
-    <main className="relative isolate min-h-screen flex items-center justify-center px-4 py-10">
+    <main className="relative isolate min-h-screen flex items-start sm:items-center justify-center px-4 pt-[76px] pb-4 sm:pt-[88px] sm:pb-4">
       <ImageMosaic />
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md sm:max-w-2xl">
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-3 sm:mb-5">
           <Link href="/">
-            <img src="/images/branding/logo.png" alt="Lenga Maps" className="h-10 mx-auto mb-4" />
+            <img src="/images/branding/logo.png" alt="Lenga Maps" className="hidden" />
           </Link>
-          <h1 className="text-2xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">Create your account</h1>
-          <p className="text-blue-100 text-sm mt-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
+          <h1 className="text-[26px] sm:text-4xl font-extrabold tracking-tight text-white [text-shadow:0_2px_14px_rgba(0,0,0,0.9)]">Create your account</h1>
+          <p className="text-white text-sm sm:text-[17px] font-medium mt-1 sm:mt-2 [text-shadow:0_1px_10px_rgba(0,0,0,0.95)]">
             Free to start: pick 3 datasets, or join your team&apos;s shared GIS workspace.
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-[#0b1a2a]/70 backdrop-blur-xl border border-white/15 rounded-2xl p-8 space-y-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/5"
+          className="bg-[#0b1a2a]/70 backdrop-blur-xl border border-white/15 rounded-2xl p-4 sm:p-7 space-y-3 sm:space-y-4 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/5"
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-blue-300 mb-2">First name</label>
+              <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">First name</label>
               <input
                 type="text"
                 required
@@ -118,7 +118,7 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-blue-300 mb-2">Surname</label>
+              <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">Surname</label>
               <input
                 type="text"
                 required
@@ -130,18 +130,19 @@ export default function SignupPage() {
             </div>
           </div>
 
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm text-blue-300 mb-2">Country</label>
+            <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">Country</label>
             <CountrySelect value={country} onChange={setCountry} />
           </div>
 
           <div>
-            <label className="block text-sm text-blue-300 mb-2">Which best describes you?</label>
+            <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">Which best describes you?</label>
             <select
               required
               value={sector}
               onChange={(e) => setSector(e.target.value)}
-              className={`${inputClass} ${sector ? 'text-white' : 'text-blue-700'}`}
+              className={`${inputClass} ${sector ? 'text-white' : 'text-blue-300/60'}`}
             >
               <option value="" disabled>Select one…</option>
               {SECTORS.map((s) => (
@@ -151,9 +152,11 @@ export default function SignupPage() {
               ))}
             </select>
           </div>
+          </div>
 
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm text-blue-300 mb-2">Email Address</label>
+            <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">Email Address</label>
             <input
               type="email"
               required
@@ -167,7 +170,7 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-blue-300 mb-2">Password</label>
+            <label className="block text-sm sm:text-[15px] font-medium text-blue-100 mb-1 sm:mb-1.5">Password</label>
             <input
               type="password"
               required
@@ -177,6 +180,7 @@ export default function SignupPage() {
               placeholder="Minimum 8 characters"
               className={inputClass}
             />
+          </div>
           </div>
 
           {error && (
@@ -188,29 +192,21 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#F5B800] hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed text-[#0D2B45] font-bold py-3 rounded-xl transition-colors"
+            className="sticky bottom-3 z-10 sm:static w-full bg-[#F5B800] hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed text-[#0D2B45] text-base font-bold py-3 sm:py-3.5 rounded-xl transition-colors shadow-[0_10px_30px_-8px_rgba(0,0,0,0.8)] sm:shadow-none"
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
-          <p className="text-center text-blue-200/80 text-xs">
+          <p className="text-center text-blue-100/85 text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-300 hover:text-white underline">
-              Log in
-            </Link>
+            <Link href="/login" className="text-[#F5B800] font-semibold hover:underline">Log in</Link>
+            <span className="block sm:inline text-xs text-blue-200/70 mt-1 sm:mt-0 sm:ml-2">
+              By signing up you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-white">Terms</Link> and{' '}
+              <Link href="/privacy" className="underline hover:text-white">Privacy Policy</Link>.
+            </span>
           </p>
         </form>
-
-        <p className="text-center text-blue-100/80 text-xs mt-4 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
-          By signing up you agree to our{' '}
-          <Link href="/terms" className="underline hover:text-blue-400">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="/privacy" className="underline hover:text-blue-400">
-            Privacy Policy
-          </Link>.
-        </p>
 
       </div>
     </main>
