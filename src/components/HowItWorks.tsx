@@ -6,8 +6,8 @@
  * with a small drawing of what you actually see, joined by arrows:
  *   Lenga's African GIS database → your own files (kept apart) → one shared
  *   map for the team → back out to your desktop GIS.
- * Then the desktop tools whose data works here (official logos from the
- * CC0 Simple Icons set in /public/images/tools; a name badge where no
+ * Then the desktop tools whose data works here (official logos in their brand colours from the
+ * CC0 Simple Icons set (AutoCAD from Skill Icons) in /public/images/tools; a name badge where no
  * official icon is available).
  */
 
@@ -159,11 +159,11 @@ export default function HowItWorks() {
           <ul className="mt-5 grid grid-cols-3 sm:grid-cols-6 gap-4">
             {TOOLS.map((t) => (
               <li key={t.name} className="flex flex-col items-center gap-2 text-center">
-                <span className="w-12 h-12 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                <span className="w-12 h-12 rounded-xl bg-white shadow-[0_6px_16px_-8px_rgba(0,0,0,0.6)] flex items-center justify-center">
                   {t.icon
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={t.icon} alt="" width={26} height={26} />
-                    : <span className="text-[10px] font-bold leading-tight text-white/85 px-1">GLOBAL<br />MAPPER</span>}
+                    ? <img src={t.icon} alt="" width={28} height={28} />
+                    : <span className="text-[10px] font-extrabold leading-tight text-[#0b5394] px-1">GLOBAL<br />MAPPER</span>}
                 </span>
                 <span className="text-xs text-white/70">{t.name}</span>
               </li>
