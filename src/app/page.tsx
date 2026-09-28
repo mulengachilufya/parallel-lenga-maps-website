@@ -117,7 +117,7 @@ function InlineSignup() {
   return (
     <form onSubmit={handleSignup} className="space-y-4">
       {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 text-sm">
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 text-sm rounded-xl">
           <AlertCircle size={16} />
           {error}
         </div>
@@ -131,7 +131,7 @@ function InlineSignup() {
           onChange={(e) => setName(e.target.value)}
           required
           placeholder="Full name"
-          className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-gold/50 transition"
+          className="w-full pl-11 pr-4 py-3.5 water-field text-white placeholder-white/30 focus:outline-none transition"
         />
       </div>
 
@@ -143,7 +143,7 @@ function InlineSignup() {
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="Email address"
-          className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-gold/50 transition"
+          className="w-full pl-11 pr-4 py-3.5 water-field text-white placeholder-white/30 focus:outline-none transition"
         />
       </div>
 
@@ -155,7 +155,7 @@ function InlineSignup() {
           onChange={(e) => setPassword(e.target.value)}
           required
           placeholder="Password (min. 8 characters)"
-          className="w-full pl-11 pr-12 py-3.5 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-gold/50 transition"
+          className="w-full pl-11 pr-12 py-3.5 water-field text-white placeholder-white/30 focus:outline-none transition"
         />
         <button
           type="button"
@@ -169,7 +169,7 @@ function InlineSignup() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-gold text-[#1a1200] font-bold py-4 hover:bg-gold-light transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full bg-gold text-[#1a1200] font-bold py-4 rounded-xl hover:bg-gold-light transition-all disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -269,14 +269,14 @@ export default function HomePage() {
             >
               <Link
                 href="/datasets"
-                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.92rem] font-bold px-7 py-3.5 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.92rem] font-bold px-7 py-3.5 rounded-xl hover:bg-gold-light transition-all hover:-translate-y-0.5"
               >
                 <Download size={18} />
                 Download GIS Data
               </Link>
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.92rem] font-semibold px-7 py-3.5 border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-white/[0.12] text-white text-[0.92rem] font-semibold px-7 py-3.5 rounded-xl backdrop-blur-sm border-[1.5px] border-white/[0.35] hover:bg-white/20 hover:border-white/60 transition-all hover:-translate-y-0.5"
               >
                 Get Started
               </Link>
@@ -418,7 +418,7 @@ export default function HomePage() {
           <div className="text-center mt-14">
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 bg-gold text-[#1a1200] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 bg-gold text-[#1a1200] font-bold px-8 py-4 rounded-xl hover:bg-gold-light transition-all hover:-translate-y-0.5"
             >
               View All Datasets & Pricing
               <ArrowRight size={18} />
@@ -472,7 +472,7 @@ export default function HomePage() {
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="bg-white/[0.03] border border-white/[0.08] p-8 lg:p-10"
+              className="water-card p-8 lg:p-10"
             >
               <h3 className="text-xl font-bold text-white mb-6">Create Account</h3>
               <InlineSignup />
@@ -511,9 +511,9 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group bg-white/[0.03] border border-white/[0.08] p-8 hover:border-gold/30 transition-all duration-300"
+                className="group water-card is-interactive p-8"
               >
-                <div className="w-14 h-14 bg-gold/10 flex items-center justify-center text-gold mb-5 group-hover:bg-gold/20 transition-colors">
+                <div className="w-14 h-14 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center text-gold mb-5 group-hover:bg-gold/20 transition-colors">
                   {customer.icon}
                 </div>
                 <h3 className="text-lg font-bold text-white mb-3">{customer.title}</h3>
@@ -525,7 +525,7 @@ export default function HomePage() {
           <div className="text-center mt-14">
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 text-gold text-[0.92rem] font-bold px-6 py-3.5 border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 text-gold text-[0.92rem] font-bold px-6 py-3.5 rounded-xl border-[1.5px] border-gold hover:bg-gold hover:text-[#1a1200] transition-all uppercase tracking-[0.04em] hover:-translate-y-0.5"
             >
               See Plans &amp; Pricing
               <ArrowRight size={16} />
@@ -565,7 +565,7 @@ export default function HomePage() {
                 {' '}with the subject line:
               </p>
 
-              <div className="font-display text-[0.82rem] font-bold tracking-[0.12em] text-gold bg-gold/10 border-l-[3px] border-gold px-[18px] py-3.5 uppercase mb-5">
+              <div className="font-display text-[0.82rem] font-bold tracking-[0.12em] text-gold bg-gold/10 border border-gold/25 border-l-[3px] border-l-gold rounded-r-xl px-[18px] py-3.5 uppercase mb-5">
                 Strategic Partnership Proposal with Lenga Maps
               </div>
 
@@ -575,7 +575,7 @@ export default function HomePage() {
 
               <a
                 href="mailto:lengamaps@gmail.com?subject=STRATEGIC%20PARTNERSHIP%20PROPOSAL%20WITH%20LENGA%20MAPS"
-                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 hover:bg-gold-light transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.95rem] font-bold px-8 py-4 rounded-xl hover:bg-gold-light transition-all hover:-translate-y-0.5"
               >
                 Send Partnership Proposal
               </a>
@@ -592,7 +592,7 @@ export default function HomePage() {
                 alt="Satellite remote sensing"
                 width={600}
                 height={460}
-                className="w-full h-[460px] object-cover brightness-90 saturate-[1.05]"
+                className="w-full h-[460px] rounded-2xl border border-white/10 object-cover brightness-90 saturate-[1.05]"
                 unoptimized
               />
             </motion.div>
@@ -642,7 +642,7 @@ export default function HomePage() {
                 { label: 'WhatsApp', value: '+260 965 699 359', href: 'https://wa.me/260965699359', color: '#16a34a' },
                 { label: 'Location', value: 'Lusaka, Zambia', href: null, color: '#b45309' },
               ].map((item) => (
-                <div key={item.label} className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 rounded-xl">
+                <div key={item.label} className="flex items-center gap-4 p-5 water-card">
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                   <div>
                     <p className="text-[0.72rem] text-white/40 uppercase tracking-wider mb-0.5">{item.label}</p>

@@ -54,7 +54,7 @@ export default function HomeContactForm() {
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold/50 transition-colors"
+            className="w-full water-field text-white placeholder:text-white/30 px-4 py-3 text-sm focus:outline-none transition-colors"
           />
         </div>
         <div>
@@ -64,7 +64,7 @@ export default function HomeContactForm() {
             required
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold/50 transition-colors"
+            className="w-full water-field text-white placeholder:text-white/30 px-4 py-3 text-sm focus:outline-none transition-colors"
           />
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function HomeContactForm() {
         placeholder="Subject"
         value={form.subject}
         onChange={(e) => setForm({ ...form, subject: e.target.value })}
-        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold/50 transition-colors"
+        className="w-full water-field text-white placeholder:text-white/30 px-4 py-3 text-sm focus:outline-none transition-colors"
       />
       <textarea
         placeholder="Tell us how we can help..."
@@ -81,12 +81,12 @@ export default function HomeContactForm() {
         rows={5}
         value={form.message}
         onChange={(e) => setForm({ ...form, message: e.target.value })}
-        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gold/50 transition-colors resize-none"
+        className="w-full water-field text-white placeholder:text-white/30 px-4 py-3 text-sm focus:outline-none transition-colors resize-none"
       />
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-gold text-[#1a1200] font-bold py-3.5 rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 bg-gold text-[#1a1200] font-bold py-3.5 rounded-xl hover:bg-yellow-400 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? 'Sending...' : (
           <>

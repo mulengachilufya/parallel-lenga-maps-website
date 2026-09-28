@@ -134,7 +134,7 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12 }}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                className="flex-1 water-card p-5"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-9 h-9 rounded-full bg-gold text-[#1a1200] font-bold flex items-center justify-center text-sm">{i + 1}</span>
@@ -153,7 +153,7 @@ export default function HowItWorks() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+        <div className="mt-12 water-card p-5 sm:p-6">
           <p className="text-sm font-semibold text-white">Data from your desktop GIS works here</p>
           <p className="mt-1 text-xs text-white/55">Shapefile, GeoPackage, GeoJSON, KML/KMZ, GPX, GeoTIFF, and QGIS projects (.qgz / .qgs).</p>
           <ul className="mt-5 grid grid-cols-3 sm:grid-cols-6 gap-4">
@@ -173,7 +173,7 @@ export default function HowItWorks() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center gap-4">
-          <Link href="/team?start=free" className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.92rem] font-bold px-7 py-3.5 hover:bg-gold-light transition-all">
+          <Link href="/team?start=free" className="inline-flex items-center gap-2 bg-gold text-[#1a1200] text-[0.92rem] font-bold px-7 py-3.5 rounded-xl hover:bg-gold-light transition-all">
             Start a free team <ArrowRight size={16} />
           </Link>
           <span className="text-sm text-white/55">Free for 2 people with 3 datasets. Upgrade when your team grows.</span>
