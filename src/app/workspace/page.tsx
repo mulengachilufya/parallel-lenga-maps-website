@@ -82,6 +82,12 @@ export default function WorkspaceIndex() {
               Shared maps for {data.org.name}. Everyone on the team sees the same layers, the same
               saved views and the same discussion, and every change is kept in the project&apos;s history.
             </p>
+            <div className="ws-steps" aria-label="How the workspace works">
+              <div><b><i>1</i>Start a project</b>Name it after the job, e.g. a catchment study or a licence area.</div>
+              <div><b><i>2</i>Put data on the map</b>Add Lenga datasets for any country, or upload your own files.</div>
+              <div><b><i>3</i>Work on it together</b>Comment on places, leave voice notes, see who changed what.</div>
+              <div><b><i>4</i>Take it home</b>Export a QGIS project for QGIS or ArcGIS Pro.</div>
+            </div>
             {data.org.plan === 'free' && (
               <p className="ws-note">
                 <b>Free team:</b> 2 seats and 3 datasets

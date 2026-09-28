@@ -18,6 +18,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Tour, { tourSeen, type TourStep } from '@/components/workspace/Tour'
 import MapView, { type LayerStatus, type MapViewHandle, type ViewInfo } from '@/components/workspace/MapView'
 import LayerPanel from '@/components/workspace/LayerPanel'
 import DiscussionPanel from '@/components/workspace/DiscussionPanel'
@@ -91,6 +92,7 @@ function Workstation() {
   const [pickMode, setPickMode] = useState<'pin' | 'place' | null>(null)
   const picking = pickMode !== null
   const [floating, setFloating] = useState<'add' | 'import' | null>(null)
+  const [tourOn, setTourOn] = useState(false)
   const [places, setPlaces] = useState<WsPlace[]>([])
   const [previewFiles, setPreviewFiles] = useState<CatalogFile[]>([])
   const [exporting, setExporting] = useState('')
@@ -241,6 +243,12 @@ function Workstation() {
   const canEdit = atLeast(myRole, 'editor') && !phone
   const canManage = atLeast(myRole, 'manager') && !phone
   const readOnly = !!preview || !canEdit
+
+  // First visit on a computer: offer the tour once the map is on screen.
+  const hasBundle = !!bundle
+  useEffect(() => {
+    if (!phone && hasBundle && !tourSeen(TOUR_KEY)) { const t = setTimeout(() => setTourOn(true), 900); return () => clearTimeout(t) }
+  }, [phone, hasBundle])
 
   // Fresh from a template: frame the data once the first vector layer loads.
   const fitted = useRef(false)
@@ -511,21 +519,23 @@ function Workstation() {
         }
       />
 
+      {tourOn && !phone && <Tour steps={WORKSPACE_TOUR} storageKey={TOUR_KEY} onClose={() => setTourOn(false)} />}
       <div className="ws-toolbar">
         <div className="group">
-          <button className={`ws-btn${showLeft ? ' is-on' : ''}`} onClick={() => setShowLeft((v) => !v)}>Layers</button>
-          <button className={`ws-btn${floating === 'add' ? ' is-on' : ''}`} onClick={() => setFloating(floating === 'add' ? null : 'add')} disabled={readOnly}>Add data…</button>
+          <button className={`ws-btn${showLeft ? ' is-on' : ''}`} data-tour="layers-btn" title="Show or hide the list of layers on this map" onClick={() => setShowLeft((v) => !v)}>Layers</button>
+          <button className={`ws-btn${floating === 'add' ? ' is-on' : ''}`} data-tour="add" title="Put Lenga datasets (rivers, roads, land cover…) on this map"
+                  onClick={() => setFloating(floating === 'add' ? null : 'add')} disabled={readOnly}>+ Add Lenga data</button>
         </div>
         <div className="group">
-          <button className={`ws-btn${floating === 'import' ? ' is-on' : ''}`} disabled={readOnly} title="Bring in a QGIS project or files exported from ArcGIS"
-                  onClick={() => setFloating(floating === 'import' ? null : 'import')}>Import…</button>
-          <button className="ws-btn" disabled={!!exporting || tocLayers.length === 0 || !canEdit}
+          <button className={`ws-btn${floating === 'import' ? ' is-on' : ''}`} data-tour="import" disabled={readOnly} title="Upload your own shapefiles, GeoPackage, KML, GeoTIFF or a whole QGIS project. They stay private to your team."
+                  onClick={() => setFloating(floating === 'import' ? null : 'import')}>Upload my files</button>
+          <button className="ws-btn" data-tour="export" disabled={!!exporting || tocLayers.length === 0 || !canEdit}
                   title={canEdit ? 'Download a QGIS project with all layers and data, ready for QGIS or ArcGIS Pro' : 'Viewers can look but not export. Ask a project manager for editor access.'}
                   onClick={() => void exportDesktop()}>{exporting || 'Export to QGIS / ArcGIS'}</button>
         </div>
         <div className="group">
           <label className="small muted" htmlFor="bm">Basemap</label>
-          <select id="bm" className="ws-select" value={basemap} onChange={(e) => setBasemap(e.target.value as Basemap)}>
+          <select id="bm" title="The background map under your layers" className="ws-select" value={basemap} onChange={(e) => setBasemap(e.target.value as Basemap)}>
             {BASEMAPS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
           </select>
         </div>
@@ -534,23 +544,25 @@ function Workstation() {
                   onClick={() => { const s = bundle.project.map_state; mapRef.current?.flyTo(s.center[0], s.center[1], s.zoom) }}>Project view</button>
           <button className="ws-btn" disabled={!!preview || !canManage} title={canManage ? 'Make the current extent and basemap the view everyone opens to' : 'Only project managers can change the project view'}
                   onClick={setProjectView}>Set as project view</button>
-          <button className="ws-btn" onClick={() => mapRef.current?.flyTo(20, 2, 2.6)}>Africa</button>
+          <button className="ws-btn" title="Zoom out to the whole continent" onClick={() => mapRef.current?.flyTo(20, 2, 2.6)}>Africa</button>
         </div>
         <span className="grow" />
         <div className="group">
+          <button className="ws-btn" title="A one minute walk through the workspace" onClick={() => setTourOn(true)}>? How it works</button>
           <span className={`ws-role-chip ${myRole}`} title={ROLE_HELP[myRole]}>
             {ROLE_LABEL[myRole]}{bundle.project.visibility === 'private' ? ' · private project' : ''}
           </span>
-          <button className={`ws-btn${showRight ? ' is-on' : ''}`} onClick={() => setShowRight((v) => !v)}>Panel</button>
+          <button className={`ws-btn${showRight ? ' is-on' : ''}`} data-tour="panel-btn" title="Show or hide the team discussion, the change history and project details"
+                  onClick={() => setShowRight((v) => !v)}>Chat &amp; history</button>
         </div>
       </div>
 
-      <aside className="ws-left">
+      <aside className="ws-left" data-tour="layers">
         {showLeft && !phone && layerPanel}
       </aside>
 
       <div className={`ws-mapwrap${picking ? ' picking' : ''}${tableData ? ' with-table' : ''}`}>
-        <div className="ws-map-area">
+        <div className="ws-map-area" data-tour="map">
         <MapView
           ref={mapRef}
           projectId={id}
@@ -573,6 +585,21 @@ function Workstation() {
             setTableFocus(fid)
           }}
         />
+        {tocLayers.length === 0 && !preview && !phone && (
+          <div className="ws-start">
+            <h3>This map is empty. Start here.</h3>
+            <p>Everything you add appears on this one map for your whole team. Pick one:</p>
+            <div className="ws-start-grid">
+              <button onClick={() => setFloating('add')} disabled={readOnly}><b>+ Add Lenga data</b><span>Rivers, roads, land cover, rainfall and more, for any African country.</span></button>
+              <button onClick={() => setFloating('import')} disabled={readOnly}><b>Upload my files</b><span>Shapefile, GeoPackage, KML, GeoTIFF or a QGIS project. Kept private.</span></button>
+              <a href="/team"><b>Invite a colleague</b><span>They see this map, comment on it and leave voice notes.</span></a>
+            </div>
+            <div className="foot">
+              {readOnly ? 'You are a viewer on this project, so ask a project manager to add layers. ' : ''}
+              New here? <a href="#" onClick={(e) => { e.preventDefault(); setTourOn(true) }}>Take the one minute tour</a>.
+            </div>
+          </div>
+        )}
         {pickMode === 'pin' && <div className="ws-map-note">Click the place this message is about. <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Cancel</a></div>}
         {pickMode === 'place' && <div className="ws-map-note">Click towns or areas to find their data ({places.length} picked). <a href="#" onClick={(e) => { e.preventDefault(); setPickMode(null) }}>Done</a></div>}
         {preview && (
@@ -623,7 +650,7 @@ function Workstation() {
       <aside className="ws-right">
         {showRight && !phone && (
           <>
-            <div className="ws-tabs" role="tablist">
+            <div className="ws-tabs" role="tablist" data-tour="panel">
               {(['discussion', 'history', 'details'] as Tab[]).map((t) => (
                 <button key={t} role="tab" aria-selected={tab === t} className={`ws-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
                   {t === 'discussion' ? 'Discussion' : t === 'history' ? 'History' : 'Details'}
@@ -743,6 +770,16 @@ function Workstation() {
     </div>
   )
 }
+
+const TOUR_KEY = 'lm-ws-tour-v1'
+const WORKSPACE_TOUR: TourStep[] = [
+  { target: 'map', title: 'One shared GIS map', body: 'This is your project map. Everyone on the project sees the same layers here, live. Click any feature on it to see its details.' },
+  { target: 'add', title: 'Add Lenga data', body: 'Pick a dataset (rivers, roads, land cover, rainfall…) and a country. It lands on the map already styled, in EPSG:4326.' },
+  { target: 'import', title: 'Upload your own files', body: 'Shapefiles, GeoPackage, KML, GeoTIFF, drone or satellite imagery, or a whole QGIS project. Your files are tagged Yours and never mix with the Lenga database.' },
+  { target: 'layers', title: 'Your layers', body: 'Tick a layer to show or hide it. Click its name to restyle it, open its attribute table or zoom to it.' },
+  { target: 'panel', title: 'Talk, and see every change', body: 'Discussion: comment on an exact place, @mention a teammate or record a voice note. History: every change is saved, and any version can be restored.' },
+  { target: 'export', title: 'Take it back to your desktop', body: 'Export a QGIS project with all the layers and their styles, ready for QGIS or ArcGIS Pro.' },
+]
 
 export default function WorkstationPage() {
   return (

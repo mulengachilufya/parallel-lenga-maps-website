@@ -88,7 +88,8 @@ export default function ImportDialog({ orgId, projectId, onClose, onImported }: 
               QGIS: the <span className="mono">.qgz</span> plus its data, or the project folder zipped.
               ArcGIS Pro: export layers as shapefile, GeoPackage, KML or GeoTIFF.
               Also GeoJSON, GPX and KMZ. Up to 50 MB per file.
-            </span>
+            </span><br />
+            <span className="small" style={{ color: 'var(--brass)' }}>Your files stay private to your team, tagged Yours, and never mix with the Lenga database.</span>
           </>}
         </label>
 
