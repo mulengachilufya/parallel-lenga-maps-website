@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Cloudflare R2 client (S3-compatible)
@@ -72,11 +72,22 @@ export function buildFileKey(country: string, layerType: string, filename: strin
  * Open an object for streaming (used by the workspace's same-origin proxy
  * when the browser can't fetch a presigned URL directly).
  */
-export async function getObjectStream(key: string) {
-  const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+export async function getObjectStream(key: string, range?: string | null) {
+  const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key, Range: range || undefined }))
   return {
     body:          res.Body?.transformToWebStream() ?? null,
     contentLength: res.ContentLength ?? null,
     contentType:   res.ContentType ?? 'application/octet-stream',
+    contentRange:  res.ContentRange ?? null,
+  }
+}
+
+/** True if the object exists (a cheap HEAD). */
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
+    return true
+  } catch {
+    return false
   }
 }

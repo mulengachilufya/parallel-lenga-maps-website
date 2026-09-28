@@ -220,7 +220,7 @@ function LoginForm() {
 
           <p className="text-center text-gray-500 text-sm mt-8">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-primary font-semibold hover:text-primary-dark">
+            <Link href={hasNext ? `/signup?next=${encodeURIComponent(nextPath)}` : '/signup'} className="text-primary font-semibold hover:text-primary-dark">
               Create one free
             </Link>
           </p>

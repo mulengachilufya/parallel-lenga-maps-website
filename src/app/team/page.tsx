@@ -34,7 +34,7 @@ interface Member {
   member_name: string | null; member_email: string | null
   invited_at: string; joined_at: string | null
 }
-interface Invite { id: string; email: string; created_at: string }
+interface Invite { id: string; email: string; created_at: string; link?: string | null }
 interface Ev {
   id: number; user_id: string | null; user_name: string | null; user_email: string | null
   dataset_slug: string; dataset_name: string | null; country: string | null
@@ -440,6 +440,23 @@ function Downloads({ data }: { data: TeamPayload }) {
 
 // ── Members ────────────────────────────────────────────────────────────────
 
+function CopyLink({ path }: { path: string }) {
+  const [done, setDone] = useState(false)
+  return (
+    <button
+      onClick={async () => {
+        await navigator.clipboard?.writeText(`${window.location.origin}${path}`).catch(() => {})
+        setDone(true); setTimeout(() => setDone(false), 2000)
+      }}
+      className="text-[11px] font-semibold hover:underline"
+      style={{ color: GOLD }}
+      title="Copy the join link to send on WhatsApp, chat or email"
+    >
+      {done ? 'Copied' : 'Copy link'}
+    </button>
+  )
+}
+
 function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: boolean; refresh: () => Promise<void> }) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
@@ -457,7 +474,11 @@ function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: bo
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setMsg({ ok: false, text: j.message ?? 'Invite failed.' }); return }
-      setMsg({ ok: true, text: j.email_sent ? `Invite sent to ${email}.` : `Invite created for ${email} (email delivery failed — share the link from your email manually or revoke and retry).` })
+      const link = j.link ? `${window.location.origin}${j.link}` : ''
+      if (link) await navigator.clipboard?.writeText(link).catch(() => {})
+      setMsg({ ok: true, text: j.email_sent
+        ? `Invite sent to ${email}. The join link is also copied, so you can paste it into WhatsApp or chat.`
+        : `The email to ${email} did not go through, but the invite is ready: the join link is copied. Paste it to them in WhatsApp, chat or email.` })
       setEmail('')
       await refresh()
     } catch { setMsg({ ok: false, text: 'Network error.' }) } finally { setBusy(false) }
@@ -524,6 +545,7 @@ function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: bo
                     <p className="text-sm truncate">{i.email}</p>
                     <p className="text-[11px] text-blue-400">invited {fmtDate(i.created_at)} · reserves a seat</p>
                   </div>
+                  {isOwner && i.link && <CopyLink path={i.link} />}
                   {isOwner && (
                     <button onClick={() => revoke(i.id)} className="text-[11px] font-semibold text-blue-300 hover:text-red-300">
                       Revoke

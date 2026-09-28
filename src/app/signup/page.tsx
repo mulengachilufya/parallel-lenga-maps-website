@@ -1,7 +1,8 @@
 // src/app/signup/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { safeNextPath } from '@/lib/safe-redirect'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -20,6 +21,16 @@ export default function SignupPage() {
   const [password, setPassword]   = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
+  // From an invite link: where to go after sign up, and the invited address.
+  const [next, setNext]           = useState('/dashboard')
+  const [lockedEmail, setLocked]  = useState('')
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    setNext(safeNextPath(sp.get('next'), '/dashboard'))
+    const invited = (sp.get('email') ?? '').trim()
+    if (invited) { setEmail(invited); setLocked(invited) }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,7 +79,7 @@ export default function SignupPage() {
     // email fires for this brand-new signup. Best-effort; the dashboard
     // self-heal is a backstop if this misses.
     await fetch('/api/account/init-profile', { method: 'POST' }).catch(() => {})
-    router.push('/dashboard')
+    router.push(next)
   }
 
   const inputClass =
@@ -84,7 +95,7 @@ export default function SignupPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-blue-300 text-sm mt-2">
-            Browse the full catalogue free. Unlock every download with a one-time payment.
+            Free to start: pick 3 datasets, or join your team&apos;s shared GIS workspace.
           </p>
         </div>
 
@@ -146,9 +157,11 @@ export default function SignupPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              readOnly={!!lockedEmail}
               placeholder="you@example.com"
               className={inputClass}
             />
+            {lockedEmail && <p className="mt-1.5 text-xs text-blue-400">This is the address your invite was sent to.</p>}
           </div>
 
           <div>

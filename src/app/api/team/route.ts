@@ -48,7 +48,7 @@ export async function GET() {
       .eq('org_id', membership.org_id)
       .order('joined_at', { ascending: true }),
     service.from('organization_invites')
-      .select('id, email, role, status, created_at')
+      .select('id, email, role, status, created_at, token')
       .eq('org_id', membership.org_id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
@@ -68,7 +68,11 @@ export async function GET() {
     me:      { user_id: user.id, role: membership.role },
     org:     membership.org,
     members: members.data ?? [],
-    invites: invites.data ?? [],
+    // Only the owner sees the join links (anyone holding one can take the seat
+    // if they sign in with the invited address).
+    invites: (invites.data ?? []).map(({ token, ...i }) => ({
+      ...i, link: membership.role === 'owner' ? `/team/join?token=${token}` : null,
+    })),
     events:  events.data ?? [],
     seats: {
       total:   membership.org.seat_count,

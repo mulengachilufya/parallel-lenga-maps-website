@@ -31,6 +31,7 @@ function Dialog({ title, onClose, children, buttons }: {
 const SWATCHES = ['#4d4d4d', '#2f6fae', '#3f7fb8', '#2e7d4f', '#6d7f3a', '#9a5b2c', '#b03a2e', '#7a5c99', '#c9a227', '#111111']
 const RAMP_NAMES: Record<RasterRamp, string> = {
   terrain: 'Terrain (hypsometric)', rainfall: 'Dry → wet', heat: 'Cool → hot', categorical: 'Classes (categorical)',
+  ndvi: 'Vegetation (NDVI)', drought: 'Drought index (dry → wet)', viridis: 'Viridis',
 }
 
 export function LayerPropertiesDialog({ layer, isRaster, onClose, onSave }: {

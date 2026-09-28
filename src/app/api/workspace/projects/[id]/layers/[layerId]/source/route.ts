@@ -8,7 +8,8 @@
  * Only members of the project's organization get either.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getDownloadUrl, getObjectStream } from '@/lib/r2'
+import { getDownloadUrl } from '@/lib/r2'
+import { streamObject, webKeyFor, webLayerLinks } from '@/lib/workspace/web-layers'
 import { datasetAllowed, jsonError, loadProject, lockedDataset, requireWorkspace, service } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
@@ -38,29 +39,19 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 
   if (!datasetAllowed(gate, layer.dataset_slug)) return lockedDataset()
 
-  if (req.nextUrl.searchParams.get('raw') === '1') {
-    try {
-      const obj = await getObjectStream(layer.r2_key)
-      if (!obj.body) return jsonError('file_missing', 404)
-      const headers: Record<string, string> = {
-        'Content-Type':  obj.contentType,
-        'Cache-Control': 'private, max-age=300',
-      }
-      if (obj.contentLength) headers['Content-Length'] = String(obj.contentLength)
-      return new Response(obj.body, { headers })
-    } catch (err) {
-      console.error('[workspace/source] stream failed', { key: layer.r2_key, err })
-      return jsonError('file_missing', 404)
-    }
+  const sp = req.nextUrl.searchParams
+  if (sp.get('raw') === '1') {
+    const key = sp.get('web') === '1' ? webKeyFor(layer.r2_key) : layer.r2_key
+    return streamObject(key, req.headers.get('range'))
   }
 
+  const base = `/api/workspace/projects/${id}/layers/${layerId}/source`
   try {
-    const url = await getDownloadUrl(layer.r2_key, 900)
-    return NextResponse.json({
-      url,
-      proxy: `/api/workspace/projects/${id}/layers/${layerId}/source?raw=1`,
-      key:   layer.r2_key,
-    })
+    const [url, web] = await Promise.all([
+      getDownloadUrl(layer.r2_key, 900),
+      webLayerLinks(layer.r2_key, base).catch(() => null),
+    ])
+    return NextResponse.json({ url, proxy: `${base}?raw=1`, key: layer.r2_key, web })
   } catch {
     return jsonError('sign_failed', 500)
   }

@@ -170,3 +170,30 @@ Every organisation you are going after lives here, from "On the radar" to "Acqui
 - **Individual free:** every account can choose 3 datasets and download them for all countries, for good. The choice can't be changed by the user. If someone chose by mistake, open **Ops → Fix → Look up a user** and press **Let them re-choose free datasets**.
 - **Free team:** anyone can start one on the Team page: 2 seats, 3 datasets chosen by the team owner, the full workspace, no end date. No API access.
 - **Upgrading a free team:** Admin → Organizations → **Upgrade to paid** (or "Payment received" in the sales pipeline). The team keeps its projects and members, gets the seats paid for and every dataset, for 3 months.
+
+## 10. Fast map layers (the workspace map)
+
+Big catalogue rasters (land cover up to 1.1 GB, DEMs up to 260 MB) are too large
+to load into a browser. The **Build fast map layers** GitHub Action
+(`.github/workflows/build-web-layers.yml`) writes a Cloud Optimized GeoTIFF of each
+one to R2 under `web/…` and the map then streams only what is on screen.
+
+* **First time:** add four repository secrets in GitHub (Settings → Secrets and
+  variables → Actions), copied from Vercel: `CLOUDFLARE_R2_ACCOUNT_ID`,
+  `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`,
+  `CLOUDFLARE_R2_BUCKET_NAME`. Then Actions → Build fast map layers → Run workflow.
+* **After adding datasets:** run it again (it skips files already done, and runs
+  weekly on its own). To redo one set, fill "only" with e.g. `lulc/` and tick force.
+* It also adds a CORS rule to the bucket so browsers can read those files directly;
+  if that rule is missing the app still works, streaming through our own server.
+* Until a file's web version exists the map falls back to loading the whole file,
+  and files over 300 MB show "too large to open in the browser" instead of freezing.
+
+## 11. Invites
+
+Owners invite by email on the Team page. The join link is also copied to their
+clipboard (and a **Copy link** sits next to every pending invite) so it can go by
+WhatsApp if the email is slow. People without an account create one from the link
+with the invited address pre-filled, and land straight back on the invite. Anyone
+with a pending invite also sees a **Join team** banner on their dashboard.
+Accepting twice is harmless.

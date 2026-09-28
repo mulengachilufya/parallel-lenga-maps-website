@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     teamInviteEmail(email, membership.org.name, me?.member_name ?? null, invite.token),
   ).catch(() => false)
 
-  return NextResponse.json({ ok: true, invite: { id: invite.id, email: invite.email, created_at: invite.created_at }, email_sent: sent })
+  return NextResponse.json({ ok: true, invite: { id: invite.id, email: invite.email, created_at: invite.created_at }, email_sent: sent, link: `/team/join?token=${invite.token}` })
 }
 
 export async function DELETE(req: NextRequest) {

@@ -130,17 +130,24 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
     const vis = hidden ? 'none' : 'visible'
 
     if (data.kind === 'raster') {
-      const existing = m.getSource(src(layer.id)) as { url?: string } | undefined
-      if (existing && existing.url !== data.raster.dataUrl) {
+      const r = data.raster
+      // Streamed COGs are drawn as tiles (lib/workspace/cog.ts); small files as one image.
+      const want = r.tiles ? `lcog://${encodeURIComponent(r.tiles.id)}/{z}/{x}/{y}` : r.dataUrl
+      const existing = m.getSource(src(layer.id)) as { url?: string; tiles?: string[] } | undefined
+      if (existing && (existing.tiles?.[0] ?? existing.url) !== want) {
         if (m.getLayer(sub(layer.id, 'raster'))) m.removeLayer(sub(layer.id, 'raster'))
         m.removeSource(src(layer.id))
       }
       if (!m.getSource(src(layer.id))) {
-        m.addSource(src(layer.id), { type: 'image', url: data.raster.dataUrl, coordinates: data.raster.coordinates })
+        if (r.tiles) {
+          m.addSource(src(layer.id), { type: 'raster', tiles: [want], tileSize: 256, bounds: r.bbox, maxzoom: r.tiles.maxzoom })
+        } else {
+          m.addSource(src(layer.id), { type: 'image', url: r.dataUrl, coordinates: r.coordinates })
+        }
       }
       if (!m.getLayer(sub(layer.id, 'raster'))) {
         m.addLayer({ id: sub(layer.id, 'raster'), type: 'raster', source: src(layer.id),
-          paint: { 'raster-opacity': s.opacity, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } })
+          paint: { 'raster-opacity': s.opacity, 'raster-resampling': r.stats?.mode === 'ramp' || r.stats?.mode === 'rgb' ? 'linear' : 'nearest', 'raster-fade-duration': 0 } })
       } else {
         m.setPaintProperty(sub(layer.id, 'raster'), 'raster-opacity', s.opacity)
       }
@@ -162,7 +169,13 @@ const MapView = forwardRef<MapViewHandle, Props>(function MapView(props, ref) {
     m.setPaintProperty(sub(layer.id, 'fill'), 'fill-color', s.color)
     m.setPaintProperty(sub(layer.id, 'fill'), 'fill-opacity', s.fill ? s.opacity * 0.38 : 0)
     m.setPaintProperty(sub(layer.id, 'line'), 'line-color', s.color)
-    m.setPaintProperty(sub(layer.id, 'line'), 'line-width', s.width)
+    // Hierarchy the way a cartographer draws it: bigger rivers (Strahler
+    // order, HydroRIVERS) and bigger roads (Natural Earth type) draw wider.
+    // Features without those fields keep the layer's width.
+    m.setPaintProperty(sub(layer.id, 'line'), 'line-width', ['*', s.width, ['case',
+      ['has', 'ORD_STRA'], ['max', 0.35, ['*', 0.32, ['to-number', ['get', 'ORD_STRA'], 3]]],
+      ['has', 'type'], ['match', ['get', 'type'], 'Major Highway', 2, 'Secondary Highway', 1.4, 'Road', 1, 'Track', 0.6, 'Ferry Route', 0.8, 1],
+      1]] as never)
     m.setPaintProperty(sub(layer.id, 'line'), 'line-opacity', s.opacity)
     m.setPaintProperty(sub(layer.id, 'circle'), 'circle-color', s.color)
     m.setPaintProperty(sub(layer.id, 'circle'), 'circle-opacity', s.opacity)
