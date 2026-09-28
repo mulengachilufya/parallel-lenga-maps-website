@@ -14,7 +14,7 @@ import { ROLE_LABEL, type ProjectRole } from '@/lib/workspace/types'
 export const dynamic = 'force-dynamic'
 
 type Ctx = { params: Promise<{ id: string }> }
-const ROLES: ProjectRole[] = ['viewer', 'editor', 'manager']
+const ROLES: (ProjectRole | 'none')[] = ['none', 'viewer', 'editor', 'manager']
 
 export async function PUT(req: NextRequest, { params }: Ctx) {
   const gate = await requireWorkspace()
@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 
   const body = await readJson(req)
   const userId = typeof body.user_id === 'string' ? body.user_id : ''
-  const role = body.role === null ? null : ROLES.includes(body.role as ProjectRole) ? body.role as ProjectRole : undefined
+  const role = body.role === null ? null : ROLES.includes(body.role as ProjectRole) ? body.role as ProjectRole | 'none' : undefined
   if (role === undefined) return jsonError('bad_role', 400)
 
   const other = await teammate(gate, userId)
@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     const { error } = await service.from('workspace_project_members')
       .upsert({ project_id: id, user_id: userId, role, added_by: gate.user.id })
     if (error) return jsonError('update_failed', 500)
-    await commit(id, gate, 'members', `Made ${name} a ${ROLE_LABEL[role].toLowerCase()} on this project`)
+    await commit(id, gate, 'members', role === 'none' ? `Removed ${name} from this project` : `Made ${name} a ${ROLE_LABEL[role].toLowerCase()} on this project`)
   }
   return NextResponse.json({ ok: true })
 }

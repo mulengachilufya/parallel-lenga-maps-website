@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
@@ -206,6 +206,7 @@ export default function HomePage() {
 
   return (
     <>
+      <AccountDeletedNotice />
       {/* ── HERO ─────────────────────────────────────────── */}
       <section ref={heroRef} className="relative min-h-[82vh] flex items-center overflow-hidden">
         <motion.div style={{ y: bgY }} className="absolute inset-0 z-0">
@@ -599,5 +600,22 @@ export default function HomePage() {
           renders nothing until its checks pass — landing page only. */}
       <NewsletterPopup />
     </>
+  )
+}
+/** Shown once after someone deletes their account (/?account=deleted). */
+function AccountDeletedNotice() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('account') === 'deleted') {
+      setShow(true)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+  if (!show) return null
+  return (
+    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-white/15 bg-[#0D2B45] px-5 py-3 text-sm text-white shadow-2xl flex items-center gap-4">
+      <span>Your account has been deleted. Thank you for trying Lenga Maps.</span>
+      <button onClick={() => setShow(false)} className="text-white/60 hover:text-white" aria-label="Close">×</button>
+    </div>
   )
 }

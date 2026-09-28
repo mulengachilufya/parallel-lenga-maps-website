@@ -11,7 +11,7 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import { createServerSupabase } from '@/lib/supabase-server'
 import { logEvent } from '@/lib/ops/log'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
-import { atLeast, type ProjectRole, type WsProject, type WsRevision } from './types'
+import { atLeast, resolveRole, type ProjectRole, type WsProject, type WsRevision } from './types'
 import { workspaceDatasets } from '@/lib/entitlements'
 
 export const service: SupabaseClient = createClient(
@@ -76,9 +76,7 @@ export async function loadProject(gate: WorkspaceGate, projectId: string): Promi
   ])
   if (!data) return null
   const p = data as WsProject & { visibility: 'team' | 'private'; default_role: 'viewer' | 'editor' }
-  const role: ProjectRole | null =
-    gate.membership.role === 'owner' || p.created_by === gate.user.id ? 'manager'
-    : (pm?.role as ProjectRole | undefined) ?? (p.visibility === 'team' ? p.default_role : null)
+  const role = resolveRole(gate.membership.role === 'owner' || p.created_by === gate.user.id, pm?.role, p.visibility, p.default_role)
   return role ? { ...p, role } : null
 }
 
