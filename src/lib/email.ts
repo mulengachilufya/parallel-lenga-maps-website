@@ -485,8 +485,8 @@ export function teamInviteEmail(
       coordinate system and format, so nobody pulls the same layer twice.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Accept with the button below. If you do not have a Lenga Maps account yet,
-      create one with this email address first, then open the link again.
+      Accept with the button below. New to Lenga Maps? The same button lets you
+      create your free account in a minute and brings you straight back.
     </p>`
   const text = `Hi,
 
@@ -494,7 +494,7 @@ ${inviter} invited you to join ${orgName} on Lenga Maps. As a team member you ge
 
 Accept the invite: ${cta}
 
-If you do not have a Lenga Maps account yet, create one with this email address first, then open the link again.
+New to Lenga Maps? The same link lets you create your free account and brings you straight back.
 
 Thanks,
 The Lenga Maps team`

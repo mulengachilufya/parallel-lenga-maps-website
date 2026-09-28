@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Map as MapIcon, Users } fro
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
+import PendingInvites from '@/components/PendingInvites'
 import type { Access } from '@/lib/entitlements'
 import {
   FREE_DATASET_LIMIT, PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
@@ -696,6 +697,8 @@ function DashboardContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+        <PendingInvites />
 
         {/* Admin link — only shown if /api/admin/me confirmed this user is
             on the server-side ADMIN_EMAILS allowlist. Adding a new admin

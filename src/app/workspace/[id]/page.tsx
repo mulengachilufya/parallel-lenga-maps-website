@@ -32,7 +32,7 @@ import ImportDialog from '@/components/workspace/ImportDialog'
 import { PREVIEW_PREFIX } from '@/lib/workspace/loaders'
 import { api, initials, tileColor } from '@/components/workspace/util'
 import TitleBar from '@/components/workspace/TitleBar'
-import { rampCss, categoryColor } from '@/lib/workspace/raster'
+import { rampCss, categoryColor, categoryLabel } from '@/lib/workspace/raster'
 import {
   defaultStyle, shortRev, type Basemap, type CatalogFile, type WsPlace, type LayerStyle, type WsBookmark, type WsLayer,
   type WsMessage, type WsProjectBundle, type WsRevision, type WsSnapshot, atLeast, ROLE_HELP, ROLE_LABEL, type ProjectRole } from '@/lib/workspace/types'
@@ -589,16 +589,18 @@ function Workstation() {
         {selectedLayer && selectedStatus?.loaded?.kind === 'raster' && (
           <div className="ws-legend">
             <div className="t">{selectedLayer.label}</div>
-            {selectedStatus.loaded.raster.categories && selectedLayer.style.ramp === 'categorical' ? (
+            {selectedStatus.loaded.raster.stats?.mode === 'rgb' ? (
+              <div className="small muted">True colour image</div>
+            ) : selectedStatus.loaded.raster.categories && selectedStatus.loaded.raster.stats?.palette ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
                 {selectedStatus.loaded.raster.categories.slice(0, 16).map((c, i) => (
-                  <span key={c} className="mono small"><span className="ws-swatch" style={{ background: categoryColor(i), verticalAlign: -1 }} /> {c}</span>
+                  <span key={c} className="mono small"><span className="ws-swatch" style={{ background: categoryColor(i, c, selectedStatus.loaded?.kind === 'raster' ? selectedStatus.loaded.raster.stats : undefined), verticalAlign: -1 }} /> {categoryLabel(c, selectedStatus.loaded?.kind === 'raster' ? selectedStatus.loaded.raster.stats : undefined)}</span>
                 ))}
                 {selectedStatus.loaded.raster.categories.length > 16 && <span className="small muted">+{selectedStatus.loaded.raster.categories.length - 16} more</span>}
               </div>
             ) : (
               <>
-                <div className="bar" style={{ background: rampCss(selectedLayer.style.ramp) }} />
+                <div className="bar" style={{ background: rampCss(selectedStatus.loaded.raster.stats?.ramp ?? selectedLayer.style.ramp) }} />
                 <div className="ends"><span>{selectedStatus.loaded.raster.min.toFixed(1)}</span><span>{selectedStatus.loaded.raster.max.toFixed(1)}</span></div>
               </>
             )}

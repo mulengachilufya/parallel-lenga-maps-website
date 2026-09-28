@@ -63,26 +63,77 @@ function sourceEndpoint(projectId: string, layer: WsLayer): string {
   return `/api/workspace/projects/${projectId}/layers/${layer.id}/source`
 }
 
+interface SourceInfo { url: string; proxy: string; web?: { url: string; proxy: string } | null }
+
+async function sourceInfo(projectId: string, layer: WsLayer): Promise<SourceInfo> {
+  const res = await fetch(sourceEndpoint(projectId, layer))
+  if (res.status === 403) throw new Error('This dataset is not one of your plan\'s datasets.')
+  if (!res.ok) throw new Error('Could not get access to this file.')
+  return await res.json() as SourceInfo
+}
+
+// Whole-file loading holds the file in browser memory; past this size it
+// would stall or crash the tab. Such files wait for their web version.
+const MAX_WHOLE_FILE = 300 * 1024 * 1024
+
+function tooBig(res: Response): boolean {
+  const n = Number(res.headers.get('content-length') ?? 0)
+  return n > MAX_WHOLE_FILE
+}
+
+async function download(info: SourceInfo): Promise<ArrayBuffer> {
+  let res: Response | null = null
+  try {
+    const direct = await fetch(info.url)
+    if (direct.ok) res = direct
+  } catch { /* blocked by CORS: fall through to the same-origin proxy */ }
+  if (!res) {
+    res = await fetch(info.proxy)
+    if (!res.ok) throw new Error('The file could not be downloaded.')
+  }
+  if (tooBig(res)) {
+    void res.body?.cancel()
+    throw new Error('This file is too large to open in the browser until its fast map version is ready. Download it for QGIS in the meantime.')
+  }
+  return res.arrayBuffer()
+}
+
 async function fetchBytes(projectId: string, layer: WsLayer): Promise<ArrayBuffer> {
   const cached = await cacheGet(layer.r2_key)
   if (cached) return cached
-
-  const res = await fetch(sourceEndpoint(projectId, layer))
-  if (!res.ok) throw new Error('Could not get access to this file.')
-  const { url, proxy } = await res.json() as { url: string; proxy: string }
-
-  let bytes: ArrayBuffer | null = null
-  try {
-    const direct = await fetch(url)
-    if (direct.ok) bytes = await direct.arrayBuffer()
-  } catch { /* blocked by CORS: fall through to the same-origin proxy */ }
-  if (!bytes) {
-    const viaProxy = await fetch(proxy)
-    if (!viaProxy.ok) throw new Error('The file could not be downloaded.')
-    bytes = await viaProxy.arrayBuffer()
-  }
+  const bytes = await download(await sourceInfo(projectId, layer))
   void cachePut(layer.r2_key, bytes)
   return bytes
+}
+
+/** Open a streamed web version (COG) and hand it to the tile protocol. */
+async function loadCog(layer: WsLayer, web: { url: string; proxy: string }): Promise<LoadedLayer> {
+  const { openCog } = await import('./raster')
+  const { ensureCogProtocol, registerCog, nativeZoom } = await import('./cog')
+  let cog
+  try {
+    cog = await openCog(web.url, layer.style.ramp)
+  } catch {
+    // Direct Range requests blocked (bucket CORS): stream through our origin.
+    cog = await openCog(new URL(web.proxy, window.location.origin).href, layer.style.ramp)
+  }
+  await ensureCogProtocol()
+  const id = `${layer.id}:${layer.style.ramp}`
+  registerCog(id, cog)
+  const [w, s, e, n] = cog.bbox
+  return {
+    kind: 'raster',
+    raster: {
+      dataUrl: '',
+      coordinates: [[w, n], [e, n], [e, s], [w, s]],
+      bbox: cog.bbox,
+      min: cog.stats.lo[0], max: cog.stats.hi[0],
+      categories: cog.stats.classes,
+      width: cog.width, height: cog.height,
+      stats: cog.stats,
+      tiles: { id, maxzoom: nativeZoom(cog) },
+    },
+  }
 }
 
 // ── Parse ───────────────────────────────────────────────────────────────────
@@ -187,7 +238,17 @@ export function loadLayer(projectId: string, layer: WsLayer): Promise<LoadedLaye
   const key = `${layer.r2_key}|${layer.style.ramp}`
   let p = memo.get(key)
   if (!p) {
-    p = fetchBytes(projectId, layer).then((b) => parseBytes(b, layer.style.ramp))
+    p = (async () => {
+      const cached = await cacheGet(layer.r2_key)
+      if (cached) return parseBytes(cached, layer.style.ramp)
+      const info = await sourceInfo(projectId, layer)
+      if (info.web) {
+        try { return await loadCog(layer, info.web) } catch { /* fall back to the whole file */ }
+      }
+      const bytes = await download(info)
+      void cachePut(layer.r2_key, bytes)
+      return parseBytes(bytes, layer.style.ramp)
+    })()
     p.catch(() => memo.delete(key))
     memo.set(key, p)
   }

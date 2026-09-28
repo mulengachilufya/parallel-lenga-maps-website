@@ -6,7 +6,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
-import { getDownloadUrl, getObjectStream } from '@/lib/r2'
+import { getDownloadUrl } from '@/lib/r2'
+import { streamObject, webKeyFor, webLayerLinks } from '@/lib/workspace/web-layers'
 import { datasetAllowed, jsonError, lockedDataset, requireWorkspace } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
@@ -25,21 +26,13 @@ export async function GET(req: NextRequest) {
   if (!files.some((f) => f.r2_key === key)) return jsonError('unknown_file', 404)
 
   if (sp.get('raw') === '1') {
-    try {
-      const obj = await getObjectStream(key)
-      if (!obj.body) return jsonError('file_missing', 404)
-      const headers: Record<string, string> = { 'Content-Type': obj.contentType, 'Cache-Control': 'private, max-age=300' }
-      if (obj.contentLength) headers['Content-Length'] = String(obj.contentLength)
-      return new Response(obj.body, { headers })
-    } catch {
-      return jsonError('file_missing', 404)
-    }
+    return streamObject(sp.get('web') === '1' ? webKeyFor(key) : key, req.headers.get('range'))
   }
 
-  const url = await getDownloadUrl(key, 900)
-  return NextResponse.json({
-    url,
-    proxy: `/api/workspace/catalog/source?dataset=${encodeURIComponent(spec.id)}&key=${encodeURIComponent(key)}&raw=1`,
-    key,
-  })
+  const base = `/api/workspace/catalog/source?dataset=${encodeURIComponent(spec.id)}&key=${encodeURIComponent(key)}`
+  const [url, web] = await Promise.all([
+    getDownloadUrl(key, 900),
+    webLayerLinks(key, base).catch(() => null),
+  ])
+  return NextResponse.json({ url, proxy: `${base}&raw=1`, key, web })
 }

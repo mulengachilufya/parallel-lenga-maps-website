@@ -219,6 +219,9 @@ const QGIS_RAMPS: Record<Exclude<RasterRamp, 'categorical'>, string[]> = {
   terrain:  ['#3e703e', '#8ca55a', '#e2d496', '#c49664', '#966e50', '#f5f5f0'],
   rainfall: ['#f5eed6', '#c7e1b4', '#78beaa', '#3c8cb4', '#1e5096', '#142864'],
   heat:     ['#315c9c', '#78aac8', '#f0ebc8', '#f0aa5a', '#cd5532', '#8c1e1e'],
+  ndvi:     ['#78481c', '#bf812d', '#dfc27d', '#f6e8c3', '#c7e9b4', '#7fbc41', '#4d9221', '#276419', '#00441b'],
+  drought:  ['#8c2d04', '#cc4c02', '#ec7014', '#fec44f', '#f7f7f7', '#9ecae1', '#4292c6', '#08519c', '#08306b'],
+  viridis:  ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
 }
 const QGIS_CLASSES = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f',
   '#cab2d6', '#ffff99', '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666']

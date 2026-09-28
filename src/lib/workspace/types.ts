@@ -11,7 +11,7 @@ export interface MapState {
   basemap: Basemap
 }
 
-export type RasterRamp = 'terrain' | 'rainfall' | 'heat' | 'categorical'
+export type RasterRamp = 'terrain' | 'rainfall' | 'heat' | 'categorical' | 'ndvi' | 'drought' | 'viridis'
 
 export interface LayerStyle {
   color:   string    // #rrggbb, stroke / point / fill colour
@@ -207,7 +207,7 @@ const DATASET_STYLE: Record<string, Partial<LayerStyle>> = {
   'roads':            { color: '#9a5b2c', width: 1.2, fill: false },
   'population':       { color: '#b03a2e', width: 1,   fill: true  },
   'rainfall':         { ramp: 'rainfall' },
-  'drought-index':    { ramp: 'heat' },
+  'drought-index':    { ramp: 'drought' },
   'temperature':      { ramp: 'heat' },
   'lulc':             { ramp: 'categorical' },
   'soil':             { ramp: 'categorical' },
@@ -226,7 +226,7 @@ export const DEFAULT_MAP_STATE: MapState = { center: [25, -4], zoom: 3, basemap:
 // ── Sanitisers (used server-side on every write) ────────────────────────────
 
 const HEX = /^#[0-9a-f]{6}$/i
-const RAMPS: RasterRamp[] = ['terrain', 'rainfall', 'heat', 'categorical']
+const RAMPS: RasterRamp[] = ['terrain', 'rainfall', 'heat', 'categorical', 'ndvi', 'drought', 'viridis']
 const BASEMAPS: Basemap[] = ['light', 'topo', 'imagery', 'none']
 
 function clamp(n: unknown, lo: number, hi: number, fallback: number): number {
