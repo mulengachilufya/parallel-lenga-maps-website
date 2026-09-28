@@ -7,7 +7,7 @@
  * No colour gradients. Depth comes from a faint contour-line texture on the
  * page, and from panes that sit on it like still water: tinted, slightly
  * translucent, softly rounded, with a lit top edge. System typefaces only
- * (Verdana for interface text, Georgia for titles, a monospace for numbers).
+ * (a clean sans for interface text, Space Grotesk for titles, a monospace for numbers).
  */
 
 .ws {
@@ -37,8 +37,8 @@
   --pane-lit:    inset 0 1px 0 rgba(255,255,255,.06);
   --radius:      10px;
 
-  --ui:    Verdana, Geneva, 'DejaVu Sans', 'Bitstream Vera Sans', sans-serif;
-  --title: Georgia, 'Times New Roman', 'DejaVu Serif', serif;
+  --ui:    Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --title: var(--font-display), 'Space Grotesk', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono:  Consolas, 'Lucida Console', 'DejaVu Sans Mono', Menlo, monospace;
 
   font-family: var(--ui);
@@ -53,7 +53,7 @@
 .ws *, .ws *::before, .ws *::after { box-sizing: border-box; }
 .ws a { color: var(--link); text-decoration: underline; text-decoration-color: rgba(157,192,226,.45); text-underline-offset: 2px; }
 .ws a:hover { color: #cfe2f4; text-decoration-color: currentColor; }
-.ws h1, .ws h2, .ws h3 { font-family: var(--title); font-weight: normal; color: var(--ink); margin: 0; }
+.ws h1, .ws h2, .ws h3 { font-family: var(--title); font-weight: 600; color: var(--ink); margin: 0; }
 .ws .mono { font-family: var(--mono); font-size: 11px; }
 .ws .muted { color: var(--muted); }
 .ws .small { font-size: 10.5px; }

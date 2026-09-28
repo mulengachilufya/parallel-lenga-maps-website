@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str,
 } from '@/lib/workspace/server'
-import { sanitizeMapState, type ProjectRole, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
+import { resolveRole, sanitizeMapState, type ProjectRole, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,10 +32,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       .order('seq', { ascending: false }).limit(1).maybeSingle(),
     service.from('workspace_project_members').select('user_id, role').eq('project_id', id),
   ])
-  const explicitRole = new Map((explicit.data ?? []).map((m) => [m.user_id as string, m.role as ProjectRole]))
+  const explicitRole = new Map((explicit.data ?? []).map((m) => [m.user_id as string, m.role as string]))
   const roleFor = (userId: string, orgRole: string): ProjectRole | null =>
-    orgRole === 'owner' || project.created_by === userId ? 'manager'
-    : explicitRole.get(userId) ?? (project.visibility === 'team' ? project.default_role ?? 'editor' : null)
+    resolveRole(orgRole === 'owner' || project.created_by === userId, explicitRole.get(userId), project.visibility, project.default_role)
 
   const bundle: WsProjectBundle = {
     project,

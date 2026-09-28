@@ -12,7 +12,7 @@ interface Props {
   online:    Set<string>
   me:        { user_id: string; role: 'owner' | 'member'; project_role: ProjectRole }
   onSave:    (patch: Patch) => Promise<void>
-  onSetRole: (userId: string, role: ProjectRole | null) => Promise<void>
+  onSetRole: (userId: string, role: ProjectRole | 'none' | null) => Promise<void>
   onDuplicate?: () => void
   onArchive: () => void
   locked?:   boolean   // phone view: read only
@@ -92,7 +92,7 @@ export default function DetailsPanel({ project, members, online, me, onSave, onS
       <ul className="ws-list" style={{ border: '1px solid var(--rule)', background: 'var(--white)' }}>
         {members.map((m) => {
           const fixed = m.role === 'owner' || project.created_by === m.user_id
-          const value = m.explicit ? (m.project_role ?? '') : ''
+          const value = m.explicit ? (m.project_role ?? 'none') : ''
           return (
             <li key={m.user_id}>
               <span className={`ws-avatar${online.has(m.user_id) ? '' : ' away'}`} style={{ background: tileColor(m.user_id) }}>{initials(m.name)}</span>
@@ -102,11 +102,12 @@ export default function DetailsPanel({ project, members, online, me, onSave, onS
               </span>
               {manager && !fixed ? (
                 <select className="ws-select" value={value} title="Role on this project"
-                        onChange={(e) => void access(() => onSetRole(m.user_id, (e.target.value || null) as ProjectRole | null))}>
+                        onChange={(e) => void access(() => onSetRole(m.user_id, (e.target.value || null) as ProjectRole | 'none' | null))}>
                   <option value="">{visibility === 'team' ? `Team default (${defaultRole})` : 'No access'}</option>
                   <option value="viewer">Viewer</option>
                   <option value="editor">Editor</option>
                   <option value="manager">Manager</option>
+                  {visibility === 'team' && <option value="none">Removed from this project</option>}
                 </select>
               ) : (
                 <span className="small muted" title={fixed ? (m.role === 'owner' ? 'Team owners manage every project' : 'Created this project') : undefined}>

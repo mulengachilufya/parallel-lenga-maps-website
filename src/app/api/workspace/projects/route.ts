@@ -12,7 +12,7 @@ import type { ProjectRole } from '@/lib/workspace/types'
 import { findDataset, listFilesForDataset, type ApiFile } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
 import { AFRICAN_COUNTRIES, findTemplate } from '@/lib/workspace/templates'
-import { defaultStyle } from '@/lib/workspace/types'
+import { defaultStyle, resolveRole } from '@/lib/workspace/types'
 import { DEFAULT_MAP_STATE, type WsProjectSummary } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -30,10 +30,9 @@ export async function GET() {
   if (error) return jsonError('list_failed', 500)
 
   const { data: mine } = await service.from('workspace_project_members').select('project_id, role').eq('user_id', gate.user.id)
-  const explicit = new Map((mine ?? []).map((m) => [m.project_id as string, m.role as ProjectRole]))
+  const explicit = new Map((mine ?? []).map((m) => [m.project_id as string, m.role as string]))
   const roleOf = (p: { id: string; created_by: string | null; visibility: string; default_role: string }): ProjectRole | null =>
-    gate.membership.role === 'owner' || p.created_by === gate.user.id ? 'manager'
-    : explicit.get(p.id) ?? (p.visibility === 'team' ? p.default_role as ProjectRole : null)
+    resolveRole(gate.membership.role === 'owner' || p.created_by === gate.user.id, explicit.get(p.id), p.visibility, p.default_role)
   const visible = (projects ?? []).map((p) => ({ ...p, my_role: roleOf(p) })).filter((p) => p.my_role !== null)
 
   const ids = visible.map((p) => p.id)

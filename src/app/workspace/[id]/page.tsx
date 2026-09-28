@@ -382,7 +382,7 @@ function Workstation() {
     revNote(d.rev); refresh()
   }
 
-  async function setMemberRole(userId: string, role: ProjectRole | null) {
+  async function setMemberRole(userId: string, role: ProjectRole | 'none' | null) {
     await api(`/api/workspace/projects/${id}/members`, { method: 'PUT', json: { user_id: userId, role } })
     refresh()
   }

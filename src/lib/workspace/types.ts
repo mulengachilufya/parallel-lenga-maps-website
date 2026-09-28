@@ -67,6 +67,22 @@ const ROLE_RANK: Record<ProjectRole, number> = { viewer: 1, editor: 2, manager: 
 export function atLeast(role: ProjectRole | null | undefined, need: ProjectRole): boolean {
   return !!role && ROLE_RANK[role] >= ROLE_RANK[need]
 }
+/**
+ * A person's role on a project. Team owners and the creator always manage;
+ * otherwise an explicit role wins ('none' = removed from this project), and
+ * failing that a team-visible project gives its default role. Mirrors the
+ * SQL function workspace_project_role.
+ */
+export function resolveRole(
+  alwaysManager: boolean, explicit: string | undefined | null,
+  visibility: string | undefined, defaultRole: string | undefined,
+): ProjectRole | null {
+  if (alwaysManager) return 'manager'
+  if (explicit === 'none') return null
+  if (explicit) return explicit as ProjectRole
+  return visibility === 'team' ? ((defaultRole ?? 'editor') as ProjectRole) : null
+}
+
 export const ROLE_LABEL: Record<ProjectRole, string> = { viewer: 'Viewer', editor: 'Editor', manager: 'Manager' }
 export const ROLE_HELP: Record<ProjectRole, string> = {
   viewer:  'Sees the map, layers and history, and can comment. Cannot change or export anything.',
