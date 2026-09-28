@@ -112,3 +112,46 @@ body {
     background: linear-gradient(135deg, #F5B800 0%, #e6a800 100%);
   }
 }
+
+/* ── Water surfaces ─────────────────────────────────────────────────────────
+   Flat navy sections read as a single slab of blue. Instead each dark
+   section carries a faint contour-line texture (like the ripples on a
+   reservoir, or isolines on a map), and cards sit on it as tinted,
+   slightly translucent panes with a lit top edge. No colour gradients:
+   depth comes from the texture, the translucency and soft shadow. */
+section.bg-dark,
+section.bg-dark-light,
+footer.bg-dark-deep,
+.water-bg {
+  background-image: url('/textures/contours.svg');
+  background-size: 640px 640px;
+  background-position: center top;
+}
+section.bg-dark { background-color: #0e1a24; }
+section.bg-dark-light { background-color: #0b1620; }
+
+.water-card {
+  position: relative;
+  background-color: rgba(125, 175, 215, 0.05);
+  border: 1px solid rgba(165, 205, 235, 0.12);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 40px -22px rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(8px) saturate(1.15);
+  backdrop-filter: blur(8px) saturate(1.15);
+  transition: border-color .3s ease, background-color .3s ease, box-shadow .3s ease;
+}
+.water-card.is-interactive:hover {
+  background-color: rgba(125, 175, 215, 0.075);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 24px 48px -24px rgba(0, 0, 0, 0.8);
+}
+.water-field {
+  background-color: rgba(8, 18, 28, 0.55) !important;
+  border: 1px solid rgba(165, 205, 235, 0.14) !important;
+  border-radius: 10px;
+}
+.water-field:focus { border-color: rgba(201, 162, 39, 0.55) !important; box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.12); }

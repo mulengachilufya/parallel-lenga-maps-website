@@ -1,30 +1,30 @@
 /*
  * Lenga Workspace — "chart room" house style
  *
- * A working room at dusk: slate-blue panels, cream type, brass for the few
- * things that matter (selection, the current revision, the default button).
- * The map is the only lit surface, so the eye goes there first. No glass,
- * no gradients, no rounded cards: flat panels ruled with 1px lines, system
- * typefaces only (Verdana for interface text, Georgia for titles, a
- * monospace for numbers), in the manner of instrument panels and pre-web
- * terminals rather than any particular desktop GIS.
+ * A working room at dusk: deep-water slate panels, cream type, brass for the
+ * few things that matter (selection, the current revision, the default
+ * button). The map is the only lit surface, so the eye goes there first.
+ * No colour gradients. Depth comes from a faint contour-line texture on the
+ * page, and from panes that sit on it like still water: tinted, slightly
+ * translucent, softly rounded, with a lit top edge. System typefaces only
+ * (Verdana for interface text, Georgia for titles, a monospace for numbers).
  */
 
 .ws {
-  --paper:       #141b22;   /* app background, behind panels */
-  --panel:       #1a232c;   /* panels */
-  --panel-2:     #202b35;   /* panel heads, toolbars */
-  --panel-3:     #26323d;   /* hover */
-  --white:       #10161c;   /* inset surfaces: fields, lists, popups */
+  --paper:       #0e1821;   /* app background, behind panels */
+  --panel:       #15212b;   /* panels */
+  --panel-2:     #1a2833;   /* panel heads, toolbars */
+  --panel-3:     #213140;   /* hover */
+  --white:       #0f1a23;   /* inset surfaces: fields, lists, popups */
   --ink:         #ebe5d6;
   --ink-soft:    #bdb6a5;
   --muted:       #8c9192;
-  --rule:        #2b3743;
-  --rule-strong: #3a4855;
-  --head-a:      #202b35;
-  --head-b:      #202b35;
-  --navy:        #0e141a;
-  --navy-rule:   #26323d;
+  --rule:        #243442;
+  --rule-strong: #324556;
+  --head-a:      #1a2833;
+  --head-b:      #1a2833;
+  --navy:        #0b141c;
+  --navy-rule:   #213140;
   --gold:        #d4ad3b;
   --brass:       #d4ad3b;
   --link:        #9dc0e2;
@@ -32,6 +32,10 @@
   --mark-rule:   rgba(212,173,59,.55);
   --danger:      #e3877d;
   --ok:          #97c285;
+  --pane:        rgba(27,45,59,.66);   /* translucent cards on the textured page */
+  --pane-rule:   rgba(165,205,235,.15);
+  --pane-lit:    inset 0 1px 0 rgba(255,255,255,.06);
+  --radius:      10px;
 
   --ui:    Verdana, Geneva, 'DejaVu Sans', 'Bitstream Vera Sans', sans-serif;
   --title: Georgia, 'Times New Roman', 'DejaVu Serif', serif;
@@ -565,3 +569,74 @@
 .ws-src { flex-shrink: 0; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
 .ws-src.lenga { color: var(--brass); border: 1px solid rgba(212,173,59,.45); }
 .ws-src.yours { color: #9fb0c0; border: 1px solid rgba(159,176,192,.4); }
+
+/* ── Water surfaces ──────────────────────────────────────────────────────────
+   Rounded, translucent panes over a faint contour texture, replacing the
+   flat single-blue boxes. Kept after the rules above so it overrides them. */
+.ws-page {
+  background-color: var(--paper);
+  background-image: url('/textures/contours.svg');
+  background-size: 640px 640px;
+}
+.ws-page > .ws-titlebar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(11,20,28,.78);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom-color: var(--pane-rule);
+}
+.ws-page-body { padding-top: 34px; }
+.ws-page-body h1 { font-size: 28px; margin-bottom: 6px; }
+
+.ws-btn { border-radius: 6px; transition: background-color .15s ease, border-color .15s ease; }
+.ws-btn-default { box-shadow: 0 4px 14px -6px rgba(212,173,59,.55); }
+.ws-btn-default:disabled { box-shadow: none; }
+.ws-input, .ws-select, .ws-textarea { border-radius: 6px; padding: 5px 8px; border-color: var(--pane-rule); background: rgba(9,17,24,.7); }
+.ws-input:focus, .ws-select:focus, .ws-textarea:focus { box-shadow: 0 0 0 3px rgba(212,173,59,.15); }
+.ws-label { margin-bottom: 4px; }
+
+.ws-table, .ws-box, .ws-dialog, .ws-float {
+  border: 1px solid var(--pane-rule);
+  border-radius: 14px;
+  box-shadow: var(--pane-lit), 0 20px 44px -24px rgba(0,0,0,.75);
+}
+.ws-table, .ws-box {
+  background: var(--pane);
+  -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15);
+}
+.ws-box { padding: 16px 18px 18px; }
+.ws-box h2, .ws-box h3 { font-size: 17px; margin-bottom: 12px; }
+.ws-table { border-collapse: separate; border-spacing: 0; overflow: hidden; }
+.ws-table th { background: rgba(255,255,255,.03); border-bottom-color: var(--pane-rule); padding: 9px 12px; }
+.ws-table td { padding: 11px 12px; border-top-color: rgba(165,205,235,.08); }
+.ws-table tr:first-child td { border-top: 0; }
+.ws-table tr:nth-child(even) td { background: transparent; }
+.ws-table tr:hover td { background: rgba(157,192,226,.06); }
+.ws-table .pname { font-size: 15px; }
+.ws-cols { gap: 22px; }
+.ws-note { border-radius: var(--radius); }
+.ws-role-chip { border-radius: 999px; }
+.ws-src { border-radius: 999px; }
+.ws-chip { border-radius: 999px; }
+.ws-tab .badge, .ws-inbox-link .badge, .ws-dm-list .badge, .ws-phone-tabs .n { border-radius: 999px; }
+.ws-avatar { border-radius: 50%; }
+
+/* Dialogs, tool windows and floating map chrome */
+.ws-dialog, .ws-float { overflow: hidden; }
+.ws-dialog .ws-panel-head, .ws-float .ws-panel-head { background: rgba(255,255,255,.03); }
+.ws-modal-back { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.ws-pick, .ws-results, .ws-import-list, .ws-diff, .ws-drop { border-radius: 8px; overflow: hidden; }
+.ws-mention-pop, .ws-attr-cols { border-radius: 8px; }
+.ws-legend, .ws-map-note, .ws-busy {
+  border-radius: 8px; border-color: var(--pane-rule);
+  background: rgba(21,33,43,.86);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 22px -10px rgba(0,0,0,.6);
+}
+.ws-map-note { border-color: var(--brass); }
+.ws-map .maplibregl-popup-content { border-radius: 10px; overflow: hidden; }
+.ws-map .maplibregl-ctrl-group { border-radius: 8px; overflow: hidden; }
+.ws-toc li { border-radius: 6px; margin: 0 4px; }
+.ws-sheet { border-radius: 14px 14px 0 0; }
+.ws-phone-notice { border-radius: var(--radius); }
+.ws-table a.pname { color: var(--ink); text-decoration: none; }
+.ws-table a.pname:hover { color: #cfe2f4; text-decoration: underline; text-decoration-color: rgba(157,192,226,.5); }
