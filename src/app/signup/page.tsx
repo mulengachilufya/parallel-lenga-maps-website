@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics'
 import { isValidCountry } from '@/lib/countries'
 import { SECTORS, isValidSector } from '@/lib/sectors'
 import CountrySelect from '@/components/CountrySelect'
+import ImageMosaic from '@/components/ImageMosaic'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -83,25 +84,26 @@ export default function SignupPage() {
   }
 
   const inputClass =
-    'w-full bg-[#0D2B45] border border-blue-900/60 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm'
+    'w-full bg-[#0D2B45]/75 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-blue-700 focus:outline-none focus:border-[#1E5F8E] text-sm'
 
   return (
-    <main className="min-h-screen bg-[#0D2B45] flex items-center justify-center px-4 py-10">
+    <main className="relative isolate min-h-screen flex items-center justify-center px-4 py-10">
+      <ImageMosaic />
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
           <Link href="/">
             <img src="/images/branding/logo.png" alt="Lenga Maps" className="h-10 mx-auto mb-4" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Create your account</h1>
-          <p className="text-blue-300 text-sm mt-2">
+          <h1 className="text-2xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">Create your account</h1>
+          <p className="text-blue-100 text-sm mt-2 drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
             Free to start: pick 3 datasets, or join your team&apos;s shared GIS workspace.
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-[#112236] border border-blue-900/60 rounded-2xl p-8 space-y-5"
+          className="bg-[#0b1a2a]/70 backdrop-blur-xl border border-white/15 rounded-2xl p-8 space-y-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] ring-1 ring-inset ring-white/5"
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -191,7 +193,7 @@ export default function SignupPage() {
             {loading ? 'Creating account...' : 'Create account'}
           </button>
 
-          <p className="text-center text-blue-500 text-xs">
+          <p className="text-center text-blue-200/80 text-xs">
             Already have an account?{' '}
             <Link href="/login" className="text-blue-300 hover:text-white underline">
               Log in
@@ -199,7 +201,7 @@ export default function SignupPage() {
           </p>
         </form>
 
-        <p className="text-center text-blue-600 text-xs mt-4">
+        <p className="text-center text-blue-100/80 text-xs mt-4 drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
           By signing up you agree to our{' '}
           <Link href="/terms" className="underline hover:text-blue-400">
             Terms of Service
