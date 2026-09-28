@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Map as MapIcon, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
-import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
+import FreeDatasetPicker from '@/components/FreeDatasetPicker'
 import PendingInvites from '@/components/PendingInvites'
 import type { Access } from '@/lib/entitlements'
 import {
@@ -236,11 +236,6 @@ function PlanCard({
   )
 }
 
-const FREE_CARD_UI = {
-  bg: '#FFFFFF', border: '#D9D6CC', nameColor: '#1E5F8E', priceColor: '#0D2B45',
-  dotColor: '#1E5F8E', btnBg: '#0D2B45', dividerColor: '#0D2B45',
-}
-
 /** A dashboard card that opens a place (workspace, team), sized like the plan cards. */
 function ActionCard({ href, icon, title, text, cta, delay = 0 }: {
   href: string; icon: React.ReactNode; title: string; text: string; cta: string; delay?: number
@@ -255,6 +250,29 @@ function ActionCard({ href, icon, title, text, cta, delay = 0 }: {
           <span className="block w-full rounded-[10px] bg-navy py-[9px] text-center text-[12.5px] font-semibold text-white">{cta} →</span>
         </span>
       </Link>
+    </motion.div>
+  )
+}
+
+/** One of the two main, equal-size panels a free account sees first. */
+function MainPanel({ step, title, text, cta, href, delay = 0, children }: {
+  step: string; title: string; text: string; cta?: string; href?: string; delay?: number; children?: React.ReactNode
+}) {
+  return (
+    <motion.div className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+      <div className="flex flex-col h-full rounded-2xl border border-gray-200 border-t-4 border-t-[#F5B800] bg-white p-6 sm:p-7 shadow-[0_18px_40px_-24px_rgba(13,43,69,0.45)]">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-[#F5B800] text-[#1a1200] font-extrabold flex items-center justify-center shrink-0">{step}</span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-navy leading-tight">{title}</h2>
+        </div>
+        <p className="mt-3 text-[15px] leading-relaxed text-gray-600">{text}</p>
+        <div className="mt-5">{children}</div>
+        {cta && href && (
+          <div className="mt-auto pt-6">
+            <Link href={href} className="block w-full rounded-xl bg-navy py-3.5 text-center text-base font-bold text-white hover:bg-primary transition-colors">{cta} →</Link>
+          </div>
+        )}
+      </div>
     </motion.div>
   )
 }
@@ -441,7 +459,6 @@ function DashboardContent() {
   const [userName,  setUserName]  = useState('')
   const [isAdmin,   setIsAdmin]   = useState(false)
   const [access,    setAccess]    = useState<Access | null>(null)
-  const [showPicker, setShowPicker] = useState(false)
 
   // The verified user id this dashboard's data belongs to. Used by the auth
   // listener below to detect an account switch (e.g. a different account
@@ -722,41 +739,60 @@ function DashboardContent() {
           .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
           .dash-plan-card:active { transform: scale(.98); }
         `}</style>
+        {isFree ? (access && (
+          <>
+            {/* Free accounts: the two things to do first, side by side and the
+                same size. Pricing follows underneath as the way to get more. */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+              <MainPanel delay={0.05} step="1" title={`Choose your ${FREE_DATASET_LIMIT} free datasets`}
+                         text={`You're on the free plan. Pick ${FREE_DATASET_LIMIT} datasets to keep for good, then download them for all 54 African countries as often as you like.`}>
+                <FreeDatasetPicker large bare picks={access.personal.picks} endpoint="/api/account/free-datasets"
+                                   onSaved={() => reloadAccess()} />
+              </MainPanel>
+              <MainPanel delay={0.1} step="2" title="Start your own workspace project"
+                         text="A live GIS map in the browser for you and a colleague. Free for 2 people."
+                         cta={access.team ? 'Open your workspace' : 'Start a workspace project'}
+                         href={access.team ? '/workspace' : '/team?start=free'}>
+                <ul className="space-y-3 text-[15px] text-gray-700">
+                  {[
+                    'Put Lenga datasets on one shared, live web map',
+                    'Bring your own shapefiles, GeoPackages, KML, GeoTIFFs and QGIS projects',
+                    'Pin comments to places and keep every change in the project history',
+                    'Export back to QGIS, ArcGIS or Global Mapper when you are done',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#F5B800] shrink-0" />{t}
+                    </li>
+                  ))}
+                </ul>
+                {access.team && <Link href="/team" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">Open your team page →</Link>}
+              </MainPanel>
+            </div>
+
+            <div className="mt-10 mb-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9a7400]">Want more datasets?</p>
+              <h3 className="mt-1 text-lg font-bold text-navy">Upgrade for every dataset, in all 54 countries</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+              {PLAN_ORDER.map((slug, i) => (
+                <PlanCard
+                  key={slug}
+                  delay={0.15 + i * 0.05}
+                  eyebrow="Upgrade"
+                  title={PLANS[slug].name}
+                  ui={PLAN_CARD_UI[slug]}
+                  hero={PLANS[slug].priceLabel}
+                  tagline={PLAN_CARD_UI[slug].tagline}
+                  count={PLAN_CARD_UI[slug].count}
+                  datasets={PLAN_CARD_UI[slug].datasets}
+                  cta={PLANS[slug].ctaLabel}
+                  href={planCtaHref(slug)}
+                />
+              ))}
+            </div>
+          </>
+        )) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-4 items-stretch">
-          {isFree && access && (
-            <PlanCard
-              current
-              delay={0.05}
-              eyebrow="Your plan"
-              title="Free"
-              ui={FREE_CARD_UI}
-              hero="$0"
-              tagline={`${access.personal.picks.length} of ${FREE_DATASET_LIMIT} free datasets chosen. Download them for every country, as often as you like.`}
-              count="Your free datasets"
-              datasets={access.personal.picks.length
-                ? [...access.personal.picks.map(freeDatasetName), ...(access.team?.plan === 'free' ? access.team.picks.map((x) => `${freeDatasetName(x)} (team)`) : [])]
-                : ['None chosen yet']}
-              cta={access.personal.left > 0 ? (showPicker ? 'Hide the list' : `Choose ${access.personal.left === FREE_DATASET_LIMIT ? 'your 3' : `${access.personal.left} more`} datasets`) : '✓ All 3 chosen'}
-              onClick={access.personal.left > 0 ? () => setShowPicker((v) => !v) : undefined}
-            />
-          )}
-          {isFree ? (
-            PLAN_ORDER.map((slug, i) => (
-              <PlanCard
-                key={slug}
-                delay={0.1 + i * 0.05}
-                eyebrow="Upgrade"
-                title={PLANS[slug].name}
-                ui={PLAN_CARD_UI[slug]}
-                hero={PLANS[slug].priceLabel}
-                tagline={PLAN_CARD_UI[slug].tagline}
-                count={PLAN_CARD_UI[slug].count}
-                datasets={PLAN_CARD_UI[slug].datasets}
-                cta={PLANS[slug].ctaLabel}
-                href={planCtaHref(slug)}
-              />
-            ))
-          ) : (
             <PlanCard
               current
               delay={0.05}
@@ -772,7 +808,6 @@ function DashboardContent() {
               cta={expiresAt ? 'Renew: add 3 months' : '✓ Active, permanent'}
               href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
             />
-          )}
           {(userState === 'team' || access?.team) && (
             <ActionCard delay={0.1} href="/workspace" icon={<MapIcon size={22} />} title="Projects workspace"
                         text="Put datasets on a shared live map, discuss them with your team, and keep every change in the project history."
@@ -789,11 +824,6 @@ function DashboardContent() {
                         cta="Start a free team" />
           )}
         </div>
-        {isFree && access && showPicker && (
-          <div className="mb-4">
-            <FreeDatasetPicker picks={access.personal.picks} endpoint="/api/account/free-datasets"
-                               onSaved={() => { reloadAccess(); setShowPicker(false) }} />
-          </div>
         )}
         <div className="mb-10" />
 
@@ -806,7 +836,11 @@ function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sortDatasetsByTier(DATASETS).map((dataset, i) => {
+          {sortDatasetsByTier(DATASETS)
+            .map((dataset) => ({ dataset, mine: isFree && freeSet.has(String(LIVE_DATASET_ROUTES[dataset.id]).split('section=')[1] as never) }))
+            // A free account's chosen datasets come first, then everything else in tier order.
+            .sort((a, b) => Number(b.mine) - Number(a.mine))
+            .map(({ dataset, mine }, i) => {
             const isLive = dataset.id in LIVE_DATASET_ROUTES
 
             return (
@@ -821,7 +855,9 @@ function DashboardContent() {
                   // Access control is inside each component's download button
                   <Link
                     href={LIVE_DATASET_ROUTES[dataset.id]}
-                    className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full"
+                    className={`group block bg-white rounded-2xl hover:-translate-y-1 transition-all duration-200 overflow-hidden h-full ${mine
+                      ? 'border-2 border-[#F5B800] ring-4 ring-[#F5B800]/15 shadow-[0_16px_36px_-18px_rgba(201,162,39,0.8)] hover:shadow-[0_20px_44px_-18px_rgba(201,162,39,0.9)]'
+                      : 'border border-gray-100 shadow-sm hover:shadow-md'}`}
                   >
                     <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
                     <div className="p-5">
@@ -833,12 +869,12 @@ function DashboardContent() {
                           <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: dataset.color }}>{dataset.category}</div>
                           <h3 className="text-sm font-bold text-navy group-hover:text-primary transition-colors leading-tight">{dataset.name}</h3>
                         </div>
-                        {isFree && freeSet.has(String(LIVE_DATASET_ROUTES[dataset.id]).split('section=')[1] as never) && (
-                          <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 whitespace-nowrap shrink-0">
-                            ✓ Free
+                        {mine && (
+                          <span className="text-[10px] font-bold rounded-full px-2.5 py-1 bg-[#F5B800] text-[#1a1200] whitespace-nowrap shrink-0">
+                            ★ Your dataset
                           </span>
                         )}
-                        {isFree && !freeSet.has(String(LIVE_DATASET_ROUTES[dataset.id]).split('section=')[1] as never) && (
+                        {isFree && !mine && (
                           <span style={{ fontSize: '10px', fontWeight: 600, background: PLAN_STYLE.free.bg, color: PLAN_STYLE.free.nameColor, border: `1px solid ${PLAN_STYLE.free.border}`, borderRadius: '20px', padding: '2px 7px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                             <Lock size={9} className="inline -mt-0.5 mr-0.5" /> Paid
                           </span>

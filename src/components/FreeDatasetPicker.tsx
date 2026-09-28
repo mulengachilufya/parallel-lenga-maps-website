@@ -13,13 +13,17 @@ import { DATASET_META } from '@/lib/teams'
 
 export const freeDatasetName = (s: string) => DATASET_META[s as DatasetSlug]?.name ?? s
 
-export default function FreeDatasetPicker({ picks, endpoint, onSaved, dark, canPick = true, who = 'you' }: {
+export default function FreeDatasetPicker({ picks, endpoint, onSaved, dark, canPick = true, who = 'you', large, bare }: {
   picks: string[]
   endpoint: '/api/account/free-datasets' | '/api/team/free-datasets'
   onSaved: () => void
   dark?: boolean
   canPick?: boolean
   who?: 'you' | 'team'
+  /** Bigger chips and type, for the dashboard's main panel. */
+  large?: boolean
+  /** No card of its own, for embedding inside another panel. */
+  bare?: boolean
 }) {
   const [sel, setSel] = useState<string[]>([])
   const [confirm, setConfirm] = useState(false)
@@ -48,21 +52,22 @@ export default function FreeDatasetPicker({ picks, endpoint, onSaved, dark, canP
   }
 
   return (
-    <div className={`rounded-2xl border p-4 sm:p-5 ${tone.card}`}>
+    <div className={bare ? '' : `rounded-2xl border p-4 sm:p-5 ${tone.card}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className={`text-sm font-bold ${tone.text}`}>
+        <p className={`${large ? 'text-base' : 'text-sm'} font-bold ${tone.text}`}>
           {who === 'team' ? 'Your team\'s free datasets' : 'Your free datasets'}: {picks.length} of {FREE_DATASET_LIMIT} chosen
         </p>
-        {left > 0 && canPick && <p className={`text-xs ${tone.muted}`}>Choose {left === FREE_DATASET_LIMIT ? FREE_DATASET_LIMIT : `${left} more`}. Chosen datasets are kept for good and can&apos;t be swapped.</p>}
+        {left > 0 && canPick && <p className={`${large ? 'text-sm' : 'text-xs'} ${tone.muted}`}>Choose {left === FREE_DATASET_LIMIT ? FREE_DATASET_LIMIT : `${left} more`}. Chosen datasets are kept for good and can&apos;t be swapped.</p>}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {FREE_PICKABLE.map((s) => {
+      <div className={`mt-3 flex flex-wrap ${large ? 'gap-2.5' : 'gap-2'}`}>
+        {/* Already-chosen datasets lead the list. */}
+        {[...FREE_PICKABLE].sort((a, b) => Number(picks.includes(b)) - Number(picks.includes(a))).map((s) => {
           const mine = picks.includes(s)
           const on = sel.includes(s)
           const disabled = mine || !canPick || left <= 0 || (!on && sel.length >= left)
           return (
             <button key={s} type="button" disabled={disabled} onClick={() => toggle(s)}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${mine ? tone.mine : on ? tone.on : tone.chip} ${disabled && !mine ? 'opacity-45 cursor-not-allowed' : ''}`}>
+                    className={`inline-flex items-center gap-1.5 rounded-full border ${large ? 'px-4 py-2.5 text-sm' : 'px-3 py-1.5 text-xs'} font-semibold transition-colors ${mine ? tone.mine : on ? tone.on : tone.chip} ${disabled && !mine ? 'opacity-45 cursor-not-allowed' : ''}`}>
               {mine ? <Check size={12} /> : on ? <Check size={12} /> : left <= 0 ? <Lock size={11} /> : null}
               {freeDatasetName(s)}
             </button>
@@ -75,11 +80,11 @@ export default function FreeDatasetPicker({ picks, endpoint, onSaved, dark, canP
           {confirm ? (
             <>
               <span className={`text-xs ${tone.text}`}>Keep {sel.map(freeDatasetName).join(', ')} for good? You can&apos;t change {sel.length > 1 ? 'these' : 'this'} later.</span>
-              <button disabled={busy} onClick={() => void save()} className="rounded-lg bg-[#F5B800] text-[#0D2B45] text-xs font-bold px-4 py-2 disabled:opacity-60">{busy ? 'Saving…' : 'Yes, keep them'}</button>
+              <button disabled={busy} onClick={() => void save()} className={`rounded-lg bg-[#F5B800] text-[#0D2B45] font-bold disabled:opacity-60 ${large ? 'text-sm px-5 py-2.5' : 'text-xs px-4 py-2'}`}>{busy ? 'Saving…' : 'Yes, keep them'}</button>
               <button onClick={() => setConfirm(false)} className={`text-xs ${tone.muted}`}>Back</button>
             </>
           ) : (
-            <button onClick={() => setConfirm(true)} className="rounded-lg bg-[#0D2B45] text-white text-xs font-bold px-4 py-2 border border-white/10">
+            <button onClick={() => setConfirm(true)} className={`rounded-lg bg-[#0D2B45] text-white font-bold border border-white/10 ${large ? 'text-sm px-5 py-2.5' : 'text-xs px-4 py-2'}`}>
               Choose {sel.length} dataset{sel.length > 1 ? 's' : ''}
             </button>
           )}
