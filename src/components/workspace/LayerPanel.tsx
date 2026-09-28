@@ -55,13 +55,13 @@ export default function LayerPanel(p: Props) {
       <div className="ws-panel-head">
         Layers <span className="muted" style={{ fontWeight: 'normal', letterSpacing: 0, textTransform: 'none' }}>({p.layers.length})</span>
         <span className="spacer" />
-        {!p.phone && <button className="ws-btn" onClick={p.onAdd} title="Add a dataset to this map">Add data…</button>}
+        {!p.phone && <button className="ws-btn" onClick={p.onAdd} title="Put Lenga datasets on this map">+ Add Lenga data</button>}
       </div>
       <div className="ws-panel-body ws-section" style={{ flex: '1 1 60%' }}>
         {p.layers.length === 0 ? (
           <div className="ws-empty">
             <b>No layers yet.</b><br />
-            Use <i>Add data…</i> to put a country&apos;s rivers, boundaries, rainfall or any other
+            Use <i>+ Add Lenga data</i> to put a country&apos;s rivers, boundaries, rainfall or any other
             Lenga dataset on the map. Everyone on the team sees the same layers.
           </div>
         ) : (

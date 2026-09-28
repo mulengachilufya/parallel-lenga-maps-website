@@ -180,8 +180,13 @@ export default function AddData(p: Props) {
 
   return (
     <div className={`ws-float${p.picking && tab === 'place' ? ' compact' : ''}`} role="dialog" aria-label="Add data">
-      <div className="ws-panel-head">Add data<span className="spacer" />
+      <div className="ws-panel-head">Add Lenga data<span className="spacer" />
         <button className="ws-icon-btn" onClick={p.onClose} aria-label="Close">×</button>
+      </div>
+      <div className="small muted" style={{ padding: '6px 10px 2px', lineHeight: 1.45 }}>
+        {tab === 'dataset'
+          ? <>Choose a dataset on the left, then a country, then press <b>Add to map</b>. Double click a country to add it at once.</>
+          : <>Type a town or area and pick it, and the data for its country is listed below.</>}
       </div>
       <div className="ws-tabs" style={{ background: 'none', borderBottom: '1px solid var(--rule-strong)' }}>
         <button className={`ws-tab${tab === 'dataset' ? ' on' : ''}`} onClick={() => setTab('dataset')}>By dataset</button>
