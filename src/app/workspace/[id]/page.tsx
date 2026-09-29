@@ -443,7 +443,7 @@ function Workstation() {
             {fatal === 'no_team'
               ? <>Shared projects, the live map, discussion and history come with a team plan. <Link href="/projects">See team plans</Link>, or ask your team owner for an invite.</>
               : fatal === 'not_found'
-                ? <>It may have been archived, or it belongs to another organisation. <Link href="/workspace">Back to your projects</Link>.</>
+                ? <>It may have been archived, or it belongs to another organisation. <Link href="/workspace">Back to your teams</Link>.</>
                 : <>Please reload the page. If it keeps happening, email lengamaps@gmail.com.</>}
           </p>
         </div>
@@ -512,7 +512,7 @@ function Workstation() {
   return (
     <div className={`ws ${frame}`}>
       <TitleBar
-        crumbs={[{ label: bundle.org.name, href: '/workspace' }, { label: bundle.project.name }]}
+        crumbs={[{ label: 'Workspace', href: '/workspace' }, { label: `Team: ${bundle.org.name}`, href: '/workspace/team' }, { label: bundle.project.name }]}
         right={
           <div className="ws-presence" title="Who is looking at this project now">
             {bundle.members.filter((m) => online.has(m.user_id)).map((m) => (
@@ -769,7 +769,7 @@ function Workstation() {
       {dialog?.kind === 'archive' && (
         <ConfirmDialog title="Archive project" confirmLabel="Archive" danger onClose={() => setDialog(null)}
           body={<>Archive <b>{bundle.project.name}</b>? It disappears from the project list for the whole team. Email lengamaps@gmail.com if you need it back.</>}
-          onConfirm={async () => { await api(`/api/workspace/projects/${id}`, { method: 'DELETE' }); router.push('/workspace') }} />
+          onConfirm={async () => { await api(`/api/workspace/projects/${id}`, { method: 'DELETE' }); router.push('/workspace/team') }} />
       )}
     </div>
   )
