@@ -36,6 +36,15 @@ export default function WorkspaceIndex() {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
+  // Arriving from a "ready-made map for your field" link: preselect it.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('template')
+    if (t && TEMPLATES.some((x) => x.id === t)) {
+      setTemplate(t)
+      setTimeout(() => document.getElementById('np-name')?.focus(), 300)
+    }
+  }, [])
+
   useEffect(() => {
     fetch('/api/workspace/projects').then(async (res) => {
       if (res.status === 401) { router.replace('/login?next=/workspace/team'); return }

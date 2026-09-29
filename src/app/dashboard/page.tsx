@@ -5,12 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Map as MapIcon, Users } from 'lucide-react'
+import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import FreeDatasetPicker from '@/components/FreeDatasetPicker'
 import PendingInvites from '@/components/PendingInvites'
 import DeleteAccount from '@/components/DeleteAccount'
+import DataRail from '@/components/DataRail'
+import RequestDataCta from '@/components/RequestDataCta'
+import WorkspaceBox from '@/components/WorkspaceBox'
 import type { Access } from '@/lib/entitlements'
 import type { WsProjectSummary } from '@/lib/workspace/types'
 import {
@@ -740,6 +743,7 @@ function DashboardContent() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             {sectionData.component()}
           </div>
+          <div className="mt-6"><RequestDataCta tone="light" /></div>
         </div>
       </div>
     )
@@ -806,35 +810,24 @@ function DashboardContent() {
           .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
           .dash-plan-card:active { transform: scale(.98); }
         `}</style>
+        {/* Two columns: the GIS data (the core of Lenga Maps) stays in view on
+            the left; the workspace, your plan and the rest on the right. On
+            phones the data block comes first. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-6 items-start">
+        <DataRail isFree={isFree} mine={freeSet as Set<string>} />
+        <div className="min-w-0 space-y-6">
         {(access?.team || userState === 'team') && <ContinueProjects />}
+        <WorkspaceBox hasTeam={!!access?.team || userState === 'team'} />
 
         {isFree ? (access && (
           <>
             {/* Free accounts: the two things to do first, side by side and the
                 same size. Pricing follows underneath as the way to get more. */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+            <div className="grid grid-cols-1 gap-5 items-stretch">
               <MainPanel delay={0.05} step="1" title={`Choose your ${FREE_DATASET_LIMIT} free datasets`}
                          text={`You're on the free plan. Pick ${FREE_DATASET_LIMIT} datasets to keep for good, then download them for all 54 African countries as often as you like.`}>
                 <FreeDatasetPicker large bare picks={access.personal.picks} endpoint="/api/account/free-datasets"
                                    onSaved={() => reloadAccess()} />
-              </MainPanel>
-              <MainPanel delay={0.1} step="2" title="Start your own workspace project"
-                         text="A live GIS map in the browser for you and a colleague. Free for 2 people."
-                         cta={access.team ? 'Open your workspace' : 'Start a workspace project'}
-                         href={access.team ? '/workspace' : '/team?start=free'}>
-                <ul className="space-y-3 text-[15px] text-gray-700">
-                  {[
-                    'Put Lenga datasets on one shared, live web map',
-                    'Bring your own shapefiles, GeoPackages, KML, GeoTIFFs and QGIS projects',
-                    'Pin comments to places and keep every change in the project history',
-                    'Export back to QGIS, ArcGIS or Global Mapper when you are done',
-                  ].map((t) => (
-                    <li key={t} className="flex items-start gap-3">
-                      <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#F5B800] shrink-0" />{t}
-                    </li>
-                  ))}
-                </ul>
-                {access.team && <Link href="/team" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">Open your team page →</Link>}
               </MainPanel>
             </div>
 
@@ -878,11 +871,6 @@ function DashboardContent() {
               href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
             />
           {(userState === 'team' || access?.team) && (
-            <ActionCard delay={0.1} href="/workspace" icon={<MapIcon size={22} />} title="Shared workspace"
-                        text="Your teams and their projects. Each project is one shared live map with comments, voice notes and full history."
-                        cta="Open workspace" />
-          )}
-          {(userState === 'team' || access?.team) && (
             <ActionCard delay={0.15} href="/team" icon={<Users size={22} />} title="Your team"
                         text="See who is on the team, invite colleagues, and check what everyone has downloaded."
                         cta="Open team page" />
@@ -894,11 +882,13 @@ function DashboardContent() {
           )}
         </div>
         )}
+        </div>
+        </div>
         <div className="mb-10" />
 
         {/* Dataset grid */}
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-navy mb-1">Browse & Download Datasets</h2>
+          <h2 className="text-lg font-bold text-navy mb-1">Every dataset, in detail</h2>
           <p className="text-sm text-gray-500">
             Click any dataset to browse country files. Paid plans download everything; the free plan downloads your 3 chosen datasets.
           </p>
