@@ -216,7 +216,7 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'drought-index',
     name:        'Drought index (SPI-12)',
-    description: 'CHIRPS-derived 12-month Standardised Precipitation Index per African country.',
+    description: 'SPI-12 from CHIRPS v2.0 rainfall: how wet or dry each place was over the 12 months, compared with its own normal, in standard deviations (below 0 = drier, -1.5 or lower = severe drought). Baseline 2014 to 2023.',
     category:    'climate',
     table:       'rainfall_climate_layers',
     layer_type:  'drought_index',

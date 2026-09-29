@@ -10,6 +10,8 @@ import DatasetCard from '@/components/DatasetCard'
 import Footer from '@/components/Footer'
 import HomeContactForm from '@/components/HomeContactForm'
 import NewsletterPopup from '@/components/NewsletterPopup'
+import DidYouKnow from '@/components/DidYouKnow'
+import RequestDataCta from '@/components/RequestDataCta'
 import { supabase, DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
@@ -425,6 +427,7 @@ export default function HomePage() {
               <ArrowRight size={18} />
             </Link>
           </div>
+          <div className="mt-10"><RequestDataCta /></div>
         </div>
       </section>
 
@@ -599,6 +602,7 @@ export default function HomePage() {
       {/* Bottom-anchored newsletter sign-up. Self-gates via localStorage and
           renders nothing until its checks pass — landing page only. */}
       <NewsletterPopup />
+      <DidYouKnow />
     </>
   )
 }

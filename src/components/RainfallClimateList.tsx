@@ -50,7 +50,7 @@ const GIS_META: Record<string, { source: string; units: string; resolution: stri
   },
   drought_index: {
     source: 'CHIRPS-derived SPI',
-    units: 'dimensionless (SPI-12)',
+    units: 'SPI-12 z-score (0 = normal, below -1.5 = severe drought)',
     resolution: '0.05° (~5 km)',
   },
 }

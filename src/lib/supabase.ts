@@ -173,7 +173,7 @@ export const DATASETS: Dataset[] = [
     id: 5,
     name: 'Drought Index (SPI-12)',
     category: 'Environment & Climate',
-    description: 'Standardized Precipitation Index (SPI-12) for long-term drought monitoring across Africa',
+    description: 'SPI-12: rainfall over 12 months compared with normal, in standard deviations. Below 0 is drier than normal, -1.5 or lower is severe drought. From CHIRPS v2.0, baseline 2014 to 2023.',
     source: 'CHIRPS-derived SPI',
     format: 'GeoTIFF (ZIP)',
     resolution: '0.05° (~5 km)',

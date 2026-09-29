@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import WorkspaceBox from '@/components/WorkspaceBox'
 import {
   Users, History, Settings2, LayoutDashboard, Loader2, Globe2,
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
@@ -235,9 +236,7 @@ export default function TeamPage() {
                 <CreateFreeTeam onCreated={async () => { setCreating(false); window.location.reload() }} />
               </div>
             )}
-            <Link href="/workspace/team" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-2 decoration-[#F5B800]" style={{ color: GOLD_INK }}>
-              Open this team&apos;s projects: shared maps, discussion and history →
-            </Link>
+            <div className="mt-4"><WorkspaceBox hasTeam compact href="/workspace/team" /></div>
             {data.org.operating_countries.length > 0 && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[#5a7086]">
                 <MapPin size={13} /> Operating in {data.org.operating_countries.join(', ')}
