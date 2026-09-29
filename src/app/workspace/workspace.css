@@ -681,3 +681,141 @@
 .ws-steps b { display: block; font-size: 13px; margin-bottom: 2px; }
 .ws-steps i { font-style: normal; color: var(--brass); font-weight: 700; margin-right: 4px; }
 @media (max-width: 800px) { .ws-steps { grid-template-columns: 1fr 1fr; } }
+
+/* ══ Paper theme ═════════════════════════════════════════════════════════════
+   The workspace in the same house style as the team page and dashboard:
+   warm white paper with faint gold contour lines, white panels ruled in
+   warm grey, navy ink, and the brand gold for the things that matter. It
+   keeps the desktop-GIS layout (title bar, toolbar, docked panels, status
+   bar); only the colours and surfaces change. Everything above is still the
+   structure; this block only re-points colours, so it wins by coming last. */
+.ws {
+  --paper:       #fbf8f0;
+  --panel:       #ffffff;
+  --panel-2:     #f7f2e4;   /* panel heads, toolbars */
+  --panel-3:     #f3ebd2;   /* hover */
+  --white:       #ffffff;   /* fields, lists, popups */
+  --ink:         #0D2B45;
+  --ink-soft:    #2c4a63;
+  --muted:       #6b7c8c;
+  --rule:        #ece4cf;
+  --rule-strong: #dccfa8;
+  --head-a:      #f7f2e4;
+  --head-b:      #f7f2e4;
+  --navy:        #0D2B45;
+  --navy-rule:   #173a5a;
+  --gold:        #F5B800;
+  --brass:       #F5B800;
+  --brass-ink:   #9a7400;   /* gold for text on white */
+  --link:        #1E5F8E;
+  --mark:        rgba(245,184,0,.16);
+  --mark-rule:   rgba(201,162,39,.65);
+  --danger:      #c0392b;
+  --ok:          #2e7d32;
+  --pane:        rgba(255,255,255,.92);
+  --pane-rule:   #e8dfc6;
+  --pane-lit:    inset 0 1px 0 #ffffff;
+  color-scheme: light;
+  background-color: var(--paper);
+  background-image: url('/textures/contours-gold.svg');
+  background-size: 640px 640px;
+}
+.ws a { text-decoration-color: rgba(30,95,142,.35); }
+.ws a:hover { color: #0D2B45; }
+.ws ::selection { background: rgba(245,184,0,.35); }
+.ws * { scrollbar-color: #d8cba4 transparent; }
+.ws ::-webkit-scrollbar-track { background: transparent; }
+.ws ::-webkit-scrollbar-thumb { background: #dccfa8; border: 2px solid var(--panel); border-radius: 6px; }
+
+/* Buttons: white with a warm edge; the default action is solid gold. */
+.ws-btn { background: #fff; border-color: var(--rule-strong); color: var(--ink); box-shadow: 0 1px 0 rgba(13,43,69,.04); }
+.ws-btn:hover { background: var(--panel-3); border-color: #c9b77f; }
+.ws-btn:active { background: #efe5c6; }
+.ws-btn:disabled { color: #a3adb6; background: #faf7ef; border-color: var(--rule); }
+.ws-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.ws-btn-default { background: var(--brass); border-color: var(--brass); color: #1a1200; box-shadow: 0 4px 12px -6px rgba(201,162,39,.9); }
+.ws-btn-default:hover { background: #ffc81f; border-color: #ffc81f; }
+.ws-btn-default:disabled { color: #8a7a45; background: #f3e5b5; border-color: #ecdca6; box-shadow: none; }
+.ws-btn-danger { color: var(--danger); }
+.ws-btn-default.ws-btn-danger { background: #c0392b; border-color: #c0392b; color: #fff; }
+.ws-btn-flat { background: transparent; border-color: transparent; box-shadow: none; }
+.ws-btn.is-on { background: #fff6d9; border-color: var(--brass); color: var(--brass-ink); }
+
+/* Fields */
+.ws-input, .ws-select, .ws-textarea { background: #fff; color: var(--ink); border-color: var(--rule-strong); }
+.ws-input::placeholder, .ws-textarea::placeholder { color: #9aa7b2; }
+.ws-input:focus, .ws-select:focus, .ws-textarea:focus { border-color: var(--brass); box-shadow: 0 0 0 3px rgba(245,184,0,.22); }
+
+/* Title bar stays navy (the one dark band, like the site's nav) with a gold rule. */
+.ws-titlebar { background: var(--navy); color: #d6e2ec; border-bottom: 2px solid var(--brass); }
+.ws-titlebar a { color: #d6e2ec; }
+.ws-crumbs { color: #9fb6c9; }
+.ws-crumbs .sep { color: #56718a; }
+.ws-page > .ws-titlebar { background: rgba(13,43,69,.96); border-bottom: 2px solid var(--brass); }
+.ws-statusbar { background: var(--panel-2); color: var(--muted); border-top: 1px solid var(--rule-strong); }
+
+/* Panels float slightly off the paper. */
+.ws-left, .ws-right { background: rgba(255,255,255,.94); }
+.ws-left  { box-shadow: 1px 0 0 var(--rule), 6px 0 18px -14px rgba(13,43,69,.35); }
+.ws-right { box-shadow: -1px 0 0 var(--rule), -6px 0 18px -14px rgba(13,43,69,.35); }
+.ws-toolbar { background: rgba(255,255,255,.9); border-bottom: 1px solid var(--rule-strong); }
+.ws-panel-head { color: var(--brass-ink); background: var(--panel-2); }
+.ws-tab.on { border-bottom-color: var(--brass); color: var(--ink); }
+.ws-toc li.sel { box-shadow: inset 3px 0 0 var(--brass); }
+.ws-mapwrap { box-shadow: inset 0 0 0 1px var(--rule-strong); }
+
+/* Small marks and text that were tuned for the dark theme */
+.ws-swatch, .ws-ramp { border-color: rgba(13,43,69,.25); }
+.ws-avatar { border-color: rgba(13,43,69,.15); }
+.ws-tab .badge, .ws-inbox-link .badge, .ws-dm-list .badge, .ws-phone-tabs .n { color: #1a1200; }
+.ws-msg .body .mention { color: #7a5c00; }
+.ws-pin-tag { color: var(--brass-ink); background: #fff6d9; border-color: rgba(201,162,39,.6); }
+.ws-mention-pop { box-shadow: 0 8px 24px -8px rgba(13,43,69,.35); }
+.ws-log li::after { border-color: #b9a67a; background: #fff; }
+.ws-log li.head::after { box-shadow: 0 0 0 3px rgba(245,184,0,.25); }
+.ws-log li.restore::after { background: #1E5F8E; border-color: #1E5F8E; }
+.ws-log .line1 .hash { color: var(--brass-ink); }
+.ws-diff .add { background: #eaf6e7; color: #2e6b2a; }
+.ws-diff .del { background: #fbeceb; color: #a1352b; }
+.ws-diff .mod { background: #fff6d9; color: #7a5c00; }
+.ws-map .maplibregl-ctrl-group { border-color: var(--rule-strong); box-shadow: 0 4px 12px -4px rgba(13,43,69,.3); }
+.ws-map .maplibregl-popup-content { background: #fff; color: var(--ink); border-color: var(--rule-strong); box-shadow: 0 12px 30px -10px rgba(13,43,69,.4); }
+.ws-map .maplibregl-popup-anchor-top .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #fff; }
+.ws-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #fff; }
+.ws-map .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #fff; }
+.ws-map .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #fff; }
+.ws-legend, .ws-map-note, .ws-busy { background: rgba(255,255,255,.94); color: var(--ink); border-color: var(--rule-strong); box-shadow: 0 8px 22px -10px rgba(13,43,69,.35); }
+.ws-map-note { border-color: var(--brass); }
+.ws-legend .bar { border-color: rgba(13,43,69,.2); }
+.ws-modal-back { background: rgba(13,43,69,.35); }
+.ws-dialog, .ws-float { background: #fff; border-color: var(--rule-strong); box-shadow: 0 24px 60px -20px rgba(13,43,69,.5); }
+.ws-dialog .ws-panel-head, .ws-float .ws-panel-head { background: var(--panel-2); }
+.ws-drop.over { background: #fff6d9; }
+.ws-table { background: rgba(255,255,255,.94); box-shadow: 0 14px 34px -22px rgba(13,43,69,.45); }
+.ws-table th { background: #fbf3dc; color: #7a5d00; }
+.ws-table td { border-top-color: var(--rule); }
+.ws-table tr:hover td { background: #fffaea; }
+.ws-table a.pname:hover { color: var(--link); }
+.ws-box { background: rgba(255,255,255,.94); box-shadow: 0 14px 34px -22px rgba(13,43,69,.45); }
+.ws-note { background: #fff6d9; border-color: rgba(201,162,39,.45); border-left-color: var(--brass); color: var(--ink-soft); }
+.ws-attr-cols { box-shadow: 0 8px 22px -8px rgba(13,43,69,.35); }
+.ws-attr-body tbody tr.sel td { background: #fff1c2; }
+.ws-attr-body tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--brass); }
+.ws-role-chip.viewer { border-color: #9dbad6; color: #1E5F8E; }
+.ws-role-chip.manager { border-color: var(--brass); color: var(--brass-ink); background: #fff6d9; }
+.ws-src.lenga { color: var(--brass-ink); border-color: rgba(201,162,39,.6); background: #fff6d9; }
+.ws-src.yours { color: #4d6378; border-color: #c9d3dc; }
+.ws-phone-tabs { background: var(--panel); border-top: 1px solid var(--rule-strong); }
+.ws-sheet { box-shadow: 0 -12px 30px -10px rgba(13,43,69,.35); }
+.ws-phone-notice { box-shadow: 0 8px 20px -8px rgba(13,43,69,.35); }
+.ws-tour-body, .ws-start p { color: var(--ink-soft); }
+.ws-link-btn, .ws-start-grid span, .ws-start .foot { color: var(--muted); }
+.ws-start { background: rgba(255,255,255,.97); box-shadow: 0 20px 50px -18px rgba(13,43,69,.45); }
+.ws-start-grid button, .ws-start-grid a { background: #fbf8f0; }
+.ws-tour-hole { box-shadow: 0 0 0 9999px rgba(13,43,69,.5); border-radius: 8px; }
+.ws-tour-card { border-radius: 12px; box-shadow: 0 20px 50px -18px rgba(13,43,69,.55); }
+.ws-tour-step { color: var(--brass-ink); font-weight: 700; }
+.ws-start { border-radius: 14px; }
+.ws-start-grid button, .ws-start-grid a { border-radius: 10px; }
+.ws-steps div { background: rgba(255,255,255,.92); border-color: var(--rule); border-radius: 12px; box-shadow: 0 10px 24px -18px rgba(13,43,69,.45); }
+.ws-steps i { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--brass); color: #1a1200; font-size: 11px; }

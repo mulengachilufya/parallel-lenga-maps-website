@@ -1,9 +1,10 @@
 'use client'
 
 /**
- * Choose the free plan's 3 datasets. Used on the dashboard (your own 3) and
- * the Team page (a free team's 3, owner only). Picks are permanent: the
- * server only ever adds, so this asks for a clear confirmation first.
+ * Choose the free plan's 3 datasets. Used on the dashboard and the Team
+ * page (always your own 3: free teams use their members' picks combined).
+ * Picks are permanent: the server only ever adds, so this asks for a clear
+ * confirmation first.
  */
 
 import { useState } from 'react'
@@ -59,12 +60,33 @@ export default function FreeDatasetPicker({ picks, endpoint, onSaved, dark, canP
         </p>
         {left > 0 && canPick && <p className={`${large ? 'text-sm' : 'text-xs'} ${tone.muted}`}>Choose {left === FREE_DATASET_LIMIT ? FREE_DATASET_LIMIT : `${left} more`}. Chosen datasets are kept for good and can&apos;t be swapped.</p>}
       </div>
-      <div className={`mt-3 flex flex-wrap ${large ? 'gap-2.5' : 'gap-2'}`}>
+      <div className={large ? 'mt-4 grid grid-cols-1 min-[400px]:grid-cols-2 gap-3' : 'mt-3 flex flex-wrap gap-2'}>
         {/* Already-chosen datasets lead the list. */}
         {[...FREE_PICKABLE].sort((a, b) => Number(picks.includes(b)) - Number(picks.includes(a))).map((s) => {
           const mine = picks.includes(s)
           const on = sel.includes(s)
           const disabled = mine || !canPick || left <= 0 || (!on && sel.length >= left)
+          if (large) {
+            const meta = DATASET_META[s]
+            // Big, clearly separate cards: name, what kind of data it is, and a tick.
+            return (
+              <button key={s} type="button" disabled={disabled} onClick={() => toggle(s)} aria-pressed={on || mine}
+                      className={`relative flex min-h-[84px] flex-col justify-center rounded-xl border-2 px-4 py-3 pr-11 text-left transition-all ${
+                        mine ? 'border-green-500 bg-green-50'
+                        : on ? 'border-[#F5B800] bg-[#fff6d9] shadow-[0_8px_20px_-10px_rgba(201,162,39,0.8)]'
+                        : 'border-gray-200 bg-white hover:border-[#0D2B45] hover:shadow-md'
+                      } ${disabled && !mine ? 'opacity-45 cursor-not-allowed hover:border-gray-200 hover:shadow-none' : ''}`}>
+                <span className="text-[15px] font-bold leading-snug text-[#0D2B45]">{freeDatasetName(s)}</span>
+                <span className="mt-1 text-xs text-gray-500">{meta?.raster ? 'Raster' : 'Vector'} · {meta?.formats ?? ''}</span>
+                <span className={`absolute right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                  mine ? 'border-green-500 bg-green-500 text-white' : on ? 'border-[#F5B800] bg-[#F5B800] text-[#1a1200]' : 'border-gray-300 bg-white text-gray-400'
+                }`}>
+                  {mine || on ? <Check size={14} strokeWidth={3} /> : left <= 0 ? <Lock size={11} /> : null}
+                </span>
+                {mine && <span className="mt-1 text-[11px] font-bold uppercase tracking-wide text-green-700">Yours</span>}
+              </button>
+            )
+          }
           return (
             <button key={s} type="button" disabled={disabled} onClick={() => toggle(s)}
                     className={`inline-flex items-center gap-1.5 rounded-full border ${large ? 'px-4 py-2.5 text-sm' : 'px-3 py-1.5 text-xs'} font-semibold transition-colors ${mine ? tone.mine : on ? tone.on : tone.chip} ${disabled && !mine ? 'opacity-45 cursor-not-allowed' : ''}`}>

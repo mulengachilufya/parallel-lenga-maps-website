@@ -90,9 +90,11 @@ export default function WorkspaceIndex() {
             </div>
             {data.org.plan === 'free' && (
               <p className="ws-note">
-                <b>Free team:</b> 2 seats and 3 datasets
-                {data.org.free_datasets?.length ? ` (${data.org.free_datasets.map(freeDatasetName).join(', ')})` : ''}.{' '}
-                {(data.org.free_datasets?.length ?? 0) < 3 && <>{data.me.role === 'owner' ? 'Choose them' : 'The team owner chooses them'} on the <Link href="/team">Team</Link> page. </>}
+                <b>Free team:</b> your projects can use every dataset a team member chose (3 each), and everyone on the team can load and export them here.{' '}
+                {data.org.free_datasets?.length
+                  ? <>Available now: {data.org.free_datasets.map(freeDatasetName).join(', ')}. </>
+                  : <>No one has chosen yet. </>}
+                Choose yours on your <Link href="/dashboard">dashboard</Link>.{' '}
                 <Link href="/projects">Upgrade</Link> for more seats and every dataset.
               </p>
             )}

@@ -13,6 +13,7 @@ import { logEvent } from '@/lib/ops/log'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
 import { atLeast, resolveRole, type ProjectRole, type WsProject, type WsRevision } from './types'
 import { workspaceDatasets } from '@/lib/entitlements'
+import type { DatasetSlug } from '@/lib/pricing'
 
 export const service: SupabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,8 @@ export interface WorkspaceGate {
   user:       User
   membership: Membership
   name:       string
+  /** Datasets this team's projects may use ('all' for a paid team). */
+  allowed:    'all' | DatasetSlug[]
 }
 
 export function jsonError(error: string, status: number) {
@@ -40,19 +43,22 @@ export async function requireWorkspace(): Promise<WorkspaceGate | { denied: Next
   if (!membership) return { denied: jsonError('no_team', 403) }
   if (!isOrgActive(membership)) return { denied: jsonError('team_inactive', 403) }
 
-  const { data: row } = await service
-    .from('organization_members')
-    .select('member_name, member_email')
-    .eq('org_id', membership.org_id)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [{ data: row }, allowed] = await Promise.all([
+    service
+      .from('organization_members')
+      .select('member_name, member_email')
+      .eq('org_id', membership.org_id)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    workspaceDatasets(service, membership),
+  ])
 
   const name =
     row?.member_name?.trim() ||
     (typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.trim() : '') ||
     row?.member_email || user.email || 'Team member'
 
-  return { user, membership, name }
+  return { user, membership, name, allowed }
 }
 
 export type LoadedProject = WsProject & { role: ProjectRole }
@@ -107,18 +113,18 @@ export async function commit(
 }
 
 /**
- * May this team put this catalogue dataset on its maps? Paid teams: any.
- * Free teams: only the 3 datasets the owner chose.
+ * May this team put this catalogue dataset on its maps, load it and export
+ * it? Paid teams: any. Free teams: any dataset one of its members picked.
+ * This is the only gate for Lenga data inside the workspace.
  */
 export function datasetAllowed(gate: WorkspaceGate, slug: string): boolean {
-  const allowed = workspaceDatasets(gate.membership)
-  return allowed === 'all' || (allowed as string[]).includes(slug)
+  return gate.allowed === 'all' || (gate.allowed as string[]).includes(slug)
 }
 
 export function lockedDataset() {
   return NextResponse.json({
     error: 'free_dataset_locked',
-    message: 'Your free team includes 3 datasets. Upgrade to put any dataset on your maps.',
+    message: 'This dataset is not one your team members chose. On a free team, projects use the datasets each member picked on their dashboard. Upgrade to put any dataset on your maps.',
   }, { status: 403 })
 }
 

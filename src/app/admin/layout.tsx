@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-shell min-h-screen bg-gray-50 text-gray-900">
       <header className="sticky top-0 z-40 bg-[#0D2B45] border-b border-blue-900/40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
           <Link href="/admin" className="flex items-center gap-2.5">

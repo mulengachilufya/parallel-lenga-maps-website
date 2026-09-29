@@ -5,8 +5,14 @@
 //
 //   Paid (individual or team plan, not expired)  every dataset
 //   Free                                         the 3 datasets the person
-//                                                picked, plus the 3 their
-//                                                free team picked, if any
+//                                                picked, and nothing else
+//
+// Free teams do not choose datasets of their own. A free team's projects
+// can use every dataset any of its members picked (the union of their
+// picks), and inside those projects every member can load and export all
+// of them. Outside the projects each person still downloads only their own
+// 3: the team's datasets are reachable only through the workspace routes,
+// which check workspaceDatasets(), never through accessFor().
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -22,7 +28,10 @@ export interface Access {
   personal:   { picks: DatasetSlug[]; left: number }
   team:       null | {
     org_id: string; name: string; plan: 'paid' | 'free'; role: 'owner' | 'member'
-    active: boolean; picks: DatasetSlug[]; left: number; seats: number
+    active: boolean
+    /** A free team's project datasets: every member's picks combined (usable in projects only). */
+    picks: DatasetSlug[]
+    left: number; seats: number
   }
 }
 
@@ -33,19 +42,19 @@ export async function accessFor(db: SupabaseClient, userId: string, membership?:
   ])
   const state = getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at)
   const personal = cleanPicks(profile?.free_datasets)
+  const plan = (m?.org.plan ?? 'paid') as 'paid' | 'free'
   const team = m ? {
-    org_id: m.org_id, name: m.org.name, plan: (m.org.plan ?? 'paid') as 'paid' | 'free', role: m.role,
-    active: isOrgActive(m), picks: cleanPicks(m.org.free_datasets), left: 0, seats: m.org.seat_count,
+    org_id: m.org_id, name: m.org.name, plan, role: m.role,
+    active: isOrgActive(m), picks: plan === 'free' ? await teamDatasets(db, m) : [], left: 0, seats: m.org.seat_count,
   } : null
-  if (team) team.left = team.plan === 'free' ? Math.max(0, FREE_DATASET_LIMIT - team.picks.length) : 0
 
   // A member of a free team never counts as paid, whatever the profile says.
   const paid = state !== 'free' && !(state === 'team' && team?.plan === 'free')
-  const teamPicks = team && team.plan === 'free' && team.active ? team.picks : []
   return {
     state: paid ? state : 'free',
     paid,
-    datasets: paid ? [] : [...new Set([...personal, ...teamPicks])],
+    // Personal picks only: a teammate's datasets are for the team's projects.
+    datasets: paid ? [] : personal,
     personal: { picks: personal, left: Math.max(0, FREE_DATASET_LIMIT - personal.length) },
     team,
   }
@@ -56,11 +65,29 @@ export function canDownload(a: Access, slug: string): boolean {
 }
 
 /**
- * Datasets a team workspace may put on its maps: everything for a paid
- * team, the team's 3 picks for a free one.
+ * The datasets a free team's projects can use: every current member's
+ * personal picks combined, plus any picks the team itself made before teams
+ * stopped choosing their own (kept so no existing project loses a layer).
+ * Service-role client only.
  */
-export function workspaceDatasets(m: Membership): 'all' | DatasetSlug[] {
-  return m.org.plan === 'free' ? cleanPicks(m.org.free_datasets) : 'all'
+export async function teamDatasets(db: SupabaseClient, m: Membership): Promise<DatasetSlug[]> {
+  const { data: members, error } = await db.from('organization_members').select('user_id').eq('org_id', m.org_id)
+  if (error) console.error('[entitlements] team members lookup failed', error)
+  const ids = (members ?? []).map((r) => r.user_id as string).filter(Boolean)
+  const { data: profiles, error: pErr } = ids.length
+    ? await db.from('profiles').select('free_datasets').in('id', ids)
+    : { data: [], error: null }
+  if (pErr) console.error('[entitlements] team picks lookup failed', pErr)
+  const all = [cleanPicks(m.org.free_datasets), ...(profiles ?? []).map((p) => cleanPicks(p.free_datasets))].flat()
+  return [...new Set(all)]
+}
+
+/**
+ * Datasets a team workspace may put on its maps, load and export:
+ * everything for a paid team, the members' combined picks for a free one.
+ */
+export async function workspaceDatasets(db: SupabaseClient, m: Membership): Promise<'all' | DatasetSlug[]> {
+  return m.org.plan === 'free' ? teamDatasets(db, m) : 'all'
 }
 
 /**

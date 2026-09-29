@@ -113,6 +113,17 @@ body {
   }
 }
 
+/* ── Readable form fields on light pages ─────────────────────────────────────
+   body sets white text for the dark site, and form fields inherit it, so a
+   field on a white card showed white-on-white. On light surfaces (the admin
+   pages, and any white or grey card) fields fall back to dark ink unless they
+   ask for white text themselves. */
+.admin-shell :is(input, textarea, select):not([class*="text-white"]),
+:is(.bg-white, .bg-gray-50) :is(input, textarea, select):not([class*="text-white"]) {
+  color: #111827;
+}
+.admin-shell :is(input, textarea)::placeholder { color: #9ca3af; }
+
 /* ── Water surfaces ─────────────────────────────────────────────────────────
    Flat navy sections read as a single slab of blue. Instead each dark
    section carries a faint contour-line texture (like the ripples on a
