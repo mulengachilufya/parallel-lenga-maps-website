@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str,
 } from '@/lib/workspace/server'
+import { openTeam } from '@/lib/teams'
 import { resolveRole, sanitizeMapState, type ProjectRole, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,17 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   if ('denied' in gate) return gate.denied
   const { id } = await params
   const project = await loadProject(gate, id)
-  if (!project) return jsonError('not_found', 404)
+  if (!project) {
+    // A link to a project on another of the caller's teams: open that team
+    // and ask the page to load again (every workspace route then scopes to it).
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
+      const { data: other } = await service.from('workspace_projects').select('org_id').eq('id', id).is('archived_at', null).maybeSingle()
+      if (other && other.org_id !== gate.membership.org_id && await openTeam(service, gate.user.id, other.org_id)) {
+        return jsonError('switched_team', 409)
+      }
+    }
+    return jsonError('not_found', 404)
+  }
 
   const [layers, bookmarks, members, head, explicit] = await Promise.all([
     service.from('workspace_layers').select('*').eq('project_id', id)

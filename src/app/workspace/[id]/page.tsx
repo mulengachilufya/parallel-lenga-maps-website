@@ -107,6 +107,7 @@ function Workstation() {
   const loadBundle = useCallback(async () => {
     const res = await fetch(`/api/workspace/projects/${id}`)
     if (res.status === 401) { router.replace(`/login?next=${encodeURIComponent(`/workspace/${id}`)}`); return }
+    if (res.status === 409) { window.location.reload(); return }   // switched to this project's team
     if (res.status === 403) { setFatal('no_team'); return }
     if (res.status === 404) { setFatal('not_found'); return }
     if (!res.ok) { setFatal('error'); return }

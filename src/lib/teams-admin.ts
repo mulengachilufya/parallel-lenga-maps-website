@@ -34,9 +34,6 @@ export async function provisionOrg(db: SupabaseClient, input: ProvisionInput): P
   if (!profile) {
     return { ok: false, status: 404, error: 'owner_not_found', message: `No Lenga Maps account exists for ${ownerEmail}. Ask them to sign up first.` }
   }
-  if (profile.org_id) {
-    return { ok: false, status: 409, error: 'already_in_org', message: 'That account already belongs to an organization.' }
-  }
 
   const { data: org, error: orgErr } = await db
     .from('organizations')

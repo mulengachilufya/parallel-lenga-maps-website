@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES } from '@/lib/pricing'
 import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
+import TeamSwitcher, { type TeamOption } from '@/components/TeamSwitcher'
 
 const GOLD = '#F5B800'
 const GOLD_ICON = '#d9a200'
@@ -55,6 +56,7 @@ interface TeamPayload {
   members: Member[]; invites: Invite[]; events: Ev[]
   seats: { total: number; used: number; pending: number }
   team_datasets?: string[]
+  teams?: TeamOption[]
   my_picks?: { picks: string[]; left: number }
 }
 
@@ -120,6 +122,7 @@ export default function TeamPage() {
   const [data, setData] = useState<TeamPayload | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'no_team' | 'signed_out'>('loading')
   const [tab, setTab] = useState<Tab>('overview')
+  const [creating, setCreating] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -184,8 +187,8 @@ export default function TeamPage() {
           <Users size={40} className="mx-auto" style={{ color: GOLD_ICON }} />
           <h1 className="mt-5 text-2xl font-extrabold">You&apos;re not on a team yet</h1>
           <p className="mt-3 text-sm leading-relaxed text-[#2c4a63]">
-            Start a free team now: a shared project workspace for {FREE_TEAM_SEATS} people, with {FREE_DATASET_LIMIT} datasets
-            you choose. If your organisation already has a team, ask its owner for an invite instead.
+            Start a free team now: a shared project workspace for {FREE_TEAM_SEATS} people, using the {FREE_DATASET_LIMIT} datasets
+            each of you chooses. You can be on as many teams as you like, so you can also accept invites to others.
           </p>
           <CreateFreeTeam onCreated={refresh} />
           <p className="mt-6 text-xs text-[#5a7086]">
@@ -217,6 +220,21 @@ export default function TeamPage() {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: GOLD_INK }}>Team workspace</p>
             <h1 className="mt-1.5 text-2xl sm:text-3xl font-extrabold">{data.org.name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <TeamSwitcher teams={data.teams ?? []} current={data.org.id}
+                            className="[&_select]:rounded-lg [&_select]:border [&_select]:border-[#dccfa8] [&_select]:bg-white [&_select]:px-3 [&_select]:py-1.5 [&_select]:text-sm [&_select]:font-semibold [&_select]:text-[#0D2B45]" />
+              <button type="button" onClick={() => setCreating((v) => !v)}
+                      className="rounded-lg border border-[#dccfa8] bg-white px-3 py-1.5 text-sm font-semibold text-[#0D2B45] hover:border-[#F5B800]">
+                {creating ? 'Cancel' : '+ New team'}
+              </button>
+            </div>
+            {creating && (
+              <div className="mt-3 max-w-md rounded-xl border border-[#e8dfc6] bg-white p-4">
+                <p className="text-sm font-bold">Start another free team</p>
+                <p className="mt-1 text-xs text-[#5a7086]">{FREE_TEAM_SEATS} seats, free for good. You can be on as many teams as you like.</p>
+                <CreateFreeTeam onCreated={async () => { setCreating(false); window.location.reload() }} />
+              </div>
+            )}
             <Link href="/workspace" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-2 decoration-[#F5B800]" style={{ color: GOLD_INK }}>
               Open the projects workspace: shared maps, discussion and history →
             </Link>

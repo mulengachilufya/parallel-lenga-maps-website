@@ -18,7 +18,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   FREE_DATASET_LIMIT, cleanPicks, getUserState, type DatasetSlug, type UserState,
 } from './pricing'
-import { getMembership, isOrgActive, type Membership } from './teams'
+import { getMembership, isOrgActive, listMemberships, type Membership } from './teams'
 
 export interface Access {
   state:      UserState
@@ -48,8 +48,12 @@ export async function accessFor(db: SupabaseClient, userId: string, membership?:
     active: isOrgActive(m), picks: plan === 'free' ? await teamDatasets(db, m) : [], left: 0, seats: m.org.seat_count,
   } : null
 
-  // A member of a free team never counts as paid, whatever the profile says.
-  const paid = state !== 'free' && !(state === 'team' && team?.plan === 'free')
+  // plan 'team' on the profile comes from joining a paid team. It counts as
+  // paid unless every team the person is on is a free one (so opening a
+  // free team never takes away a paid team's access).
+  const teamPlanOnlyFree = state === 'team' && !!m && m.org.plan === 'free'
+    && !(await listMemberships(db, userId)).some((x) => x.org.plan !== 'free')
+  const paid = state !== 'free' && !teamPlanOnlyFree
   return {
     state: paid ? state : 'free',
     paid,

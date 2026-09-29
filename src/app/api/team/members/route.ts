@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { getMembership } from '@/lib/teams'
+import { getMembership, hasActivePaidTeam } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,12 +53,15 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'not_found', message: 'That member is not on your team.' }, { status: 404 })
   }
 
-  // Their access came from the team; the team took it back.
-  // (The DB trigger already cleared profiles.org_id.)
-  await service.from('profiles')
-    .update({ plan: null, plan_status: 'free', plan_expires_at: null })
-    .eq('id', body.user_id)
-    .eq('plan', 'team')   // never clobber an unrelated personal plan
+  // Their access came from the team; the team took it back, unless another
+  // paid team they are still on carries it. (The DB trigger already moved
+  // profiles.org_id to one of their other teams, or cleared it.)
+  if (!(await hasActivePaidTeam(service, body.user_id))) {
+    await service.from('profiles')
+      .update({ plan: null, plan_status: 'free', plan_expires_at: null })
+      .eq('id', body.user_id)
+      .eq('plan', 'team')   // never clobber an unrelated personal plan
+  }
 
   return NextResponse.json({ ok: true })
 }

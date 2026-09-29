@@ -86,27 +86,57 @@ export interface Membership {
   }
 }
 
+const MEMBERSHIP_SELECT =
+  'org_id, role, joined_at, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, access_expires_at, created_at, plan, free_datasets)'
+
 /**
- * Resolve a user's org membership. MUST be called with the service-role
- * client (membership reads in API routes happen before/independent of RLS).
- * Returns null for users who belong to no organization.
+ * Every team the user is on, earliest joined first (migration 044: one
+ * person can be on many teams). Service-role client only.
+ */
+export async function listMemberships(service: SupabaseClient, userId: string): Promise<Membership[]> {
+  const { data, error } = await service
+    .from('organization_members')
+    .select(MEMBERSHIP_SELECT)
+    .eq('user_id', userId)
+    .order('joined_at', { ascending: true, nullsFirst: false })
+  if (error || !data) return []
+  return data.flatMap((row) => {
+    // supabase-js types embedded relations loosely; normalise to one object.
+    const orgRaw = (row as { organizations: unknown }).organizations
+    const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as Membership['org'] | undefined
+    return org ? [{ org_id: row.org_id as string, role: row.role as 'owner' | 'member', org }] : []
+  })
+}
+
+/**
+ * The team the user has open: profiles.org_id when it is still one of their
+ * teams, else the first team they joined. Every team-scoped route (team
+ * page, workspace, entitlements) works on this one. MUST be called with the
+ * service-role client. Returns null for users on no team.
  */
 export async function getMembership(
   service: SupabaseClient,
   userId: string,
 ): Promise<Membership | null> {
-  const { data, error } = await service
-    .from('organization_members')
-    .select('org_id, role, organizations!inner(id, name, sector, region, operating_countries, seat_count, status, contact_email, promo_emails, api_rate_per_min, access_expires_at, created_at, plan, free_datasets)')
-    .eq('user_id', userId)
-    .maybeSingle()
+  const [all, { data: profile }] = await Promise.all([
+    listMemberships(service, userId),
+    service.from('profiles').select('org_id').eq('id', userId).maybeSingle(),
+  ])
+  if (!all.length) return null
+  return all.find((m) => m.org_id === profile?.org_id) ?? all[0]
+}
 
-  if (error || !data) return null
-  // supabase-js types embedded relations loosely; normalise to one object.
-  const orgRaw = (data as { organizations: unknown }).organizations
-  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as Membership['org']
-  if (!org) return null
-  return { org_id: data.org_id, role: data.role as 'owner' | 'member', org }
+/** Open another of the user's teams. False when they are not on it. */
+export async function openTeam(service: SupabaseClient, userId: string, orgId: string): Promise<boolean> {
+  const all = await listMemberships(service, userId)
+  if (!all.some((m) => m.org_id === orgId)) return false
+  const { error } = await service.from('profiles').update({ org_id: orgId }).eq('id', userId)
+  return !error
+}
+
+/** Is the user on any active, paid team? (A paid team carries every dataset.) */
+export async function hasActivePaidTeam(service: SupabaseClient, userId: string): Promise<boolean> {
+  return (await listMemberships(service, userId)).some((m) => m.org.plan !== 'free' && isOrgActive(m))
 }
 
 /** Active = the org is in good standing and its paid period hasn't ended. */
