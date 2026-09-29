@@ -43,7 +43,16 @@ export default function Tour({ steps, storageKey, onClose }: { steps: TourStep[]
       if (e.key === 'ArrowLeft') setI((n) => Math.max(0, n - 1))
     }
     window.addEventListener('keydown', onKey)
-    return () => { window.removeEventListener('resize', measure); window.removeEventListener('keydown', onKey) }
+    // The dimmed page stays usable: a click anywhere outside the card ends
+    // the tour and still reaches whatever was clicked.
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.('.ws-tour-card')) finish()
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => {
+      window.removeEventListener('resize', measure); window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onDown, true)
+    }
   }, [measure, finish, live.length])
 
   if (!step || !rect) return null

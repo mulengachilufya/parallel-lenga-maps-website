@@ -245,10 +245,13 @@ function Workstation() {
   const readOnly = !!preview || !canEdit
 
   // First visit on a computer: offer the tour once the map is on screen.
+  // An empty map already shows the "Start here" panel (with its own tour
+  // link), so the tour only opens by itself once there is something on it.
   const hasBundle = !!bundle
+  const mapEmpty = tocLayers.length === 0
   useEffect(() => {
-    if (!phone && hasBundle && !tourSeen(TOUR_KEY)) { const t = setTimeout(() => setTourOn(true), 900); return () => clearTimeout(t) }
-  }, [phone, hasBundle])
+    if (!phone && hasBundle && !mapEmpty && !tourSeen(TOUR_KEY)) { const t = setTimeout(() => setTourOn(true), 900); return () => clearTimeout(t) }
+  }, [phone, hasBundle, mapEmpty])
 
   // Fresh from a template: frame the data once the first vector layer loads.
   const fitted = useRef(false)
@@ -587,16 +590,16 @@ function Workstation() {
         />
         {tocLayers.length === 0 && !preview && !phone && (
           <div className="ws-start">
-            <h3>This map is empty. Start here.</h3>
-            <p>Everything you add appears on this one map for your whole team. Pick one:</p>
+            <h3>Start your map</h3>
+            <p>Everyone on this project sees the same map.</p>
             <div className="ws-start-grid">
-              <button onClick={() => setFloating('add')} disabled={readOnly}><b>+ Add Lenga data</b><span>Rivers, roads, land cover, rainfall and more, for any African country.</span></button>
-              <button onClick={() => setFloating('import')} disabled={readOnly}><b>Upload my files</b><span>Shapefile, GeoPackage, KML, GeoTIFF or a QGIS project. Kept private.</span></button>
-              <a href="/team"><b>Invite a colleague</b><span>They see this map, comment on it and leave voice notes.</span></a>
+              <button onClick={() => setFloating('add')} disabled={readOnly}><b>+ Add Lenga data</b><span>Any dataset, any African country.</span></button>
+              <button onClick={() => setFloating('import')} disabled={readOnly}><b>Upload my files</b><span>Shapefile, KML, GeoTIFF or QGIS.</span></button>
+              <a href="/team"><b>Invite a colleague</b><span>Work on this map together.</span></a>
             </div>
             <div className="foot">
               {readOnly ? 'You are a viewer on this project, so ask a project manager to add layers. ' : ''}
-              New here? <a href="#" onClick={(e) => { e.preventDefault(); setTourOn(true) }}>Take the one minute tour</a>.
+              New here? <a href="#" onClick={(e) => { e.preventDefault(); setTourOn(true) }}>Take the 1-minute tour</a>
             </div>
           </div>
         )}

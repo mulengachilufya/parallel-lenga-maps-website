@@ -682,140 +682,170 @@
 .ws-steps i { font-style: normal; color: var(--brass); font-weight: 700; margin-right: 4px; }
 @media (max-width: 800px) { .ws-steps { grid-template-columns: 1fr 1fr; } }
 
-/* ══ Paper theme ═════════════════════════════════════════════════════════════
-   The workspace in the same house style as the team page and dashboard:
-   warm white paper with faint gold contour lines, white panels ruled in
-   warm grey, navy ink, and the brand gold for the things that matter. It
-   keeps the desktop-GIS layout (title bar, toolbar, docked panels, status
-   bar); only the colours and surfaces change. Everything above is still the
-   structure; this block only re-points colours, so it wins by coming last. */
+/* ══ Brand theme ═════════════════════════════════════════════════════════════
+   Brand navy panels with a lift of blue (lighter and bluer than the old
+   charcoal), the brand gold for the few things that matter, and the map as
+   the one bright surface. Space Grotesk for titles, Inter for the interface
+   (both already loaded by the site). The desktop-GIS layout is unchanged;
+   this block only re-points colours and type, so it wins by coming last. */
 .ws {
-  --paper:       #fbf8f0;
-  --panel:       #ffffff;
-  --panel-2:     #f7f2e4;   /* panel heads, toolbars */
-  --panel-3:     #f3ebd2;   /* hover */
-  --white:       #ffffff;   /* fields, lists, popups */
-  --ink:         #0D2B45;
-  --ink-soft:    #2c4a63;
-  --muted:       #6b7c8c;
-  --rule:        #ece4cf;
-  --rule-strong: #dccfa8;
-  --head-a:      #f7f2e4;
-  --head-b:      #f7f2e4;
-  --navy:        #0D2B45;
-  --navy-rule:   #173a5a;
+  --paper:       #0f2b45;   /* behind the panels */
+  --panel:       #173b5c;   /* panels */
+  --panel-2:     #13324f;   /* panel heads, toolbars */
+  --panel-3:     #1f4a70;   /* hover */
+  --white:       #102e4a;   /* fields, lists */
+  --ink:         #f1f6fa;
+  --ink-soft:    #c6d7e6;
+  --muted:       #93afc7;
+  --rule:        rgba(255,255,255,.09);
+  --rule-strong: rgba(255,255,255,.17);
+  --head-a:      #13324f;
+  --head-b:      #13324f;
+  --navy:        #0b233a;
+  --navy-rule:   #1f4a70;
   --gold:        #F5B800;
   --brass:       #F5B800;
-  --brass-ink:   #9a7400;   /* gold for text on white */
-  --link:        #1E5F8E;
-  --mark:        rgba(245,184,0,.16);
-  --mark-rule:   rgba(201,162,39,.65);
-  --danger:      #c0392b;
-  --ok:          #2e7d32;
-  --pane:        rgba(255,255,255,.92);
-  --pane-rule:   #e8dfc6;
-  --pane-lit:    inset 0 1px 0 #ffffff;
-  color-scheme: light;
+  --brass-ink:   #F5B800;
+  --link:        #8cc4f0;
+  --mark:        rgba(245,184,0,.17);
+  --mark-rule:   rgba(245,184,0,.55);
+  --danger:      #ff8a7a;
+  --ok:          #7fd18b;
+  --pane:        rgba(23,59,92,.9);
+  --pane-rule:   rgba(255,255,255,.12);
+  --pane-lit:    inset 0 1px 0 rgba(255,255,255,.08);
+  --ui:    Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --title: var(--font-display), 'Space Grotesk', Inter, system-ui, sans-serif;
+  --mono:  ui-monospace, 'SF Mono', Consolas, 'DejaVu Sans Mono', monospace;
+  font-size: 12.5px;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
   background-color: var(--paper);
-  background-image: url('/textures/contours-gold.svg');
+  background-image: url('/textures/contours.svg');
   background-size: 640px 640px;
 }
-.ws a { text-decoration-color: rgba(30,95,142,.35); }
-.ws a:hover { color: #0D2B45; }
+.ws h1, .ws h2, .ws h3 { font-weight: 700; letter-spacing: -.01em; }
+.ws a:hover { color: #d7ecff; }
 .ws ::selection { background: rgba(245,184,0,.35); }
-.ws * { scrollbar-color: #d8cba4 transparent; }
+.ws * { scrollbar-color: rgba(255,255,255,.2) transparent; }
 .ws ::-webkit-scrollbar-track { background: transparent; }
-.ws ::-webkit-scrollbar-thumb { background: #dccfa8; border: 2px solid var(--panel); border-radius: 6px; }
+.ws ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border: 2px solid var(--panel); border-radius: 6px; }
 
-/* Buttons: white with a warm edge; the default action is solid gold. */
-.ws-btn { background: #fff; border-color: var(--rule-strong); color: var(--ink); box-shadow: 0 1px 0 rgba(13,43,69,.04); }
-.ws-btn:hover { background: var(--panel-3); border-color: #c9b77f; }
-.ws-btn:active { background: #efe5c6; }
-.ws-btn:disabled { color: #a3adb6; background: #faf7ef; border-color: var(--rule); }
+/* Buttons: quiet blue by default; the one main action is solid gold. */
+.ws-btn { background: rgba(255,255,255,.06); border-color: var(--rule-strong); color: var(--ink); font-size: 12px; font-weight: 500; min-height: 26px; padding: 3px 11px; border-radius: 8px; }
+.ws-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); }
+.ws-btn:active { background: rgba(255,255,255,.18); }
+.ws-btn:disabled { color: rgba(241,246,250,.35); background: transparent; border-color: var(--rule); }
 .ws-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
-.ws-btn-default { background: var(--brass); border-color: var(--brass); color: #1a1200; box-shadow: 0 4px 12px -6px rgba(201,162,39,.9); }
+.ws-btn-default { background: var(--brass); border-color: var(--brass); color: #1a1200; font-weight: 700; box-shadow: 0 6px 16px -8px rgba(245,184,0,.8); }
 .ws-btn-default:hover { background: #ffc81f; border-color: #ffc81f; }
-.ws-btn-default:disabled { color: #8a7a45; background: #f3e5b5; border-color: #ecdca6; box-shadow: none; }
-.ws-btn-danger { color: var(--danger); }
-.ws-btn-default.ws-btn-danger { background: #c0392b; border-color: #c0392b; color: #fff; }
-.ws-btn-flat { background: transparent; border-color: transparent; box-shadow: none; }
-.ws-btn.is-on { background: #fff6d9; border-color: var(--brass); color: var(--brass-ink); }
+.ws-btn-default:disabled { color: rgba(26,18,0,.5); background: rgba(245,184,0,.35); border-color: transparent; box-shadow: none; }
+.ws-btn-default.ws-btn-danger { background: #d9534a; border-color: #d9534a; color: #fff; box-shadow: none; }
+.ws-btn-flat { background: transparent; border-color: transparent; }
+.ws-btn.is-on { background: rgba(245,184,0,.16); border-color: var(--brass); color: var(--brass); }
 
 /* Fields */
-.ws-input, .ws-select, .ws-textarea { background: #fff; color: var(--ink); border-color: var(--rule-strong); }
-.ws-input::placeholder, .ws-textarea::placeholder { color: #9aa7b2; }
-.ws-input:focus, .ws-select:focus, .ws-textarea:focus { border-color: var(--brass); box-shadow: 0 0 0 3px rgba(245,184,0,.22); }
+.ws-input, .ws-select, .ws-textarea { background: var(--white); color: var(--ink); border-color: var(--rule-strong); border-radius: 8px; }
+.ws-input::placeholder, .ws-textarea::placeholder { color: rgba(198,215,230,.55); }
+.ws-input:focus, .ws-select:focus, .ws-textarea:focus { border-color: var(--brass); box-shadow: 0 0 0 3px rgba(245,184,0,.2); }
 
-/* Title bar stays navy (the one dark band, like the site's nav) with a gold rule. */
-.ws-titlebar { background: var(--navy); color: #d6e2ec; border-bottom: 2px solid var(--brass); }
-.ws-titlebar a { color: #d6e2ec; }
-.ws-crumbs { color: #9fb6c9; }
-.ws-crumbs .sep { color: #56718a; }
-.ws-page > .ws-titlebar { background: rgba(13,43,69,.96); border-bottom: 2px solid var(--brass); }
-.ws-statusbar { background: var(--panel-2); color: var(--muted); border-top: 1px solid var(--rule-strong); }
+/* Bars */
+.ws-titlebar { background: var(--navy); color: #d6e5f2; border-bottom: 2px solid var(--brass); }
+.ws-titlebar a { color: #d6e5f2; }
+.ws-wordmark { font-family: var(--title); font-weight: 700; font-size: 16px; }
+.ws-crumbs { color: #93afc7; font-size: 12px; }
+.ws-crumbs .sep { color: #4f7394; }
+.ws-page > .ws-titlebar { background: rgba(11,35,58,.92); border-bottom: 2px solid var(--brass); }
+.ws-toolbar { background: var(--panel-2); border-bottom: 1px solid var(--rule); }
+.ws-statusbar { background: var(--navy); color: var(--muted); border-top: 1px solid var(--rule); }
+.ws-app { grid-template-rows: 36px 40px 1fr 24px; }
+.ws-float { top: 84px; }
 
-/* Panels float slightly off the paper. */
-.ws-left, .ws-right { background: rgba(255,255,255,.94); }
-.ws-left  { box-shadow: 1px 0 0 var(--rule), 6px 0 18px -14px rgba(13,43,69,.35); }
-.ws-right { box-shadow: -1px 0 0 var(--rule), -6px 0 18px -14px rgba(13,43,69,.35); }
-.ws-toolbar { background: rgba(255,255,255,.9); border-bottom: 1px solid var(--rule-strong); }
-.ws-panel-head { color: var(--brass-ink); background: var(--panel-2); }
-.ws-tab.on { border-bottom-color: var(--brass); color: var(--ink); }
+/* Panels */
+.ws-left, .ws-right { background: var(--panel); }
+.ws-left  { box-shadow: 6px 0 20px -12px rgba(0,0,0,.5); }
+.ws-right { box-shadow: -6px 0 20px -12px rgba(0,0,0,.5); }
+.ws-panel-head { height: 30px; font-family: var(--title); font-size: 11px; letter-spacing: .12em; color: var(--brass); background: var(--panel-2); }
+.ws-tabs { background: var(--panel-2); }
+.ws-tab { font-size: 12.5px; padding: 8px 12px 7px; }
+.ws-tab.on { border-bottom-color: var(--brass); color: #fff; }
+.ws-toc li { padding: 5px 6px; }
 .ws-toc li.sel { box-shadow: inset 3px 0 0 var(--brass); }
-.ws-mapwrap { box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.ws-mapwrap { box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+.ws-msg .who { font-family: var(--title); }
 
-/* Small marks and text that were tuned for the dark theme */
-.ws-swatch, .ws-ramp { border-color: rgba(13,43,69,.25); }
-.ws-avatar { border-color: rgba(13,43,69,.15); }
+/* Marks and small text */
+.ws-swatch, .ws-ramp { border-color: rgba(255,255,255,.35); }
+.ws-avatar { border-color: rgba(255,255,255,.3); border-radius: 50%; }
 .ws-tab .badge, .ws-inbox-link .badge, .ws-dm-list .badge, .ws-phone-tabs .n { color: #1a1200; }
-.ws-msg .body .mention { color: #7a5c00; }
-.ws-pin-tag { color: var(--brass-ink); background: #fff6d9; border-color: rgba(201,162,39,.6); }
-.ws-mention-pop { box-shadow: 0 8px 24px -8px rgba(13,43,69,.35); }
-.ws-log li::after { border-color: #b9a67a; background: #fff; }
+.ws-msg .body .mention { color: #ffd966; }
+.ws-pin-tag { color: #ffd966; background: rgba(245,184,0,.14); border-color: rgba(245,184,0,.5); }
+.ws-log li::after { border-color: #7fa3c4; background: var(--panel); }
 .ws-log li.head::after { box-shadow: 0 0 0 3px rgba(245,184,0,.25); }
-.ws-log li.restore::after { background: #1E5F8E; border-color: #1E5F8E; }
-.ws-log .line1 .hash { color: var(--brass-ink); }
-.ws-diff .add { background: #eaf6e7; color: #2e6b2a; }
-.ws-diff .del { background: #fbeceb; color: #a1352b; }
-.ws-diff .mod { background: #fff6d9; color: #7a5c00; }
-.ws-map .maplibregl-ctrl-group { border-color: var(--rule-strong); box-shadow: 0 4px 12px -4px rgba(13,43,69,.3); }
-.ws-map .maplibregl-popup-content { background: #fff; color: var(--ink); border-color: var(--rule-strong); box-shadow: 0 12px 30px -10px rgba(13,43,69,.4); }
-.ws-map .maplibregl-popup-anchor-top .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #fff; }
-.ws-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #fff; }
-.ws-map .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #fff; }
-.ws-map .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #fff; }
-.ws-legend, .ws-map-note, .ws-busy { background: rgba(255,255,255,.94); color: var(--ink); border-color: var(--rule-strong); box-shadow: 0 8px 22px -10px rgba(13,43,69,.35); }
-.ws-map-note { border-color: var(--brass); }
+.ws-log li.restore::after { background: #3d7fbf; border-color: #8cc4f0; }
+.ws-log .line1 .hash { color: var(--brass); }
+.ws-diff .add { background: rgba(127,209,139,.12); color: #a8e3b0; }
+.ws-diff .del { background: rgba(255,138,122,.12); color: #ffb3a8; }
+.ws-diff .mod { background: rgba(245,184,0,.12); color: #ffd966; }
+
+/* Things floating on the map are white cards, so they read against it. */
+.ws-legend, .ws-busy { background: rgba(255,255,255,.95); color: #0D2B45; border-color: rgba(13,43,69,.15); box-shadow: 0 10px 24px -10px rgba(0,0,0,.45); }
+.ws-legend .ends { color: #2c4a63; }
 .ws-legend .bar { border-color: rgba(13,43,69,.2); }
-.ws-modal-back { background: rgba(13,43,69,.35); }
-.ws-dialog, .ws-float { background: #fff; border-color: var(--rule-strong); box-shadow: 0 24px 60px -20px rgba(13,43,69,.5); }
+.ws-map-note { background: #0D2B45; color: #fff; border-color: var(--brass); box-shadow: 0 10px 24px -10px rgba(0,0,0,.5); }
+.ws-map .maplibregl-ctrl-group { border-color: rgba(13,43,69,.15); box-shadow: 0 6px 16px -6px rgba(0,0,0,.4); }
+.ws-map .maplibregl-popup-content { background: var(--panel); color: var(--ink); border-color: var(--rule-strong); box-shadow: 0 16px 36px -12px rgba(0,0,0,.6); }
+.ws-map .maplibregl-popup-close-button { color: var(--ink-soft); }
+.ws-map .maplibregl-popup-anchor-top .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--panel); }
+.ws-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip, .ws-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--panel); }
+.ws-map .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--panel); }
+.ws-map .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--panel); }
+
+/* Dialogs and tool windows */
+.ws-modal-back { background: rgba(5,16,28,.55); }
+.ws-dialog, .ws-float { background: var(--panel); border-color: var(--rule-strong); box-shadow: 0 30px 70px -20px rgba(0,0,0,.7); }
 .ws-dialog .ws-panel-head, .ws-float .ws-panel-head { background: var(--panel-2); }
-.ws-drop.over { background: #fff6d9; }
-.ws-table { background: rgba(255,255,255,.94); box-shadow: 0 14px 34px -22px rgba(13,43,69,.45); }
-.ws-table th { background: #fbf3dc; color: #7a5d00; }
+.ws-drop.over { background: rgba(245,184,0,.1); }
+
+/* Index pages */
+.ws-page-body h1 { font-family: var(--title); font-size: 32px; }
+.ws-table, .ws-box { background: var(--pane); border-color: var(--pane-rule); box-shadow: var(--pane-lit), 0 20px 44px -24px rgba(0,0,0,.6); }
+.ws-table th { background: rgba(0,0,0,.12); color: var(--brass); font-family: var(--title); }
 .ws-table td { border-top-color: var(--rule); }
-.ws-table tr:hover td { background: #fffaea; }
-.ws-table a.pname:hover { color: var(--link); }
-.ws-box { background: rgba(255,255,255,.94); box-shadow: 0 14px 34px -22px rgba(13,43,69,.45); }
-.ws-note { background: #fff6d9; border-color: rgba(201,162,39,.45); border-left-color: var(--brass); color: var(--ink-soft); }
-.ws-attr-cols { box-shadow: 0 8px 22px -8px rgba(13,43,69,.35); }
-.ws-attr-body tbody tr.sel td { background: #fff1c2; }
+.ws-table tr:hover td { background: rgba(255,255,255,.05); }
+.ws-table .pname { font-family: var(--title); font-weight: 600; font-size: 15px; }
+.ws-table a.pname { color: #fff; }
+.ws-table a.pname:hover { color: var(--brass); text-decoration: none; }
+.ws-box h2 { font-family: var(--title); }
+.ws-note { background: rgba(245,184,0,.1); border-color: rgba(245,184,0,.35); border-left-color: var(--brass); color: var(--ink-soft); }
+.ws-steps div { background: var(--pane); border-color: var(--pane-rule); border-radius: 12px; box-shadow: 0 12px 28px -18px rgba(0,0,0,.6); }
+.ws-steps b { font-family: var(--title); }
+.ws-steps i { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--brass); color: #1a1200; font-size: 11px; font-style: normal; }
+.ws-attr-body tbody tr.sel td { background: rgba(245,184,0,.18); }
 .ws-attr-body tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--brass); }
-.ws-role-chip.viewer { border-color: #9dbad6; color: #1E5F8E; }
-.ws-role-chip.manager { border-color: var(--brass); color: var(--brass-ink); background: #fff6d9; }
-.ws-src.lenga { color: var(--brass-ink); border-color: rgba(201,162,39,.6); background: #fff6d9; }
-.ws-src.yours { color: #4d6378; border-color: #c9d3dc; }
-.ws-phone-tabs { background: var(--panel); border-top: 1px solid var(--rule-strong); }
-.ws-sheet { box-shadow: 0 -12px 30px -10px rgba(13,43,69,.35); }
-.ws-phone-notice { box-shadow: 0 8px 20px -8px rgba(13,43,69,.35); }
-.ws-tour-body, .ws-start p { color: var(--ink-soft); }
-.ws-link-btn, .ws-start-grid span, .ws-start .foot { color: var(--muted); }
-.ws-start { background: rgba(255,255,255,.97); box-shadow: 0 20px 50px -18px rgba(13,43,69,.45); }
-.ws-start-grid button, .ws-start-grid a { background: #fbf8f0; }
-.ws-tour-hole { box-shadow: 0 0 0 9999px rgba(13,43,69,.5); border-radius: 8px; }
-.ws-tour-card { border-radius: 12px; box-shadow: 0 20px 50px -18px rgba(13,43,69,.55); }
-.ws-tour-step { color: var(--brass-ink); font-weight: 700; }
-.ws-start { border-radius: 14px; }
-.ws-start-grid button, .ws-start-grid a { border-radius: 10px; }
-.ws-steps div { background: rgba(255,255,255,.92); border-color: var(--rule); border-radius: 12px; box-shadow: 0 10px 24px -18px rgba(13,43,69,.45); }
-.ws-steps i { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--brass); color: #1a1200; font-size: 11px; }
+.ws-role-chip.viewer { border-color: #8cc4f0; color: #b9dcf7; }
+.ws-role-chip.manager { border-color: var(--brass); color: var(--brass); background: rgba(245,184,0,.1); }
+.ws-src.lenga { color: var(--brass); border-color: rgba(245,184,0,.5); }
+.ws-src.yours { color: #b9d3e8; border-color: rgba(185,211,232,.4); }
+.ws-phone-tabs { background: var(--navy); }
+
+/* Start panel and tour: white cards over the map, gold edge. The dimmed
+   page never blocks clicks (Tour.tsx ends the tour on any outside click). */
+.ws-tour { pointer-events: none; }
+.ws-tour-hole { pointer-events: none; box-shadow: 0 0 0 9999px rgba(5,16,28,.45); border-radius: 10px; }
+.ws-tour-card { pointer-events: auto; background: #fff; color: #0D2B45; border-radius: 14px; box-shadow: 0 24px 60px -18px rgba(0,0,0,.6); }
+.ws-tour-step { color: #9a7400; font-weight: 700; }
+.ws-tour-title { font-family: var(--title); }
+.ws-tour-body { color: #2c4a63; }
+.ws-tour-card .ws-btn:not(.ws-btn-default) { background: #fff; color: #0D2B45; border-color: #d8cba4; }
+.ws-link-btn { color: #5a7086; }
+.ws-start { background: #fff; color: #0D2B45; border: 0; border-top: 4px solid var(--brass); border-radius: 16px; box-shadow: 0 30px 70px -20px rgba(0,0,0,.55); padding: 22px 24px 18px; }
+.ws-start h3 { font-family: var(--title); font-size: 20px; color: #0D2B45; }
+.ws-start p { color: #2c4a63; font-size: 13px; }
+.ws-start a { color: #1E5F8E; }
+.ws-start-grid button, .ws-start-grid a { background: #fbf8f0; border: 2px solid #ece4cf; border-radius: 12px; color: #0D2B45; padding: 14px; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.ws-start-grid button:hover:not(:disabled), .ws-start-grid a:hover { border-color: var(--brass); box-shadow: 0 10px 24px -12px rgba(201,162,39,.8); transform: translateY(-1px); }
+.ws-start-grid button:disabled { opacity: .5; cursor: not-allowed; }
+.ws-start-grid b { font-family: var(--title); font-size: 15px; color: #0D2B45; }
+.ws-start-grid span { color: #5a7086; }
+.ws-start .foot { color: #5a7086; font-size: 12px; }
