@@ -226,7 +226,7 @@ function MessagesInner() {
   if (state === 'ready' && inbox && ks.s !== 'ready' && ks.s !== 'loading') {
     return (
       <div className="ws ws-page">
-        <TitleBar crumbs={[{ label: inbox.org.name, href: '/workspace' }, { label: 'Messages' }]} />
+        <TitleBar crumbs={[{ label: 'Workspace', href: '/workspace' }, { label: `Team: ${inbox.org.name}`, href: '/workspace/team' }, { label: 'Messages' }]} />
         <div className="ws-page-body">
           {ks.s === 'setup'
             ? <SetupKey reset={ks.reset} userId={inbox.me.user_id}
@@ -244,7 +244,7 @@ function MessagesInner() {
 
   return (
     <div className="ws ws-page ws-dm-page">
-      <TitleBar crumbs={[{ label: inbox?.org.name ?? 'Workspace', href: '/workspace' }, { label: 'Messages' }]} />
+      <TitleBar crumbs={[{ label: 'Workspace', href: '/workspace' }, { label: inbox ? `Team: ${inbox.org.name}` : 'Team', href: '/workspace/team' }, { label: 'Messages' }]} />
 
       {state === 'no_team' && (
         <div className="ws-page-body">

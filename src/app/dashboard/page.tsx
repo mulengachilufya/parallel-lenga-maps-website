@@ -263,9 +263,16 @@ function ActionCard({ href, icon, title, text, cta, delay = 0 }: {
  */
 function ContinueProjects() {
   const [projects, setProjects] = useState<WsProjectSummary[] | null>(null)
+  const [team, setTeam] = useState('')
+  const [teamCount, setTeamCount] = useState(0)
   useEffect(() => {
     fetch('/api/workspace/projects', { cache: 'no-store' })
-      .then(async (r) => (r.ok ? ((await r.json()) as { projects?: WsProjectSummary[] }).projects ?? [] : []))
+      .then(async (r) => {
+        if (!r.ok) return []
+        const j = (await r.json()) as { projects?: WsProjectSummary[]; org?: { name: string }; teams?: unknown[] }
+        setTeam(j.org?.name ?? ''); setTeamCount(j.teams?.length ?? 1)
+        return j.projects ?? []
+      })
       .then(setProjects)
       .catch(() => setProjects([]))
   }, [])
@@ -282,9 +289,12 @@ function ContinueProjects() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-navy">Continue where you left off</h2>
-            <p className="mt-1 text-[15px] text-gray-600">Your team&apos;s projects, most recent first.</p>
+            <p className="mt-1 text-[15px] text-gray-600">
+              Projects in the team <b className="text-navy">{team}</b>, most recent first.
+              {teamCount > 1 && <> <Link href="/workspace" className="font-semibold text-primary hover:underline">Switch team</Link></>}
+            </p>
           </div>
-          <Link href="/workspace" className="rounded-xl border-2 border-navy px-4 py-2 text-sm font-bold text-navy hover:bg-navy hover:text-white transition-colors">
+          <Link href="/workspace/team" className="rounded-xl border-2 border-navy px-4 py-2 text-sm font-bold text-navy hover:bg-navy hover:text-white transition-colors">
             + New project
           </Link>
         </div>
@@ -304,7 +314,7 @@ function ContinueProjects() {
           ))}
         </ul>
         {recent.length > 6 && (
-          <Link href="/workspace" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">See all {recent.length} projects →</Link>
+          <Link href="/workspace/team" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">See all {recent.length} projects →</Link>
         )}
       </div>
     </motion.div>
@@ -868,8 +878,8 @@ function DashboardContent() {
               href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
             />
           {(userState === 'team' || access?.team) && (
-            <ActionCard delay={0.1} href="/workspace" icon={<MapIcon size={22} />} title="Projects workspace"
-                        text="Put datasets on a shared live map, discuss them with your team, and keep every change in the project history."
+            <ActionCard delay={0.1} href="/workspace" icon={<MapIcon size={22} />} title="Shared workspace"
+                        text="Your teams and their projects. Each project is one shared live map with comments, voice notes and full history."
                         cta="Open workspace" />
           )}
           {(userState === 'team' || access?.team) && (

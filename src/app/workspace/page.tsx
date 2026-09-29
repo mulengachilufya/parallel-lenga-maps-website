@@ -1,186 +1,133 @@
 'use client'
 
 /**
- * /workspace — the team's projects, like a shared drawer of map files.
+ * /workspace — "Your teams". The top of the shared workspace:
+ *   Workspace → a team (people) → its projects (one map per job).
+ * Lists every team you are on, lets you open one or start a new one, and
+ * shows pending invites. Opening a team goes to /workspace/team.
  */
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Handshake, Map as MapIcon, UserPlus, Users, Loader2 } from 'lucide-react'
 import TitleBar from '@/components/workspace/TitleBar'
-import { usePhone } from '@/components/workspace/usePhone'
-import { api, stamp, timeAgo } from '@/components/workspace/util'
-import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
-import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
-import { freeDatasetName } from '@/components/FreeDatasetPicker'
-import TeamSwitcher, { type TeamOption } from '@/components/TeamSwitcher'
+import Mosaic from '@/components/workspace/Mosaic'
+import PendingInvites from '@/components/PendingInvites'
 
-interface ListResponse {
-  projects: WsProjectSummary[]
-  org:      { id: string; name: string; plan?: 'paid' | 'free'; free_datasets?: string[] }
-  teams?:   TeamOption[]
-  me:       { user_id: string; name: string; role: 'owner' | 'member' }
+interface Team {
+  org_id: string; name: string; plan: 'free' | 'paid'; role: 'owner' | 'member'
+  seat_count: number; active: boolean; member_count: number; project_count: number
 }
 
-export default function WorkspaceIndex() {
+const FLOW = [
+  { icon: Users,     title: 'A team',           text: 'You and the people you work with. You can be on several teams.' },
+  { icon: UserPlus,  title: 'Invite colleagues', text: 'Send a link. They join with one click, free for 2 people.' },
+  { icon: MapIcon,   title: 'Projects',          text: 'Inside a team, start one project per job. Each is one shared map.' },
+  { icon: Handshake, title: 'Work together',     text: 'Everyone sees the same layers, comments, voice notes and history.' },
+]
+
+export default function WorkspaceTeams() {
   const router = useRouter()
-  const [data, setData] = useState<ListResponse | null>(null)
-  const [state, setState] = useState<'loading' | 'ready' | 'no_team' | 'error'>('loading')
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [template, setTemplate] = useState('')
-  const phone = usePhone()
-  const [country, setCountry] = useState('ZMB')
-  const [busy, setBusy] = useState(false)
+  const [teams, setTeams] = useState<Team[] | null>(null)
+  const [open, setOpen] = useState<string | null>(null)
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    fetch('/api/workspace/projects').then(async (res) => {
+    fetch('/api/workspace/teams').then(async (res) => {
       if (res.status === 401) { router.replace('/login?next=/workspace'); return }
-      if (res.status === 403) { setState('no_team'); return }
-      if (!res.ok) { setState('error'); return }
-      setData(await res.json()); setState('ready')
-    }).catch(() => setState('error'))
+      if (!res.ok) { setErr('Your teams could not be loaded. Please reload the page.'); return }
+      const j = await res.json()
+      setTeams(j.teams ?? []); setOpen(j.open)
+    }).catch(() => setErr('Network error. Please reload the page.'))
   }, [router])
 
-  async function create(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name.trim()) return
-    setBusy(true); setErr('')
-    try {
-      const d = await api<{ id: string; added?: number; skipped?: string[] }>('/api/workspace/projects', {
-        method: 'POST',
-        json: { name: name.trim(), description: description.trim(), ...(template ? { template, country_iso3: country } : {}) },
-      })
-      const q = template ? `?fit=1${d.skipped?.length ? `&skipped=${encodeURIComponent(d.skipped.join(', '))}` : ''}` : ''
-      router.push(`/workspace/${d.id}${q}`)
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not create the project'); setBusy(false) }
+  async function enter(orgId: string) {
+    setBusy(orgId); setErr('')
+    if (orgId !== open) {
+      const res = await fetch('/api/team/switch', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ org_id: orgId }),
+      }).catch(() => null)
+      if (!res?.ok) { setBusy(null); setErr('Could not open that team. Try again.'); return }
+    }
+    router.push('/workspace/team')
   }
 
+  async function createTeam(e: React.FormEvent) {
+    e.preventDefault()
+    if (name.trim().length < 2) return
+    setCreating(true); setErr('')
+    try {
+      const res = await fetch('/api/team/create-free', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) { setErr(j.message ?? 'Could not create the team.'); setCreating(false); return }
+      router.push('/workspace/team')
+    } catch { setErr('Network error. Try again.'); setCreating(false) }
+  }
 
   return (
-    <div className="ws ws-page">
-      <TitleBar crumbs={[{ label: data?.org.name ?? 'Workspace' }]} />
-      <div className="ws-page-body">
-        {state === 'no_team' && (
-          <>
-            <h1>The workspace is for team accounts</h1>
-            <p className="ws-lede">
-              Teams get shared projects: one live map with every Lenga dataset on it, a discussion
-              pinned to places on that map, and a full history of who changed what. It comes with the
-              4-seat and 12-seat team plans, and there is a free team for 2 people with 3 datasets.{' '}
-              <Link href="/team?start=free">Start a free team</Link>, <Link href="/projects">see team plans</Link>, or ask your
-              team owner to invite you from the <Link href="/team">Team</Link> page.
-            </p>
-          </>
+    <div className="ws ws-page has-mosaic">
+      <Mosaic kind="team" />
+      <TitleBar crumbs={[{ label: 'Workspace' }]} />
+      <div className="ws-page-body ws-hub">
+        <div className="ws-hub-head">
+          <div className="ws-kicker">Shared GIS workspace</div>
+          <h1>Your teams</h1>
+          <p className="ws-team-explain">A <b>team</b> is a group of people. Inside each team you start <b>projects</b>: one shared map per job.</p>
+        </div>
+
+        <ol className="ws-flow" aria-label="How the workspace works">
+          {FLOW.map((f, i) => (
+            <li key={f.title}>
+              <span className="ws-flow-icon"><f.icon size={20} /></span>
+              <b><i>{i + 1}</i>{f.title}</b>
+              <span>{f.text}</span>
+            </li>
+          ))}
+        </ol>
+
+        <PendingInvites />
+        {err && <p className="ws-err" style={{ textAlign: 'center' }}>{err}</p>}
+        {!teams && !err && <p className="muted" style={{ textAlign: 'center' }}>Loading your teams…</p>}
+
+        {teams && (
+          <div className="ws-team-grid">
+            {teams.map((t) => (
+              <button key={t.org_id} className={`ws-team-card${t.org_id === open ? ' is-open' : ''}`} onClick={() => void enter(t.org_id)} disabled={!!busy}>
+                <span className="ws-team-card-top">
+                  <span className={`ws-plan-chip ${t.plan}`}>{t.plan === 'free' ? 'Free team' : 'Paid team'}</span>
+                  {t.org_id === open && <span className="ws-open-chip">Open now</span>}
+                </span>
+                <span className="ws-team-name">{t.name}</span>
+                <span className="ws-team-facts">
+                  {t.member_count} {t.member_count === 1 ? 'person' : 'people'} · {t.project_count} project{t.project_count === 1 ? '' : 's'} · you are {t.role === 'owner' ? 'the owner' : 'a member'}
+                </span>
+                {!t.active && <span className="ws-team-facts" style={{ color: '#f0b429' }}>Plan not active</span>}
+                <span className="ws-team-go">{busy === t.org_id ? <Loader2 size={14} className="animate-spin" /> : 'Open team →'}</span>
+              </button>
+            ))}
+
+            <form className="ws-team-card ws-team-new" onSubmit={createTeam}>
+              <span className="ws-team-card-top"><span className="ws-plan-chip free">Free for 2 people</span></span>
+              <span className="ws-team-name">{teams.length ? 'Start another team' : 'Start your first team'}</span>
+              <span className="ws-team-facts">For a client, a department or a partner firm. You can invite people next.</span>
+              <input className="ws-input" value={name} maxLength={120} onChange={(e) => setName(e.target.value)}
+                     placeholder="Team name, e.g. Kafue Consultants" aria-label="Team name" />
+              <button className="ws-btn ws-btn-default" disabled={name.trim().length < 2 || creating}>
+                {creating ? 'Creating…' : 'Create team'}
+              </button>
+            </form>
+          </div>
         )}
-        {state === 'error' && <p className="ws-err">The projects could not be loaded. Please reload the page.</p>}
-        {state === 'loading' && <p className="muted">Loading projects…</p>}
 
-        {state === 'ready' && data && (
-          <>
-            <div className="ws-launch-head">
-              <h1>Projects</h1>
-              <TeamSwitcher teams={data.teams ?? []} current={data.org.id} className="ws-team-switch" />
-            </div>
-
-            {/* The one thing to do here: start a project. The four steps sit
-                beside the form as a short vertical guide. */}
-            {phone ? (
-              <p className="ws-note small ws-launch-narrow">
-                <b>Phone view.</b> Open a project to view the map, comment and leave voice notes. Start or change projects on a computer.
-              </p>
-            ) : (
-              <section className="ws-launch" aria-label="Start a project">
-                <ol className="ws-launch-steps">
-                  <li><i>1</i><b>Start a project</b></li>
-                  <li><i>2</i><b>Put data on the map</b></li>
-                  <li><i>3</i><b>Work on it together</b></li>
-                  <li><i>4</i><b>Export to QGIS / ArcGIS</b></li>
-                </ol>
-                <div className="ws-launch-main">
-                  <h2>Start a project</h2>
-                <form className="ws-launch-form" onSubmit={create}>
-                  <div className="ws-field">
-                    <label className="ws-label" htmlFor="np-name">Name</label>
-                    <input id="np-name" className="ws-input" style={{ width: '100%' }} value={name} maxLength={120}
-                           placeholder="e.g. Kafue Flats water study" onChange={(e) => setName(e.target.value)} />
-                  </div>
-                  <div className="ws-field">
-                    <label className="ws-label" htmlFor="np-desc">Brief <span className="muted">(optional)</span></label>
-                    <textarea id="np-desc" className="ws-textarea" rows={2} value={description} maxLength={2000}
-                              placeholder="Client, area of interest, deadline" onChange={(e) => setDescription(e.target.value)} />
-                  </div>
-                  <div className="ws-field">
-                    <label className="ws-label" htmlFor="np-tpl">Start from</label>
-                    <select id="np-tpl" className="ws-select" style={{ width: '100%' }} value={template} onChange={(e) => setTemplate(e.target.value)}>
-                      <option value="">An empty map</option>
-                      {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    {template && <div className="small muted" style={{ marginTop: 3, lineHeight: 1.5 }}>{TEMPLATES.find((t) => t.id === template)?.blurb}</div>}
-                  </div>
-                  {template && (
-                    <div className="ws-field">
-                      <label className="ws-label" htmlFor="np-country">Country</label>
-                      <select id="np-country" className="ws-select" style={{ width: '100%' }} value={country} onChange={(e) => setCountry(e.target.value)}>
-                        {AFRICAN_COUNTRIES.map((c) => <option key={c.iso3} value={c.iso3}>{c.name}</option>)}
-                      </select>
-                      <div className="small muted" style={{ marginTop: 3 }}>
-                        {TEMPLATES.find((t) => t.id === template)?.layers.length} Lenga datasets go straight onto the map, styled and in order.
-                      </div>
-                    </div>
-                  )}
-                  <button className="ws-btn ws-btn-default" disabled={!name.trim() || busy}>{busy ? (template ? 'Building the project…' : 'Creating…') : 'Create project'}</button>
-                  {err && <p className="ws-err small" style={{ marginTop: 6 }}>{err}</p>}
-                </form>
-                </div>
-              </section>
-            )}
-
-            {data.projects.length > 0 && (
-              <section className="ws-launch-narrow">
-                <h2 className="ws-launch-sub">Your projects</h2>
-                <table className="ws-table">
-                  <thead>
-                    <tr><th>Project</th><th style={{ width: 60 }}>Layers</th><th style={{ width: 230 }}>Last change</th></tr>
-                  </thead>
-                  <tbody>
-                    {data.projects.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <Link href={`/workspace/${p.id}`} className="pname">{p.name}</Link>
-                          {p.my_role && (
-                            <>{' '}<span className={`ws-role-chip ${p.my_role}`} style={{ height: 16, fontSize: 9.5, marginLeft: 4 }}>
-                              {ROLE_LABEL[p.my_role]}{p.visibility === 'private' ? ' · private' : ''}
-                            </span></>
-                          )}
-                          {p.description && <div className="muted small" style={{ marginTop: 2, maxWidth: 480 }}>{p.description.length > 160 ? `${p.description.slice(0, 160)}…` : p.description}</div>}
-                        </td>
-                        <td className="mono">{p.layer_count}</td>
-                        <td>
-                          {p.last_rev ? (
-                            <>
-                              <div><b>{p.last_rev.author_name}</b> <span className="muted">{p.last_rev.summary.charAt(0).toLowerCase() + p.last_rev.summary.slice(1)}</span></div>
-                              <div className="small muted" title={stamp(p.last_rev.created_at)}>r{p.last_rev.seq} · {timeAgo(p.last_rev.created_at)}</div>
-                            </>
-                          ) : <span className="muted">—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-            )}
-
-            {data.org.plan === 'free' && (
-              <p className="ws-launch-narrow ws-launch-foot">
-                Free team · projects can use {data.org.free_datasets?.length
-                  ? data.org.free_datasets.map(freeDatasetName).join(', ')
-                  : 'the datasets each member chooses'} · <Link href="/dashboard">Choose yours</Link> · <Link href="/projects">Upgrade</Link>
-              </p>
-            )}
-          </>
-        )}
+        <p className="ws-hub-foot">
+          Need more seats or every dataset? <Link href="/projects">See team plans</Link>. Manage people and invites on the <Link href="/team">Team page</Link>.
+        </p>
       </div>
     </div>
   )
