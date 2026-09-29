@@ -657,14 +657,16 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
   ].filter(([, v]) => v)
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      A customer just submitted a manual payment for review.
+      A customer says they have paid. Check your bank for a transfer of <strong>${escapeHtml(p.amountLabel)}</strong>
+      with the bank reference <strong>${escapeHtml(p.bankRef)}</strong>, then approve it in the payments queue:
+      approving switches their plan on for 3 months straight away.
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;">${v}</td></tr>`).join('')}
     </table>
     ${p.screenshotUrl ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;"><a href="${p.screenshotUrl}" style="color:#1E5F8E;">View payment screenshot</a> (link valid 7 days)</p>` : ''}`
   const text = [
-    'New manual payment submitted',
+    'A customer says they have paid. Check the bank, then approve in the payments queue (switches the plan on for 3 months).',
     '',
     ...rows.map(([k, v]) => `${k}: ${v}`),
     '',
@@ -674,10 +676,10 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
   return {
     to:      PAYMENT_NOTIFY_EMAIL,
     replyTo: p.userEmail || undefined,
-    subject: `New payment ${p.reference}: ${p.amountLabel} (${p.plan.toUpperCase()})`,
+    subject: `${p.userName || p.userEmail} says they paid ${p.amountLabel} (bank ref ${p.bankRef})`,
     html: shell({
       preheader: `${p.amountLabel} ${p.plan.toUpperCase()} from ${p.userName || p.userEmail}.`,
-      heading:   'New payment to verify',
+      heading:   'Payment claimed: check your bank',
       bodyHtml,
       ctaLabel:  'Open payments queue',
       ctaHref:   cta,

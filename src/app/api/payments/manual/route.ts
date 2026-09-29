@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getDownloadUrl } from '@/lib/r2'
 import { PLANS, type TierSlug } from '@/lib/pricing'
-import { sendEmail, paymentSubmittedAdminEmail, type PaymentSubmittedFields } from '@/lib/email'
+import { sendEmail, paymentSubmittedAdminEmail, PAYMENT_NOTIFY_EMAIL, type PaymentSubmittedFields } from '@/lib/email'
 import { bankReferenceFor } from '@/lib/bank-details'
 
 const service = createClient(
@@ -41,10 +41,18 @@ function extFromMime(mime: string): string {
 }
 
 
+// Who hears about a payment claim: the payments inbox, the Lenga Maps
+// inbox and the founder's personal inbox (deduplicated).
+const PAYMENT_ALERT_TO = [...new Set([
+  PAYMENT_NOTIFY_EMAIL, 'lengamaps@gmail.com', 'cmulenga672@gmail.com',
+].map((e) => e.trim().toLowerCase()).filter(Boolean))]
+
 async function notifyEmail(args: PaymentSubmittedFields): Promise<boolean> {
-  // Admin alert to the founder, on the Resend payments channel. Replies go
-  // to the customer (set on the message's replyTo).
-  return sendEmail(paymentSubmittedAdminEmail(args), 'payments')
+  // Admin alert, on the Resend payments channel. Replies go to the customer
+  // (set on the message's replyTo).
+  const msg = paymentSubmittedAdminEmail(args)
+  const sent = await Promise.all(PAYMENT_ALERT_TO.map((to) => sendEmail({ ...msg, to }, 'payments')))
+  return sent.some(Boolean)
 }
 
 async function notifyWhatsApp(message: string) {
@@ -91,13 +99,12 @@ export async function POST(request: NextRequest) {
   // transfer uses the same account regardless of where the payer is.
   if (method !== 'bank' && !['zambian','international'].includes(region))
     return NextResponse.json({ error: 'Invalid region.' }, { status: 400 })
-  if (!(screenshot instanceof File))
-    return NextResponse.json({ error: 'Screenshot is required.' }, { status: 400 })
-  if (screenshot.size === 0)
-    return NextResponse.json({ error: 'Screenshot is empty.' }, { status: 400 })
-  if (screenshot.size > MAX_SCREENSHOT_BYTES)
+  // Proof is optional: people pay on their phone and come back on a
+  // laptop, so a plain "I've paid" is enough and the admin checks the bank.
+  const proof = screenshot instanceof File && screenshot.size > 0 ? screenshot : null
+  if (proof && proof.size > MAX_SCREENSHOT_BYTES)
     return NextResponse.json({ error: 'Screenshot must be ≤ 5 MB.' }, { status: 400 })
-  if (!ALLOWED_MIME.has(screenshot.type))
+  if (proof && !ALLOWED_MIME.has(proof.type))
     return NextResponse.json({ error: 'Screenshot must be JPG, PNG, WEBP, or HEIC.' }, { status: 400 })
 
   // Pricing from source of truth — ignore any client-sent amount
@@ -131,23 +138,24 @@ export async function POST(request: NextRequest) {
     profileName = prof?.full_name || user.user_metadata?.full_name || ''
   }
 
-  // Upload screenshot to R2
+  // Upload the screenshot to R2, when there is one
   const reference    = `mp-${randomUUID().replace(/-/g,'').slice(0,16)}`
-  const ext          = extFromMime(screenshot.type)
-  const screenshotKey = `payment-screenshots/${userId}/${reference}.${ext}`
+  const screenshotKey = proof ? `payment-screenshots/${userId}/${reference}.${extFromMime(proof.type)}` : null
 
-  try {
-    const bytes = Buffer.from(await screenshot.arrayBuffer())
-    await r2.send(new PutObjectCommand({
-      Bucket:      BUCKET,
-      Key:         screenshotKey,
-      Body:        bytes,
-      ContentType: screenshot.type,
-    }))
-  } catch (err) {
-    console.error('[ManualPayment] R2 upload failed:', err)
-    void logEvent('critical', 'payments', 'proof_failed', 'A customer tried to upload proof of payment but the file could not be stored.', { error: String(err), reference })
-    return NextResponse.json({ error: 'Could not store screenshot. Try again.' }, { status: 500 })
+  if (proof && screenshotKey) {
+    try {
+      const bytes = Buffer.from(await proof.arrayBuffer())
+      await r2.send(new PutObjectCommand({
+        Bucket:      BUCKET,
+        Key:         screenshotKey,
+        Body:        bytes,
+        ContentType: proof.type,
+      }))
+    } catch (err) {
+      console.error('[ManualPayment] R2 upload failed:', err)
+      void logEvent('critical', 'payments', 'proof_failed', 'A customer tried to upload proof of payment but the file could not be stored.', { error: String(err), reference })
+      return NextResponse.json({ error: 'Could not store screenshot. Try again.' }, { status: 500 })
+    }
   }
 
   // Insert DB row
@@ -190,7 +198,7 @@ export async function POST(request: NextRequest) {
 
   // Notifications
   let screenshotUrl = ''
-  try { screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600) } catch { /* non-fatal */ }
+  if (screenshotKey) { try { screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600) } catch { /* non-fatal */ } }
 
   const notifyArgs = {
     reference, bankRef: bankReferenceFor(userId), region, method, plan, amountLabel,
