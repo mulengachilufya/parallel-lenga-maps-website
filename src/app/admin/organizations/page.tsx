@@ -140,7 +140,7 @@ export default function AdminOrgsPage() {
                     {[o.sector, o.region, o.monthly_price_usd ? `$${o.monthly_price_usd}/mo` : null, `${o.api_rate_per_min} req/min API`].filter(Boolean).join(' · ')}
                     {' · '}since {new Date(o.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                     {' · '}{o.plan === 'free'
-                      ? <>free plan: {o.free_datasets?.length ? o.free_datasets.join(', ') : 'no datasets chosen yet'}</>
+                      ? <>free plan (projects use members&apos; picks)</>
                       : o.access_expires_at
                       ? <span className={new Date(o.access_expires_at) < new Date() ? 'text-red-600 font-semibold' : ''}>
                           access until {new Date(o.access_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

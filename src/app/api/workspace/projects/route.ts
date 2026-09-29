@@ -65,7 +65,7 @@ export async function GET() {
 
   return NextResponse.json({
     projects: out,
-    org: { id: gate.membership.org_id, name: gate.membership.org.name, plan: gate.membership.org.plan ?? 'paid', free_datasets: gate.membership.org.free_datasets ?? [] },
+    org: { id: gate.membership.org_id, name: gate.membership.org.name, plan: gate.membership.org.plan ?? 'paid', free_datasets: gate.allowed === 'all' ? [] : gate.allowed },
     me:  { user_id: gate.user.id, name: gate.name, role: gate.membership.role },
   })
 }

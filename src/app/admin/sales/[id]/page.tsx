@@ -419,7 +419,6 @@ function TeamBox({ account, team, onPaid, onInvite, onLinked }: {
   const daysLeft = ends ? Math.ceil((ends.getTime() - Date.now()) / 86400_000) : null
   const steps = [
     { ok: true, label: free ? 'Free team created' : 'Team account created' },
-    ...(free ? [{ ok: (team.free_datasets?.length ?? 0) >= 3, label: `Datasets chosen (${team.free_datasets?.length ?? 0} of 3)` }] : []),
     { ok: team.members.length + team.pending_invites >= 2, label: `Colleagues invited (${Math.max(0, team.members.length - 1) + team.pending_invites})` },
     { ok: team.members.length >= 2, label: `Colleagues joined (${Math.max(0, team.members.length - 1)})` },
     { ok: team.project_count >= 1, label: `First project made${team.project_count ? ` (${team.project_count})` : ''}` },
@@ -429,7 +428,7 @@ function TeamBox({ account, team, onPaid, onInvite, onLinked }: {
       <p className="text-sm text-gray-700">
         <b>{team.name}</b>.{' '}
         {team.status !== 'active' ? <span className="text-red-700 font-semibold">Access is {team.status}. </span> : null}
-        {free ? <>Free plan: {team.seat_count} seats{team.free_datasets?.length ? `, datasets: ${team.free_datasets.join(', ')}` : ''}.</>
+        {free ? <>Free plan: {team.seat_count} seats; projects use each member&apos;s chosen datasets.</>
           : ends ? (daysLeft! > 0 ? <>Paid until <b>{ends.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</b> ({daysLeft} days), {team.seat_count} seats.</> : <span className="text-red-700 font-semibold">Access ended {ends.toLocaleDateString('en-GB')}.</span>)
           : <>Permanent access, {team.seat_count} seats.</>}
       </p>

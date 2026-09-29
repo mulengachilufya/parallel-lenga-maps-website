@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getMembership } from '@/lib/teams'
+import { accessFor } from '@/lib/entitlements'
+import { cleanPicks } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +44,7 @@ export async function GET() {
   if ('denied' in gate) return gate.denied
   const { user, membership } = gate
 
-  const [members, invites, events] = await Promise.all([
+  const [members, invites, events, access] = await Promise.all([
     service.from('organization_members')
       .select('user_id, role, member_name, member_email, invited_at, joined_at')
       .eq('org_id', membership.org_id)
@@ -57,7 +59,16 @@ export async function GET() {
       .eq('org_id', membership.org_id)
       .order('created_at', { ascending: false })
       .limit(300),
+    accessFor(service, user.id, membership),
   ])
+
+  // Free team: which datasets each member chose (their picks together are
+  // what the team's projects can use).
+  const memberIds = (members.data ?? []).map((m) => m.user_id).filter(Boolean)
+  const { data: picksRows } = membership.org.plan === 'free' && memberIds.length
+    ? await service.from('profiles').select('id, free_datasets').in('id', memberIds)
+    : { data: [] as { id: string; free_datasets: string[] | null }[] }
+  const picksBy = new Map((picksRows ?? []).map((p) => [p.id as string, cleanPicks(p.free_datasets)]))
 
   if (members.error || invites.error || events.error) {
     console.error('[team] fetch failed:', members.error ?? invites.error ?? events.error)
@@ -67,7 +78,11 @@ export async function GET() {
   return NextResponse.json({
     me:      { user_id: user.id, role: membership.role },
     org:     membership.org,
-    members: members.data ?? [],
+    members: (members.data ?? []).map((m) => ({ ...m, free_datasets: picksBy.get(m.user_id) ?? [] })),
+    /** Free team: every dataset the team's projects can use (members' picks combined). */
+    team_datasets: access.team?.picks ?? [],
+    /** The caller's own picks, so the team page can let them choose. */
+    my_picks: access.personal,
     // Only the owner sees the join links (anyone holding one can take the seat
     // if they sign in with the invited address).
     invites: (invites.data ?? []).map(({ token, ...i }) => ({

@@ -24,7 +24,7 @@ import {
   KeyRound, Info, MapPin, X,
 } from 'lucide-react'
 import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES } from '@/lib/pricing'
-import FreeDatasetPicker from '@/components/FreeDatasetPicker'
+import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
 
 const GOLD = '#F5B800'
 const GOLD_ICON = '#d9a200'
@@ -36,6 +36,7 @@ interface Member {
   user_id: string; role: 'owner' | 'member'
   member_name: string | null; member_email: string | null
   invited_at: string; joined_at: string | null
+  free_datasets?: string[]
 }
 interface Invite { id: string; email: string; created_at: string; link?: string | null }
 interface Ev {
@@ -53,6 +54,54 @@ interface TeamPayload {
   }
   members: Member[]; invites: Invite[]; events: Ev[]
   seats: { total: number; used: number; pending: number }
+  team_datasets?: string[]
+  my_picks?: { picks: string[]; left: number }
+}
+
+// ── Free team datasets ─────────────────────────────────────────────────────
+// A free team doesn't choose datasets of its own: its projects use every
+// dataset its members chose on their own dashboards, and inside the
+// projects everyone can load and export all of them. Outside the projects
+// each person downloads only their own picks.
+
+function TeamDatasets({ data, onSaved }: { data: TeamPayload; onSaved: () => void }) {
+  const combined = data.team_datasets ?? []
+  const mine = data.my_picks
+  return (
+    <div className="rounded-2xl border border-[#e8dfc6] bg-white p-5 sm:p-6 shadow-[0_14px_34px_-22px_rgba(13,43,69,0.45)]">
+      <h2 className="text-lg sm:text-xl font-extrabold text-[#0D2B45]">Your team&apos;s datasets</h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-[#2c4a63] max-w-3xl">
+        Each person on the team chooses {FREE_DATASET_LIMIT} datasets on their own dashboard. Your projects can use all of
+        them together, and inside a project everyone can load and export every one. Outside the projects, each person downloads only their own.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {data.members.map((m) => (
+          <div key={m.user_id} className="rounded-xl border border-[#ece4cf] bg-[#fbf8f0] p-3.5">
+            <p className="text-sm font-bold text-[#0D2B45]">
+              {m.member_name || m.member_email || 'Team member'}{m.user_id === data.me.user_id && <span className="font-normal text-[#5a7086]"> (you)</span>}
+            </p>
+            <p className="mt-1.5 text-sm text-[#2c4a63]">
+              {m.free_datasets?.length
+                ? m.free_datasets.map(freeDatasetName).join(' · ')
+                : <span className="text-[#7d8c99]">Hasn&apos;t chosen yet</span>}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-sm text-[#0D2B45]">
+        <strong>Available in your projects:</strong>{' '}
+        {combined.length ? combined.map(freeDatasetName).join(', ') : <span className="text-[#7d8c99]">none yet</span>}
+      </p>
+
+      {mine && mine.left > 0 && (
+        <div className="mt-5 border-t border-[#ece4cf] pt-5">
+          <FreeDatasetPicker large bare picks={mine.picks} endpoint="/api/account/free-datasets" onSaved={onSaved} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 type Tab = 'overview' | 'downloads' | 'members' | 'settings'
@@ -192,13 +241,11 @@ export default function TeamPage() {
           <div className="mt-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#F5B800]/40 bg-[#fff6d9] p-4 text-sm text-[#2c4a63]">
               <p>
-                <strong className="text-[#0D2B45]">Free team.</strong> {FREE_TEAM_SEATS} seats and {FREE_DATASET_LIMIT} datasets for your maps and downloads,
-                with no end date. Upgrading keeps your projects and adds seats and every dataset.
+                <strong className="text-[#0D2B45]">Free team.</strong> {FREE_TEAM_SEATS} seats, with no end date. Upgrading keeps your projects and adds seats and every dataset.
               </p>
               <Link href="/projects" className="shrink-0 rounded-lg px-4 py-2 text-xs font-bold" style={{ background: GOLD, color: '#1a1200' }}>Upgrade</Link>
             </div>
-            <FreeDatasetPicker who="team" picks={data.org.free_datasets ?? []} endpoint="/api/team/free-datasets"
-                               canPick={isOwner} onSaved={refresh} />
+            <TeamDatasets data={data} onSaved={refresh} />
           </div>
         )}
 
