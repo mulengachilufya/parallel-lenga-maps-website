@@ -12,6 +12,7 @@ import FreeDatasetPicker from '@/components/FreeDatasetPicker'
 import PendingInvites from '@/components/PendingInvites'
 import DeleteAccount from '@/components/DeleteAccount'
 import type { Access } from '@/lib/entitlements'
+import type { WsProjectSummary } from '@/lib/workspace/types'
 import {
   FREE_DATASET_LIMIT, PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
@@ -251,6 +252,61 @@ function ActionCard({ href, icon, title, text, cta, delay = 0 }: {
           <span className="block w-full rounded-[10px] bg-navy py-[9px] text-center text-[12.5px] font-semibold text-white">{cta} →</span>
         </span>
       </Link>
+    </motion.div>
+  )
+}
+
+/**
+ * "Continue where you left off": the caller's team projects, most recently
+ * changed first, so someone who already works in the workspace lands on
+ * their maps. Renders nothing until there is at least one project.
+ */
+function ContinueProjects() {
+  const [projects, setProjects] = useState<WsProjectSummary[] | null>(null)
+  useEffect(() => {
+    fetch('/api/workspace/projects', { cache: 'no-store' })
+      .then(async (r) => (r.ok ? ((await r.json()) as { projects?: WsProjectSummary[] }).projects ?? [] : []))
+      .then(setProjects)
+      .catch(() => setProjects([]))
+  }, [])
+  if (!projects?.length) return null
+  const recent = [...projects].sort((a, b) =>
+    new Date(b.last_rev?.created_at ?? b.updated_at).getTime() - new Date(a.last_rev?.created_at ?? a.updated_at).getTime())
+  const ago = (iso: string) => {
+    const h = (Date.now() - new Date(iso).getTime()) / 3600e3
+    return h < 1 ? 'just now' : h < 24 ? `${Math.floor(h)}h ago` : `${Math.floor(h / 24)}d ago`
+  }
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+      <div className="rounded-2xl border border-gray-200 border-t-4 border-t-[#0D2B45] bg-white p-6 sm:p-7 shadow-[0_18px_40px_-24px_rgba(13,43,69,0.45)]">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-navy">Continue where you left off</h2>
+            <p className="mt-1 text-[15px] text-gray-600">Your team&apos;s projects, most recent first.</p>
+          </div>
+          <Link href="/workspace" className="rounded-xl border-2 border-navy px-4 py-2 text-sm font-bold text-navy hover:bg-navy hover:text-white transition-colors">
+            + New project
+          </Link>
+        </div>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {recent.slice(0, 6).map((p) => (
+            <li key={p.id}>
+              <Link href={`/workspace/${p.id}`}
+                    className="group flex h-full flex-col rounded-xl border-2 border-gray-200 bg-[#fbf8f0] p-4 hover:border-[#F5B800] hover:shadow-md transition-all">
+                <span className="text-base font-bold text-navy group-hover:text-primary leading-snug">{p.name}</span>
+                <span className="mt-1 text-xs text-gray-500">
+                  {p.layer_count} layer{p.layer_count === 1 ? '' : 's'}
+                  {p.last_rev ? ` · ${p.last_rev.author_name} ${p.last_rev.summary.charAt(0).toLowerCase()}${p.last_rev.summary.slice(1)} · ${ago(p.last_rev.created_at)}` : ''}
+                </span>
+                <span className="mt-auto pt-3 text-sm font-bold text-[#9a7400]">Open project →</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {recent.length > 6 && (
+          <Link href="/workspace" className="mt-4 inline-block text-sm font-semibold text-primary hover:underline">See all {recent.length} projects →</Link>
+        )}
+      </div>
     </motion.div>
   )
 }
@@ -740,6 +796,8 @@ function DashboardContent() {
           .dash-plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); filter: brightness(1.02); }
           .dash-plan-card:active { transform: scale(.98); }
         `}</style>
+        {(access?.team || userState === 'team') && <ContinueProjects />}
+
         {isFree ? (access && (
           <>
             {/* Free accounts: the two things to do first, side by side and the
