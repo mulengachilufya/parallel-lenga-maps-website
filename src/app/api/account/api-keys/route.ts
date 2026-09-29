@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { generateApiKey } from '@/lib/api-keys'
-import { getMembership } from '@/lib/teams'
+import { listMemberships } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,9 +48,11 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },
   )
-  const membership = await getMembership(service, user.id)
+  // Someone can be on several teams: the paid, active one counts.
+  const all = await listMemberships(service, user.id)
+  const membership = all.find((m) => m.org.plan !== 'free' && m.org.status === 'active') ?? all.find((m) => m.org.plan !== 'free') ?? null
 
-  if (!membership || membership.org.plan === 'free') {
+  if (!membership) {
     return NextResponse.json(
       {
         error:   'team_only',

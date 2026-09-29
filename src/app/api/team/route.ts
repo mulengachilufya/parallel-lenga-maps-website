@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { getMembership } from '@/lib/teams'
+import { getMembership, listMemberships } from '@/lib/teams'
 import { accessFor } from '@/lib/entitlements'
 import { cleanPicks } from '@/lib/pricing'
 
@@ -44,7 +44,7 @@ export async function GET() {
   if ('denied' in gate) return gate.denied
   const { user, membership } = gate
 
-  const [members, invites, events, access] = await Promise.all([
+  const [members, invites, events, access, teams] = await Promise.all([
     service.from('organization_members')
       .select('user_id, role, member_name, member_email, invited_at, joined_at')
       .eq('org_id', membership.org_id)
@@ -60,6 +60,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(300),
     accessFor(service, user.id, membership),
+    listMemberships(service, user.id),
   ])
 
   // Free team: which datasets each member chose (their picks together are
@@ -78,6 +79,8 @@ export async function GET() {
   return NextResponse.json({
     me:      { user_id: user.id, role: membership.role },
     org:     membership.org,
+    /** Every team the caller is on, for the team switcher. */
+    teams:   teams.map((t) => ({ org_id: t.org_id, name: t.org.name, plan: t.org.plan ?? 'paid', role: t.role })),
     members: (members.data ?? []).map((m) => ({ ...m, free_datasets: picksBy.get(m.user_id) ?? [] })),
     /** Free team: every dataset the team's projects can use (members' picks combined). */
     team_datasets: access.team?.picks ?? [],

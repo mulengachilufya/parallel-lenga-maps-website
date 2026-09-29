@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await service.from('profiles').select('id, email, full_name, org_id').eq('id', user.id).maybeSingle()
   if (!profile) return NextResponse.json({ error: 'no_profile', message: 'Your account is still being set up. Reload the page and try again.' }, { status: 409 })
-  if (profile.org_id) return NextResponse.json({ error: 'already_in_org', message: 'Your account is already on a team.' }, { status: 409 })
 
   const rl = await checkIpRateLimit(service, 'create-free-team', clientIp(req), 5, 3600)
   if (!rl.ok) return rateLimitedResponse(rl, 'Too many teams created from here. Try again later.')
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
   })
   if (memErr) {
     await service.from('organizations').delete().eq('id', org.id)
-    return NextResponse.json({ error: 'member_failed', message: memErr.message.includes('unique') ? 'Your account is already on a team.' : 'Could not create the team.' }, { status: 409 })
+    return NextResponse.json({ error: 'member_failed', message: 'Could not create the team.' }, { status: 409 })
   }
   return NextResponse.json({ ok: true, org_id: org.id })
 }

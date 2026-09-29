@@ -13,10 +13,12 @@ import { api, stamp, timeAgo } from '@/components/workspace/util'
 import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
 import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
 import { freeDatasetName } from '@/components/FreeDatasetPicker'
+import TeamSwitcher, { type TeamOption } from '@/components/TeamSwitcher'
 
 interface ListResponse {
   projects: WsProjectSummary[]
   org:      { id: string; name: string; plan?: 'paid' | 'free'; free_datasets?: string[] }
+  teams?:   TeamOption[]
   me:       { user_id: string; name: string; role: 'owner' | 'member' }
 }
 
@@ -77,7 +79,10 @@ export default function WorkspaceIndex() {
 
         {state === 'ready' && data && (
           <>
-            <h1>Projects</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <h1>Projects</h1>
+              <TeamSwitcher teams={data.teams ?? []} current={data.org.id} className="ws-team-switch" />
+            </div>
             <p className="ws-lede">
               Shared maps for {data.org.name}. Everyone on the team sees the same layers, the same
               saved views and the same discussion, and every change is kept in the project&apos;s history.

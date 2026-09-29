@@ -6,7 +6,8 @@
  *   * the invite must be pending and the token must match,
  *   * the invite email must match the caller's account email (an invite is
  *     a seat reservation for ONE address, not a shareable link),
- *   * the caller must not already belong to an org (UNIQUE enforces this too).
+ *   * joining a team you are already on is a no-op success (people can be
+ *     on many teams, migration 044).
  *
  * On success the caller becomes a member, their profile flips to plan='team'
  * (active until the org's access_expires_at; org status is the kill switch), and the invite
@@ -101,8 +102,8 @@ export async function POST(req: NextRequest) {
   // Already in this very team (a double click, a retried request, the link
   // opened twice): that is success, not an error.
   const { data: already } = await service.from('organization_members')
-    .select('org_id').eq('user_id', user.id).maybeSingle()
-  if (already?.org_id === invite.org_id) {
+    .select('org_id').eq('user_id', user.id).eq('org_id', invite.org_id).maybeSingle()
+  if (already) {
     if (invite.status === 'pending') {
       await service.from('organization_invites').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', invite.id)
     }
@@ -126,13 +127,6 @@ export async function POST(req: NextRequest) {
     .select('id, email, full_name, org_id')
     .eq('id', user.id)
     .single()
-  if (already || profile?.org_id) {
-    return NextResponse.json(
-      { error: 'already_in_org', message: 'Your account already belongs to another team. Ask us at lengamaps@gmail.com to move you.' },
-      { status: 409 },
-    )
-  }
-
   const { error: memErr } = await service.from('organization_members').insert({
     org_id:       invite.org_id,
     user_id:      user.id,

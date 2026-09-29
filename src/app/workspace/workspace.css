@@ -849,3 +849,4 @@
 .ws-start-grid b { font-family: var(--title); font-size: 15px; color: #0D2B45; }
 .ws-start-grid span { color: #5a7086; }
 .ws-start .foot { color: #5a7086; font-size: 12px; }
+.ws-team-switch select { font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--white); border: 1px solid var(--rule-strong); border-radius: 8px; padding: 5px 10px; }

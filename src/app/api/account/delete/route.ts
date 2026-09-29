@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { getMembership } from '@/lib/teams'
+import { listMemberships } from '@/lib/teams'
 import { isExpired } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
@@ -40,10 +40,11 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { /* validated below */ }
   if (body.confirm !== 'DELETE') return fail('confirm', 'Type DELETE to confirm.', 400)
 
-  const membership = await getMembership(service, user.id)
-  let deleteOrg: string | null = null
+  // Every team this person owns (they can be on several, migration 044).
+  const owned = (await listMemberships(service, user.id)).filter((m) => m.role === 'owner')
+  const deleteOrgs: string[] = []
 
-  if (membership?.role === 'owner') {
+  for (const membership of owned) {
     const { count } = await service.from('organization_members')
       .select('user_id', { count: 'exact', head: true }).eq('org_id', membership.org_id)
     if ((count ?? 0) > 1) {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       return fail('paid_team',
         'Your paid team plan is still active. Email lengamaps@gmail.com and we will close it and delete your account for you.', 409)
     }
-    deleteOrg = membership.org_id
+    deleteOrgs.push(membership.org_id)
   }
 
   // Downloads, sales notes and project items that point at this person or
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     return fail('delete_failed', 'We could not delete your account just now. Nothing was removed. Try again, or email lengamaps@gmail.com.', 500)
   }
 
-  if (deleteOrg) {
+  for (const deleteOrg of deleteOrgs) {
     // Uploaded files for the team's projects, then the team itself (its
     // projects, invites and messages go with it).
     try {

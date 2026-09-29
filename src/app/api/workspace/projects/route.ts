@@ -7,6 +7,7 @@
  *        country are skipped and reported.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { listMemberships } from '@/lib/teams'
 import { commit, datasetAllowed, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import type { ProjectRole } from '@/lib/workspace/types'
 import { findDataset, listFilesForDataset, type ApiFile } from '@/lib/api-datasets'
@@ -67,6 +68,7 @@ export async function GET() {
     projects: out,
     org: { id: gate.membership.org_id, name: gate.membership.org.name, plan: gate.membership.org.plan ?? 'paid', free_datasets: gate.allowed === 'all' ? [] : gate.allowed },
     me:  { user_id: gate.user.id, name: gate.name, role: gate.membership.role },
+    teams: (await listMemberships(service, gate.user.id)).map((t) => ({ org_id: t.org_id, name: t.org.name })),
   })
 }
 

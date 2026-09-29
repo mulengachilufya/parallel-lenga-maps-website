@@ -60,7 +60,7 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       const u = await findUser(email)
       if (!u) return { ok: false, message: `No account found for ${email}.` }
       const [{ data: member }, { data: pays }, { data: key }] = await Promise.all([
-        db.from('organization_members').select('role, organizations(name, status, access_expires_at, seat_count)').eq('user_id', u.id).maybeSingle(),
+        db.from('organization_members').select('role, organizations(name, status, access_expires_at, seat_count)').eq('user_id', u.id).order('joined_at', { ascending: true }).limit(1).maybeSingle(),
         db.from('manual_payments').select('reference, plan, status, amount_usd, submitted_at').eq('user_id', u.id).order('submitted_at', { ascending: false }).limit(5),
         db.from('workspace_user_keys').select('created_at').eq('user_id', u.id).is('retired_at', null).maybeSingle(),
       ])
@@ -144,10 +144,11 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       if (!u) return done({ ok: false, message: `No account found for ${email}.` })
       const { error } = await db.from('profiles').update({ free_datasets: null, free_datasets_at: null }).eq('id', u.id)
       let team = ''
-      const { data: m } = await db.from('organization_members').select('org_id, role, organizations(plan)').eq('user_id', u.id).maybeSingle()
-      if (!error && m?.role === 'owner' && (m.organizations as unknown as { plan?: string })?.plan === 'free') {
-        await db.from('organizations').update({ free_datasets: null, free_datasets_at: null }).eq('id', m.org_id)
-        team = ' Their free team\'s choice was cleared too.'
+      const { data: ms } = await db.from('organization_members').select('org_id, role, organizations(plan)').eq('user_id', u.id)
+      const owned = (ms ?? []).filter((m) => m.role === 'owner' && (m.organizations as unknown as { plan?: string })?.plan === 'free')
+      if (!error && owned.length) {
+        await db.from('organizations').update({ free_datasets: null, free_datasets_at: null }).in('id', owned.map((m) => m.org_id))
+        team = ' Their free team\'s old choice was cleared too.'
       }
       return done(error ? { ok: false, message: error.message } : { ok: true, message: `${email} can choose their 3 free datasets again.${team}` })
     }
@@ -204,8 +205,11 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
     case 'extend_team': {
       const u = await findUser(email)
       if (!u) return done({ ok: false, message: `No account found for ${email}.` })
-      const { data: m } = await db.from('organization_members').select('org_id').eq('user_id', u.id).maybeSingle()
-      if (!m) return done({ ok: false, message: `${email} is not on a team.` })
+      // Someone can be on several teams: extend their paid team (the first
+      // one they joined), not a free one.
+      const { data: ms } = await db.from('organization_members').select('org_id, organizations(plan)').eq('user_id', u.id).order('joined_at', { ascending: true })
+      const m = (ms ?? []).find((x) => (x.organizations as unknown as { plan?: string })?.plan !== 'free') ?? null
+      if (!m) return done({ ok: false, message: `${email} is not on a paid team.` })
       const { data: org } = await db.from('organizations').select('name, access_expires_at').eq('id', m.org_id).single()
       const next = accessExpiry(org?.access_expires_at ?? null)
       const { error } = await db.from('organizations').update({ access_expires_at: next, status: 'active', expiry_notice_sent: null }).eq('id', m.org_id)

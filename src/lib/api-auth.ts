@@ -102,17 +102,19 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
   // Gate: the key's owner must belong to an ACTIVE organization. Re-checked
   // on every request so suspending an org (missed renewal, cancellation)
   // kills its keys immediately — no need to revoke each key by hand.
-  const { data: membership } = await supabase
+  // A person can be on several teams (migration 044): the key works while
+  // any of them is an active, paid team.
+  const { data: memberships } = await supabase
     .from('organization_members')
     .select('org_id, organizations!inner(id, name, status, api_rate_per_min, plan)')
     .eq('user_id', key.user_id)
-    .maybeSingle()
 
-  const orgRaw = membership
-    ? (membership as { organizations: unknown }).organizations
-    : null
-  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as
-    { id: string; name: string; status: string; api_rate_per_min: number; plan?: string } | null
+  type KeyOrg = { id: string; name: string; status: string; api_rate_per_min: number; plan?: string }
+  const orgs = (memberships ?? []).map((m) => {
+    const raw = (m as { organizations: unknown }).organizations
+    return (Array.isArray(raw) ? raw[0] : raw) as KeyOrg | null
+  }).filter((o): o is KeyOrg => !!o)
+  const org = orgs.find((o) => o.status === 'active' && o.plan !== 'free') ?? orgs[0] ?? null
 
   // The API is a paid-team feature: free teams (migration 041) don't get it.
   if (!org || org.status !== 'active' || org.plan === 'free') {
