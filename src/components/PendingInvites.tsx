@@ -43,8 +43,8 @@ export default function PendingInvites() {
 
   if (joined) {
     return (
-      <div className="mb-6 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm text-white flex flex-wrap items-center gap-3">
-        <Users size={18} className="text-emerald-300" />
+      <div className="mb-6 rounded-2xl border border-emerald-400/40 bg-emerald-50 p-4 text-sm text-emerald-900 flex flex-wrap items-center gap-3">
+        <Users size={18} className="text-emerald-600" />
         <span className="flex-1">You joined <strong>{joined}</strong>.</span>
         <Link href="/workspace" className="rounded-lg bg-[#F5B800] px-4 py-2 text-xs font-bold text-[#1a1200]">Open the workspace</Link>
       </div>
@@ -54,8 +54,8 @@ export default function PendingInvites() {
   return (
     <div className="mb-6 space-y-2">
       {invites.map((i) => (
-        <div key={i.id} className="rounded-2xl border border-[#F5B800]/50 bg-[#F5B800]/10 p-4 text-sm text-white flex flex-wrap items-center gap-3">
-          <Users size={18} className="text-[#F5B800]" />
+        <div key={i.id} className="rounded-2xl border border-[#F5B800]/50 bg-[#fff6d9] p-4 text-sm text-[#0D2B45] flex flex-wrap items-center gap-3">
+          <Users size={18} className="text-[#9a7400]" />
           <span className="flex-1">
             You have been invited to join <strong>{i.org_name}</strong>
             {i.free ? '\'s free GIS workspace.' : ' on Lenga Maps.'}
@@ -69,7 +69,7 @@ export default function PendingInvites() {
           </button>
         </div>
       ))}
-      {error && <p className="text-xs text-red-300">{error}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
 }
