@@ -26,10 +26,12 @@ import argparse, csv, json, os, re, shutil, subprocess, sys, tempfile, urllib.re
 import boto3
 from botocore.config import Config
 
+# river_layers is an old table the site no longer reads (rivers come from
+# hydrology_layers); its keys point at files that were never uploaded.
 TABLES = {
     'admin_boundaries': 'admin-boundaries', 'hydrology_layers': 'hydrology', 'aquifer_layers': 'aquifer',
     'lulc_layers': 'lulc', 'rainfall_climate_layers': 'climate', 'population_settlements_layers': 'population',
-    'river_layers': 'rivers', 'road_layers': 'roads', 'soil_layers': 'soil', 'protected_areas_layers': 'protected-areas',
+    'road_layers': 'roads', 'soil_layers': 'soil', 'protected_areas_layers': 'protected-areas',
 }
 
 
