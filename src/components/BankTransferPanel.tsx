@@ -8,16 +8,15 @@
  *   2. POST /api/payments/bank-details → emails them our bank details (inline
  *      HTML via the dedicated Resend key), alerts the founder with the amount
  *      and reference to expect, AND returns the details for inline display.
- *   3. User transfers from their card/bank, uploads proof of payment.
- *   4. POST /api/payments/manual (payment_method='bank') → pending row +
+ *   3. User transfers from their card/bank, then taps "I've paid".
+ *   4. POST /api/payments/manual (payment_method='bank', no screenshot) → pending row +
  *      admin-verify pipeline. We show a "we'll verify shortly" confirmation —
  *      the plan is NOT active until an admin approves.
  */
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Landmark, Loader2, Lock, AlertCircle, ChevronRight, Mail, Upload, Check,
-  ArrowRight, ShieldCheck,
+  Landmark, Loader2, Lock, AlertCircle, ChevronRight, Mail, Check, ShieldCheck,
 } from 'lucide-react'
 import type { BankDetails } from '@/lib/bank-details'
 import type { TierSlug } from '@/lib/pricing'
@@ -58,11 +57,6 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
   const [emailed,   setEmailed]   = useState(false)
   const [bankRef,   setBankRef]   = useState('')
 
-  // Proof upload
-  const [senderName, setSenderName] = useState(userName)
-  const [txnRef,     setTxnRef]     = useState('')
-  const [file,       setFile]       = useState<File | null>(null)
-  const [preview,    setPreview]    = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [reference,  setReference]  = useState('')
 
@@ -87,32 +81,17 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
     }
   }
 
-  function handleFile(f: File | null) {
-    if (!f) return
-    setFile(f)
-    const reader = new FileReader()
-    reader.onload = (e) => setPreview(e.target?.result as string)
-    reader.readAsDataURL(f)
-  }
-
-  async function submitProof(e: React.FormEvent) {
-    e.preventDefault()
-    if (!senderName.trim()) { setErrorMsg('Please enter the name on your bank account.'); return }
-    if (!file) { setErrorMsg('Please attach your proof of payment.'); return }
+  async function claimPaid() {
     setSubmitting(true); setErrorMsg('')
-
     const fd = new FormData()
     fd.append('plan',           plan)
     fd.append('payment_method', 'bank')
     fd.append('region',         '')          // not applicable to bank transfer
-    fd.append('sender_name',    senderName)
-    fd.append('txn_reference',  txnRef)
-    fd.append('screenshot',     file)
-
+    fd.append('sender_name',    userName)
     try {
       const res  = await fetch('/api/payments/manual', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) { setErrorMsg(data.error || 'Submission failed. Please try again.'); return }
+      if (!res.ok) { setErrorMsg(data.error || 'Could not send. Please try again.'); return }
       setReference(data.reference)
       setPhase('submitted')
     } catch {
@@ -129,7 +108,7 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
           <Check size={32} className="text-green-600" />
         </div>
-        <h2 className="text-2xl font-black text-navy tracking-tight mb-2">Proof received</h2>
+        <h2 className="text-2xl font-black text-navy tracking-tight mb-2">Thanks, we&apos;re on it</h2>
         <p className="text-gray-500 mb-1">
           We&apos;ll verify your transfer and switch on your plan — usually within a few hours.
         </p>
@@ -159,8 +138,8 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
           Pay by card or bank transfer
         </h2>
         <p className="text-center text-sm text-gray-500 mb-7 max-w-sm mx-auto">
-          We&apos;ll email your bank details and show them here. Transfer {amountLabel}, upload your
-          receipt, and we activate your plan — usually within a few hours.
+          We&apos;ll email your bank details and show them here. Transfer {amountLabel}, tap
+          &ldquo;I&apos;ve paid&rdquo;, and we activate your plan, usually within a few hours.
         </p>
 
         <button
@@ -229,84 +208,29 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
         </div>
       )}
 
-      {/* Proof upload */}
-      <form onSubmit={submitProof} className="space-y-4 border-t border-gray-100 pt-5">
-        <p className="text-sm font-bold text-navy">After you&apos;ve paid, upload your proof</p>
-
-        <div>
-          <label className="block text-sm font-semibold text-navy mb-1">Name on your bank account</label>
-          <input
-            type="text"
-            value={senderName}
-            onChange={(e) => setSenderName(e.target.value)}
-            placeholder="Full name"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-navy mb-1">
-            Transaction reference <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            value={txnRef}
-            onChange={(e) => setTxnRef(e.target.value)}
-            placeholder="From your transfer confirmation"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary text-navy font-mono"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-navy mb-1">
-            Proof of payment <span className="text-red-500">*</span>
-          </label>
-          <label className="block cursor-pointer">
-            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition ${
-              preview ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-primary hover:bg-blue-50'
-            }`}>
-              {preview ? (
-                <div className="space-y-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview} alt="Proof of payment" className="max-h-44 mx-auto rounded-lg" />
-                  <p className="text-sm font-semibold text-green-700">
-                    <Check size={14} className="inline mr-1" />{file?.name} — tap to replace
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Upload size={26} className="mx-auto text-gray-400" />
-                  <p className="text-sm font-semibold text-navy">Tap to upload your receipt / screenshot</p>
-                  <p className="text-xs text-gray-400">JPG, PNG, WEBP or HEIC — max 5MB</p>
-                </div>
-              )}
-            </div>
-            <input type="file" accept="image/*" onChange={(e) => handleFile(e.target.files?.[0] || null)} className="hidden" />
-          </label>
-        </div>
-
+      {/* One tap once the money has gone: we check the bank and switch the plan on. */}
+      <div className="border-t border-gray-100 pt-5">
         <AnimatePresence>
           {errorMsg && (
             <motion.div
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
+              className="mb-3 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
             >
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </motion.div>
           )}
         </AnimatePresence>
-
         <button
-          type="submit"
-          disabled={submitting || !file}
-          className="w-full bg-navy text-white font-black text-base py-4 rounded-2xl hover:bg-primary transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          type="button"
+          onClick={() => void claimPaid()}
+          disabled={submitting}
+          className="w-full bg-[#F5B800] text-[#1a1200] font-black text-lg py-4 rounded-2xl hover:bg-[#ffc81f] transition disabled:opacity-60 flex items-center justify-center gap-2 shadow-[0_10px_24px_-10px_rgba(201,162,39,0.9)]"
         >
-          {submitting
-            ? <><Loader2 className="animate-spin" size={18} /> Submitting…</>
-            : <>Submit proof of payment <ArrowRight size={18} /></>}
+          {submitting ? <><Loader2 className="animate-spin" size={18} /> Sending…</> : <>I&apos;ve paid <Check size={20} /></>}
         </button>
-      </form>
+        <p className="mt-2 text-center text-xs text-gray-500">We check our bank and switch your plan on, usually within a few hours.</p>
+      </div>
     </div>
   )
 }
