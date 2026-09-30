@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -754,33 +753,34 @@ function DashboardContent() {
     <div className="min-h-screen bg-gray-50">
       <div className="h-20" />
 
-      {/* Thin satellite banner — same orbit visual as the landing page,
-          so the brand story doesn't end at sign-in. Sits below the navbar
-          and above the greeting; subtle dark gradient keeps the welcome
-          text readable on top. */}
-      <div className="relative h-[180px] sm:h-[220px] overflow-hidden border-b border-gray-100">
-        <Image
-          src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2400&q=80"
-          alt="Earth from orbit — Africa visible"
-          fill
-          priority
-          className="object-cover brightness-[0.55] saturate-[1.1]"
-          unoptimized
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a121c]/85 via-[#0a121c]/50 to-[#0a121c]/15" />
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-7 h-0.5 bg-gold" />
-            <span className="text-[0.66rem] font-bold tracking-[0.22em] text-gold uppercase">
-              Dashboard
-            </span>
+      {/* Banner: a strip of real Lenga layers and Sentinel-2 scenes, shown
+          as they are (no tint). A small frosted panel keeps the greeting
+          readable over whatever tile sits behind it. */}
+      <div className="relative h-[190px] sm:h-[230px] overflow-hidden border-b border-gray-100 bg-[#0D2B45]">
+        <div aria-hidden className="absolute inset-0 grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8">
+          {BANNER_TILES.map((t, i) => (
+            <div key={t.src} className={`relative ${i >= 6 ? 'hidden lg:block' : i >= 4 ? 'hidden sm:block' : ''}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={t.src} alt="" className="h-full w-full object-cover" loading={i < 4 ? 'eager' : 'lazy'} />
+              <span className="absolute bottom-1.5 right-1.5 hidden rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white/90 lg:block">{t.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end pb-4 sm:items-center sm:pb-0">
+          <div className="rounded-2xl bg-[#0a121c]/55 px-4 py-3 sm:px-5 sm:py-4 backdrop-blur-md shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="w-7 h-0.5 bg-gold" />
+              <span className="text-[0.66rem] font-bold tracking-[0.22em] text-gold uppercase">
+                Dashboard
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+              {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
+            </h1>
+            <p className="hidden sm:block text-white/80 text-sm mt-1">
+              54 African countries · 15 datasets · harmonised to EPSG:4326
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
-            {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
-          </h1>
-          <p className="text-white/70 text-sm mt-1.5">
-            54 African countries · 15 datasets · harmonised to EPSG:4326
-          </p>
         </div>
       </div>
 
@@ -970,6 +970,17 @@ function DashboardContent() {
     </div>
   )
 }
+
+const BANNER_TILES = [
+  { src: '/images/mosaic/gis-s2_mine.webp', label: 'Sentinel-2 · open-pit mine' },
+  { src: '/images/mosaic/gis-lulc.webp', label: 'Land cover' },
+  { src: '/images/mosaic/gis-hydrorivers.webp', label: 'River networks' },
+  { src: '/images/mosaic/gis-s2_mine_ndvi.webp', label: 'NDVI' },
+  { src: '/images/mosaic/gis-wetlands.webp', label: 'Wetlands' },
+  { src: '/images/mosaic/gis-s2_sugar.webp', label: 'Sentinel-2 · irrigated cane' },
+  { src: '/images/mosaic/gis-soil.webp', label: 'Soil classes' },
+  { src: '/images/mosaic/gis-s2_delta.webp', label: 'Sentinel-2 · delta' },
+]
 
 export default function DashboardPage() {
   return (

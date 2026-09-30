@@ -39,11 +39,11 @@ export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<
         {items.map(({ d, href, owned }) => (
           <li key={href}>
             <Link href={href}
-                  className="group flex items-center gap-2.5 rounded-xl px-3 py-3 hover:bg-[#fbf5e2] transition-colors">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg" style={{ backgroundColor: `${d.color}18` }}>{d.icon}</span>
+                  className="group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 sm:px-3 sm:py-3 hover:bg-[#fbf5e2] transition-colors">
+              <span className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg text-base sm:text-lg" style={{ backgroundColor: `${d.color}18` }}>{d.icon}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[15px] leading-snug font-bold text-[#0D2B45] group-hover:text-primary">{d.name}</span>
-                <span className="mt-0.5 block text-[12.5px] text-gray-500">
+                <span className="block text-[13.5px] sm:text-[15px] leading-snug font-bold text-[#0D2B45] group-hover:text-primary">{d.name}</span>
+                <span className="mt-0.5 block text-[11.5px] sm:text-[12.5px] text-gray-500">
                   {owned ? (isFree ? '★ Yours to download' : 'Download or view') : <><Lock size={11} className="inline -mt-0.5" /> Paid plans</>}
                 </span>
               </span>
