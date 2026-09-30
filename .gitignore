@@ -61,3 +61,5 @@ next-env.d.ts
 # details, internal metrics. CONFIDENTIAL. Never commit to the (shared,
 # engineer-visible) code repo. Share via a private data-room host instead.
 /data-room/
+
+__pycache__/
