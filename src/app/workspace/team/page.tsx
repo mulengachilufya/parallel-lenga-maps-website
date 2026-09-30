@@ -13,6 +13,8 @@ import { usePhone } from '@/components/workspace/usePhone'
 import { api, stamp, timeAgo } from '@/components/workspace/util'
 import { ROLE_LABEL, type WsProjectSummary } from '@/lib/workspace/types'
 import { AFRICAN_COUNTRIES, TEMPLATES } from '@/lib/workspace/templates'
+
+const SHORT: Record<string, string> = { '': 'Empty map', eia: 'EIA', mining: 'Mining', water: 'Water', infrastructure: 'Infrastructure', agriculture: 'Agriculture' }
 import { freeDatasetName } from '@/components/FreeDatasetPicker'
 import TeamSwitcher, { type TeamOption } from '@/components/TeamSwitcher'
 import Mosaic from '@/components/workspace/Mosaic'
@@ -120,12 +122,15 @@ export default function WorkspaceIndex() {
                               placeholder="Client, area of interest, deadline" onChange={(e) => setDescription(e.target.value)} />
                   </div>
                   <div className="ws-field">
-                    <label className="ws-label" htmlFor="np-tpl">Start from</label>
-                    <select id="np-tpl" className="ws-select" style={{ width: '100%' }} value={template} onChange={(e) => setTemplate(e.target.value)}>
-                      <option value="">An empty map</option>
-                      {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    {template && <div className="small muted" style={{ marginTop: 3, lineHeight: 1.5 }}>{TEMPLATES.find((t) => t.id === template)?.blurb}</div>}
+                    <span className="ws-label">Start from a ready-made map</span>
+                    <div role="radiogroup" aria-label="Start from" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {[{ id: '', name: 'Empty map' }, ...TEMPLATES].map((t) => (
+                        <button key={t.id || 'empty'} type="button" role="radio" aria-checked={template === t.id}
+                                className={`ws-btn ${template === t.id ? 'ws-btn-default' : ''}`} onClick={() => setTemplate(t.id)}>
+                          {SHORT[t.id] ?? t.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   {template && (
                     <div className="ws-field">

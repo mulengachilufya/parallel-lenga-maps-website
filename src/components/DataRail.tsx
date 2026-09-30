@@ -32,19 +32,19 @@ export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<
         <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5B800]">
           <Download size={14} /> GIS data
         </p>
-        <h2 className="mt-1 text-lg font-extrabold leading-tight">Download &amp; view datasets</h2>
-        <p className="mt-1 text-xs text-white/75">All 54 African countries. Pick a dataset, then a country.</p>
+        <h2 className="mt-1 text-xl font-extrabold leading-tight">Download &amp; view datasets</h2>
+        <p className="mt-1 text-sm text-white/80">All 54 African countries. Pick a dataset, then a country.</p>
       </div>
       <ul className="grid grid-cols-2 gap-1 p-2 lg:grid-cols-1">
         {items.map(({ d, href, owned }) => (
           <li key={href}>
             <Link href={href}
-                  className="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 hover:bg-[#fbf5e2] transition-colors">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base" style={{ backgroundColor: `${d.color}18` }}>{d.icon}</span>
+                  className="group flex items-center gap-2.5 rounded-xl px-3 py-3 hover:bg-[#fbf5e2] transition-colors">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg" style={{ backgroundColor: `${d.color}18` }}>{d.icon}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-[#0D2B45] group-hover:text-primary">{d.name}</span>
-                <span className="block text-[10.5px] text-gray-500">
-                  {owned ? (isFree ? '★ Yours to download' : 'Download or view') : <><Lock size={9} className="inline -mt-0.5" /> Paid plans</>}
+                <span className="block text-[15px] leading-snug font-bold text-[#0D2B45] group-hover:text-primary">{d.name}</span>
+                <span className="mt-0.5 block text-[12.5px] text-gray-500">
+                  {owned ? (isFree ? '★ Yours to download' : 'Download or view') : <><Lock size={11} className="inline -mt-0.5" /> Paid plans</>}
                 </span>
               </span>
             </Link>
@@ -52,7 +52,7 @@ export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<
         ))}
       </ul>
       <Link href="/request-data"
-            className="flex items-center gap-2 border-t border-gray-100 px-5 py-3.5 text-[13px] font-semibold text-[#9a7400] hover:bg-[#fbf5e2]">
+            className="flex items-center gap-2 border-t border-gray-100 px-5 py-4 text-[14px] font-semibold text-[#9a7400] hover:bg-[#fbf5e2]">
         <MessageSquarePlus size={16} /> Can&apos;t find the data you need? Ask us for it
       </Link>
     </aside>

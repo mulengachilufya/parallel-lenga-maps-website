@@ -236,7 +236,7 @@ export default function TeamPage() {
                 <CreateFreeTeam onCreated={async () => { setCreating(false); window.location.reload() }} />
               </div>
             )}
-            <div className="mt-4"><WorkspaceBox hasTeam compact href="/workspace/team" /></div>
+            <div className="mt-4"><WorkspaceBox hasTeam href="/workspace/team" /></div>
             {data.org.operating_countries.length > 0 && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[#5a7086]">
                 <MapPin size={13} /> Operating in {data.org.operating_countries.join(', ')}

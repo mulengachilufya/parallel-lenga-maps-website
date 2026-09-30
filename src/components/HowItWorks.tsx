@@ -12,7 +12,6 @@
  */
 
 import Link from 'next/link'
-import { TEMPLATES } from '@/lib/workspace/templates'
 import { motion } from 'framer-motion'
 import { ArrowRight, Database, FolderLock, Map as MapIcon, Download } from 'lucide-react'
 
@@ -152,19 +151,6 @@ export default function HowItWorks() {
               )}
             </div>
           ))}
-        </div>
-
-        <div className="mt-12">
-          <p className="text-sm font-semibold text-white">Ready-made maps for your field</p>
-          <p className="mt-1 text-xs text-white/55">Pick your kind of project and a country: the right Lenga layers go straight onto a new shared map, styled and in order.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {TEMPLATES.map((t) => (
-              <Link key={t.id} href="/signup" className="group water-card p-4 hover:border-gold/60 transition-colors">
-                <span className="block text-sm font-bold text-white group-hover:text-gold">{t.name}</span>
-                <span className="mt-1 block text-[11.5px] leading-snug text-white/55">{t.layers.length} layers ready</span>
-              </Link>
-            ))}
-          </div>
         </div>
 
         <div className="mt-12 water-card p-5 sm:p-6">

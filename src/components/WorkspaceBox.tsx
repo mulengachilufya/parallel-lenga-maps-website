@@ -1,18 +1,16 @@
 'use client'
 
 /**
- * The shared GIS workspace as a full box of its own: what it is, one clear
- * button in, and the ready-made maps by field (mining, EIA, water...), each
- * of which opens a new project already loaded with that field's layers.
+ * The shared GIS workspace as a box of its own: what it is and one clear
+ * button in. (Ready-made field maps live inside the workspace itself.)
  */
 
 import Link from 'next/link'
 import { ArrowRight, Map as MapIcon, MessageSquare, Mic, History } from 'lucide-react'
-import { TEMPLATES } from '@/lib/workspace/templates'
 
 const TILES = ['s2_mine', 's2_mine_ndvi', 'lulc', 'wetlands', 'hydrorivers', 's2_sugar'].map((n) => `/images/mosaic/gis-${n}.webp`)
 
-export default function WorkspaceBox({ hasTeam, compact = false, href }: { hasTeam: boolean; compact?: boolean; href?: string }) {
+export default function WorkspaceBox({ hasTeam, href }: { hasTeam: boolean; href?: string }) {
   const start = href ?? (hasTeam ? '/workspace' : '/team?start=free')
   return (
     <section className="relative overflow-hidden rounded-2xl border border-[#0D2B45]/10 bg-[#0D2B45] text-white shadow-[0_22px_48px_-26px_rgba(13,43,69,0.8)]">
@@ -40,21 +38,6 @@ export default function WorkspaceBox({ hasTeam, compact = false, href }: { hasTe
           {hasTeam ? 'Open the workspace' : 'Start a free team'} <ArrowRight size={17} />
         </Link>
 
-        {!compact && (
-          <div className="mt-7">
-            <p className="text-sm font-bold">Start from a ready-made map for your field</p>
-            <p className="text-xs text-white/70">Pick one and a country: the right layers go straight onto a new project map, styled and in order.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATES.map((t) => (
-                <Link key={t.id} href={hasTeam ? `/workspace/team?template=${t.id}` : '/team?start=free'}
-                      className="group rounded-xl border border-white/15 bg-white/[0.07] px-4 py-3 backdrop-blur hover:border-[#F5B800]/70 hover:bg-white/[0.12] transition-colors">
-                  <span className="block text-[13.5px] font-bold group-hover:text-[#F5B800]">{t.name}</span>
-                  <span className="mt-0.5 block text-[11.5px] leading-snug text-white/70">{t.layers.length} layers · {t.blurb}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   )
