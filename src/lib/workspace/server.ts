@@ -149,3 +149,10 @@ export async function teammate(gate: WorkspaceGate, userId: string) {
     .eq('org_id', gate.membership.org_id).eq('user_id', userId).maybeSingle()
   return data
 }
+
+/** Bytes of team-uploaded files on a project's current layers (its storage allowance in use). */
+export async function projectUploadBytes(projectId: string): Promise<number> {
+  const { data } = await service.from('workspace_layers')
+    .select('file_bytes').eq('project_id', projectId).eq('dataset_slug', 'upload')
+  return (data ?? []).reduce((n, r) => n + (Number(r.file_bytes) || 0), 0)
+}

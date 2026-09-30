@@ -12,6 +12,7 @@
 //                   plus a README for ArcGIS Pro / QGIS.
 
 import { strToU8, unzipSync, zipSync } from 'fflate'
+import { MAX_UPLOAD_BYTES, WHOLE_FILE_MAX, formatBytes } from './upload-limits'
 import { findProjectXml, readQgisProject, shapefileSiblings, writeQgisProject, type QgisExportLayer } from './qgis'
 import { parseBytes, getLayerBytes, type LoadedLayer } from './loaders'
 import type { LayerStyle, WsLayer } from './types'
@@ -89,9 +90,37 @@ async function toUpload(
     filename = safe(name.replace(/\\/g, '/').split('/').pop() ?? name)
   }
 
+  if (bytes.byteLength > MAX_UPLOAD_BYTES) throw new Error(`it is ${formatBytes(bytes.byteLength)}; the limit is ${formatBytes(MAX_UPLOAD_BYTES)} per file`)
+  if (bytes.byteLength > WHOLE_FILE_MAX) {
+    // Too big to open whole in the browser: only a streamable GeoTIFF works.
+    if (!/\.tiff?$/i.test(filename)) {
+      throw new Error(`it is ${formatBytes(bytes.byteLength)}; vector files open up to ${formatBytes(WHOLE_FILE_MAX)}. Clip or simplify it in QGIS, or split it into parts`)
+    }
+    const summary = await probeStreamableTiff(bytes)
+    return [{ filename, bytes, label: label.slice(0, 160), file_format: formatOf(filename), style, visible, summary }]
+  }
+
   const parsed = await parseBytes(ab(bytes), style.ramp ?? 'terrain')
   if (parsed.kind === 'vector' && parsed.count === 0) throw new Error('it has no features')
   return [{ filename, bytes, label: label.slice(0, 160), file_format: formatOf(filename), style, visible, summary: describe(parsed) }]
+}
+
+/**
+ * A GeoTIFF over WHOLE_FILE_MAX is streamed by the map, which needs it tiled,
+ * with overviews (a Cloud Optimized GeoTIFF), in EPSG:4326. Reads the header
+ * only, so a 400 MB file costs nothing to check.
+ */
+async function probeStreamableTiff(bytes: Uint8Array): Promise<string> {
+  const how = 'In QGIS: Raster › Conversion › Translate, set EPSG:4326 and save as COG (Cloud Optimized GeoTIFF)'
+  const { fromArrayBuffer } = await import('geotiff')
+  const tiff = await fromArrayBuffer(ab(bytes))
+  const image = await tiff.getImage()
+  const projected = (image.getGeoKeys() ?? {}).ProjectedCSTypeGeoKey
+  if (projected && projected !== 4326) throw new Error(`it is over ${formatBytes(WHOLE_FILE_MAX)} and in EPSG:${projected}. ${how}`)
+  if (!image.isTiled || (await tiff.getImageCount()) < 2) {
+    throw new Error(`it is over ${formatBytes(WHOLE_FILE_MAX)} and not a Cloud Optimized GeoTIFF, so the map cannot stream it. ${how}`)
+  }
+  return `${image.getWidth()} × ${image.getHeight()} px, streamed`
 }
 
 export async function prepareImport(input: File[]): Promise<PreparedImport> {
