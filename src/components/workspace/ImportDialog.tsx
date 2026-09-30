@@ -4,24 +4,39 @@
  * Import from desktop GIS: drop a QGIS project (.qgz/.qgs with its data, or
  * the whole project folder zipped), or loose GIS files. Everything is read
  * in the browser first, so the list shows exactly what will land on the map
- * before anything is uploaded.
+ * before anything is uploaded. Files go straight from the browser to the
+ * team's private folder in R2, on links the API signs for each file's size.
  */
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
 import { primeCache } from '@/lib/workspace/loaders'
 import { prepareImport, type PreparedImport } from '@/lib/workspace/transfer'
+import { MAX_UPLOAD_BYTES, PROJECT_QUOTA_BYTES, WHOLE_FILE_MAX, formatBytes } from '@/lib/workspace/upload-limits'
+
+/** PUT a file to a presigned URL, reporting progress (fetch cannot). */
+function put(url: string, body: Blob, onProgress: (sent: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', url)
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream')
+    xhr.upload.onprogress = (e) => onProgress(e.loaded)
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`upload refused (${xhr.status})`)))
+    xhr.onerror = () => reject(new Error('the connection dropped'))
+    xhr.send(body)
+  })
+}
 
 interface Props {
-  orgId:     string
   projectId: string
   onClose:   () => void
   onImported: (uploads: { path: string; label: string; file_format: string; style: object }[], hiddenLabels: string[]) => Promise<void>
 }
 
+interface Usage { used: number; limit: number }
+
 const ACCEPT = '.qgz,.qgs,.zip,.shp,.shx,.dbf,.prj,.cpg,.gpkg,.geojson,.json,.kml,.kmz,.gpx,.tif,.tiff'
 
-export default function ImportDialog({ orgId, projectId, onClose, onImported }: Props) {
+export default function ImportDialog({ projectId, onClose, onImported }: Props) {
   const [prep, setPrep] = useState<PreparedImport | null>(null)
   const [keep, setKeep] = useState<Set<number>>(new Set())
   const [reading, setReading] = useState(false)
@@ -29,6 +44,12 @@ export default function ImportDialog({ orgId, projectId, onClose, onImported }: 
   const [busy, setBusy] = useState(false)
   const [over, setOver] = useState(false)
   const [err, setErr] = useState('')
+  const [usage, setUsage] = useState<Usage | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/workspace/projects/${projectId}/uploads`).then((r) => (r.ok ? r.json() : null))
+      .then((d: Usage | null) => d && setUsage({ used: d.used, limit: d.limit })).catch(() => {})
+  }, [projectId])
 
   async function read(list: FileList | File[]) {
     const files = [...list]
@@ -48,17 +69,39 @@ export default function ImportDialog({ orgId, projectId, onClose, onImported }: 
     if (!chosen.length) return
     setBusy(true); setErr('')
     try {
+      const total = chosen.reduce((n, u) => n + u.bytes.byteLength, 0)
+      const res = await fetch(`/api/workspace/projects/${projectId}/uploads`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: chosen.map((u) => ({ name: u.filename, size: u.bytes.byteLength })) }),
+      })
+      const signed = await res.json().catch(() => ({})) as { uploads?: { key: string; url: string }[]; used?: number; limit?: number; error?: string }
+      if (!res.ok || !signed.uploads) {
+        if (signed.error === 'project_full') {
+          throw new Error(`This project has ${formatBytes(Math.max(0, (signed.limit ?? PROJECT_QUOTA_BYTES) - (signed.used ?? 0)))} of its ${formatBytes(signed.limit ?? PROJECT_QUOTA_BYTES)} left; these files need ${formatBytes(total)}. Remove a layer you uploaded, or upload fewer files.`)
+        }
+        if (signed.error === 'file_too_large') throw new Error(`Each file can be up to ${formatBytes(MAX_UPLOAD_BYTES)}.`)
+        if (res.status === 403) throw new Error('Viewers cannot add files to this project.')
+        throw new Error('Could not start the upload. Try again.')
+      }
+
       const registered: { path: string; label: string; file_format: string; style: object }[] = []
+      let done = 0
       for (let i = 0; i < chosen.length; i++) {
-        const u = chosen[i]
-        setStatus(`Uploading ${i + 1} of ${chosen.length}: ${u.filename}`)
-        const path = `${orgId}/${projectId}/${crypto.randomUUID().slice(0, 8)}-${u.filename}`
-        const { error } = await supabase.storage.from('workspace-uploads').upload(path, new Blob([u.bytes.buffer as ArrayBuffer]), {
-          contentType: 'application/octet-stream', upsert: false,
-        })
-        if (error) throw new Error(`${u.filename}: ${error.message}`)
-        void primeCache(`upload:${path}`, u.bytes.buffer.slice(u.bytes.byteOffset, u.bytes.byteOffset + u.bytes.byteLength) as ArrayBuffer)
-        registered.push({ path, label: u.label, file_format: u.file_format, style: u.style })
+        const u = chosen[i], { key, url } = signed.uploads[i]
+        const label = `Uploading ${i + 1} of ${chosen.length}: ${u.filename}`
+        setStatus(label)
+        try {
+          await put(url, new Blob([u.bytes.buffer.slice(u.bytes.byteOffset, u.bytes.byteOffset + u.bytes.byteLength) as ArrayBuffer]), (sent) =>
+            setStatus(`${label} · ${Math.min(100, Math.round(((done + sent) / total) * 100))}%`))
+        } catch (e) {
+          throw new Error(`${u.filename}: ${e instanceof Error ? e.message : 'upload failed'}`)
+        }
+        done += u.bytes.byteLength
+        // Files the browser opens whole are cached now, so they show at once.
+        if (u.bytes.byteLength <= WHOLE_FILE_MAX) {
+          void primeCache(key, u.bytes.buffer.slice(u.bytes.byteOffset, u.bytes.byteOffset + u.bytes.byteLength) as ArrayBuffer)
+        }
+        registered.push({ path: key, label: u.label, file_format: u.file_format, style: u.style })
       }
       setStatus('Adding layers to the project…')
       await onImported(registered, chosen.filter((u) => !u.visible).map((u) => u.label))
@@ -87,7 +130,8 @@ export default function ImportDialog({ orgId, projectId, onClose, onImported }: 
             <span className="muted small">
               QGIS: the <span className="mono">.qgz</span> plus its data, or the project folder zipped.
               ArcGIS Pro: export layers as shapefile, GeoPackage, KML or GeoTIFF.
-              Also GeoJSON, GPX and KMZ. Up to 50 MB per file.
+              Also GeoJSON, GPX and KMZ. Up to {formatBytes(MAX_UPLOAD_BYTES)} per file and {formatBytes(PROJECT_QUOTA_BYTES)} per project;
+              rasters over {formatBytes(WHOLE_FILE_MAX)} must be Cloud Optimized GeoTIFFs in EPSG:4326 so the map can stream them.
             </span><br />
             <span className="small" style={{ color: 'var(--brass)' }}>Your files stay private to your team, tagged Yours, and never mix with the Lenga database.</span>
           </>}
@@ -120,6 +164,12 @@ export default function ImportDialog({ orgId, projectId, onClose, onImported }: 
               </div>
             )}
           </>
+        )}
+        {usage && (
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            Project storage: {formatBytes(usage.used)} of {formatBytes(usage.limit)} used
+            {prep && keep.size > 0 && <> · this import {formatBytes(prep.uploads.filter((_, i) => keep.has(i)).reduce((n, u) => n + u.bytes.byteLength, 0))}</>}
+          </p>
         )}
         {status && <p className="small" style={{ margin: '8px 0 0' }}>{status}</p>}
       </div>

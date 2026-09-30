@@ -747,7 +747,7 @@ function Workstation() {
         />
       )}
       {floating === 'import' && (
-        <ImportDialog orgId={bundle.org.id} projectId={id} onClose={() => setFloating(null)} onImported={importUploads} />
+        <ImportDialog projectId={id} onClose={() => setFloating(null)} onImported={importUploads} />
       )}
       {dialog?.kind === 'edit' && (() => {
         const layer = liveLayers.find((l) => l.id === dialog.layerId)

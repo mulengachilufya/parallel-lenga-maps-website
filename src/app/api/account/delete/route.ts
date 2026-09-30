@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { deletePrefix } from '@/lib/r2'
 import { listMemberships } from '@/lib/teams'
 import { isExpired } from '@/lib/pricing'
 
@@ -73,10 +74,8 @@ export async function POST(req: NextRequest) {
   for (const deleteOrg of deleteOrgs) {
     // Uploaded files for the team's projects, then the team itself (its
     // projects, invites and messages go with it).
-    try {
-      const { data: files } = await service.storage.from('workspace-uploads').list(deleteOrg, { limit: 1000 })
-      if (files?.length) await service.storage.from('workspace-uploads').remove(files.map((f) => `${deleteOrg}/${f.name}`))
-    } catch { /* best effort; storage is private to the org anyway */ }
+    try { await deletePrefix(`workspace-uploads/${deleteOrg}/`) }
+    catch (err) { console.error('[account/delete] upload cleanup failed', { org: deleteOrg, err }) }
     const { error: orgErr } = await service.from('organizations').delete().eq('id', deleteOrg)
     if (orgErr) console.error('[account/delete] org delete failed (account already deleted)', { org: deleteOrg, orgErr })
   }

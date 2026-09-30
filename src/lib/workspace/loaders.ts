@@ -10,6 +10,7 @@
 // teammate's layer doesn't re-download it.
 
 import type { FeatureCollection } from 'geojson'
+import { WHOLE_FILE_MAX } from './upload-limits'
 import type { RasterRamp, WsLayer } from './types'
 import type { RasterResult } from './raster'
 
@@ -74,7 +75,7 @@ async function sourceInfo(projectId: string, layer: WsLayer): Promise<SourceInfo
 
 // Whole-file loading holds the file in browser memory; past this size it
 // would stall or crash the tab. Such files wait for their web version.
-const MAX_WHOLE_FILE = 300 * 1024 * 1024
+const MAX_WHOLE_FILE = WHOLE_FILE_MAX
 
 function tooBig(res: Response): boolean {
   const n = Number(res.headers.get('content-length') ?? 0)

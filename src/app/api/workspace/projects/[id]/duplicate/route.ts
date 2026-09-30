@@ -8,11 +8,13 @@
  * the new project's history starts with where it came from.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { copyObject } from '@/lib/r2'
 import { commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
-const UPLOAD_BUCKET = 'workspace-uploads'
+const UPLOAD_BUCKET = 'workspace-uploads'   // early uploads, in Supabase Storage
+const R2_UPLOADS = 'workspace-uploads/'     // uploads in R2
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requireWorkspace()
@@ -43,7 +45,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const rows = []
   for (const l of layers.data ?? []) {
     let r2 = l.r2_key as string
-    if (r2.startsWith(`upload:${oldPrefix}`)) {
+    if (r2.startsWith(`${R2_UPLOADS}${oldPrefix}`)) {
+      const to = `${R2_UPLOADS}${newPrefix}${r2.slice(R2_UPLOADS.length + oldPrefix.length)}`
+      try { await copyObject(r2, to) } catch { continue }   // the source file is gone; leave that layer out
+      r2 = to
+    } else if (r2.startsWith(`upload:${oldPrefix}`)) {
       const from = r2.slice('upload:'.length)
       const to = newPrefix + from.slice(oldPrefix.length)
       const { error: cpErr } = await service.storage.from(UPLOAD_BUCKET).copy(from, to)
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     rows.push({
       project_id: project.id, dataset_slug: l.dataset_slug, country: l.country, r2_key: r2,
-      file_format: l.file_format, label: l.label, style: l.style, sort_order: l.sort_order,
+      file_format: l.file_format, label: l.label, style: l.style, sort_order: l.sort_order, file_bytes: l.file_bytes,
       added_by: gate.user.id, added_by_name: gate.name,
     })
   }

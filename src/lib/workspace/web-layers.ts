@@ -24,7 +24,7 @@ const seen = new Map<string, { ok: boolean; at: number }>()
 const RECHECK_MS = 5 * 60_000
 
 export async function hasWebLayer(r2Key: string): Promise<boolean> {
-  if (r2Key.startsWith('upload:')) return false
+  if (r2Key.startsWith('upload:') || r2Key.startsWith('workspace-uploads/')) return false
   const key = webKeyFor(r2Key)
   const hit = seen.get(key)
   if (hit && (hit.ok || Date.now() - hit.at < RECHECK_MS)) return hit.ok

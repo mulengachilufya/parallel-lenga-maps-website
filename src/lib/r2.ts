@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, HeadObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Cloudflare R2 client (S3-compatible)
@@ -90,4 +90,41 @@ export async function objectExists(key: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Presigned PUT for a browser upload of exactly `size` bytes: the length is
+ * part of the signature, so the file cannot be bigger than was approved.
+ */
+export async function getSizedUploadUrl(key: string, size: number, expiresIn = 3600) {
+  const command = new PutObjectCommand({
+    Bucket: BUCKET, Key: key, ContentLength: size, ContentType: 'application/octet-stream',
+  })
+  return getSignedUrl(r2, command, { expiresIn, signableHeaders: new Set(['content-length', 'content-type']) })
+}
+
+/** Size of an object in bytes, or null if it does not exist. */
+export async function objectSize(key: string): Promise<number | null> {
+  try {
+    const res = await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
+    return res.ContentLength ?? 0
+  } catch {
+    return null
+  }
+}
+
+/** Server-side copy within the bucket. */
+export async function copyObject(from: string, to: string) {
+  return r2.send(new CopyObjectCommand({ Bucket: BUCKET, CopySource: `${BUCKET}/${encodeURIComponent(from).replace(/%2F/g, '/')}`, Key: to }))
+}
+
+/** Delete everything under a prefix (e.g. a team's upload folder). */
+export async function deletePrefix(prefix: string) {
+  let token: string | undefined
+  do {
+    const page = await r2.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix, ContinuationToken: token, MaxKeys: 1000 }))
+    const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []))
+    if (keys.length) await r2.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: keys, Quiet: true } }))
+    token = page.IsTruncated ? page.NextContinuationToken : undefined
+  } while (token)
 }
