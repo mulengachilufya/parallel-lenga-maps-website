@@ -970,3 +970,61 @@
 .ws-menu button.danger { color: var(--danger); }
 .ws-menu hr { border: 0; border-top: 1px solid var(--rule); margin: 3px 2px; }
 .ws-app.phone .ws-toc li { grid-template-columns: 22px 16px 1fr auto auto; }
+
+/* ── Readable sizes ──────────────────────────────────────────────────────────
+   The desktop workspace read too small (tabs, Messages, panel text). One
+   step up across the board; phone mode keeps its own, already larger, sizes. */
+.ws { font-size: 14px; }
+.ws .small { font-size: 12.5px; }
+.ws .mono { font-size: 12.5px; }
+.ws-label { font-size: 12.5px; }
+.ws-btn { font-size: 13.5px; min-height: 30px; padding: 4px 13px; }
+.ws-input, .ws-select, .ws-textarea { font-size: 13.5px; }
+.ws-crumbs { font-size: 13.5px; }
+.ws-titlebar .ws-inbox-link, .ws-titlebar .small { font-size: 13.5px; }
+.ws-avatar { width: 24px; height: 24px; font-size: 11px; }
+.ws-app:not(.phone) { grid-template-rows: 44px 46px 1fr 28px; }
+@media (min-width: 901px) {
+  .ws-wordmark { font-size: 18px; }
+  .ws-float { top: 98px; left: 308px; }
+  .ws-app { grid-template-columns: 300px 1fr 380px; }
+  .ws-app.no-right { grid-template-columns: 300px 1fr 0; }
+  .ws-app.no-left  { grid-template-columns: 0 1fr 380px; }
+  .ws-app.no-left.no-right { grid-template-columns: 0 1fr 0; }
+}
+@media (max-width: 900px) { .ws-float { top: 98px; } }
+.ws-statusbar { font-size: 12px; }
+.ws-panel-head { height: 36px; font-size: 12.5px; }
+.ws-tab { font-size: 14.5px; padding: 10px 14px 9px; }
+.ws-tab .count { font-size: 12px; }
+.ws-tab .badge, .ws-inbox-link .badge { font-size: 11px; line-height: 16px; min-width: 17px; }
+.ws-toc li { padding: 6px 7px; }
+.ws-toc li .meta { font-size: 12px; }
+.ws-msg .who, .ws-dm-msg .who { font-size: 15px; }
+.ws-msg .when, .ws-dm-msg .when, .ws-dm-msg .seen { font-size: 12px; }
+.ws-msg .body, .ws-dm-msg .body { font-size: 14px; }
+.ws-msg .foot { font-size: 12.5px; }
+.ws-pin-tag { font-size: 12px; }
+.ws-dm-list .pv { font-size: 12.5px; }
+.ws-dm-list .when { font-size: 11.5px; }
+.ws-dm-list .ws-avatar { width: 30px; height: 30px; font-size: 12px; }
+.ws-e2e-foot { font-size: 12px; }
+.ws-log .line1, .ws-diff { font-size: 12.5px; }
+.ws-identify, .ws-identify td:first-child, .ws-map .maplibregl-popup-content { font-size: 13px; }
+.ws-legend { font-size: 12.5px; }
+.ws-legend .ends { font-size: 12px; }
+.ws-busy { font-size: 12.5px; }
+.ws-pick .kind, .ws-pick-group { font-size: 11.5px; }
+.ws-pick-group { top: 38px; }
+.ws-attr-body table, .ws-prov { font-size: 13px; }
+.ws-role-chip { font-size: 12.5px; height: 24px; }
+.ws-lede { font-size: 14px; }
+.ws-menu { font-size: 14px; }
+.ws-menu-title { font-size: 12.5px; }
+.ws-dialog .ws-panel-head { height: 32px; font-size: 12.5px; }
+.ws-toolbar { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.ws-toolbar .ws-btn { font-size: 13px; padding: 4px 10px; white-space: nowrap; flex: none; }
+.ws-toolbar label { font-size: 12px; align-self: center; white-space: nowrap; }
+.ws-toolbar .ws-select { font-size: 13px; min-height: 30px; }
+.ws-toolbar .ws-select { max-width: 170px; }
+@media (max-width: 1520px) { .ws-toolbar label { display: none; } }

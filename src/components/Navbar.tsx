@@ -136,8 +136,8 @@ export default function Navbar() {
                   {link.label} <ChevronDown size={15} className={`transition-transform ${casesOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {casesOpen && (
-                  <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3" role="menu">
-                    <div className="w-[560px] rounded-xl border border-white/10 bg-[#0b1620] p-2 shadow-2xl grid grid-cols-2 gap-1">
+                  <div className="fixed left-1/2 top-[60px] -translate-x-1/2 pt-5" role="menu">
+                    <div className="w-[860px] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#0b1620] p-2 shadow-2xl grid grid-cols-3 gap-1">
                       {USE_CASES.map((u) => (
                         <Link key={u.slug} href={`/use-cases#${u.slug}`} role="menuitem" onClick={() => setCasesOpen(false)}
                               className="group rounded-lg px-3 py-2.5 hover:bg-white/[0.06]">
@@ -146,7 +146,7 @@ export default function Navbar() {
                         </Link>
                       ))}
                       <Link href="/use-cases" onClick={() => setCasesOpen(false)}
-                            className="col-span-2 mt-1 rounded-lg border-t border-white/10 px-3 py-2.5 text-[0.82rem] font-semibold text-gold hover:bg-white/[0.06]">
+                            className="col-span-3 mt-1 rounded-lg border-t border-white/10 px-3 py-2.5 text-[0.82rem] font-semibold text-gold hover:bg-white/[0.06]">
                         All use cases and how your data is kept confidential
                       </Link>
                     </div>
