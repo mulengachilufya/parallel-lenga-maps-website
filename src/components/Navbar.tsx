@@ -5,15 +5,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, LayoutDashboard, LogOut, User } from 'lucide-react'
+import { Menu, X, LayoutDashboard, LogOut, User, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { USE_CASES } from '@/lib/use-cases'
 
-const navLinks = [
+const navLinks: { href: string; label: string; menu?: boolean }[] = [
   { href: '/about-us', label: 'About Us' },
   { href: '/services', label: 'Services' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/projects', label: 'For Teams' },
-  { href: '/atlas', label: 'Atlas' },
+  { href: '/use-cases', label: 'Use cases', menu: true },
   { href: '/datasets', label: 'Download GIS Data' },
   { href: '/request-data', label: 'Request Data' },
   { href: '/contact-us', label: 'Contact Us' },
@@ -41,6 +42,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [email,    setEmail]    = useState<string | null>(null)
   const [authReady, setAuthReady] = useState(false)
+  const [casesOpen, setCasesOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -127,7 +129,32 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-10">
-            {navLinks.map((link) => (
+            {navLinks.map((link) => link.menu ? (
+              <div key={link.label} className="relative" onMouseEnter={() => setCasesOpen(true)} onMouseLeave={() => setCasesOpen(false)}>
+                <button type="button" aria-expanded={casesOpen} aria-haspopup="menu" onClick={() => setCasesOpen((o) => !o)}
+                        className={`inline-flex items-center gap-1 text-[0.95rem] font-medium tracking-[0.01em] transition-colors duration-200 ${
+                          pathname === link.href || casesOpen ? 'text-gold' : 'text-white/90 hover:text-gold'}`}>
+                  {link.label} <ChevronDown size={15} className={`transition-transform ${casesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {casesOpen && (
+                  <div className="absolute left-1/2 top-full -translate-x-1/2 pt-3" role="menu">
+                    <div className="w-[560px] rounded-xl border border-white/10 bg-[#0b1620] p-2 shadow-2xl grid grid-cols-2 gap-1">
+                      {USE_CASES.map((u) => (
+                        <Link key={u.slug} href={`/use-cases#${u.slug}`} role="menuitem" onClick={() => setCasesOpen(false)}
+                              className="group rounded-lg px-3 py-2.5 hover:bg-white/[0.06]">
+                          <span className="block text-[0.9rem] font-semibold text-white group-hover:text-gold">{u.name}</span>
+                          <span className="mt-0.5 block text-[0.78rem] leading-snug text-white/55">{u.line}</span>
+                        </Link>
+                      ))}
+                      <Link href="/use-cases" onClick={() => setCasesOpen(false)}
+                            className="col-span-2 mt-1 rounded-lg border-t border-white/10 px-3 py-2.5 text-[0.82rem] font-semibold text-gold hover:bg-white/[0.06]">
+                        All use cases and how your data is kept confidential
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
               <Link
                 key={link.label}
                 href={link.href}
@@ -213,7 +240,22 @@ export default function Navbar() {
             className="lg:hidden bg-dark border-t border-white/10"
           >
             <div className="px-5 py-4 space-y-1">
-              {navLinks.map((link) => (
+              {navLinks.map((link) => link.menu ? (
+                <div key={link.label}>
+                  <button type="button" onClick={() => setCasesOpen((o) => !o)} aria-expanded={casesOpen}
+                          className={`flex w-full items-center justify-between px-4 py-3 text-[0.95rem] font-medium ${casesOpen ? 'text-gold' : 'text-white/80'}`}>
+                    {link.label} <ChevronDown size={16} className={`transition-transform ${casesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {casesOpen && (
+                    <div className="mb-2 ml-4 border-l border-white/10 pl-3">
+                      {USE_CASES.map((u) => (
+                        <Link key={u.slug} href={`/use-cases#${u.slug}`} onClick={() => { setMenuOpen(false); setCasesOpen(false) }}
+                              className="block px-2 py-2 text-[0.88rem] text-white/75 hover:text-gold">{u.name}</Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
                 <Link
                   key={link.label}
                   href={link.href}

@@ -102,6 +102,8 @@ export default function Footer() {
             {[
               { href: '/about-us', label: 'About Us' },
               { href: '/services', label: 'Services' },
+              { href: '/use-cases', label: 'Use cases' },
+              { href: '/atlas', label: 'Atlas' },
               { href: '/pricing', label: 'Download GIS Data' },
               { href: '/contact-us', label: 'Contact Us' },
               { href: '/login', label: 'Login' },
