@@ -11,7 +11,6 @@ import { USE_CASES } from '@/lib/use-cases'
 
 const navLinks: { href: string; label: string; menu?: boolean }[] = [
   { href: '/about-us', label: 'About Us' },
-  { href: '/services', label: 'Services' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/projects', label: 'For Teams' },
   { href: '/use-cases', label: 'Use cases', menu: true },
