@@ -1,114 +1,122 @@
 /**
  * Use cases: the kinds of work Lenga Maps is built for. Drives the navbar
- * dropdown and the /use-cases page (one section per entry, linked by slug).
+ * dropdown and the /use-cases page (one card per entry, linked by #slug).
+ * Images are real renders from open data (Sentinel-2, NDVI, WorldCover,
+ * iSDAsoil, CHIRPS SPI, Overture, WDPA, HRSL, Copernicus DEM), not stock.
  * Where a ready-made workspace template exists, `template` is its id.
  */
 
 export interface UseCase {
-  slug:     string
-  name:     string
-  line:     string            // one line for the dropdown
-  problem:  string            // what the work needs
-  datasets: string[]          // Lenga datasets that serve it
-  workspace: string           // what the shared workspace adds
-  template?: string           // workspace template id, if any
-  image:    string            // a real Lenga layer or Sentinel-2 tile (dropdown, cards)
-  photo:    string            // full-bleed background on /use-cases
-  heading:  string            // the line the section opens with
+  slug:      string
+  name:      string            // short label (dropdown, chips)
+  line:      string            // one line for the dropdown
+  title:     string            // the headline on the card
+  body:      string            // one or two sentences
+  datasets:  string[]          // Lenga datasets that serve it
+  image:     string
+  imageNote: string            // what the image actually shows
+  template?: string            // workspace template id, if any
 }
+
+const img = (n: string) => `/images/use-cases/${n}.webp`
 
 export const USE_CASES: UseCase[] = [
   {
-    slug: 'eia',
-    photo: '/images/services/project-partner.jpg',
-    heading: 'A baseline before the first site visit.',
-    image: '/images/mosaic/gis-lulc.webp',
-    name: 'Environmental impact assessment',
-    line: 'Baseline layers for EIA and ESIA studies',
-    problem: 'An EIA baseline needs boundaries, water, soils, land cover, protected areas and people for the study area, in one coordinate system, before fieldwork starts.',
-    datasets: ['Administrative boundaries', 'River networks and watersheds', 'Soil classification', 'Land use and land cover', 'Protected areas', 'Population and settlements'],
-    workspace: 'Start from the EIA map, add your site boundary and field data, and let specialists comment on exact receptors.',
-    template: 'eia',
+    slug: 'eia', name: 'Environmental impact assessment', line: 'Every baseline layer before the scoping meeting',
+    title: 'Day one of the EIA, not week three.',
+    body: 'Every baseline layer for the study area arrives in one coordinate system before the scoping meeting, so the weeks go to assessment instead of data hunting.',
+    datasets: ['Land use / land cover', 'River networks', 'Soil classification', 'Protected areas', 'Population & settlements'],
+    image: img('lulc'), imageNote: 'ESA WorldCover land cover', template: 'eia',
   },
   {
-    slug: 'mining',
-    photo: '/images/services/webgis-dev.jpg',
-    heading: 'Know what surrounds the pit.',
-    image: '/images/mosaic/gis-s2_mine.webp',
-    name: 'Mining licences and ESG',
-    line: 'Sensitive receptors, drainage and access around a licence',
-    problem: 'Licence applications, ESG reporting and closure planning all ask what lies around the pit: water, protected land, settlements and access.',
-    datasets: ['River networks and watersheds', 'Protected areas', 'Population and settlements', 'Roads and infrastructure', 'Transboundary aquifers', 'Elevation'],
-    workspace: 'Overlay your licence polygon and site imagery on the reference layers and keep a dated history of every change.',
-    template: 'mining',
+    slug: 'mining', name: 'Mining and ESG', line: 'What sits downstream of the licence',
+    title: "Licences end at a line. Impacts don't.",
+    body: 'Lay the licence polygon over rivers, aquifers, settlements and protected land, and show regulators exactly what sits downstream and next door.',
+    datasets: ['River networks', 'Transboundary aquifers', 'Population & settlements', 'Protected areas', 'Roads'],
+    image: img('s2_mine'), imageNote: 'Sentinel-2, open pit mine', template: 'mining',
   },
   {
-    slug: 'satellite-ndvi',
-    photo: '/images/services/data-platform.jpg',
-    heading: 'Your imagery, finally in context.',
-    image: '/images/mosaic/gis-s2_mine_ndvi.webp',
-    name: 'Satellite imagery and NDVI',
-    line: 'Your Sentinel-2, Landsat or drone imagery beside reference layers',
-    problem: 'Imagery and vegetation indices only mean something against context: where the boundaries, rivers, soils and land cover classes are.',
-    datasets: ['Land use and land cover', 'Administrative boundaries', 'River networks', 'Soil classification', 'Protected areas'],
-    workspace: 'Upload GeoTIFFs up to 400 MB (scenes, orthomosaics or NDVI rasters), switch between dates layer by layer and pin observations to the exact spot.',
+    slug: 'closure', name: 'Mine closure and rehabilitation', line: 'Revegetation you can measure',
+    title: 'Rehabilitation you can prove from orbit.',
+    body: 'Load NDVI from your own Sentinel-2 or drone imagery against the land cover baseline and show regrowth season by season, not only in the closure report.',
+    datasets: ['Land use / land cover', 'River networks', 'Soil classification'],
+    image: img('s2_mine_ndvi'), imageNote: 'NDVI of the same mine',
   },
   {
-    slug: 'water',
-    photo: '/images/branding/river-aerial.jpg',
-    heading: 'Surface and groundwater that agree.',
-    image: '/images/mosaic/gis-watersheds.webp',
-    name: 'Water resources and catchments',
-    line: 'Catchments, rivers, aquifers, rainfall and drought',
-    problem: 'Water balance, borehole siting and catchment studies need surface and groundwater layers that agree with each other.',
-    datasets: ['Watersheds', 'River networks and lakes', 'Transboundary aquifers', 'Rainfall', 'Drought index (SPI 12)'],
-    workspace: 'Build the catchment map once and share it with hydrologists, engineers and the client on the same live map.',
-    template: 'water',
+    slug: 'satellite-ndvi', name: 'Satellite imagery and NDVI', line: 'Your scenes beside national reference layers',
+    title: 'Pixels need context. We supply it.',
+    body: 'Drop Sentinel-2, Landsat or NDVI rasters up to 400 MB beside boundaries, rivers and soils, and the whole team reads the same scene.',
+    datasets: ['Administrative boundaries', 'River networks', 'Soil classification', 'Land use / land cover'],
+    image: img('s2_sugar_ndvi'), imageNote: 'NDVI over irrigated estates',
   },
   {
-    slug: 'climate',
-    photo: '/images/services/automation.jpg',
-    heading: 'Show where the stress is.',
-    image: '/images/mosaic/gis-rainfall.webp',
-    name: 'Climate risk and adaptation',
-    line: 'Drought, rainfall and temperature exposure for proposals and appraisal',
-    problem: 'Adaptation proposals and physical risk assessments must show where climate stress is, who is exposed and how conditions have changed.',
-    datasets: ['Drought index (SPI 12)', 'Rainfall', 'Temperature', 'Population and settlements', 'Land use and land cover'],
-    workspace: 'Combine exposure layers with your project sites and keep the evidence, with sources, in one place for reviewers.',
+    slug: 'agriculture', name: 'Agriculture and food security', line: 'Where harvests fail first',
+    title: 'Plan for the dry year, not the average one.',
+    body: 'Twelve month drought history, rainfall, temperature and soils by district show where harvests fail first.',
+    datasets: ['Drought index (SPI 12)', 'Rainfall', 'Temperature', 'Soil classification'],
+    image: img('s2_farms'), imageNote: 'Sentinel-2, smallholder farmland', template: 'agriculture',
   },
   {
-    slug: 'agriculture',
-    photo: '/images/branding/soil.jpg',
-    heading: 'Start from the soil.',
-    image: '/images/mosaic/gis-s2_farms.webp',
-    name: 'Agriculture and food security',
-    line: 'Soils, rainfall and drought for suitability and risk',
-    problem: 'Crop suitability, irrigation planning and food security assessments start from soils, water and climate together.',
-    datasets: ['Soil classification', 'Rainfall', 'Temperature', 'Drought index (SPI 12)', 'Land use and land cover'],
-    workspace: 'Start from the agriculture map, add farm or scheme boundaries and field observations, and work on it as a team.',
-    template: 'agriculture',
+    slug: 'soil', name: 'Soil and crop suitability', line: 'A first screen before the lab',
+    title: 'Read the soil before you buy the seed.',
+    body: 'Soil classes against rainfall and temperature give a first suitability screen for any district, before a single sample goes to the lab.',
+    datasets: ['Soil classification', 'Rainfall', 'Temperature'],
+    image: img('soil'), imageNote: 'iSDAsoil classes',
   },
   {
-    slug: 'infrastructure',
-    photo: '/images/branding/city-map.jpg',
-    heading: 'Screen every route option.',
-    image: '/images/mosaic/gis-roads.webp',
-    name: 'Roads and infrastructure corridors',
-    line: 'Route screening: crossings, protected land and communities',
-    problem: 'Corridor screening needs existing roads, river crossings, protected areas and settlements along every route option.',
-    datasets: ['Roads and infrastructure', 'River networks', 'Protected areas', 'Population and settlements', 'Elevation'],
-    workspace: 'Draw or upload route options, compare them on one map and record decisions in the discussion.',
-    template: 'infrastructure',
+    slug: 'climate', name: 'Climate finance and adaptation', line: 'Evidence for the climate rationale',
+    title: 'Funders ask where. Answer with evidence.',
+    body: 'Drought index, rainfall and the people exposed, sourced and dated, ready to support the climate rationale of a proposal.',
+    datasets: ['Drought index (SPI 12)', 'Rainfall', 'Temperature', 'Population & settlements'],
+    image: img('drought-index'), imageNote: 'SPI 12 drought index, southern Africa',
   },
   {
-    slug: 'conservation',
-    photo: '/images/branding/hippos.jpg',
-    heading: 'Protected land, and the pressure around it.',
-    image: '/images/mosaic/gis-protected-areas.webp',
-    name: 'Conservation and protected areas',
-    line: 'Protected areas, land cover and pressures around them',
-    problem: 'Conservation planning and monitoring look at protected areas together with land cover, water and the settlements and roads around them.',
-    datasets: ['Protected areas', 'Land use and land cover', 'River networks and watersheds', 'Population and settlements', 'Roads and infrastructure'],
-    workspace: 'Bring in survey points, camera trap locations or imagery and review them with partners on a shared map.',
+    slug: 'floods', name: 'Floods and floodplains', line: 'Who lives in the wet season footprint',
+    title: "Floodplains don't read zoning maps.",
+    body: 'Floodplains, rivers, rainfall and settlements on one map show who lives inside the wet season footprint.',
+    datasets: ['Wetlands & floodplains', 'River networks', 'Rainfall', 'Population & settlements'],
+    image: img('s2_flats'), imageNote: 'Sentinel-2, river floodplain',
+  },
+  {
+    slug: 'water', name: 'Water supply and catchments', line: 'Everything upstream of the intake',
+    title: 'A reservoir is only as good as its catchment.',
+    body: 'Watersheds, rivers, rainfall and land cover upstream of the intake, shared live with the hydrologists and engineers on the job.',
+    datasets: ['Watersheds', 'River networks', 'Lakes', 'Rainfall', 'Transboundary aquifers'],
+    image: img('s2_dam'), imageNote: 'Sentinel-2, dam and reservoir', template: 'water',
+  },
+  {
+    slug: 'wetlands', name: 'Wetlands', line: 'Conflicts found while design can change',
+    title: 'Map the wetland before someone drains it.',
+    body: 'Wetland and floodplain extents beside roads, farms and settlements flag conflicts while the design can still change.',
+    datasets: ['Wetlands & floodplains', 'River networks', 'Land use / land cover', 'Roads'],
+    image: img('wetlands'), imageNote: 'Wetland and floodplain extent',
+  },
+  {
+    slug: 'conservation', name: 'Conservation and protected areas', line: 'Pressure at the park edge',
+    title: 'Where the park ends, the pressure starts.',
+    body: 'Protected area boundaries against land cover, roads and settlements reveal encroachment at the edges, where it actually happens.',
+    datasets: ['Protected areas', 'Land use / land cover', 'Roads', 'Population & settlements'],
+    image: img('protected-areas'), imageNote: 'Protected areas (WDPA)',
+  },
+  {
+    slug: 'infrastructure', name: 'Roads and infrastructure corridors', line: 'Every route option on one map',
+    title: 'Score every route before anyone walks it.',
+    body: 'River crossings, protected land and communities along each option, compared on one map with the decision recorded.',
+    datasets: ['Roads', 'River networks', 'Protected areas', 'Population & settlements'],
+    image: img('roads'), imageNote: 'Road network (Overture)', template: 'infrastructure',
+  },
+  {
+    slug: 'humanitarian', name: 'Humanitarian and WASH planning', line: 'People inside the risk zone',
+    title: 'Know who lives inside the risk zone.',
+    body: 'Population and settlement layers under your hazard map, for WASH, health and response planning that reaches people, not polygons.',
+    datasets: ['Population & settlements', 'Drought index (SPI 12)', 'River networks', 'Administrative boundaries'],
+    image: img('population'), imageNote: 'Settlement density (HRSL)',
+  },
+  {
+    slug: 'drone-survey', name: 'Drone and terrain surveys', line: 'Your flight beside national layers',
+    title: 'Your drone flight, on the same map as the country.',
+    body: 'Upload orthomosaics, elevation models and field points beside national reference layers, and pin comments to the exact spot.',
+    datasets: ['Administrative boundaries', 'River networks', 'Land use / land cover'],
+    image: img('contours'), imageNote: 'Contours from a DEM',
   },
 ]
