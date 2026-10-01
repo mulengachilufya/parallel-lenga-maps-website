@@ -333,11 +333,7 @@ function Workstation() {
     finally { setExporting('') }
   }
 
-  async function moveLayer(layerId: string, dir: -1 | 1) {
-    const order = tocLayers.map((l) => l.id)
-    const i = order.indexOf(layerId), j = i + dir
-    if (i < 0 || j < 0 || j >= order.length) return
-    ;[order[i], order[j]] = [order[j], order[i]]
+  async function reorderLayers(order: string[]) {
     setBundle((b) => b && ({ ...b, layers: b.layers.map((l) => ({ ...l, sort_order: order.length - 1 - order.indexOf(l.id) })) }))
     try { revNote((await api<{ rev: WsRevision }>(`/api/workspace/projects/${id}/layers`, { method: 'PUT', json: { order } })).rev) }
     catch (e) { say(e instanceof Error ? e.message : 'Could not reorder') }
@@ -464,9 +460,9 @@ function Workstation() {
     <LayerPanel
   layers={tocLayers} statuses={statuses} hidden={hidden} selected={selected} bookmarks={bookmarks}
   onSelect={setSelected} onToggle={toggleHidden}
-  onMove={(lid, dir) => { if (!readOnly) void moveLayer(lid, dir) }}
+  onReorder={(order) => { if (!readOnly) void reorderLayers(order) }}
   onZoom={(lid) => mapRef.current?.zoomToLayer(lid)}
-  onTable={openTable} phone={phone}
+  onTable={openTable} phone={phone} readOnly={readOnly}
   onEdit={(lid) => { if (!readOnly) setDialog({ kind: 'edit', layerId: lid }) }}
   onRemove={(lid) => { const l = liveLayers.find((x) => x.id === lid); if (l && !readOnly) setDialog({ kind: 'remove', layer: l }) }}
   onAdd={() => { if (!readOnly) setFloating('add') }}

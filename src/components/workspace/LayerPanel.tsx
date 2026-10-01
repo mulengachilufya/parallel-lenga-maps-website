@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { ArrowDown, ArrowUp, Crosshair, Settings2, Table2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowDownToLine, ArrowUpToLine, Crosshair, MoreHorizontal, Settings2, Table2, X } from 'lucide-react'
 import { rampCss } from '@/lib/workspace/raster'
 import type { WsBookmark, WsLayer } from '@/lib/workspace/types'
 import type { LayerStatus } from './MapView'
@@ -14,10 +14,11 @@ interface Props {
   bookmarks:   WsBookmark[]
   onSelect:    (id: string) => void
   onToggle:    (id: string) => void
-  onMove:      (id: string, dir: -1 | 1) => void
+  onReorder:   (order: string[]) => void   // all layer ids, top → bottom
   onZoom:      (id: string) => void
   onTable:     (id: string) => void
   phone?:      boolean   // phone view: look only (show/hide, zoom), no changes
+  readOnly?:   boolean   // viewers: can look and open the table, cannot change layers
   onEdit:      (id: string) => void
   onRemove:    (id: string) => void
   onAdd:       () => void
@@ -44,9 +45,71 @@ function statusLine(layer: WsLayer, st?: LayerStatus): { text: string; err?: boo
   return { text: `${d.count.toLocaleString()} features · ${layer.country}` }
 }
 
+
+interface MenuAt { id: string; x: number; y: number }
+
+/** Right-click menu for a layer, like QGIS's layer context menu. */
+function LayerMenu({ at, layer, status, first, last, phone, onClose, p }: {
+  at: MenuAt; layer: WsLayer; status?: LayerStatus; first: boolean; last: boolean; phone?: boolean; onClose: () => void; p: Props
+}) {
+  const edit = !phone && !p.readOnly
+  return <LayerMenuBody {...{ at, layer, status, first, last, phone, onClose, p, edit }} />
+}
+
+function LayerMenuBody({ at, layer, status, first, last, phone, onClose, p, edit }: {
+  at: MenuAt; layer: WsLayer; status?: LayerStatus; first: boolean; last: boolean; phone?: boolean; onClose: () => void; p: Props; edit: boolean
+}) {
+  useEffect(() => {
+    const close = () => onClose()
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('mousedown', close); window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close); window.addEventListener('keydown', key)
+    return () => {
+      window.removeEventListener('mousedown', close); window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close); window.removeEventListener('keydown', key)
+    }
+  }, [onClose])
+  const vector = status?.loaded?.kind === 'vector'
+  const go = (fn: () => void) => () => { fn(); onClose() }
+  const order = p.layers.map((l) => l.id).filter((x) => x !== layer.id)
+  // Keep the menu on screen near the bottom and right edges.
+  const style = { left: Math.min(at.x, window.innerWidth - 230), top: Math.min(at.y, window.innerHeight - 260) }
+  return (
+    <div className="ws-menu" role="menu" style={style} onMouseDown={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+      <div className="ws-menu-title" title={layer.label}>{layer.label}</div>
+      <button role="menuitem" onClick={go(() => p.onZoom(layer.id))}><Crosshair size={13} /> Zoom to layer</button>
+      {!phone && (
+        <button role="menuitem" disabled={!vector} onClick={go(() => p.onTable(layer.id))}
+                title={vector ? '' : status?.loaded?.kind === 'raster' ? 'Rasters have no attribute table' : 'Available once the layer has loaded'}>
+          <Table2 size={13} /> Open attribute table
+        </button>
+      )}
+      {edit && <>
+        <button role="menuitem" onClick={go(() => p.onEdit(layer.id))}><Settings2 size={13} /> Style &amp; properties…</button>
+        <hr />
+        <button role="menuitem" disabled={first} onClick={go(() => p.onReorder([layer.id, ...order]))}><ArrowUpToLine size={13} /> Move to top</button>
+        <button role="menuitem" disabled={last} onClick={go(() => p.onReorder([...order, layer.id]))}><ArrowDownToLine size={13} /> Move to bottom</button>
+        <hr />
+        <button role="menuitem" className="danger" onClick={go(() => p.onRemove(layer.id))}><X size={13} /> Remove from project</button>
+      </>}
+    </div>
+  )
+}
+
 export default function LayerPanel(p: Props) {
   const [viewName, setViewName] = useState('')
   const [q, setQ] = useState('')
+  const [menu, setMenu] = useState<MenuAt | null>(null)
+  const [drag, setDrag] = useState<string | null>(null)
+  const [over, setOver] = useState<{ id: string; after: boolean } | null>(null)
+
+  function drop(moving: string, targetId: string, after: boolean) {
+    if (!moving || moving === targetId || !p.layers.some((l) => l.id === moving)) return
+    const order = p.layers.map((l) => l.id).filter((x) => x !== moving)
+    const at = order.indexOf(targetId) + (after ? 1 : 0)
+    order.splice(at, 0, moving)
+    if (order.join() !== p.layers.map((l) => l.id).join()) p.onReorder(order)
+  }
   const needle = q.trim().toLowerCase()
   const shown = needle ? p.layers.filter((l) => `${l.label} ${l.country} ${l.file_format}`.toLowerCase().includes(needle)) : p.layers
 
@@ -74,12 +137,33 @@ export default function LayerPanel(p: Props) {
           {needle && shown.length === 0 && <div className="ws-empty">No layer matches &ldquo;{q}&rdquo;.</div>}
           <ul className="ws-toc">
             {shown.map((l) => {
-              const i = p.layers.indexOf(l)
               const st = p.statuses[l.id]
               const line = statusLine(l, st)
               return (
-                <li key={l.id} className={p.selected === l.id ? 'sel' : ''} onClick={() => p.onSelect(l.id)}
-                    onDoubleClick={() => { if (!p.phone) p.onEdit(l.id) }}>
+                <li key={l.id}
+                    className={[p.selected === l.id && 'sel', drag === l.id && 'dragging', over?.id === l.id && (over.after ? 'drop-after' : 'drop-before')].filter(Boolean).join(' ')}
+                    title={p.phone ? undefined : p.readOnly ? 'Right-click for the attribute table' : 'Drag to reorder · right-click for the attribute table, style and more'}
+                    draggable={!p.phone && !p.readOnly && !needle}
+                    onDragStart={(e) => { setDrag(l.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', l.id) }}
+                    onDragOver={(e) => {
+                      if (p.phone || p.readOnly) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      const r = e.currentTarget.getBoundingClientRect()
+                      const after = e.clientY > r.top + r.height / 2
+                      if (over?.id !== l.id || over.after !== after) setOver({ id: l.id, after })
+                    }}
+                    onDragLeave={() => setOver((o) => (o?.id === l.id ? null : o))}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const r = e.currentTarget.getBoundingClientRect()
+                      drop(drag ?? e.dataTransfer.getData('text/plain'), l.id, e.clientY > r.top + r.height / 2)
+                      setDrag(null); setOver(null)
+                    }}
+                    onDragEnd={() => { setDrag(null); setOver(null) }}
+                    onClick={() => p.onSelect(l.id)}
+                    onContextMenu={(e) => { e.preventDefault(); p.onSelect(l.id); setMenu({ id: l.id, x: e.clientX, y: e.clientY }) }}
+                    onDoubleClick={() => { if (!p.phone && !p.readOnly) p.onEdit(l.id) }}>
                   <input type="checkbox" checked={!p.hidden.has(l.id)} title="Show / hide (only for you)"
                          onClick={(e) => e.stopPropagation()} onChange={() => p.onToggle(l.id)} />
                   <Swatch layer={l} status={st} />
@@ -88,22 +172,24 @@ export default function LayerPanel(p: Props) {
                     ? <span className="ws-src yours" title="Uploaded by your team. Kept in your team's private folder, never mixed with the Lenga database.">Yours</span>
                     : <span className="ws-src lenga" title="From the Lenga Maps GIS database">Lenga</span>}
                   <span className="acts" onClick={(e) => e.stopPropagation()}>
-                    <button className="ws-icon-btn" title="Zoom to layer" onClick={() => p.onZoom(l.id)}><Crosshair size={11} /></button>
-                    {!p.phone && st?.loaded?.kind === 'vector' && (
-                      <button className="ws-icon-btn" title="Open attribute table" onClick={() => p.onTable(l.id)}><Table2 size={11} /></button>
-                    )}
-                    {!p.phone && <>
-                    <button className="ws-icon-btn" title="Move up" disabled={i === 0} onClick={() => p.onMove(l.id, -1)}><ArrowUp size={11} /></button>
-                    <button className="ws-icon-btn" title="Move down" disabled={i === p.layers.length - 1} onClick={() => p.onMove(l.id, 1)}><ArrowDown size={11} /></button>
-                    <button className="ws-icon-btn" title="Properties…" onClick={() => p.onEdit(l.id)}><Settings2 size={11} /></button>
-                    <button className="ws-icon-btn" title="Remove from project" onClick={() => p.onRemove(l.id)}><X size={11} /></button>
-                    </>}
+                    <button className="ws-icon-btn" title="Zoom to layer" onClick={() => p.onZoom(l.id)}><Crosshair size={12} /></button>
+                    <button className="ws-icon-btn" title="Attribute table, style and more" aria-haspopup="menu"
+                            onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); p.onSelect(l.id); setMenu({ id: l.id, x: r.left, y: r.bottom + 2 }) }}>
+                      <MoreHorizontal size={13} />
+                    </button>
                   </span>
                   <span className={`meta${line.err ? ' err' : ''}`}>{line.text}</span>
                 </li>
               )
             })}
           </ul>
+          {menu && (() => {
+            const l = p.layers.find((x) => x.id === menu.id)
+            if (!l) return null
+            const i = p.layers.indexOf(l)
+            return <LayerMenu at={menu} layer={l} status={p.statuses[l.id]} first={i === 0} last={i === p.layers.length - 1}
+                              phone={p.phone} onClose={() => setMenu(null)} p={p} />
+          })()}
           </>
         )}
       </div>

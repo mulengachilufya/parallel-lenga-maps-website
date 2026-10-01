@@ -212,8 +212,18 @@ export async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<Lo
     const names = Object.keys(entries)
     const find = (re: RegExp) => names.find((n) => re.test(n))
 
-    const geojson = find(/\.(geo)?json$/i)
-    if (geojson) return parseBytes(toArrayBuffer(entries[geojson]), ramp)
+    // Archives often hold more than the data (geoBoundaries "-all" zips carry
+    // a metaData.json next to full and simplified boundaries), so take the
+    // first JSON that really is a FeatureCollection, full detail before
+    // simplified, .geojson before .json.
+    const jsons = names.filter((n) => /\.(geo)?json$/i.test(n))
+      .sort((a, b) => Number(/simplif/i.test(a)) - Number(/simplif/i.test(b)) || Number(/\.json$/i.test(a)) - Number(/\.json$/i.test(b)))
+    for (const n of jsons) {
+      try {
+        const fc = JSON.parse(new TextDecoder().decode(entries[n])) as FeatureCollection
+        if (fc?.type === 'FeatureCollection' && Array.isArray(fc.features) && fc.features.length) return summarise(fc)
+      } catch { /* not JSON data; try the next file */ }
+    }
     const kmlFile = find(/\.kml$/i)
     if (kmlFile) return parseBytes(toArrayBuffer(entries[kmlFile]), ramp)
     const gpkg = find(/\.gpkg$/i)
@@ -223,9 +233,12 @@ export async function parseBytes(buf: ArrayBuffer, ramp: RasterRamp): Promise<Lo
     if (find(/\.shp$/i)) {
       const { parseZip } = await import('shpjs')
       const out = await parseZip(buf)
-      const collections = (Array.isArray(out) ? out : [out]) as FeatureCollection[]
-      const features = collections.flatMap((c) => c.features)
-      return summarise({ type: 'FeatureCollection', features })
+      const collections = (Array.isArray(out) ? out : [out]) as (FeatureCollection & { fileName?: string })[]
+      // Several shapefiles in one zip: show the full-detail one, not a merge
+      // of full and simplified copies (every feature would appear twice).
+      const full = collections.filter((c) => !/simplif/i.test(c.fileName ?? ''))
+      const pick = full.length ? full : collections
+      return summarise({ type: 'FeatureCollection', features: pick.flatMap((c) => c.features) })
     }
     throw new Error('The archive has no shapefile, GeoJSON, GeoPackage or GeoTIFF inside.')
   }
