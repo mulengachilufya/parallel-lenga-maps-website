@@ -12,12 +12,16 @@ export interface UseCase {
   datasets: string[]          // Lenga datasets that serve it
   workspace: string           // what the shared workspace adds
   template?: string           // workspace template id, if any
-  image:    string            // a real Lenga layer or Sentinel-2 tile
+  image:    string            // a real Lenga layer or Sentinel-2 tile (dropdown, cards)
+  photo:    string            // full-bleed background on /use-cases
+  heading:  string            // the line the section opens with
 }
 
 export const USE_CASES: UseCase[] = [
   {
     slug: 'eia',
+    photo: '/images/services/project-partner.jpg',
+    heading: 'A baseline before the first site visit.',
     image: '/images/mosaic/gis-lulc.webp',
     name: 'Environmental impact assessment',
     line: 'Baseline layers for EIA and ESIA studies',
@@ -28,6 +32,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'mining',
+    photo: '/images/services/webgis-dev.jpg',
+    heading: 'Know what surrounds the pit.',
     image: '/images/mosaic/gis-s2_mine.webp',
     name: 'Mining licences and ESG',
     line: 'Sensitive receptors, drainage and access around a licence',
@@ -38,6 +44,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'satellite-ndvi',
+    photo: '/images/services/data-platform.jpg',
+    heading: 'Your imagery, finally in context.',
     image: '/images/mosaic/gis-s2_mine_ndvi.webp',
     name: 'Satellite imagery and NDVI',
     line: 'Your Sentinel-2, Landsat or drone imagery beside reference layers',
@@ -47,6 +55,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'water',
+    photo: '/images/branding/river-aerial.jpg',
+    heading: 'Surface and groundwater that agree.',
     image: '/images/mosaic/gis-watersheds.webp',
     name: 'Water resources and catchments',
     line: 'Catchments, rivers, aquifers, rainfall and drought',
@@ -57,6 +67,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'climate',
+    photo: '/images/services/automation.jpg',
+    heading: 'Show where the stress is.',
     image: '/images/mosaic/gis-rainfall.webp',
     name: 'Climate risk and adaptation',
     line: 'Drought, rainfall and temperature exposure for proposals and appraisal',
@@ -66,6 +78,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'agriculture',
+    photo: '/images/branding/soil.jpg',
+    heading: 'Start from the soil.',
     image: '/images/mosaic/gis-s2_farms.webp',
     name: 'Agriculture and food security',
     line: 'Soils, rainfall and drought for suitability and risk',
@@ -76,6 +90,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'infrastructure',
+    photo: '/images/branding/city-map.jpg',
+    heading: 'Screen every route option.',
     image: '/images/mosaic/gis-roads.webp',
     name: 'Roads and infrastructure corridors',
     line: 'Route screening: crossings, protected land and communities',
@@ -86,6 +102,8 @@ export const USE_CASES: UseCase[] = [
   },
   {
     slug: 'conservation',
+    photo: '/images/branding/hippos.jpg',
+    heading: 'Protected land, and the pressure around it.',
     image: '/images/mosaic/gis-protected-areas.webp',
     name: 'Conservation and protected areas',
     line: 'Protected areas, land cover and pressures around them',

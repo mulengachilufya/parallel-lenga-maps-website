@@ -1,31 +1,80 @@
 /**
- * /use-cases — the kinds of work Lenga Maps serves, one section each
- * (linked from the navbar dropdown by #slug), with the datasets involved,
- * what the shared workspace adds, and how uploaded data is kept confidential.
+ * /use-cases — the kinds of work Lenga Maps serves, in the full-bleed photo
+ * style the old Services page used: one section per use case (linked from
+ * the navbar dropdown by #slug), text over a dimmed photo, sides alternating.
  */
 
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Lock } from 'lucide-react'
-import { USE_CASES } from '@/lib/use-cases'
+import Footer from '@/components/Footer'
+import { USE_CASES, type UseCase } from '@/lib/use-cases'
 
 export const metadata: Metadata = {
   title: 'Use cases | Lenga Maps',
   description: 'EIA, mining and ESG, satellite imagery and NDVI, water, climate risk, agriculture, infrastructure and conservation work across Africa.',
 }
 
+const NAVY = '#0D2B45'
+const GOLD = '#F5B800'
+
+function Section({ u, i }: { u: UseCase; i: number }) {
+  const left = i % 2 === 0
+  return (
+    <section id={u.slug} className="relative min-h-[92vh] flex items-center overflow-hidden scroll-mt-20">
+      <Image src={u.photo} alt="" fill priority={i === 0} sizes="100vw" className="object-cover" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: left
+            ? 'linear-gradient(100deg, rgba(6,14,23,0.92) 0%, rgba(6,14,23,0.8) 34%, rgba(6,14,23,0.4) 62%, rgba(6,14,23,0.18) 100%)'
+            : 'linear-gradient(260deg, rgba(6,14,23,0.92) 0%, rgba(6,14,23,0.8) 34%, rgba(6,14,23,0.4) 62%, rgba(6,14,23,0.18) 100%)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-20">
+        <div className={`max-w-xl ${left ? '' : 'ml-auto text-right'}`}>
+          <span className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-5 block" style={{ color: GOLD }}>
+            {String(i + 1).padStart(2, '0')} · {u.name}
+          </span>
+          <h2 className="font-display font-bold text-white leading-[1.05] mb-6" style={{ fontSize: 'clamp(2.3rem,4.5vw,3.8rem)' }}>
+            {u.heading}
+          </h2>
+          <p className="text-white/85 leading-relaxed mb-4" style={{ fontSize: '17px' }}>{u.problem}</p>
+          <p className="text-white/85 leading-relaxed mb-4" style={{ fontSize: '17px' }}>{u.workspace}</p>
+          <p className="mt-5 text-[14px] leading-loose text-white/70">{u.datasets.join('  ·  ')}</p>
+          <div className={`mt-7 flex flex-wrap gap-3 ${left ? '' : 'justify-end'}`}>
+            <Link href={u.template ? `/workspace/team?template=${u.template}` : '/workspace'}
+                  className="inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl transition-all hover:brightness-110"
+                  style={{ background: GOLD, color: NAVY }}>
+              {u.template ? 'Start from this ready-made map' : 'Open the workspace'} <ArrowRight size={17} />
+            </Link>
+            <Link href="/datasets" className="inline-flex items-center text-white font-semibold px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all">
+              Browse the datasets
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function UseCasesPage() {
   return (
-    <main className="bg-[#f7f4ec] text-[#0D2B45]">
-      <section className="bg-[#0b1620] pt-32 pb-14 text-white">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5B800]">Use cases</p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">The work Lenga Maps is built for</h1>
-          <p className="mt-4 max-w-2xl text-white/70">
+    <>
+      <section className="pt-40 pb-16 px-6" style={{ background: NAVY }}>
+        <div className="max-w-3xl mx-auto text-center">
+          <span className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-5 block" style={{ color: GOLD }}>
+            Use cases
+          </span>
+          <h1 className="font-display font-bold text-white leading-[1.08] mb-6" style={{ fontSize: 'clamp(2.5rem,5.5vw,4.2rem)' }}>
+            The work Lenga Maps is built for.
+          </h1>
+          <p className="text-white/70 text-lg leading-relaxed">
             Harmonised reference data for all 54 African countries, and a shared map where your team brings its own
             files, imagery and field data alongside it.
           </p>
-          <nav className="mt-8 flex flex-wrap gap-2">
+          <nav className="mt-9 flex flex-wrap justify-center gap-2">
             {USE_CASES.map((u) => (
               <a key={u.slug} href={`#${u.slug}`}
                  className="rounded-full border border-white/15 px-3.5 py-1.5 text-sm text-white/80 hover:border-[#F5B800]/70 hover:text-[#F5B800]">
@@ -36,58 +85,51 @@ export default function UseCasesPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-6 px-5 py-12 sm:px-8">
-        {USE_CASES.map((u, i) => (
-          <section key={u.slug} id={u.slug} className="scroll-mt-28 overflow-hidden rounded-2xl border border-[#e6dcc2] bg-white shadow-[0_18px_40px_-30px_rgba(13,43,69,0.5)]">
-            <div className={`grid ${i % 2 ? 'md:grid-cols-[320px_minmax(0,1fr)]' : 'md:grid-cols-[minmax(0,1fr)_320px]'}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u.image} alt="" loading="lazy" className={`h-48 w-full object-cover md:h-full ${i % 2 ? 'md:order-first' : 'md:order-last'}`} />
-              <div className="p-6 sm:p-8">
-                <h2 className="text-2xl font-extrabold">{u.name}</h2>
-                <p className="mt-2 text-[15px] text-[#46607a]">{u.problem}</p>
-                <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#a07a00]">Lenga data</p>
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {u.datasets.map((d) => <li key={d} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5B800]" />{d}</li>)}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#a07a00]">In the shared workspace</p>
-                    <p className="mt-2 text-sm text-[#46607a]">{u.workspace}</p>
-                  </div>
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href={u.template ? `/workspace/team?template=${u.template}` : '/workspace'}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#0D2B45] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#153a5a]">
-                    {u.template ? 'Start from this ready-made map' : 'Open the workspace'} <ArrowRight size={15} />
-                  </Link>
-                  <Link href="/datasets" className="inline-flex items-center rounded-xl border border-[#0D2B45]/20 px-5 py-2.5 text-sm font-semibold hover:border-[#F5B800]">
-                    Browse the datasets
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
-        ))}
+      {USE_CASES.map((u, i) => <Section key={u.slug} u={u} i={i} />)}
 
-        <section id="confidentiality" className="scroll-mt-28 rounded-2xl border border-[#0D2B45]/15 bg-[#0D2B45] p-6 text-white sm:p-8">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#F5B800]"><Lock size={14} /> Confidentiality</p>
-          <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-white/85">
+      <section className="relative min-h-[70vh] flex items-end overflow-hidden">
+        <Image src="/images/services/impact.jpg" alt="A child drinking clean water from a hand pump" fill sizes="100vw" className="object-cover" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(6,14,23,0.94) 0%, rgba(6,14,23,0.55) 55%, rgba(6,14,23,0.15) 100%)' }} />
+        <div className="relative z-10 w-full max-w-3xl mx-auto px-6 pb-20 text-center">
+          <p className="font-display text-white font-bold leading-snug" style={{ fontSize: 'clamp(1.6rem,3vw,2.3rem)' }}>
+            Behind every dataset is a decision someone has to make: where to dig a borehole,
+            which route survives the rainy season, how far a drought has spread.
+            Good data does not make that decision. It just means nobody is guessing.
+          </p>
+        </div>
+      </section>
+
+      <section id="confidentiality" className="py-20 px-6 scroll-mt-20" style={{ background: NAVY }}>
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="inline-flex items-center gap-2 font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-5" style={{ color: GOLD }}>
+            <Lock size={16} /> Confidentiality
+          </p>
+          <p className="text-white/80 text-base mb-9 leading-relaxed">
             Files, boundaries and imagery your team uploads stay in your team&apos;s private folder. They are used only to
             show your project to the people you invite. They are never shared, sold or published, and never mixed into the
             Lenga database. An NDA is available on request, and we delete your data whenever you ask.
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/contact-us" className="inline-flex items-center rounded-xl bg-[#F5B800] px-5 py-2.5 text-sm font-bold text-[#1a1200] hover:bg-[#ffc933]">Request an NDA</Link>
-            <Link href="/request-data" className="inline-flex items-center rounded-xl border border-white/25 px-5 py-2.5 text-sm font-semibold hover:border-[#F5B800]">Need data we don&apos;t list? Request it</Link>
+          <h2 className="font-display font-bold text-white mb-5" style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)' }}>
+            Working on something that is not listed here?
+          </h2>
+          <p className="text-white/70 text-base mb-9 leading-relaxed">
+            We also join projects as the GIS partner and build custom mapping tools. A short conversation is the place to start.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/contact-us" className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-xl transition-all hover:brightness-110" style={{ background: GOLD, color: NAVY }}>
+              Talk to us <ArrowRight size={18} />
+            </Link>
+            <Link href="/request-data" className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all">
+              Request a dataset
+            </Link>
           </div>
-        </section>
+          <p className="mt-8 text-sm text-white/55">
+            See maps made from this data in the <Link href="/atlas" className="underline hover:text-white">Lenga Atlas</Link>.
+          </p>
+        </div>
+      </section>
 
-        <p className="text-center text-sm text-[#46607a]">
-          See maps made from this data in the <Link href="/atlas" className="font-semibold text-[#0D2B45] underline">Lenga Atlas</Link>.
-        </p>
-      </div>
-    </main>
+      <Footer />
+    </>
   )
 }
