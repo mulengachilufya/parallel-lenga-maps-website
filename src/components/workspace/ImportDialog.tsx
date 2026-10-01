@@ -133,7 +133,7 @@ export default function ImportDialog({ projectId, onClose, onImported }: Props) 
               Also GeoJSON, GPX and KMZ. Up to {formatBytes(MAX_UPLOAD_BYTES)} per file and {formatBytes(PROJECT_QUOTA_BYTES)} per project;
               rasters over {formatBytes(WHOLE_FILE_MAX)} must be Cloud Optimized GeoTIFFs in EPSG:4326 so the map can stream them.
             </span><br />
-            <span className="small" style={{ color: 'var(--brass)' }}>Your files stay private to your team, tagged Yours, and never mix with the Lenga database.</span>
+            <span className="small" style={{ color: 'var(--brass)' }}>Your files stay private to your team, tagged Yours, and never mix with the Lenga database. They are never shared, sold or published, and are deleted on request.</span>
           </>}
         </label>
 
