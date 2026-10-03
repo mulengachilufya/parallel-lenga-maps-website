@@ -164,7 +164,7 @@ function Tool({ title, help, children }: { title: string; help: string; children
 function Fix({ settings, reload, via }: { settings: Overview['settings']; reload: () => void; via: string }) {
   const [email, setEmail] = useState('')
   const [months, setMonths] = useState('3')
-  const [plan, setPlan] = useState('individual')
+  const [plan, setPlan] = useState('licence')
   const [banner, setBanner] = useState(settings.banner?.text ?? '')
   const [maint, setMaint] = useState(settings.maintenance?.message ?? 'We are making improvements and will be back shortly.')
   const [out, setOut] = useState<{ ok: boolean; message: string; data?: unknown } | null>(null)
@@ -205,11 +205,11 @@ function Fix({ settings, reload, via }: { settings: Overview['settings']; reload
           {b('send_password_reset', 'Email them a password reset')}
         </div>
         <div className="btns">
-          <select value={plan} onChange={(e) => setPlan(e.target.value)}><option value="individual">Individual</option><option value="team">Team</option></select>
-          <select value={months} onChange={(e) => setMonths(e.target.value)}>
+          <select value={plan} onChange={(e) => setPlan(e.target.value)}><option value="licence">Individual licence ($300, 6 months of updates)</option><option value="individual">Individual, for a time</option><option value="team">Team, for a time</option></select>
+          {plan !== 'licence' && <select value={months} onChange={(e) => setMonths(e.target.value)}>
             <option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option><option value="0">Permanent</option>
-          </select>
-          {b('grant_access', 'Give access', { plan, months: Number(months) }, `Give ${email} ${plan} access for ${months === '0' ? 'ever' : `${months} months`}?`)}
+          </select>}
+          {b('grant_access', 'Give access', { plan, months: Number(months) }, plan === 'licence' ? `Give ${email} the Individual licence?` : `Give ${email} ${plan} access for ${months === '0' ? 'ever' : `${months} months`}?`)}
           {b('revoke_access', 'Remove paid access', {}, `Remove paid access from ${email}?`)}
           {b('extend_team', 'Renew their whole team +3 months', {}, `Add 3 months for every member of ${email}'s team?`)}
         </div>
