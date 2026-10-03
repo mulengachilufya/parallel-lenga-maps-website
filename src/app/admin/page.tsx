@@ -84,6 +84,19 @@ export default function AdminPage() {
           </Link>
 
 <Link
+            href="/admin/downloads"
+            className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+          >
+            <div className="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center mb-4">
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0C5D8C' }}>DL</span>
+            </div>
+            <h2 className="text-base font-bold text-navy mb-1">Downloads</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              How many files leave Lenga, which datasets and countries, who takes them, paying or free. CSV export.
+            </p>
+          </Link>
+
+          <Link
             href="/admin/sales"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >

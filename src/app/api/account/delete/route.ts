@@ -61,9 +61,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Downloads, sales notes and project items that point at this person or
-  // their team are kept and unhooked by the database (ON DELETE SET NULL).
+  // their team are kept and unhooked by the database (ON DELETE SET NULL);
+  // the download log's copy of their name and email is cleared just below.
   // The one link that would block: a payment this person verified as admin.
   await service.from('manual_payments').update({ verified_by: null }).eq('verified_by', user.id)
+  // The download log keeps the counts but not the person: name and email go.
+  await service.from('download_events').update({ user_name: 'Former member', user_email: null }).eq('user_id', user.id)
 
   const { error } = await service.auth.admin.deleteUser(user.id)
   if (error) {

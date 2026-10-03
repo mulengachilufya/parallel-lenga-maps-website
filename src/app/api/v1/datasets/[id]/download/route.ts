@@ -9,11 +9,19 @@
  * Auth: bearer key.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { authenticateApiRequest, recordUsage, failureResponse } from '@/lib/api-auth'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
 import { getDownloadUrl } from '@/lib/r2'
+import { logDownload } from '@/lib/download-log'
 
 export const dynamic = 'force-dynamic'
+
+const service = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } },
+)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApiRequest(req)
@@ -61,6 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const bytes = Math.round(file.file_size_mb * 1024 * 1024)
 
   recordUsage(auth.caller.keyId, bytes).catch(() => {})
+  await logDownload(service, { userId: auth.caller.userId, dataset: spec.id, country: file.country_name, source: 'api', bytes, format: file.file_format })
 
   return NextResponse.json({
     file: {

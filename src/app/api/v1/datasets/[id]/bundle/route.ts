@@ -15,10 +15,18 @@
  * Auth: bearer key.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { authenticateApiRequest, recordUsage, failureResponse, MAX_EGRESS_BYTES_PER_MONTH } from '@/lib/api-auth'
 import { findDataset, listFilesForDataset, signAll, totalBytes, hasSymbology } from '@/lib/api-datasets'
+import { logDownload } from '@/lib/download-log'
 
 export const dynamic = 'force-dynamic'
+
+const service = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } },
+)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApiRequest(req)
@@ -60,6 +68,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const signed = await signAll(files, 3600)
 
   recordUsage(auth.caller.keyId, bytes).catch(() => {})
+  await logDownload(service, { userId: auth.caller.userId, dataset: spec.id, country: `All countries (${signed.length} files)`, source: 'api_bundle', bytes })
 
   // Categorical/paletted layers ship with QGIS symbology so QGIS doesn't
   // open them as a grey gradient. Point clients at /symbology when they
