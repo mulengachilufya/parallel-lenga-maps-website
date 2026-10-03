@@ -24,7 +24,7 @@ import {
   Download, AlertTriangle, CheckCircle2, Trash2, Mail, Crown,
   KeyRound, Info, MapPin, X,
 } from 'lucide-react'
-import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES } from '@/lib/pricing'
+import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS } from '@/lib/pricing'
 import FreeDatasetPicker, { freeDatasetName } from '@/components/FreeDatasetPicker'
 import TeamSwitcher, { type TeamOption } from '@/components/TeamSwitcher'
 
@@ -654,7 +654,7 @@ function MembersTab({ data, isOwner, refresh }: { data: TeamPayload; isOwner: bo
             </button>
             {seatsLeft <= 0 && (
               <p className="mt-2 text-[11px] text-[#7d8c99]">
-                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — we can move you up to the {TEAM_PACKAGES[1].maxSeats}-seat package or quote a larger team.
+                Need more seats? Email <a className="underline" href="mailto:lengamaps@gmail.com">lengamaps@gmail.com</a> — we&apos;ll add seats to your plan.
               </p>
             )}
             {msg && (

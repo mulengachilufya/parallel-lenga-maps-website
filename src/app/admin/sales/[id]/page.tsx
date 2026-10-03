@@ -22,6 +22,7 @@ import {
   ago, api, country, dueLabel, linkedinSearch, money,
   type Activity, type Contact, type Settings, type Task,
 } from '@/lib/sales/client'
+import { TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
 
 interface Account {
@@ -252,7 +253,7 @@ function AccountPage() {
           <Box title="Deal">
             <dl className="text-sm grid grid-cols-2 gap-y-1.5">
               <dt className="text-gray-500">Seats</dt><dd className="text-right text-gray-900">{a.seats_estimate ?? '—'}</dd>
-              <dt className="text-gray-500">Value / 3 months</dt><dd className="text-right text-gray-900">{money(a.value_usd) || '—'}</dd>
+              <dt className="text-gray-500">Value / term</dt><dd className="text-right text-gray-900">{money(a.value_usd) || '—'}</dd>
               <dt className="text-gray-500">In this stage</dt><dd className="text-right text-gray-900">{ago(a.stage_changed_at).replace(' ago', '')}</dd>
               <dt className="text-gray-500">Last contact</dt><dd className="text-right text-gray-900">{ago(a.last_touch_at)}</dd>
               <dt className="text-gray-500">On the radar since</dt><dd className="text-right text-gray-900">{new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</dd>
@@ -698,7 +699,7 @@ function StageDialog({ account, to, onClose, onDone, onTeam }: { account: Accoun
         <p className="text-sm text-gray-600">{STAGE[to].goal}</p>
         {viaTeam && (
           <div className="rounded-lg bg-blue-50 p-3 text-sm text-[#0D2B45]">
-            Recording the payment here also starts their 3 months of team access.
+            Recording the payment here also starts their team access for the term paid.
             <div className="mt-2"><Primary onClick={() => onTeam('paid')}>Payment received</Primary></div>
             <p className="text-xs mt-2 text-gray-600">Or just move the stage without changing access:</p>
           </div>
@@ -725,8 +726,9 @@ function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
 }) {
   const withEmail = contacts.filter((c) => c.email)
   const [contactId, setContactId] = useState(withEmail.find((c) => c.is_primary)?.id ?? withEmail[0]?.id ?? '')
-  const [seats, setSeats] = useState(String(account.seats_estimate ?? 4))
-  const [value, setValue] = useState(account.value_usd !== null ? String(account.value_usd) : Number(seats) <= 4 ? '350' : '1000')
+  const [seats, setSeats] = useState(String(Math.max(TEAM_MIN_SEATS, account.seats_estimate ?? TEAM_MIN_SEATS)))
+  const [term, setTerm] = useState<TeamTerm>('month')
+  const [value, setValue] = useState(account.value_usd !== null ? String(account.value_usd) : String(teamPrice(Number(seats), 'month')))
   const s = useSubmit(onDone)
   const needOwner = !hasTeam
   return (
@@ -734,8 +736,8 @@ function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
       <div className="space-y-3">
         <p className="text-sm text-gray-600">
           {hasTeam
-            ? 'Starts 3 months of paid access for their team: a free team becomes paid in place, with its projects and members, and gets the seats below and every dataset.'
-            : 'If this person already started a free team, that team is upgraded. Otherwise a new team is created with them as owner. Either way, 3 months of access start today.'}
+            ? 'Starts the paid term for their team: a free team becomes paid in place, with its projects and members, and gets the seats below and every dataset.'
+            : 'If this person already started a free team, that team is upgraded. Otherwise a new team is created with them as owner. Either way, the paid term starts today.'}
         </p>
         {needOwner && (
           <Field label="Team owner" hint="They need a Lenga Maps account with this email. If not, ask them to sign up first (it is free).">
@@ -746,12 +748,13 @@ function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
           </Field>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Seats"><input type="number" min={1} className={inputCls} value={seats} onChange={(e) => setSeats(e.target.value)} /></Field>
-          {<Field label="Paid, USD per 3 months"><input type="number" min={0} className={inputCls} value={value} onChange={(e) => setValue(e.target.value)} /></Field>}
+          <Field label="Seats"><input type="number" min={1} className={inputCls} value={seats} onChange={(e) => { setSeats(e.target.value); setValue(String(teamPrice(Number(e.target.value) || TEAM_MIN_SEATS, term))) }} /></Field>
+          <Field label="Term"><select className={inputCls} value={term} onChange={(e) => { const t = e.target.value as TeamTerm; setTerm(t); setValue(String(teamPrice(Number(seats) || TEAM_MIN_SEATS, t))) }}>{TEAM_TERM_ORDER.map((t) => <option key={t} value={t}>{TEAM_TERMS[t].label}</option>)}</select></Field>
+          <Field label={`Paid, USD ${TEAM_TERMS[term].per}`}><input type="number" min={0} className={inputCls} value={value} onChange={(e) => setValue(e.target.value)} /></Field>
         </div>
         {s.err && <p className="text-sm text-red-600">{s.err}</p>}
         <Primary className="w-full" disabled={s.busy || (needOwner && !contactId)} onClick={() => s.run(() => api(`/api/admin/sales/${account.id}/team`, {
-          method: 'POST', body: { action, contact_id: contactId || null, seats: Number(seats), value_usd: action === 'paid' ? Number(value) : undefined },
+          method: 'POST', body: { action, contact_id: contactId || null, seats: Number(seats), term, value_usd: action === 'paid' ? Number(value) : undefined },
         }))}>{s.busy ? 'Working…' : 'Record payment and start access'}</Primary>
       </div>
     </Modal>
@@ -776,7 +779,7 @@ function EditDialog({ account, focus, onClose, onDone }: { account: Account; foc
           <Field label="How we found them"><select className={inputCls} value={f.source} onChange={(e) => set({ source: e.target.value })}>{SOURCES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select></Field>
           <Field label="Priority"><select className={inputCls} value={f.priority} onChange={(e) => set({ priority: Number(e.target.value) })}><option value={1}>High</option><option value={2}>Normal</option><option value={3}>Low</option></select></Field>
           <Field label="Seats (estimate)"><input type="number" min={1} className={inputCls} value={f.seats_estimate} onChange={(e) => set({ seats_estimate: e.target.value })} /></Field>
-          <Field label="Value, USD per 3 months"><input type="number" min={0} className={inputCls} value={f.value_usd} onChange={(e) => set({ value_usd: e.target.value })} /></Field>
+          <Field label="Value, USD per term"><input type="number" min={0} className={inputCls} value={f.value_usd} onChange={(e) => set({ value_usd: e.target.value })} /></Field>
         </div>
         <Field label="Website"><input className={inputCls} value={f.website} onChange={(e) => set({ website: e.target.value })} /></Field>
         <Field label="LinkedIn company page"><input className={inputCls} value={f.linkedin_url} onChange={(e) => set({ linkedin_url: e.target.value })} /></Field>

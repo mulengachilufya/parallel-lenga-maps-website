@@ -14,6 +14,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, ArrowLeft, RefreshCw, Crown, Mail, Plus } from 'lucide-react'
+import { TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, isTeamTerm, teamPrice, type TeamTerm } from '@/lib/pricing'
+
+/** Which term was paid for: month, quarter or year. null = cancelled. */
+function askTerm(): TeamTerm | null {
+  const v = prompt('Term paid for: month, quarter (3 months) or year', 'month')?.trim().toLowerCase()
+  if (!v) return null
+  if (isTeamTerm(v)) return v
+  alert('Type month, quarter or year.')
+  return null
+}
 
 interface Member {
   org_id: string; user_id: string; role: 'owner' | 'member'
@@ -153,19 +163,21 @@ export default function AdminOrgsPage() {
                   {o.plan === 'free' && (
                     <button
                       onClick={() => {
-                        const seats = Number(prompt(`Payment received from ${o.name}. How many seats did they pay for? (4 or 12)`, '4'))
+                        const seats = Number(prompt(`Payment received from ${o.name}. How many seats did they pay for? (${TEAM_MIN_SEATS} or more)`, String(TEAM_MIN_SEATS)))
                         if (!Number.isFinite(seats) || seats < Math.max(1, o.members.length)) return
-                        const price = Number(prompt('Amount paid, USD per 3 months', seats <= 4 ? '350' : '1000'))
-                        patch(o.id, { upgrade: true, seat_count: seats, ...(Number.isFinite(price) ? { monthly_price_usd: price } : {}) })
+                        const term = askTerm()
+                        if (!term) return
+                        const price = Number(prompt(`Amount paid, USD ${TEAM_TERMS[term].per}`, String(teamPrice(seats, term))))
+                        patch(o.id, { upgrade: true, seat_count: seats, term, ...(Number.isFinite(price) ? { monthly_price_usd: price } : {}) })
                       }}
                       className="rounded-lg bg-[#0D2B45] text-white px-2.5 py-1.5 text-xs font-semibold"
                     >Upgrade to paid</button>
                   )}
                   {o.plan !== 'free' && o.access_expires_at && (
                     <button
-                      onClick={() => { if (confirm(`Record a renewal payment for ${o.name}? Adds 3 months of access for every member.`)) patch(o.id, { extend: true }) }}
+                      onClick={() => { const term = askTerm(); if (term && confirm(`Record a renewal payment for ${o.name}? Adds ${TEAM_TERMS[term].label.toLowerCase()} of access for every member.`)) patch(o.id, { extend: true, term }) }}
                       className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-gray-50"
-                    >Renew +3 months</button>
+                    >Record renewal</button>
                   )}
                   <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer">
                     <input
@@ -265,7 +277,13 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
         <label className="text-xs text-gray-500">Owner email * (must have an account)</label>
         <input name="owner_email" type="email" required className={field} />
       </div>
-      <div><label className="text-xs text-gray-500">Seats *</label><input name="seat_count" type="number" min={1} defaultValue={3} required className={field} /></div>
+      <div><label className="text-xs text-gray-500">Seats *</label><input name="seat_count" type="number" min={1} defaultValue={TEAM_MIN_SEATS} required className={field} /></div>
+      <div>
+        <label className="text-xs text-gray-500">Term paid for *</label>
+        <select name="term" defaultValue="month" className={field}>
+          {TEAM_TERM_ORDER.map((t) => <option key={t} value={t}>{TEAM_TERMS[t].label}</option>)}
+        </select>
+      </div>
       <div><label className="text-xs text-gray-500">Quoted price USD/mo</label><input name="monthly_price_usd" type="number" step="0.01" className={field} /></div>
       <div><label className="text-xs text-gray-500">Sector</label><input name="sector" className={field} placeholder="mining / water / ngo / gov / research" /></div>
       <div><label className="text-xs text-gray-500">Region</label><input name="region" className={field} /></div>
@@ -275,7 +293,7 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
         <button disabled={busy} className="rounded-xl bg-gray-900 text-white px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
           {busy ? 'Provisioning…' : 'Create org + owner seat'}
         </button>
-        <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team, active for 3 months from today. They manage member invites themselves from /team. Use Renew +3 months when the next payment arrives.</p>
+        <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team, active for the term paid for from today. They manage member invites themselves from /team. Use Record renewal when the next payment arrives.</p>
       </div>
     </form>
   )

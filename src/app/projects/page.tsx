@@ -16,9 +16,9 @@
  *     → GIS facts text
  *     → Quote form
  *
- * Pricing: two 3-month packages — up to 4 seats for $350, up to 12 seats
- * for $1,000 (TEAM_PACKAGES). No checkout, ever — every CTA routes to the
- * quote form.
+ * Pricing: from TEAM_MIN_SEATS seats, paid monthly, per 3 months or per
+ * year (TEAM_TERMS), plus a price per extra seat. No checkout, ever — every
+ * CTA routes to the quote form.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -31,7 +31,7 @@ import {
   Phone, Mail, MessageCircle, Zap,
 } from 'lucide-react'
 import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
-import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_PACKAGES, type TeamPackage } from '@/lib/pricing'
+import { BANK_FEES_NOTE, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, type TeamTerm } from '@/lib/pricing'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -279,8 +279,8 @@ export default function ProjectsPage() {
 // WHITE background. Mirrors the main /pricing card font metrics (inline
 // styles, 48px price, 13px tracked uppercase label). Logo + tracked label
 // at top; glowing "ALL 15 DATASETS" banner above the cards so the catalogue
-// is impossible to miss. Two package cards: up to 4 seats (cream) and up to
-// 12 seats (navy, featured).
+// is impossible to miss. Three term cards: monthly, 3 months (cream) and
+// 1 year (navy, featured).
 
 interface CardPalette {
   bg: string; border: string; nameColor: string; priceColor: string
@@ -319,11 +319,11 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
             Team pricing
           </span>
           <h2 className="font-display" style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.08, color: NAVY, margin: '0 0 1rem' }}>
-            Two team sizes. Three months at a time.
+            Pay monthly, quarterly or yearly.
           </h2>
           <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
-            Up to {TEAM_PACKAGES[0].maxSeats} seats for ${TEAM_PACKAGES[0].price.toLocaleString()}, or up to {TEAM_PACKAGES[1].maxSeats} seats
-            for ${TEAM_PACKAGES[1].price.toLocaleString()}. Each payment covers 3 months: all 54 African countries, every dataset.
+            From {TEAM_MIN_SEATS} seats: every dataset, all 54 African countries, and a shared project workspace.
+            Add seats at any time.
           </p>
         </div>
 
@@ -361,9 +361,10 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
         </div>
 
         {/* ── Package cards ─────────────────────────────────────────── */}
-        <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-          <PackageCard pkg={TEAM_PACKAGES[0]} palette={PALETTE_CREAM} onQuote={onQuote} />
-          <PackageCard pkg={TEAM_PACKAGES[1]} palette={PALETTE_NAVY} onQuote={onQuote} featured />
+        <div className="mt-10 grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+          {TEAM_TERM_ORDER.map((t) => (
+            <TermCard key={t} term={t} palette={t === 'year' ? PALETTE_NAVY : PALETTE_CREAM} onQuote={onQuote} featured={t === 'year'} />
+          ))}
         </div>
 
         <div className="mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-6 py-5">
@@ -380,17 +381,18 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-7">
-          Paid once by bank transfer. We provision your team within 1 business day.
-          {` More than ${TEAM_PACKAGES[1].maxSeats} people? Get a quote and we'll size it with you.`}
+          Paid by bank transfer. We provision your team within 1 business day. {BANK_FEES_NOTE}
+          {' '}Sector packs (carbon and MRV, mining and more) are quoted separately.
         </p>
       </div>
     </section>
   )
 }
 
-function PackageCard({ pkg, palette, onQuote, featured = false }: {
-  pkg: TeamPackage; palette: CardPalette; onQuote: (seats: number | null) => void; featured?: boolean
+function TermCard({ term, palette, onQuote, featured = false }: {
+  term: TeamTerm; palette: CardPalette; onQuote: (seats: number | null) => void; featured?: boolean
 }) {
+  const t = TEAM_TERMS[term]
   return (
     <div
       className="lm-card"
@@ -403,33 +405,31 @@ function PackageCard({ pkg, palette, onQuote, featured = false }: {
         >
           <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
           <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
-            3 months per payment. Nothing renews automatically.
+            Fits a project budget. Nothing renews automatically.
           </span>
         </div>
       )}
 
-      <div className="lm-name" style={{ color: palette.nameColor }}>{pkg.label}</div>
+      <div className="lm-name" style={{ color: palette.nameColor }}>
+        {t.label}{t.saving && <span style={{ marginLeft: 10, fontSize: 12, letterSpacing: 0 }}>{t.saving}</span>}
+      </div>
 
       <div className="lm-price-row">
-        <span className="lm-price" style={{ color: palette.priceColor }}>${pkg.price.toLocaleString()}</span>
-        <span className="lm-period" style={{ color: palette.muted }}>for 3 months</span>
+        <span className="lm-price" style={{ color: palette.priceColor }}>${t.base.toLocaleString()}</span>
+        <span className="lm-period" style={{ color: palette.muted }}>{t.per}</span>
       </div>
-      <p className="lm-period" style={{ color: palette.muted, margin: 0 }}>Up to {pkg.maxSeats} seats.</p>
-
-      <p className="lm-blurb" style={{ color: palette.muted }}>{pkg.blurb}</p>
+      <p className="lm-period" style={{ color: palette.muted, margin: 0 }}>
+        {TEAM_MIN_SEATS} seats included. +${t.extraSeat.toLocaleString()} per extra seat.
+      </p>
 
       <div className="lm-divider" style={{ background: palette.dividerColor }} />
 
-      <div className="lm-feat-label" style={{ color: palette.muted }}>What you get</div>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
         {[
-          `${pkg.maxSeats} seats, every dataset, all 54 countries`,
+          'Every dataset, all 54 countries, always up to date',
           'Project workspace: live web map of every layer',
-          'Team discussion pinned to places on the map',
-          'Full project history with restore',
-          'Shared download history',
-          'Owner-managed seats',
-          'API access with rate limits',
+          'Discussion pinned to places, full history with restore',
+          'Owner-managed seats, API access',
           'Commercial use licence',
         ].map((row) => (
           <li key={row} className="lm-feat-row" style={{ color: palette.text }}>
@@ -441,11 +441,11 @@ function PackageCard({ pkg, palette, onQuote, featured = false }: {
 
       <div className="lm-cta">
         <button
-          onClick={() => onQuote(pkg.maxSeats)}
+          onClick={() => onQuote(TEAM_MIN_SEATS)}
           className="lm-cta-btn"
           style={{ background: palette.btnBg, color: palette.btnColor }}
         >
-          Get {pkg.maxSeats} seats
+          Get a quote
         </button>
       </div>
     </div>

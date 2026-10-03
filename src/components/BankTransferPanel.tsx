@@ -19,10 +19,12 @@ import {
   Landmark, Loader2, Lock, AlertCircle, ChevronRight, Mail, Check, ShieldCheck,
 } from 'lucide-react'
 import type { BankDetails } from '@/lib/bank-details'
-import type { TierSlug } from '@/lib/pricing'
+import { LICENCE_TERMS, type IndividualProduct, type TierSlug } from '@/lib/pricing'
 
 interface Props {
   plan:        TierSlug
+  /** Individual: the licence (default) or a renewal of its updates. */
+  product?:    IndividualProduct
   amountLabel: string          // e.g. "$12 USD"
   userEmail:   string
   userName?:   string
@@ -49,7 +51,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-export default function BankTransferPanel({ plan, amountLabel, userEmail, userName = '' }: Props) {
+export default function BankTransferPanel({ plan, product = 'licence', amountLabel, userEmail, userName = '' }: Props) {
   const [phase,     setPhase]     = useState<Phase>('intro')
   const [loading,   setLoading]   = useState(false)
   const [errorMsg,  setErrorMsg]  = useState('')
@@ -66,7 +68,7 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
       const r = await fetch('/api/payments/bank-details', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ plan }),
+        body:    JSON.stringify({ plan, product }),
       })
       const d = await r.json() as { emailed?: boolean; email?: string; reference?: string; bankDetails?: BankDetails; error?: string }
       if (!r.ok) { setErrorMsg(d.error ?? 'Could not load bank details.'); return }
@@ -85,6 +87,7 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
     setSubmitting(true); setErrorMsg('')
     const fd = new FormData()
     fd.append('plan',           plan)
+    fd.append('product',        product)
     fd.append('payment_method', 'bank')
     fd.append('region',         '')          // not applicable to bank transfer
     fd.append('sender_name',    userName)
@@ -201,10 +204,12 @@ export default function BankTransferPanel({ plan, amountLabel, userEmail, userNa
           <CopyRow label="Bank address"   value={bank.bankAddress} />
           <CopyRow label="Payment reference" value={bankRef || userEmail} />
           <p className="text-xs text-gray-500 px-1 pt-1 leading-relaxed">
-            <strong className="text-gray-700">Transfer fees are on us.</strong> Send exactly {amountLabel}. If your
-            bank asks who pays the charges, choose <strong className="text-gray-700">BEN</strong> (beneficiary)
-            so the fees come out of what we receive, not your pocket.
+            Send exactly {amountLabel}. If your bank asks who pays the charges, choose{' '}
+            <strong className="text-gray-700">OUR</strong>: the sender pays all sending and intermediary bank fees.
           </p>
+          {plan === 'individual' && (
+            <p className="text-xs text-gray-500 px-1 leading-relaxed">{LICENCE_TERMS}</p>
+          )}
         </div>
       )}
 

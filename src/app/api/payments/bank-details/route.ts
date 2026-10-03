@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
   }
 
-  let body: { plan?: string }
+  let body: { plan?: string; product?: string }
   try {
     body = await req.json()
   } catch {
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   const plan = body.plan as TierSlug
+  const product = body.product === 'updates' ? 'updates' : 'licence'
   if (!SELF_SERVE_PLAN_ORDER.includes(plan)) {
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
   }
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     emailed = true // treat as already-sent; don't hammer Resend
   } else {
     emailed = await sendEmail(
-      bankTransferDetailsEmail({ to: user.email, firstName, plan, reference, appUrl }),
+      bankTransferDetailsEmail({ to: user.email, firstName, plan, product, reference, appUrl }),
       'manual_payment',
     )
     if (emailed) lastSent.set(user.id, now)
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
     const adminEmailed = await sendEmail(
       bankTransferExpectedAdminEmail({
         plan,
+        product,
         reference,
         userEmail:       user.email,
         userName:        profile?.full_name || firstName,

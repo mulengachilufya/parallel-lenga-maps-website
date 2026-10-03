@@ -9,9 +9,9 @@
 //   page route             →  /projects
 //
 // Pricing model (updated 2026-09): fixed 3-month packages, not per seat —
-//   up to 4 seats for $350, up to 12 seats for $1,000, per 3 months.
+//   from TEAM_MIN_SEATS seats, per month, 3 months or year.
 //   organizations.access_expires_at ends the period (null = permanent). Defined in
-//   TEAM_PACKAGES (src/lib/pricing.ts). Larger teams are quoted.
+//   TEAM_TERMS (src/lib/pricing.ts). Larger teams are quoted.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isExpired, type DatasetSlug } from './pricing'

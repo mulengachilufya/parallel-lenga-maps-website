@@ -9,7 +9,8 @@
  *                            monthly_price_usd?, notes? }
  *                          The owner must already have a Lenga Maps account.
  * PATCH /api/admin/orgs  — { id, ...changes } update seats / status / promo /
- *                          renewal ({ extend: true } adds 3 months) /
+ *                          renewal ({ extend: true, term } adds one term:
+ *                          'month' | 'quarter' | 'year', default 3 months) /
  *                          upgrade ({ upgrade: true, seat_count } turns a
  *                          free team into a paid one) /
  *                          price / notes. Changing status ALSO flips every
@@ -19,7 +20,7 @@
  * Auth: cookie session + ADMIN_EMAILS allow-list.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { accessExpiry } from '@/lib/pricing'
+import { accessExpiry, termMonths } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
     region: typeof body.region === 'string' ? body.region : null,
     price:  Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null,
     notes:  typeof body.notes === 'string' ? body.notes : null,
-    expiresAt: body.permanent === true ? null : accessExpiry(),
+    expiresAt: body.permanent === true ? null : accessExpiry(null, termMonths(body.term)),
   })
   if (!result.ok) {
     return NextResponse.json({ error: result.error, message: result.message }, { status: result.status })
@@ -123,7 +124,7 @@ export async function PATCH(req: NextRequest) {
   if (body.upgrade === true) {
     const seats = Number.isFinite(Number(body.seat_count)) && Number(body.seat_count) >= 1 ? Math.round(Number(body.seat_count)) : 4
     const price = Number.isFinite(Number(body.monthly_price_usd)) ? Number(body.monthly_price_usd) : null
-    const r = await upgradeOrg(service, id, { seats, price, expiresAt: accessExpiry() })
+    const r = await upgradeOrg(service, id, { seats, price, expiresAt: accessExpiry(null, termMonths(body.term)) })
     if (!r.ok) return NextResponse.json({ error: 'update_failed', message: r.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   }
@@ -136,7 +137,7 @@ export async function PATCH(req: NextRequest) {
     if (!cur.access_expires_at) {
       return NextResponse.json({ error: 'validation', message: 'This team has permanent access; nothing to renew.' }, { status: 400 })
     }
-    changes.access_expires_at = accessExpiry(cur.access_expires_at)
+    changes.access_expires_at = accessExpiry(cur.access_expires_at, termMonths(body.term))
     changes.status = 'active'
     changes.expiry_notice_sent = null
   }

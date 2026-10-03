@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
-import { accessExpiry } from '@/lib/pricing'
+import { UPDATE_MONTHS, accessExpiry } from '@/lib/pricing'
 import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
 
 /**
@@ -12,9 +12,11 @@ import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/ema
  * Admin-only. On 'verify':
  *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
  *   - profiles.plan → plan recorded on the payment row
- *   - profiles.plan_status → 'active', plan_expires_at → 3 months on from
- *     today (or from the current expiry if still running). Accounts that
- *     already have permanent access (active, no expiry) keep it.
+ *   - Individual licence: plan_status → 'active', plan_expires_at → null
+ *     (the catalogue is theirs for good), updates_until → UPDATE_MONTHS on
+ *     (from the current updates_until if still running). An 'updates'
+ *     payment only extends updates_until.
+ *   - Older rows without a product (time-limited plans): 3 months as before.
  *   - fires Web3Forms email to the customer letting them know access is live
  *
  * On 'reject':
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
   // Look up the payment.
   const { data: payment, error: payErr } = await service
     .from('manual_payments')
-    .select('id, user_id, user_email, user_name, plan, account_type, status')
+    .select('id, user_id, user_email, user_name, plan, product, account_type, status')
     .eq('reference', reference)
     .single()
   if (payErr || !payment) {
@@ -119,25 +121,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
     }
 
-    // Promote pending -> active in one write, for ACCESS_MONTHS. A payment
-    // made while access is still running extends it from the current
-    // expiry. Grandfathered accounts (active with no expiry) stay
-    // permanent. Clear pending_plan so the profile stops advertising a
-    // pending request. account_type is kept for back-compat.
+    // Promote pending -> active in one write. Clear pending_plan so the
+    // profile stops advertising a pending request.
     const { data: current } = await service
-      .from('profiles').select('plan_status, plan_expires_at').eq('id', payment.user_id).maybeSingle()
+      .from('profiles').select('plan, plan_status, plan_expires_at, updates_until').eq('id', payment.user_id).maybeSingle()
     const permanent = current?.plan_status === 'active' && !current.plan_expires_at
-    const expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at)
+    const product = payment.product as 'licence' | 'updates' | null
+    let changes: Record<string, unknown>
+    let expiresAt: string | null
+    if (product === 'updates') {
+      expiresAt = null
+      changes = { updates_until: accessExpiry(current?.updates_until, UPDATE_MONTHS), pending_plan: null }
+    } else if (product === 'licence') {
+      // Someone with permanent access from an earlier plan already has
+      // everything with no limit; buying again leaves that alone.
+      const unlimited = permanent && !current?.updates_until && current?.plan === 'individual'
+      expiresAt = null
+      changes = {
+        plan: 'individual', account_type: payment.account_type, plan_status: 'active',
+        plan_expires_at: null, expiry_reminder_sent_at: null, pending_plan: null,
+        updates_until: unlimited ? null : accessExpiry(current?.updates_until, UPDATE_MONTHS),
+      }
+    } else {
+      expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at)
+      changes = {
+        plan: payment.plan, account_type: payment.account_type, plan_status: 'active',
+        plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
+      }
+    }
     const { error: profErr } = await service
       .from('profiles')
-      .update({
-        plan:            payment.plan,
-        account_type:    payment.account_type,
-        plan_status:     'active',
-        plan_expires_at: expiresAt,
-        expiry_reminder_sent_at: null,
-        pending_plan:    null,
-      })
+      .update(changes)
       .eq('id', payment.user_id)
     if (profErr) {
       console.error('[admin/payments/verify] profile update failed:', profErr)

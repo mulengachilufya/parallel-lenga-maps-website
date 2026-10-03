@@ -1,7 +1,10 @@
 'use client'
 
 import Link from "next/link"
-import { FREE_OFFERS, PLANS, PLAN_CARD_UI, PLAN_ORDER, planCtaHref, type FreeOffer } from "@/lib/pricing"
+import {
+  BANK_FEES_NOTE, FREE_OFFERS, LICENCE_TERMS, PLANS, PLAN_CARD_UI, PLAN_ORDER, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER,
+  UPDATE_MONTHS, UPDATES_PRICE, planCtaHref, type FreeOffer,
+} from "@/lib/pricing"
 
 // Both plans send buyers to their planCtaHref (see pricing.ts): individual
 // -> /dashboard/payment (self-serve bank transfer, fastest path), team ->
@@ -49,6 +52,14 @@ export default function PricingPage() {
   return (
     <>
       <style>{`
+        .term-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+        .term-cell { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: rgba(13,43,69,0.55); border: 1px solid rgba(245,184,0,0.25); }
+        .term-label { font-size: 12px; color: #BFD7EA; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+        .term-label em { font-style: normal; color: #F5B800; font-weight: 600; }
+        .term-price { font-size: 22px; color: #fff; font-weight: 500; }
+        .term-note { font-size: 11.5px; color: #9fb0c0; }
+        .group-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.55; color: #b8c2cc; }
+        @media (max-width: 640px) { .term-strip { grid-template-columns: 1fr; } }
         .plan-card {
           text-decoration: none;
           display: flex;
@@ -89,7 +100,7 @@ export default function PricingPage() {
             Simple, honest pricing
           </h1>
           <p style={{ fontSize: '15px', color: '#b8c2cc', margin: 0 }}>
-            Start free with 3 datasets of your choice. Pay for 3 months at a time for every dataset, every one of 54 African countries. Nothing renews automatically.
+            Start free with 3 datasets of your choice. Buy the whole catalogue once, or give your team a shared workspace. Nothing renews automatically.
           </p>
         </div>
 
@@ -143,6 +154,21 @@ export default function PricingPage() {
                 </div>
               </Link>
         </div>
+        {isTeam ? (
+          <div className="term-strip">
+            {TEAM_TERM_ORDER.map((t) => (
+              <div key={t} className="term-cell">
+                <span className="term-label">{TEAM_TERMS[t].label}{TEAM_TERMS[t].saving && <em>{TEAM_TERMS[t].saving}</em>}</span>
+                <span className="term-price">${TEAM_TERMS[t].base.toLocaleString()}</span>
+                <span className="term-note">{TEAM_MIN_SEATS} seats · +${TEAM_TERMS[t].extraSeat} per extra seat</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="group-note">
+            After {UPDATE_MONTHS} months, add {UPDATE_MONTHS} more months of new datasets for ${UPDATES_PRICE}. What you have stays yours either way. {LICENCE_TERMS}
+          </p>
+        )}
         </section>
             )
           })}
@@ -150,7 +176,10 @@ export default function PricingPage() {
 
         <div style={{ maxWidth: '640px', margin: '2rem auto 0', textAlign: 'center' }}>
           <p style={{ fontSize: '13px', color: '#9fb0c0', margin: 0 }}>
-            Pay by bank transfer. We activate your account within 24 hours of payment.
+            Pay by bank transfer. We activate your account within 24 hours of payment. {BANK_FEES_NOTE}
+          </p>
+          <p style={{ fontSize: '13px', color: '#9fb0c0', margin: '0.6rem 0 0' }}>
+            Sector packs (carbon and MRV, mining and more) are quoted separately. <Link href="/contact-us" style={{ color: '#F5B800' }}>Ask us</Link>.
           </p>
         </div>
       </div>
