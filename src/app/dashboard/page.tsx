@@ -16,7 +16,7 @@ import WorkspaceBox from '@/components/WorkspaceBox'
 import type { Access } from '@/lib/entitlements'
 import type { WsProjectSummary } from '@/lib/workspace/types'
 import {
-  FREE_DATASET_LIMIT, PLANS, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
+  FREE_DATASET_LIMIT, PLANS, UPDATE_MONTHS, UPDATES_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
@@ -491,7 +491,7 @@ function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose:
         <p className="text-blue-300 text-sm leading-relaxed mb-5">
           Downloading all 54 countries as one ready-for-QGIS file needs a paid plan, or this
           dataset as one of your 3 free datasets (choose them on your dashboard, or with any
-          download button on this page). Paid plans: every dataset, every country, for 3 months per payment.
+          download button on this page). Paid plans: every dataset, every country.
         </p>
 
         <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -688,7 +688,9 @@ function DashboardContent() {
 
   const isFree    = userState === 'free'
   const freeSet   = new Set(access?.datasets ?? [])
-  const canGet    = (slug: string) => !isFree || freeSet.has(slug as never)
+  const canGet    = (slug: string) => (!isFree && coveredByUpdates(slug, access?.updatesUntil)) || freeSet.has(slug as never)
+  const updatesUntil = access?.updatesUntil ?? null
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   const reloadAccess = () => { void fetch('/api/account/access', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((a) => a && setAccess(a)) }
   const isPaid    = !isFree
   const planLabel = isFree ? 'Free' : PLANS[userState as TierSlug]?.name ?? ''
@@ -861,14 +863,18 @@ function DashboardContent() {
               eyebrow="Your plan"
               title={planLabel}
               ui={PLAN_CARD_UI[userState as TierSlug]}
-              hero={expiresAt ? `Active until ${new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Permanent access'}
+              hero={expiresAt ? `Active until ${fmtDate(expiresAt)}` : updatesUntil ? 'Yours for good' : 'Permanent access'}
               tagline={expiresAt
-                ? `${planPrice ?? ''}. Pay again any time to add 3 months.`
-                : 'You were with us before 3-month plans, so your access never ends.'}
+                ? `${planPrice ?? ''}. Pay again any time to extend it.`
+                : updatesUntil
+                  ? `New datasets ${new Date(updatesUntil) > new Date() ? 'until' : 'ended'} ${fmtDate(updatesUntil)}.`
+                  : 'Your access never ends.'}
               count="Included"
-              datasets={['Every dataset, all 54 countries', 'Unlimited downloads']}
-              cta={expiresAt ? 'Renew: add 3 months' : '✓ Active, permanent'}
-              href={expiresAt ? planCtaHref(userState as TierSlug) : undefined}
+              datasets={updatesUntil
+                ? ['Every dataset you have, for good', `New datasets until ${fmtDate(updatesUntil)}`, 'Unlimited downloads']
+                : ['Every dataset, all 54 countries', 'Unlimited downloads']}
+              cta={expiresAt ? 'Renew' : updatesUntil ? `Add ${UPDATE_MONTHS} months of updates · $${UPDATES_PRICE}` : '✓ Active, permanent'}
+              href={expiresAt ? planCtaHref(userState as TierSlug) : updatesUntil ? '/dashboard/payment?plan=individual&product=updates' : undefined}
             />
           {(userState === 'team' || access?.team) && (
             <ActionCard delay={0.15} href="/team" icon={<Users size={22} />} title="Your team"
@@ -877,7 +883,7 @@ function DashboardContent() {
           )}
           {!isFree && userState !== 'team' && !access?.team && (
             <ActionCard delay={0.1} href="/team?start=free" icon={<Users size={22} />} title="Work with a colleague"
-                        text="Start a free team: a shared project workspace for 2 people. Upgrade to 4 or 12 seats when you need more."
+                        text="Start a free team: a shared project workspace for 2 people. Upgrade from 3 seats when you need more."
                         cta="Start a free team" />
           )}
         </div>

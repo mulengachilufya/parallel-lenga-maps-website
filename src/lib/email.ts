@@ -18,7 +18,7 @@
 // Copy style: no em dashes anywhere in customer-facing text. They read as
 // an AI giveaway. Use commas, periods, colons and semicolons instead.
 
-import { PLANS, type TierSlug } from './pricing'
+import { INDIVIDUAL_PRODUCTS, PLANS, TEAM_MIN_SEATS, TEAM_TERMS, UPDATE_MONTHS, type IndividualProduct, type TierSlug } from './pricing'
 import { BANK_DETAILS } from './bank-details'
 import { logEvent } from './ops/log'
 
@@ -206,15 +206,15 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
       harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
     </p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Need everything? Full access is <strong>${price}</strong>: every dataset, every country, unlimited downloads,
-      and nothing renews automatically. Working with a colleague? Start a free team for 2 people from the Team page;
-      paid teams start at $350 for up to 4 seats for 3 months.
+      Need everything? The Individual licence is <strong>${price}</strong>: every dataset, every country, yours for good,
+      with ${UPDATE_MONTHS} months of new datasets. Working with a colleague? Start a free team for 2 people from the Team page;
+      paid teams start at $${TEAM_TERMS.month.base} a month for ${TEAM_MIN_SEATS} seats.
     </p>`
   const text = `Hi ${name},
 
 Your Lenga Maps account is live, and it comes with 3 free datasets. Open your dashboard, choose the 3 you need most, and download them for all 54 African countries, harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
 
-Need everything? Full access is ${price}: every dataset, every country, unlimited downloads, and nothing renews automatically. Working with a colleague? Start a free team for 2 people from the Team page; paid teams start at $350 for up to 4 seats for 3 months.
+Need everything? The Individual licence is ${price}: every dataset, every country, yours for good, with ${UPDATE_MONTHS} months of new datasets. Working with a colleague? Start a free team for 2 people from the Team page; paid teams start at $${TEAM_TERMS.month.base} a month for ${TEAM_MIN_SEATS} seats.
 
 Choose your free datasets: ${cta}
 See pricing: ${cta2}
@@ -659,14 +659,14 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
       A customer says they have paid. Check your bank for a transfer of <strong>${escapeHtml(p.amountLabel)}</strong>
       with the bank reference <strong>${escapeHtml(p.bankRef)}</strong>, then approve it in the payments queue:
-      approving switches their plan on for 3 months straight away.
+      approving switches it on straight away.
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;">${v}</td></tr>`).join('')}
     </table>
     ${p.screenshotUrl ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;"><a href="${p.screenshotUrl}" style="color:#1E5F8E;">View payment screenshot</a> (link valid 7 days)</p>` : ''}`
   const text = [
-    'A customer says they have paid. Check the bank, then approve in the payments queue (switches the plan on for 3 months).',
+    'A customer says they have paid. Check the bank, then approve in the payments queue (switches it on straight away).',
     '',
     ...rows.map(([k, v]) => `${k}: ${v}`),
     '',
@@ -695,15 +695,16 @@ export function paymentSubmittedAdminEmail(p: PaymentSubmittedFields): EmailMess
  * live in src/lib/bank-details.ts.
  */
 export function bankTransferDetailsEmail(opts: {
-  to: string; firstName?: string | null; plan: TierSlug; reference: string; appUrl?: string
+  to: string; firstName?: string | null; plan: TierSlug; product?: IndividualProduct; reference: string; appUrl?: string
 }): EmailMessage {
   const fname = (opts.firstName || '').trim() || 'there'
   const plan  = PLANS[opts.plan]
+  const item  = INDIVIDUAL_PRODUCTS[opts.product ?? 'licence']
   const b     = BANK_DETAILS
   const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
-  const cta   = `${base}/dashboard/payment?plan=${opts.plan}`
+  const cta   = `${base}/dashboard/payment?plan=${opts.plan}${opts.product === 'updates' ? '&product=updates' : ''}`
   const rows: [string, string][] = [
-    ['Amount',            `$${plan.price} USD (3 months of access)`],
+    ['Amount',            `$${item.price} USD (${item.label.split(':')[0]})`],
     ['Account name',      b.accountName],
     ['Bank',              b.bankName],
     ['Account number',    b.accountNumber],
@@ -711,7 +712,7 @@ export function bankTransferDetailsEmail(opts: {
     ['SWIFT / BIC',       b.swift],
     ['Bank address',      b.bankAddress],
     ['Payment reference', opts.reference],
-    ['Transfer fees',     'Covered by us. If your bank asks who pays the charges, choose BEN (beneficiary).'],
+    ['Bank charges',      'OUR: the sender pays all sending and intermediary bank fees.'],
   ]
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
@@ -724,8 +725,7 @@ export function bankTransferDetailsEmail(opts: {
       ${rows.map(([k, v]) => `<tr><td style="padding:6px 10px 6px 0;color:#888;white-space:nowrap;vertical-align:top;">${k}</td><td style="padding:6px 0;font-weight:600;">${v}</td></tr>`).join('')}
     </table>
     <p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#555;">
-      Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank
-      charges come out of what we receive, not your pocket.
+      Send exactly $${item.price} USD. If your bank asks who pays the charges, choose OUR: the sender pays all sending and intermediary bank fees.
     </p>
     <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#555;">
       Once you have paid, upload your proof of payment and we will switch your plan on, usually
@@ -738,7 +738,7 @@ export function bankTransferDetailsEmail(opts: {
     '',
     ...rows.map(([k, v]) => `  ${k}: ${v}`),
     '',
-    `Send exactly $${plan.price} USD. You don't pay any transfer fees: choosing BEN means the bank charges come out of what we receive, not your pocket.`,
+    `Send exactly $${item.price} USD. If your bank asks who pays the charges, choose OUR: the sender pays all sending and intermediary bank fees.`,
     '',
     `Upload your proof of payment: ${cta}`,
     'We switch your plan on once we verify it, usually within a few hours.',
@@ -748,7 +748,7 @@ export function bankTransferDetailsEmail(opts: {
   ].join('\n')
   return {
     to:      opts.to,
-    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details ($${plan.price} USD, ref ${opts.reference})`,
+    subject: `Your Lenga Maps ${plan.name} plan: bank transfer details ($${item.price} USD, ref ${opts.reference})`,
     html: shell({
       preheader: `Bank transfer details for your ${plan.name} plan.`,
       heading:   'Pay by bank transfer',
@@ -769,6 +769,7 @@ export function bankTransferDetailsEmail(opts: {
  */
 export function bankTransferExpectedAdminEmail(p: {
   plan:            TierSlug
+  product?:        IndividualProduct
   reference:       string
   userEmail:       string
   userName:        string
@@ -776,13 +777,13 @@ export function bankTransferExpectedAdminEmail(p: {
   requestedAt:     string
 }): EmailMessage {
   const plan   = PLANS[p.plan]
-  const amount = `$${plan.price} USD`
+  const amount = `$${p.plan === 'individual' ? INDIVIDUAL_PRODUCTS[p.product ?? 'licence'].price : plan.price} USD`
   const cta    = `${APP_URL}/admin/payments`
   const rows: [string, string][] = [
-    ['Expect',         `${amount} (${plan.name}, 3 months), less bank fees`],
+    ['Expect',         `${amount} (${plan.name})`],
     ['Reference',      p.reference],
     ['From',           `${p.userName || '(no name)'} <${p.userEmail}>`],
-    ['Fees',           'You cover them. Customer was told to pick BEN, so slightly less than the full amount may arrive.'],
+    ['Fees',           'Customer was told to choose OUR (sender pays all bank fees).'],
     ['Customer email', p.customerEmailed ? 'Sent' : 'FAILED, they only saw the details on screen'],
     ['Requested',      `${new Date(p.requestedAt).toLocaleString('en-GB', { timeZone: 'Africa/Lusaka', dateStyle: 'medium', timeStyle: 'short' })} (Lusaka)`],
   ]
@@ -911,11 +912,11 @@ export function accessPeriodEmail(opts: {
   const whose = opts.team ? `${escapeHtml(opts.team)}'s ${escapeHtml(opts.planName)}` : `your ${escapeHtml(opts.planName)}`
   const whoseText = opts.team ? `${opts.team}'s ${opts.planName}` : `your ${opts.planName}`
   const lead = opts.ended
-    ? `Access on ${whose} plan ended on ${when}. Your account, projects and download history are all kept; pay for another 3 months and everything switches straight back on.`
-    : `Access on ${whose} plan runs until <strong>${when}</strong>. Nothing renews automatically. Pay for another 3 months before then and there is no gap; the new period starts when the current one ends.`
+    ? `Access on ${whose} plan ended on ${when}. Your account, projects and download history are all kept; pay for another period and everything switches straight back on.`
+    : `Access on ${whose} plan runs until <strong>${when}</strong>. Nothing renews automatically. Pay for another period before then and there is no gap; the new period starts when the current one ends.`
   const leadText = opts.ended
-    ? `Access on ${whoseText} plan ended on ${when}. Your account, projects and download history are all kept; pay for another 3 months and everything switches straight back on.`
-    : `Access on ${whoseText} plan runs until ${when}. Nothing renews automatically. Pay for another 3 months before then and there is no gap; the new period starts when the current one ends.`
+    ? `Access on ${whoseText} plan ended on ${when}. Your account, projects and download history are all kept; pay for another period and everything switches straight back on.`
+    : `Access on ${whoseText} plan runs until ${when}. Nothing renews automatically. Pay for another period before then and there is no gap; the new period starts when the current one ends.`
   const bodyHtml = `
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">Hi ${fname},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">${lead}</p>`

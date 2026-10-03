@@ -8,7 +8,8 @@
  * first. BankTransferPanel auto-emails bank details immediately, takes
  * proof of payment, and drops the submission into the admin queue
  * (/admin/payments) as 'pending'. Approving it there grants access
- * immediately, no expiry - see /api/admin/payments/verify.
+ * the licence (or extends its updates) - see /api/admin/payments/verify.
+ * ?product=updates sells the updates renewal instead of the licence.
  *
  * This is a PARALLEL path, not a replacement for /contact-us. Some buyers
  * would rather talk first; this page is for the ones who'd rather just
@@ -23,7 +24,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { PLANS, type TierSlug } from '@/lib/pricing'
+import { INDIVIDUAL_PRODUCTS, UPDATE_MONTHS, type TierSlug } from '@/lib/pricing'
 import BankTransferPanel from '@/components/BankTransferPanel'
 import { track } from '@/lib/analytics'
 
@@ -31,6 +32,7 @@ function PaymentInner() {
   const router = useRouter()
   const params = useSearchParams()
   const planParam = params.get('plan') as TierSlug | null
+  const product = params.get('product') === 'updates' ? 'updates' : 'licence'
 
   const [loading, setLoading] = useState(true)
   const [email,   setEmail]   = useState('')
@@ -75,7 +77,7 @@ function PaymentInner() {
     )
   }
 
-  const plan = PLANS.individual
+  const price = INDIVIDUAL_PRODUCTS[product].price
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -92,9 +94,15 @@ function PaymentInner() {
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-3xl p-7 sm:p-10 shadow-sm border border-gray-100">
+          <p className="text-center text-sm font-semibold text-navy mb-6">
+            {product === 'updates'
+              ? `${UPDATE_MONTHS} more months of new datasets for your Individual licence`
+              : `Individual licence: every dataset, yours for good, with ${UPDATE_MONTHS} months of new datasets`}
+          </p>
           <BankTransferPanel
-            plan={plan.slug}
-            amountLabel={`${plan.priceLabel} USD`}
+            plan="individual"
+            product={product}
+            amountLabel={`$${price} USD`}
             userEmail={email}
             userName={name}
           />

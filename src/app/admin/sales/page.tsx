@@ -458,7 +458,7 @@ function NumbersTab({ accounts, focus }: { accounts: AccountSummary[]; focus: st
         </div>
       )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Customers" value={String(won.length)} sub={wonValue ? `${money(wonValue)} per 3 months` : 'none yet'} />
+        <Stat label="Customers" value={String(won.length)} sub={wonValue ? `${money(wonValue)} per term` : 'none yet'} />
         <Stat label="Open pipeline" value={money(pipeline) || '$0'} sub={`${open.length} organisations`} />
         <Stat label="Likely to close" value={money(weighted) || '$0'} sub="pipeline × chance at each stage" />
         <Stat label="Win rate" value={won.length + lost.length ? `${Math.round((won.length / (won.length + lost.length)) * 100)}%` : '—'} sub={avgDays !== null ? `about ${avgDays} days to close` : 'of deals decided'} />

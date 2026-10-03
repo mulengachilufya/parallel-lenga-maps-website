@@ -1,5 +1,6 @@
 /**
- * POST /api/admin/sales/:id/team — { action: 'paid', contact_id?, seats, value_usd? }
+ * POST /api/admin/sales/:id/team — { action: 'paid', contact_id?, seats, term?, value_usd? }
+ * term: 'month' | 'quarter' | 'year' (default 3 months).
  *
  * Payment has arrived: starts 3 months of paid team access, moves the
  * account to "Won" and books onboarding. The team is, in order:
@@ -12,7 +13,7 @@
  * POST { action: 'link' } — look for a team their people are on now.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { accessExpiry } from '@/lib/pricing'
+import { accessExpiry, termMonths } from '@/lib/pricing'
 import { provisionOrg, upgradeOrg } from '@/lib/teams-admin'
 import { dueDate } from '@/lib/sales/playbook'
 import {
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   if (body.action === 'paid') {
-    let expires = accessExpiry()
+    const months = termMonths(body.term)
+    let expires = accessExpiry(null, months)
     let orgId = account.org_id
     let ownerContact: string | null = null
     if (!orgId && isUuid(body.contact_id)) {
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // A paid team renewing early keeps its remaining time; a free team
       // starts its 3 months today.
       const { data: cur } = await db.from('organizations').select('plan, access_expires_at').eq('id', orgId).maybeSingle()
-      if (cur?.plan === 'paid' && cur.access_expires_at) expires = accessExpiry(cur.access_expires_at)
+      if (cur?.plan === 'paid' && cur.access_expires_at) expires = accessExpiry(cur.access_expires_at, months)
       const r = await upgradeOrg(db, orgId, { seats, price: value, expiresAt: expires })
       if (!r.ok) return jsonError('update_failed', 500, r.message)
     } else {

@@ -3,7 +3,9 @@
 // Server-only. The one answer to "what can this account download?", used by
 // every dataset route, the workspace catalogue and GET /api/account/access.
 //
-//   Paid (individual or team plan, not expired)  every dataset
+//   Paid (individual or team plan, not expired)  every dataset (an
+//                                                Individual licence: those
+//                                                added by updates_until)
 //   Free                                         the 3 datasets the person
 //                                                picked, and nothing else
 //
@@ -16,7 +18,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  FREE_DATASET_LIMIT, cleanPicks, getUserState, type DatasetSlug, type UserState,
+  FREE_DATASET_LIMIT, cleanPicks, coveredByUpdates, getUserState, type DatasetSlug, type UserState,
 } from './pricing'
 import { getMembership, isOrgActive, listMemberships, type Membership } from './teams'
 
@@ -26,6 +28,9 @@ export interface Access {
   /** Datasets a free account can download (empty for paid: they get all). */
   datasets:   DatasetSlug[]
   personal:   { picks: DatasetSlug[]; left: number }
+  /** Individual licence: datasets added after this date are not included
+   *  (null = no limit). */
+  updatesUntil: string | null
   team:       null | {
     org_id: string; name: string; plan: 'paid' | 'free'; role: 'owner' | 'member'
     active: boolean
@@ -37,7 +42,7 @@ export interface Access {
 
 export async function accessFor(db: SupabaseClient, userId: string, membership?: Membership | null): Promise<Access> {
   const [{ data: profile }, m] = await Promise.all([
-    db.from('profiles').select('plan, plan_status, plan_expires_at, free_datasets').eq('id', userId).maybeSingle(),
+    db.from('profiles').select('plan, plan_status, plan_expires_at, free_datasets, updates_until').eq('id', userId).maybeSingle(),
     membership !== undefined ? Promise.resolve(membership) : getMembership(db, userId),
   ])
   const state = getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at)
@@ -54,18 +59,24 @@ export async function accessFor(db: SupabaseClient, userId: string, membership?:
   const teamPlanOnlyFree = state === 'team' && !!m && m.org.plan === 'free'
     && !(await listMemberships(db, userId)).some((x) => x.org.plan !== 'free')
   const paid = state !== 'free' && !teamPlanOnlyFree
+  const updatesUntil: string | null = paid && state === 'individual' ? (profile?.updates_until ?? null) : null
   return {
     state: paid ? state : 'free',
     paid,
     // Personal picks only: a teammate's datasets are for the team's projects.
-    datasets: paid ? [] : personal,
+    // (A licence holder keeps their free picks too, for any dataset added
+    // after their updates ran out.)
+    datasets: paid && !updatesUntil ? [] : personal,
     personal: { picks: personal, left: Math.max(0, FREE_DATASET_LIMIT - personal.length) },
+    // Only the Individual licence is limited; a team plan always gets updates.
+    updatesUntil,
     team,
   }
 }
 
 export function canDownload(a: Access, slug: string): boolean {
-  return a.paid || (a.datasets as string[]).includes(slug)
+  if (a.paid) return coveredByUpdates(slug, a.updatesUntil) || (a.datasets as string[]).includes(slug)
+  return (a.datasets as string[]).includes(slug)
 }
 
 /**

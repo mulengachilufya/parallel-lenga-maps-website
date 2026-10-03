@@ -5,7 +5,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getDownloadUrl } from '@/lib/r2'
-import { PLANS, type TierSlug } from '@/lib/pricing'
+import { INDIVIDUAL_PRODUCTS, PLANS, type IndividualProduct, type TierSlug } from '@/lib/pricing'
 import { sendEmail, paymentSubmittedAdminEmail, PAYMENT_NOTIFY_EMAIL, type PaymentSubmittedFields } from '@/lib/email'
 import { bankReferenceFor } from '@/lib/bank-details'
 
@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   const plan        = String(form.get('plan') || '') as TierSlug
+  const productRaw  = String(form.get('product') || 'licence')
   const region      = String(form.get('region') || '') as Region
   const method      = String(form.get('payment_method') || '') as Method
   const countryName = String(form.get('country_name') || '').slice(0, 120)
@@ -112,7 +113,18 @@ export async function POST(request: NextRequest) {
   if (!planData)
     return NextResponse.json({ error: `Unknown plan: ${plan}` }, { status: 400 })
 
-  const amount_usd  = planData.price
+  // Individual: the licence, or a renewal of its updates (only for someone
+  // who holds a licence).
+  const product: IndividualProduct | null = plan === 'individual'
+    ? (productRaw === 'updates' ? 'updates' : 'licence') : null
+  if (product === 'updates') {
+    const { data: prof } = await service.from('profiles')
+      .select('plan, plan_status, plan_expires_at').eq('id', userId).maybeSingle()
+    if (!(prof?.plan === 'individual' && prof.plan_status === 'active' && !prof.plan_expires_at))
+      return NextResponse.json({ error: 'Update renewals are for Individual licence holders.' }, { status: 400 })
+  }
+
+  const amount_usd  = product ? INDIVIDUAL_PRODUCTS[product].price : planData.price
   const amountLabel = `$${amount_usd} USD`
 
   // Rate limit
@@ -168,6 +180,7 @@ export async function POST(request: NextRequest) {
     region:         region || null,
     country_name:   countryName || null,
     plan,
+    product,
     amount_usd,
     currency:       'USD',
     payment_method: method,
@@ -201,7 +214,7 @@ export async function POST(request: NextRequest) {
   if (screenshotKey) { try { screenshotUrl = await getDownloadUrl(screenshotKey, 7 * 24 * 3600) } catch { /* non-fatal */ } }
 
   const notifyArgs = {
-    reference, bankRef: bankReferenceFor(userId), region, method, plan, amountLabel,
+    reference, bankRef: bankReferenceFor(userId), region, method, plan: product === 'updates' ? `${plan} (updates renewal)` : plan, amountLabel,
     userEmail, userName: profileName,
     countryName, senderPhone, senderName: profileName, txnRef,
     screenshotUrl, submittedAt,

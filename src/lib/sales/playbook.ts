@@ -77,7 +77,7 @@ export const STAGE: Record<Stage, StageInfo> = {
   },
   proposal: {
     label: 'Proposal sent', short: 'Proposal', probability: 0.7, tone: 'bg-orange-100 text-orange-800',
-    goal: 'Get paid. Make buying easy: clear seats, one price per 3 months, invoice on request.',
+    goal: 'Get paid. Make buying easy: clear seats, one price per term, invoice on request.',
     doNow: [
       'Send the proposal email with seats, price and what is included.',
       'Ask what their procurement needs: vendor form, quotation on letterhead, PO number.',
@@ -89,7 +89,7 @@ export const STAGE: Record<Stage, StageInfo> = {
     label: 'Won (paid)', short: 'Won', probability: 0.95, tone: 'bg-emerald-100 text-emerald-800',
     goal: 'Get the whole team in and working in the first two weeks.',
     doNow: [
-      'Press "Payment received" to start their 3 months.',
+      'Press "Payment received" and pick the term they paid for.',
       'Book a 30 minute onboarding call and invite every seat.',
       'Help them set up their first project from a template.',
     ],
@@ -260,10 +260,10 @@ Best,
 Thanks for the time your team put into this. Here is what I propose:
 
   Seats: [number] people
-  Price: [amount] USD for 3 months (up to 4 seats is $350, up to 12 seats is $1,000)
+  Price: [amount] USD per [month / 3 months / year] (3 seats: $500 a month, $1,350 for 3 months or $4,800 a year; each extra seat $100 a month, $270 for 3 months or $960 a year)
   Included: every dataset for all 54 countries, the project workspace with shared maps, discussion and full history, and commercial use.
 
-Payment is by bank transfer. I can send a formal quotation or an invoice, and fill in any vendor forms your procurement team needs. What do they usually ask for?
+Payment is by bank transfer; the sender pays all bank charges (OUR). I can send a formal quotation or an invoice, and fill in any vendor forms your procurement team needs. What do they usually ask for?
 
 Best,
 {my_name}`,
@@ -273,7 +273,7 @@ Best,
     subject: 'Welcome to Lenga Maps, {company}',
     body: `Hi {first_name},
 
-Payment received, thank you. Your team's access is active for the next 3 months.
+Payment received, thank you. Your team's access is active for the term you paid for.
 
 Next steps:
   1. Invite your colleagues from the Team page in your dashboard.
