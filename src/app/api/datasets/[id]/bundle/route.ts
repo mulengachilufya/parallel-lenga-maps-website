@@ -23,13 +23,21 @@
  * dataset hasn't been built yet we answer "bundle_not_ready" (404).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { findDataset, getDatasetBundle, hasSymbology } from '@/lib/api-datasets'
 import { getDownloadUrl } from '@/lib/r2'
 import type { DatasetSlug } from '@/lib/pricing'
 import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { logDownload } from '@/lib/download-log'
 
 export const dynamic = 'force-dynamic'
+
+const service = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } },
+)
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -69,6 +77,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const download_url = await getDownloadUrl(bundle.r2_key, 3600)
+  await logDownload(service, {
+    userId: user.id, dataset: spec.id, country: 'Africa (all countries)', source: 'bundle',
+    bytes: bundle.file_size_mb ? Math.round(bundle.file_size_mb * 1024 * 1024) : null, format: bundle.file_format,
+  })
 
   const symbologyHint = hasSymbology(spec.id)
     ? { symbology_endpoint: `/api/v1/datasets/${spec.id}/symbology` }

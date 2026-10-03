@@ -107,6 +107,7 @@ export default function Footer() {
               { href: '/contact-us', label: 'Contact Us' },
               { href: '/login', label: 'Login' },
               { href: '/terms', label: 'Terms & Conditions' },
+              { href: '/privacy', label: 'Privacy Policy' },
               { href: '/refund-policy', label: 'Refund & Delivery Policy' },
             ].map((link) => (
               <Link

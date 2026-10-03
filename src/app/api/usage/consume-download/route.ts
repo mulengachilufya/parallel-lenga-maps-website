@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
         country:      country || null,
         epsg:         meta?.epsg ?? null,
         file_format:  meta?.formats ?? null,
+        source:       'website',
       })
       if (error) console.error('[consume-download] event insert failed:', error)
     } catch (err) {
