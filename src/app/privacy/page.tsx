@@ -37,7 +37,12 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">3. What we record</h2>
+              <h2 className="text-base font-bold text-navy mb-3">3. Wherever you are</h2>
+              <p>Lenga Maps is based in Zambia and used by people across Africa, Europe and beyond. We give everyone the same protections described here, whatever their country. The laws that apply include the Data Protection Act 2021 of Zambia and, where they cover you, the EU and UK General Data Protection Regulation (GDPR), South Africa&apos;s Protection of Personal Information Act (POPIA), Kenya&apos;s Data Protection Act 2019, Nigeria&apos;s Data Protection Act 2023, Ghana&apos;s Data Protection Act 2012 and similar laws elsewhere. Where the law of your country gives you more rights than this policy describes, you have those rights too.</p>
+            </section>
+
+            <section>
+              <h2 className="text-base font-bold text-navy mb-3">4. What we record</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li><b>Your account.</b> Name, email address, country, sector and organisation, and your team and role if you join one. Passwords are handled by our sign in provider and stored only in hashed form; we never see them.</li>
                 <li><b>Payments.</b> Your plan, the amount, the payment method (mobile money or bank transfer), the reference and the payment screenshot you upload so we can verify it.</li>
@@ -50,7 +55,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">4. Why we use it</h2>
+              <h2 className="text-base font-bold text-navy mb-3">5. Why we use it</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li>To provide the service you signed up for: your account, your plan, downloads, the workspace and the API.</li>
                 <li>To verify payments and keep the records that accounting and tax law require.</li>
@@ -63,22 +68,27 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">5. Who can see it</h2>
+              <h2 className="text-base font-bold text-navy mb-3">6. Who can see it</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li><b>Your team.</b> If you are on a team, its members can see the team&apos;s download history and the projects, comments and voice notes shared with them.</li>
                 <li><b>Lenga Maps staff,</b> only as needed to verify payments, support you and keep the platform running.</li>
-                <li><b>Our service providers,</b> who process data only on our instructions: Supabase (database, sign in and storage), Cloudflare (file storage), Vercel (hosting and visit counts) and Resend (email). Some of them process data outside Zambia, under contracts that require them to protect it.</li>
+                <li><b>Our service providers,</b> who process data only on our instructions: Supabase (database, sign in and storage), Cloudflare (file storage), Vercel (hosting and visit counts) and Resend (email). Section 7 says where they keep it.</li>
               </ul>
               <p className="mt-3">We do not sell, rent or trade personal data, and we only disclose it to authorities where the law requires it.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">6. Files you upload</h2>
+              <h2 className="text-base font-bold text-navy mb-3">7. Where your data is stored</h2>
+              <p>Our database is hosted in London, United Kingdom. The website runs on servers in Cape Town, South Africa. Files are stored on Cloudflare&apos;s network and emails are sent through Resend in the United States. This means your data may be stored or processed in a country other than your own. Each provider is bound by a data processing agreement that limits what it may do with your data and requires it to keep the data secure; for data leaving the European Economic Area or the United Kingdom, those agreements include the standard contractual clauses approved for such transfers.</p>
+            </section>
+
+            <section>
+              <h2 className="text-base font-bold text-navy mb-3">8. Files you upload</h2>
               <p>Files, boundaries and imagery your team uploads stay in your team&apos;s private storage. They are used only to show your project to the people you invite. They are never shared, sold or published, and never added to the Lenga database. An NDA is available on request.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">7. How long we keep it</h2>
+              <h2 className="text-base font-bold text-navy mb-3">9. How long we keep it</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li>Account data is kept while your account is open.</li>
                 <li>When you delete your account, your profile, API keys and direct messages are deleted. Your download records are kept without your name or email, as anonymous counts. Comments and layers you added to shared team projects stay with that team.</li>
@@ -88,27 +98,35 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">8. Cookies</h2>
+              <h2 className="text-base font-bold text-navy mb-3">10. Cookies</h2>
               <p>We use only the cookies needed to keep you signed in. There are no advertising or cross site tracking cookies, so there is nothing to accept or decline.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">9. Your rights</h2>
-              <p>Under the Data Protection Act 2021 of Zambia, and similar laws where you live, you can ask us to show you the personal data we hold about you, correct it, delete it, give you a copy, or stop a particular use of it. You can delete your account yourself from your dashboard, or email <a href="mailto:support@lengamaps.com" className="text-primary font-medium">support@lengamaps.com</a> and we will respond within 30 days. If you are not satisfied, you can complain to the Office of the Data Protection Commissioner in Zambia or the data protection authority in your country.</p>
+              <h2 className="text-base font-bold text-navy mb-3">11. Your rights</h2>
+              <p>Wherever you live, you can ask us to:</p>
+              <ul className="list-disc pl-5 space-y-1.5 mt-2">
+                <li>show you the personal data we hold about you and give you a copy in a common format;</li>
+                <li>correct it if it is wrong or incomplete;</li>
+                <li>delete it;</li>
+                <li>stop or limit a particular use of it, including any use based on our legitimate interests;</li>
+                <li>withdraw your consent to the newsletter at any time.</li>
+              </ul>
+              <p className="mt-3">You can delete your account yourself from your dashboard, or email <a href="mailto:support@lengamaps.com" className="text-primary font-medium">support@lengamaps.com</a> and we will respond within 30 days. We will not charge you, and we may ask you to confirm your identity first. If you are not satisfied with our answer, you can complain to the data protection authority where you live or work, for example the Office of the Data Protection Commissioner in Zambia, the Information Regulator in South Africa, the Office of the Data Protection Commissioner in Kenya, or your national authority in the EU or the UK.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">10. Security</h2>
+              <h2 className="text-base font-bold text-navy mb-3">12. Security</h2>
               <p>Data is encrypted in transit, files are stored in private storage reached only through short lived signed links, and staff access is limited to the people who need it. No system is perfectly secure; if a breach affects your data, we will tell you and the regulator as the law requires.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">11. Children</h2>
+              <h2 className="text-base font-bold text-navy mb-3">13. Children</h2>
               <p>Lenga Maps is a professional service and is not directed at children under 16.</p>
             </section>
 
             <section>
-              <h2 className="text-base font-bold text-navy mb-3">12. Changes</h2>
+              <h2 className="text-base font-bold text-navy mb-3">14. Changes</h2>
               <p>If we change what we record or why, we will update this page and email active customers about material changes. See also our <Link href="/terms" className="text-primary font-medium">Terms &amp; Conditions</Link>.</p>
             </section>
 
