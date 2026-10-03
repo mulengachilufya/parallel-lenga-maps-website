@@ -69,6 +69,18 @@ export default function AdminOrgsPage() {
     await load()
   }
 
+  /** Admin write to a team; shows the error, reloads. True when it worked. */
+  async function call(url: string, method: string, body: Record<string, unknown>): Promise<boolean> {
+    setMsg('')
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null)
+    if (!res?.ok) {
+      const j = await res?.json().catch(() => ({})) ?? {}
+      setMsg(j.message ?? 'That did not work. Try again.')
+    }
+    await load()
+    return !!res?.ok
+  }
+
   if (forbidden) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-500">Admin access only.</div>
   }
@@ -215,7 +227,7 @@ export default function AdminOrgsPage() {
               <div className="mt-4 border-t border-gray-100 pt-3 overflow-x-auto">
                 <table className="w-full min-w-[420px] text-left text-xs">
                   <thead className="text-gray-400">
-                    <tr><th className="py-1 font-semibold">Member</th><th className="py-1 font-semibold">Email</th><th className="py-1 font-semibold">Role</th><th className="py-1 font-semibold">Joined</th></tr>
+                    <tr><th className="py-1 font-semibold">Member</th><th className="py-1 font-semibold">Email</th><th className="py-1 font-semibold">Role</th><th className="py-1 font-semibold">Joined</th><th /></tr>
                   </thead>
                   <tbody className="text-gray-700">
                     {o.members.map((m) => (
@@ -228,6 +240,14 @@ export default function AdminOrgsPage() {
                             : 'member'}
                         </td>
                         <td className="py-1.5">{m.joined_at ? new Date(m.joined_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'pending'}</td>
+                        <td className="py-1.5 text-right">
+                          {m.role !== 'owner' && (
+                            <button
+                              onClick={() => { if (confirm(`Remove ${m.member_email ?? 'this person'} from ${o.name}? They leave its projects too.`)) void call('/api/admin/orgs/members', 'DELETE', { org_id: o.id, user_id: m.user_id }) }}
+                              className="text-red-600 font-semibold hover:underline"
+                            >Remove</button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {o.pending_invites.map((i) => (
@@ -236,10 +256,24 @@ export default function AdminOrgsPage() {
                         <td className="py-1.5">{i.email}</td>
                         <td className="py-1.5">member</td>
                         <td className="py-1.5">—</td>
+                        <td />
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <form
+                  className="mt-3 flex flex-wrap items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const input = e.currentTarget.elements.namedItem('email') as HTMLInputElement
+                    const email = input.value.trim()
+                    if (email) void call('/api/admin/orgs/members', 'POST', { org_id: o.id, email }).then((ok) => { if (ok) input.value = '' })
+                  }}
+                >
+                  <input name="email" type="email" placeholder="Add a person by email (they need an account)" className="flex-1 min-w-[220px] rounded-lg border border-gray-200 px-3 py-1.5 text-xs" />
+                  <button className="rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold">Add to team</button>
+                </form>
+                <ProjectsPanel orgId={o.id} />
               </div>
             </div>
           ))}
@@ -296,5 +330,75 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
         <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team, active for the term paid for from today. They manage member invites themselves from /team. Use Record renewal when the next payment arrives.</p>
       </div>
     </form>
+  )
+}
+
+interface AdminProject {
+  id: string; name: string; visibility: string; updated_at: string
+  people: { user_id: string; name: string | null; email: string | null; fixed: boolean; role: 'viewer' | 'editor' | 'manager' | null }[]
+}
+
+/** A team's projects and everyone's role on each; the admin can change any of them. */
+function ProjectsPanel({ orgId }: { orgId: string }) {
+  const [open, setOpen] = useState(false)
+  const [projects, setProjects] = useState<AdminProject[] | null>(null)
+  const [err, setErr] = useState('')
+
+  async function load() {
+    const res = await fetch(`/api/admin/orgs/projects?org_id=${orgId}`, { cache: 'no-store' }).catch(() => null)
+    if (!res?.ok) { setErr('Projects could not be loaded.'); return }
+    setProjects((await res.json()).projects ?? [])
+  }
+
+  async function setRole(projectId: string, userId: string, role: string) {
+    setErr('')
+    const res = await fetch('/api/admin/orgs/projects', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: projectId, user_id: userId, role }),
+    }).catch(() => null)
+    if (!res?.ok) setErr((await res?.json().catch(() => ({})))?.message ?? 'Could not change that role.')
+    await load()
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => { setOpen((v) => !v); if (!projects) void load() }}
+        className="text-xs font-semibold text-[#1E5F8E] hover:underline"
+      >{open ? 'Hide projects' : 'Projects and who is on them'}</button>
+      {open && (
+        <div className="mt-2 space-y-3">
+          {err && <p className="text-xs text-red-600">{err}</p>}
+          {!projects && !err && <p className="text-xs text-gray-400">Loading…</p>}
+          {projects?.length === 0 && <p className="text-xs text-gray-400">No projects yet.</p>}
+          {projects?.map((p) => (
+            <div key={p.id} className="rounded-xl border border-gray-100 p-3">
+              <p className="text-xs font-bold text-gray-900">{p.name} <span className="font-normal text-gray-400">· {p.visibility === 'private' ? 'private' : 'whole team'}</span></p>
+              <div className="mt-2 grid gap-1.5">
+                {p.people.map((u) => (
+                  <div key={u.user_id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-gray-700 truncate">{u.name || u.email}</span>
+                    {u.fixed ? (
+                      <span className="text-gray-400">Manager (always)</span>
+                    ) : (
+                      <select
+                        value={u.role ?? 'none'}
+                        onChange={(e) => void setRole(p.id, u.user_id, e.target.value)}
+                        className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
+                      >
+                        <option value="none">Not on project</option>
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                        <option value="manager">Manager</option>
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
