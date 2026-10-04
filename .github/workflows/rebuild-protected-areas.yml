@@ -22,6 +22,9 @@ concurrency:
   group: rebuild-protected-areas
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   rebuild:
     runs-on: ubuntu-24.04
@@ -50,6 +53,19 @@ jobs:
           if [ -n "$ONLY" ]; then set -- "$@" --only "$ONLY"; fi
           if [ "$APPLY" = "true" ]; then set -- "$@" --apply; fi
           python3 scripts/rebuild-protected-areas.py "$@"
+      - name: Publish previews to the qa-previews branch
+        if: always()
+        run: |
+          [ -d previews ] || exit 0
+          git config user.name "lenga-qa"; git config user.email "qa@lengamaps.com"
+          git fetch origin qa-previews || true
+          tmp=$(mktemp -d); cp -r previews rebuild-report.* "$tmp"/ 2>/dev/null || true
+          git checkout -B qa-previews
+          git rm -rq --cached . >/dev/null 2>&1 || true
+          rm -rf protected-areas; mkdir -p protected-areas; cp -r "$tmp"/* protected-areas/
+          git add protected-areas
+          git commit -qm "QA previews: protected areas ${{ github.run_id }}" || true
+          git push -f origin qa-previews
       - name: Summary
         if: always()
         run: cat rebuild-report.md >> "$GITHUB_STEP_SUMMARY" || true
