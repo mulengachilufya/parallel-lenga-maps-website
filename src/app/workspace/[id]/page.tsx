@@ -33,6 +33,7 @@ import ImportDialog from '@/components/workspace/ImportDialog'
 import { PREVIEW_PREFIX } from '@/lib/workspace/loaders'
 import { api, initials, tileColor } from '@/components/workspace/util'
 import TitleBar from '@/components/workspace/TitleBar'
+import { Crosshair, Download, Globe2, HelpCircle, Layers, MessagesSquare, Pin, Plus, Upload } from 'lucide-react'
 import { rampCss, categoryColor, categoryLabel } from '@/lib/workspace/raster'
 import {
   defaultStyle, shortRev, type Basemap, type CatalogFile, type WsPlace, type LayerStyle, type WsBookmark, type WsLayer,
@@ -127,6 +128,9 @@ function Workstation() {
   }, [id])
 
   useEffect(() => { void loadBundle(); void loadRevisions(); void loadMessages() }, [loadBundle, loadRevisions, loadMessages])
+  // Browser tab names the project, not just the product.
+  const projectName = bundle?.project.name
+  useEffect(() => { if (projectName) document.title = `${projectName} · Lenga Maps` }, [projectName])
 
   // Small screens open with the map alone; the toolbar toggles the panels.
   useEffect(() => { if (window.innerWidth < 900) { setShowLeft(false); setShowRight(false) } }, [])
@@ -508,7 +512,7 @@ function Workstation() {
   return (
     <div className={`ws ${frame}`}>
       <TitleBar
-        crumbs={[{ label: 'Workspace', href: '/workspace' }, { label: `Team: ${bundle.org.name}`, href: '/workspace/team' }, { label: bundle.project.name }]}
+        crumbs={[{ label: 'Projects', href: '/workspace' }, { label: bundle.project.name }]}
         right={
           <div className="ws-presence" title="Who is looking at this project now">
             {bundle.members.filter((m) => online.has(m.user_id)).map((m) => (
@@ -522,16 +526,16 @@ function Workstation() {
       {tourOn && !phone && <Tour steps={WORKSPACE_TOUR} storageKey={TOUR_KEY} onClose={() => setTourOn(false)} />}
       <div className="ws-toolbar">
         <div className="group">
-          <button className={`ws-btn${showLeft ? ' is-on' : ''}`} data-tour="layers-btn" title="Show or hide the list of layers on this map" onClick={() => setShowLeft((v) => !v)}>Layers</button>
+          <button className={`ws-btn${showLeft ? ' is-on' : ''}`} data-tour="layers-btn" title="Show or hide the list of layers on this map" onClick={() => setShowLeft((v) => !v)}><Layers aria-hidden />Layers</button>
           <button className={`ws-btn${floating === 'add' ? ' is-on' : ''}`} data-tour="add" title="Put Lenga datasets (rivers, roads, land cover…) on this map"
-                  onClick={() => setFloating(floating === 'add' ? null : 'add')} disabled={readOnly}>+ Add Lenga data</button>
+                  onClick={() => setFloating(floating === 'add' ? null : 'add')} disabled={readOnly}><Plus aria-hidden />Add Lenga data</button>
         </div>
         <div className="group">
           <button className={`ws-btn${floating === 'import' ? ' is-on' : ''}`} data-tour="import" disabled={readOnly} title="Upload your own shapefiles, GeoPackage, KML, GeoTIFF or a whole QGIS project. They stay private to your team."
-                  onClick={() => setFloating(floating === 'import' ? null : 'import')}>Upload my files</button>
+                  onClick={() => setFloating(floating === 'import' ? null : 'import')}><Upload aria-hidden />Upload my files</button>
           <button className="ws-btn" data-tour="export" disabled={!!exporting || tocLayers.length === 0 || !canEdit}
                   title={canEdit ? 'Download a QGIS project with all layers and data, ready for QGIS or ArcGIS Pro' : 'Viewers can look but not export. Ask a project manager for editor access.'}
-                  onClick={() => void exportDesktop()}>{exporting || 'Export to QGIS / ArcGIS'}</button>
+                  onClick={() => void exportDesktop()}><Download aria-hidden />{exporting || 'Export to QGIS / ArcGIS'}</button>
         </div>
         <div className="group">
           <label className="small muted" htmlFor="bm">Basemap</label>
@@ -541,19 +545,19 @@ function Workstation() {
         </div>
         <div className="group hide-sm">
           <button className="ws-btn" title="Fly to the project's saved view"
-                  onClick={() => { const s = bundle.project.map_state; mapRef.current?.flyTo(s.center[0], s.center[1], s.zoom) }}>Project view</button>
+                  onClick={() => { const s = bundle.project.map_state; mapRef.current?.flyTo(s.center[0], s.center[1], s.zoom) }}><Crosshair aria-hidden /><span className="lbl">Project view</span></button>
           <button className="ws-btn" disabled={!!preview || !canManage} title={canManage ? 'Make the current extent and basemap the view everyone opens to' : 'Only project managers can change the project view'}
-                  onClick={setProjectView}>Set as project view</button>
-          <button className="ws-btn" title="Zoom out to the whole continent" onClick={() => mapRef.current?.flyTo(20, 2, 2.6)}>Africa</button>
+                  onClick={setProjectView}><Pin aria-hidden /><span className="lbl">Set as project view</span></button>
+          <button className="ws-btn" title="Zoom out to the whole continent" onClick={() => mapRef.current?.flyTo(20, 2, 2.6)}><Globe2 aria-hidden /><span className="lbl">Africa</span></button>
         </div>
         <span className="grow" />
         <div className="group">
-          <button className="ws-btn" title="A one minute walk through the workspace" onClick={() => setTourOn(true)}>? How it works</button>
+          <button className="ws-btn" title="A one minute walk through the workspace" onClick={() => setTourOn(true)}><HelpCircle aria-hidden /><span className="lbl">How it works</span></button>
           <span className={`ws-role-chip ${myRole}`} title={ROLE_HELP[myRole]}>
             {ROLE_LABEL[myRole]}{bundle.project.visibility === 'private' ? ' · private project' : ''}
           </span>
           <button className={`ws-btn${showRight ? ' is-on' : ''}`} data-tour="panel-btn" title="Show or hide the team discussion, the change history and project details"
-                  onClick={() => setShowRight((v) => !v)}>Chat &amp; history</button>
+                  onClick={() => setShowRight((v) => !v)}><MessagesSquare aria-hidden />Chat &amp; history</button>
         </div>
       </div>
 
