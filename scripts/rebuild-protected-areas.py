@@ -137,6 +137,28 @@ def classify(f):
     return title or (f'IUCN/OSM class {pc}' if pc else 'Protected area')
 
 
+def preview(outline, shp, png, title):
+    """A quick map: country outline in grey, protected areas in green."""
+    mn_x, mx_x, mn_y, mx_y = outline.GetEnvelope()
+    w = 900
+    h = max(200, int(w * (mx_y - mn_y) / max(mx_x - mn_x, 1e-9)))
+    h = min(h, 1400)
+    drv = gdal.GetDriverByName('MEM')
+    ds = drv.Create('', w, h, 1, gdal.GDT_Byte)
+    ds.SetGeoTransform([mn_x, (mx_x - mn_x) / w, 0, mx_y, 0, -(mx_y - mn_y) / h])
+    srs = osr.SpatialReference(); srs.ImportFromEPSG(4326); ds.SetProjection(srs.ExportToWkt())
+    mem = ogr.GetDriverByName('Memory').CreateDataSource('o')
+    ol = mem.CreateLayer('o', srs, ogr.wkbMultiPolygon)
+    f = ogr.Feature(ol.GetLayerDefn()); f.SetGeometry(outline); ol.CreateFeature(f)
+    gdal.RasterizeLayer(ds, [1], ol, burn_values=[1])
+    pa = ogr.Open(shp)
+    gdal.RasterizeLayer(ds, [1], pa.GetLayer(0), burn_values=[2], options=['ALL_TOUCHED=TRUE'])
+    ct = gdal.ColorTable()
+    ct.SetColorEntry(0, (255, 255, 255, 255)); ct.SetColorEntry(1, (220, 224, 228, 255)); ct.SetColorEntry(2, (34, 139, 84, 255))
+    ds.GetRasterBand(1).SetRasterColorTable(ct)
+    gdal.GetDriverByName('PNG').CreateCopy(png, ds)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--only', default='')
@@ -260,6 +282,11 @@ def main():
             for fn in os.listdir(shp_dir):
                 z.write(os.path.join(shp_dir, fn), fn)
         size_mb = os.path.getsize(zpath) / 1024 / 1024
+        os.makedirs('previews', exist_ok=True)
+        try:
+            preview(outline, shp, os.path.join('previews', f'{iso3}.png'), row['country'])
+        except Exception as e:  # noqa: BLE001
+            print('  preview failed', e)
         os.makedirs('rebuilt', exist_ok=True)
         shutil.copy(zpath, os.path.join('rebuilt', os.path.basename(zpath)))
 
