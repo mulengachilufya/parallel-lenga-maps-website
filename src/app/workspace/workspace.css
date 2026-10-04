@@ -1029,152 +1029,7 @@
 .ws-toolbar .ws-select { max-width: 170px; }
 @media (max-width: 1520px) { .ws-toolbar label { display: none; } }
 
-/* ── Studio: the project map screen ───────────────────────────────────────
-   One flat blue made the layers, map, table and chat read as the same
-   thing. Now: a navy title bar, a white toolbar, and white cards (layers,
-   map, attribute table, chat) floating on a soft grey, each with its own
-   edge and shadow. Navy ink, gold for the one main action and the current
-   selection. Scoped to the project screen (.ws-app); the hub pages keep
-   their photo mosaic. */
-.ws.ws-app {
-  --paper:       #e7ecf1;
-  --panel:       #ffffff;
-  --panel-2:     #f5f7fa;
-  --panel-3:     #edf2f7;
-  --white:       #ffffff;
-  --ink:         #0D2B45;
-  --ink-soft:    #3d5870;
-  --muted:       #687e93;
-  --rule:        #e4e9ef;
-  --rule-strong: #cdd7e1;
-  --navy:        #0D2B45;
-  --link:        #1d6fb8;
-  --mark:        rgba(245,184,0,.16);
-  --mark-rule:   rgba(214,160,0,.55);
-  --brass-ink:   #94700a;
-  --danger:      #c0392b;
-  --ok:          #2f8f4e;
-  color-scheme: light;
-  background: var(--paper);
-  background-image: none;
-}
-.ws.ws-app ::selection { background: rgba(245,184,0,.35); }
-.ws.ws-app ::-webkit-scrollbar-thumb { background: #c9d3dd; border: 2px solid #fff; border-radius: 6px; }
-.ws.ws-app * { scrollbar-color: #c9d3dd transparent; }
-.ws.ws-app a { color: var(--link); }
-
-/* Title bar: brand navy, quiet links. */
-.ws-app .ws-titlebar { background: #0D2B45; border-bottom: 0; box-shadow: 0 1px 0 rgba(0,0,0,.2); color: #dce8f3; }
-.ws-app .ws-titlebar a { color: #dce8f3; }
-.ws-app .ws-titlebar a:hover { color: #fff; }
-.ws-app .ws-wordmark { color: #fff; }
-.ws-app .ws-wordmark b { color: #F5B800; font-weight: 700; }
-.ws-app .ws-crumbs { color: #8fb0cc; }
-.ws-app .ws-crumbs .sep { color: #4f7394; }
-.ws-app .ws-crumbs .here { color: #fff; }
-.ws-app .ws-inbox-link { border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 3px 12px; text-decoration: none !important; }
-.ws-app .ws-inbox-link:hover { background: rgba(255,255,255,.08); }
-
-/* Toolbar: white bar, real buttons. */
-.ws-app .ws-toolbar { background: #fff; border-bottom: 1px solid var(--rule); box-shadow: 0 2px 10px -6px rgba(13,43,69,.25); gap: 6px; padding: 0 10px; position: relative; z-index: 2; }
-.ws-app .ws-toolbar .group { border-right-color: var(--rule); gap: 6px; padding-right: 8px; margin-right: 2px; }
-.ws-app .ws-btn {
-  background: #fff; color: #0D2B45; border: 1px solid var(--rule-strong); border-radius: 9px;
-  font-weight: 600; box-shadow: 0 1px 2px rgba(13,43,69,.08);
-}
-.ws-app .ws-btn svg { width: 15px; height: 15px; flex: none; color: #4c6a85; }
-.ws-app .ws-btn:hover { background: #f1f5f9; border-color: #b4c2cf; }
-.ws-app .ws-btn:active { background: #e6edf4; }
-.ws-app .ws-btn:disabled { color: #a3b1be; background: #f7f9fb; border-color: var(--rule); box-shadow: none; }
-.ws-app .ws-btn:disabled svg { color: #b8c4cf; }
-.ws-app .ws-btn.is-on { background: #0D2B45; border-color: #0D2B45; color: #fff; }
-.ws-app .ws-btn.is-on svg { color: #F5B800; }
-.ws-app .ws-btn-default { background: #F5B800; border-color: #e0a800; color: #1a1200; box-shadow: 0 4px 12px -6px rgba(214,160,0,.9); }
-.ws-app .ws-btn-default:hover { background: #ffc61a; border-color: #e0a800; }
-.ws-app .ws-btn-default svg { color: #1a1200; }
-.ws-app .ws-btn-flat { background: transparent; border-color: transparent; box-shadow: none; }
-.ws-app .ws-btn-flat:hover { background: var(--panel-3); }
-.ws-app .ws-toolbar .ws-select { border-radius: 9px; font-weight: 600; color: #0D2B45; background-color: #fff; }
-.ws-app .ws-role-chip { border-radius: 999px; border-color: var(--rule-strong); color: var(--ink-soft); background: var(--panel-2); font-weight: 600; }
-.ws-app .ws-role-chip.manager { border-color: #e0a800; color: var(--brass-ink); background: #fff6d6; }
-.ws-app .ws-role-chip.viewer { border-color: #9cc4e6; color: #1d6fb8; background: #eef6fd; }
-
-/* Fields */
-.ws-app .ws-input, .ws-app .ws-select, .ws-app .ws-textarea { background: #fff; color: var(--ink); border-color: var(--rule-strong); border-radius: 9px; }
-.ws-app .ws-input::placeholder, .ws-app .ws-textarea::placeholder { color: #93a4b4; }
-.ws-app .ws-input:focus, .ws-app .ws-select:focus, .ws-app .ws-textarea:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(245,184,0,.22); }
-
-/* Floating cards on grey. */
-.ws-app:not(.phone) .ws-left, .ws-app:not(.phone) .ws-right {
-  background: #fff; border: 1px solid var(--rule); border-radius: 14px;
-  box-shadow: 0 8px 24px -14px rgba(13,43,69,.35);
-}
-.ws-app:not(.phone) .ws-left  { margin: 10px 0 10px 10px; }
-.ws-app:not(.phone) .ws-right { margin: 10px 10px 10px 0; }
-.ws-app.no-left .ws-left, .ws-app.no-right .ws-right { display: none; }
-.ws-app:not(.phone) .ws-mapwrap { margin: 10px; background: transparent; box-shadow: none; }
-.ws-app:not(.phone) .ws-map-area { border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px rgba(13,43,69,.12), 0 8px 24px -14px rgba(13,43,69,.35); }
-.ws-app:not(.phone) .ws-mapwrap:not(.with-table) .ws-map-area { position: absolute; inset: 0; }
-.ws-app:not(.phone) .ws-mapwrap.with-table .ws-attr {
-  margin-top: 10px; border: 1px solid var(--rule); border-radius: 14px; overflow: hidden;
-  box-shadow: 0 8px 24px -14px rgba(13,43,69,.35);
-}
-
-/* Panel heads: navy label with a gold tick, not a grey strip. */
-.ws-app .ws-panel-head { background: #fff; color: #0D2B45; border-bottom: 1px solid var(--rule); font-weight: 700; letter-spacing: .1em; }
-.ws-app .ws-panel-head::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: #F5B800; margin-right: 2px; }
-.ws-app .ws-panel-head .ws-btn { box-shadow: none; }
-
-/* Tabs: a segmented control. */
-.ws-app .ws-tabs { background: #fff; border-bottom: 1px solid var(--rule); padding: 8px 10px; gap: 4px; }
-.ws-app .ws-tab { border: 0; border-radius: 9px; margin: 0; padding: 7px 12px; color: var(--ink-soft); font-weight: 600; }
-.ws-app .ws-tab:hover { background: var(--panel-3); color: var(--ink); }
-.ws-app .ws-tab.on { background: #0D2B45; color: #fff; border-bottom-color: transparent; }
-.ws-app .ws-tab.on .count { color: #F5B800; }
-.ws-app .ws-tab .badge { color: #1a1200; border-radius: 999px; }
-
-/* Layer list rows */
-.ws-app .ws-toc li { border-radius: 9px; margin: 2px 6px; border: 1px solid transparent; }
-.ws-app .ws-toc li:hover { background: var(--panel-3); }
-.ws-app .ws-toc li.sel { background: #fff8e1; border-color: rgba(214,160,0,.45); box-shadow: inset 3px 0 0 #F5B800; }
-.ws-app .ws-src.lenga { color: var(--brass-ink); border-color: rgba(214,160,0,.55); background: #fff8e1; }
-.ws-app .ws-src.yours { color: #1d6fb8; border-color: #9cc4e6; background: #eef6fd; }
-
-/* Discussion, history, details */
-.ws-app .ws-msg { border-bottom-color: var(--rule); }
-.ws-app .ws-msg .body .mention { color: #8a6500; background: #fff3c4; border-radius: 4px; padding: 0 3px; }
-.ws-app .ws-pin-tag { color: var(--brass-ink); background: #fff6d6; border-color: rgba(214,160,0,.5); }
-.ws-app .ws-log .line1 .hash { color: var(--brass-ink); }
-.ws-app .ws-log li::after { border-color: #9fb5c9; background: #fff; }
-.ws-app .ws-diff .add { background: #e8f6ec; color: #22693a; }
-.ws-app .ws-diff .del { background: #fdecea; color: #a5281b; }
-.ws-app .ws-diff .mod { background: #fff6d6; color: #7a5a00; }
-.ws-app .ws-note { background: #fff8e1; border-color: rgba(214,160,0,.35); border-left-color: #F5B800; color: var(--ink-soft); }
-
-/* Attribute table */
-.ws-app .ws-attr { background: #fff; border-top: 0; }
-.ws-app .ws-attr-bar { background: #fff; border-bottom: 1px solid var(--rule); padding: 6px 10px; }
-.ws-app .ws-attr-body th { background: #f5f7fa; color: #0D2B45; }
-.ws-app .ws-attr-body tbody tr:hover td { background: #f5f8fb; }
-.ws-app .ws-attr-body tbody tr.sel td { background: #fff3c4; }
-
-/* Status bar */
-.ws-app .ws-statusbar { background: transparent; border-top: 0; color: var(--muted); }
-.ws-app .ws-statusbar > span { border-right-color: #d5dde5; }
-
-/* Dialogs, tool windows, menus, popups */
-.ws-app .ws-modal-back { background: rgba(13,43,69,.35); }
-.ws-app .ws-dialog, .ws-app .ws-float { background: #fff; border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 30px 70px -24px rgba(13,43,69,.5); }
-.ws-app .ws-dialog .ws-panel-head, .ws-app .ws-float .ws-panel-head { background: #fff; }
-.ws-app .ws-float .buttons { background: var(--panel-2); border-top-color: var(--rule); }
-.ws-app .ws-menu { background: #fff; border-color: var(--rule); box-shadow: 0 16px 40px -14px rgba(13,43,69,.45); border-radius: 10px; }
-.ws-app .ws-pick-group { background: var(--panel-2); color: var(--ink-soft); }
-.ws-app .ws-map .maplibregl-popup-content { background: #fff; color: var(--ink); border-color: var(--rule); box-shadow: 0 16px 36px -12px rgba(13,43,69,.45); border-radius: 10px; }
-.ws-app .ws-map .maplibregl-popup-close-button { color: var(--muted); }
-.ws-app .ws-drop.over { background: #fff8e1; }
-
-/* Phone view keeps its layout; it just takes the light colours. */
-.ws-app.phone .ws-phone-tabs { background: #0D2B45; }
+/* (Studio block replaced by the Glass block at the end of this file.) */
 .ws-app .ws-toolbar .ws-select { max-width: 200px; }
 /* Narrower screens: the map-view buttons and help go icon only (their
    titles still explain them), so the toolbar never cuts off. */
@@ -1182,3 +1037,193 @@
   .ws-app .ws-toolbar .ws-btn .lbl { display: none; }
   .ws-app .ws-toolbar .ws-btn:has(.lbl) { padding: 4px 8px; }
 }
+
+/* ── Glass: the project map screen ────────────────────────────────────────
+   Not flat fills. Soft colour drifts slowly behind everything (deep ocean
+   blue, lagoon teal, Lenga gold), and every surface is frosted glass over
+   it, so each one picks up a different light: the layer list sits in the
+   cool blue, the chat in the warm gold, the table in clear glass. Navy ink
+   on the light glass, white ink on the dark glass bars. Scoped to the
+   project screen (.ws-app). */
+.ws.ws-app {
+  --paper:       transparent;
+  --panel:       rgba(255,255,255,.62);
+  --panel-2:     rgba(255,255,255,.42);
+  --panel-3:     rgba(255,255,255,.55);
+  --white:       rgba(255,255,255,.78);
+  --ink:         #0D2B45;
+  --ink-soft:    #33506a;
+  --muted:       #5b7389;
+  --rule:        rgba(13,43,69,.10);
+  --rule-strong: rgba(13,43,69,.18);
+  --navy:        #0D2B45;
+  --link:        #155f9f;
+  --mark:        rgba(245,184,0,.22);
+  --mark-rule:   rgba(214,160,0,.6);
+  --brass-ink:   #8a6600;
+  --danger:      #b8352a;
+  --ok:          #2a8048;
+  --glass-blur:  blur(22px) saturate(1.6);
+  color-scheme: light;
+  background: #0b2440;
+  background-image: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+.ws.ws-app::before {
+  content: ''; position: absolute; inset: -12%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38% 46% at 12% 22%, #1f6fb8 0%, transparent 70%),
+    radial-gradient(34% 40% at 20% 88%, #16a394 0%, transparent 70%),
+    radial-gradient(30% 38% at 88% 18%, #f5b800 0%, transparent 70%),
+    radial-gradient(36% 42% at 82% 86%, #f08a24 0%, transparent 72%),
+    radial-gradient(40% 50% at 52% 50%, #2b5d8f 0%, transparent 75%);
+  filter: blur(40px);
+  opacity: .9;
+  animation: ws-drift 40s ease-in-out infinite alternate;
+}
+@keyframes ws-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2.5%, -2%, 0) scale(1.05); }
+  100% { transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) { .ws.ws-app::before { animation: none; } }
+.ws.ws-app ::selection { background: rgba(245,184,0,.4); }
+.ws.ws-app ::-webkit-scrollbar-thumb { background: rgba(13,43,69,.25); border: 2px solid transparent; background-clip: padding-box; border-radius: 6px; }
+.ws.ws-app ::-webkit-scrollbar-track { background: transparent; }
+.ws.ws-app * { scrollbar-color: rgba(13,43,69,.28) transparent; }
+.ws.ws-app a { color: var(--link); }
+
+/* Dark glass bars: title and toolbar. */
+.ws-app .ws-titlebar, .ws-app .ws-toolbar {
+  background: rgba(7,22,38,.42); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid rgba(255,255,255,.12); color: #e6f0f8;
+}
+.ws-app .ws-titlebar a { color: #e6f0f8; }
+.ws-app .ws-titlebar a:hover { color: #fff; }
+.ws-app .ws-wordmark { color: #fff; }
+.ws-app .ws-wordmark b { color: #F5B800; font-weight: 700; }
+.ws-app .ws-crumbs { color: #a9c3da; }
+.ws-app .ws-crumbs .sep { color: rgba(255,255,255,.35); }
+.ws-app .ws-crumbs .here { color: #fff; }
+.ws-app .ws-presence .small { color: #a9c3da !important; }
+.ws-app .ws-inbox-link { border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 3px 12px; background: rgba(255,255,255,.08); text-decoration: none !important; }
+.ws-app .ws-inbox-link:hover { background: rgba(255,255,255,.16); }
+.ws-app .ws-toolbar { gap: 6px; padding: 0 10px; position: relative; z-index: 2; }
+.ws-app .ws-toolbar .group { border-right-color: rgba(255,255,255,.14); gap: 6px; padding-right: 8px; margin-right: 2px; }
+.ws-app .ws-toolbar label { color: #a9c3da !important; }
+
+/* Buttons. On the dark bars: glass pills. On the light glass: white pills. */
+.ws-app .ws-btn { border-radius: 10px; font-weight: 600; transition: background-color .15s, border-color .15s, box-shadow .15s, transform .1s; }
+.ws-app .ws-btn svg { width: 15px; height: 15px; flex: none; }
+.ws-app .ws-btn:active { transform: translateY(1px); }
+.ws-app .ws-toolbar .ws-btn {
+  background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+}
+.ws-app .ws-toolbar .ws-btn svg { color: #ffd45c; }
+.ws-app .ws-toolbar .ws-btn:hover { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.4); }
+.ws-app .ws-toolbar .ws-btn:disabled { color: rgba(255,255,255,.42); background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); box-shadow: none; }
+.ws-app .ws-toolbar .ws-btn:disabled svg { color: rgba(255,255,255,.35); }
+.ws-app .ws-toolbar .ws-btn.is-on { background: #F5B800; border-color: #ffd45c; color: #1a1200; box-shadow: 0 6px 18px -8px rgba(245,184,0,.9); }
+.ws-app .ws-toolbar .ws-btn.is-on svg { color: #1a1200; }
+.ws-app .ws-toolbar .ws-select { border-radius: 10px; font-weight: 600; color: #fff; background-color: rgba(255,255,255,.12); border-color: rgba(255,255,255,.24); }
+.ws-app .ws-toolbar .ws-select option { color: #0D2B45; }
+.ws-app .ws-role-chip { border-radius: 999px; font-weight: 600; border-color: rgba(255,255,255,.3); color: #e6f0f8; background: rgba(255,255,255,.08); }
+.ws-app .ws-role-chip.manager { border-color: #ffd45c; color: #ffd45c; background: rgba(245,184,0,.14); }
+.ws-app .ws-role-chip.viewer { border-color: #9cd0ff; color: #cfe8ff; background: rgba(156,208,255,.12); }
+
+.ws-app .ws-left .ws-btn, .ws-app .ws-right .ws-btn, .ws-app .ws-attr .ws-btn, .ws-app .ws-float .ws-btn, .ws-app .ws-dialog .ws-btn, .ws-app .ws-sheet .ws-btn {
+  background: rgba(255,255,255,.85); color: #0D2B45; border: 1px solid rgba(13,43,69,.16);
+  box-shadow: 0 1px 2px rgba(13,43,69,.08), inset 0 1px 0 #fff;
+}
+.ws-app .ws-left .ws-btn:hover, .ws-app .ws-right .ws-btn:hover, .ws-app .ws-attr .ws-btn:hover, .ws-app .ws-float .ws-btn:hover, .ws-app .ws-dialog .ws-btn:hover { background: #fff; border-color: rgba(13,43,69,.3); }
+.ws-app .ws-left .ws-btn:disabled, .ws-app .ws-right .ws-btn:disabled, .ws-app .ws-attr .ws-btn:disabled, .ws-app .ws-float .ws-btn:disabled, .ws-app .ws-dialog .ws-btn:disabled { color: rgba(13,43,69,.38); background: rgba(255,255,255,.4); box-shadow: none; }
+.ws-app .ws-btn.ws-btn-default, .ws-app .ws-left .ws-btn.ws-btn-default, .ws-app .ws-right .ws-btn.ws-btn-default, .ws-app .ws-float .ws-btn.ws-btn-default, .ws-app .ws-dialog .ws-btn.ws-btn-default {
+  background: #F5B800; border-color: #e0a800; color: #1a1200; box-shadow: 0 6px 16px -8px rgba(214,160,0,.95);
+}
+.ws-app .ws-btn.ws-btn-default:hover { background: #ffc61a; }
+.ws-app .ws-btn.ws-btn-default:disabled { background: rgba(245,184,0,.35); color: rgba(26,18,0,.5); box-shadow: none; }
+.ws-app .ws-btn-flat { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+
+/* Fields on glass */
+.ws-app .ws-input, .ws-app .ws-select, .ws-app .ws-textarea { background: rgba(255,255,255,.82); color: var(--ink); border-color: rgba(13,43,69,.16); border-radius: 10px; }
+.ws-app .ws-input::placeholder, .ws-app .ws-textarea::placeholder { color: #7b8fa2; }
+.ws-app .ws-input:focus, .ws-app .ws-select:focus, .ws-app .ws-textarea:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(245,184,0,.28); background: #fff; }
+
+/* The floating glass cards. Each takes a different light. */
+.ws-app:not(.phone) .ws-left, .ws-app:not(.phone) .ws-right, .ws-app .ws-attr, .ws-app .ws-float, .ws-app .ws-dialog {
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255,255,255,.55); border-radius: 18px;
+  box-shadow: 0 18px 44px -20px rgba(4,16,30,.55), inset 0 1px 0 rgba(255,255,255,.75);
+}
+.ws-app:not(.phone) .ws-left  { margin: 12px 0 12px 12px; background: linear-gradient(160deg, rgba(232,244,255,.80), rgba(214,233,252,.62)); }
+.ws-app:not(.phone) .ws-right { margin: 12px 12px 12px 0; background: linear-gradient(200deg, rgba(255,250,234,.82), rgba(255,240,205,.64)); }
+.ws-app .ws-attr { background: rgba(255,255,255,.74); }
+.ws-app .ws-float, .ws-app .ws-dialog { background: rgba(255,255,255,.84); }
+.ws-app.no-left .ws-left, .ws-app.no-right .ws-right { display: none; }
+.ws-app:not(.phone) .ws-mapwrap { margin: 12px; background: transparent; box-shadow: none; }
+.ws-app:not(.phone) .ws-map-area { border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.45), 0 22px 50px -22px rgba(4,16,30,.7); }
+.ws-app:not(.phone) .ws-mapwrap:not(.with-table) .ws-map-area { position: absolute; inset: 0; }
+.ws-app:not(.phone) .ws-mapwrap.with-table .ws-attr { margin-top: 12px; overflow: hidden; border-top: 1px solid rgba(255,255,255,.55); }
+
+/* Inside the cards everything is see-through; the card gives the colour. */
+.ws-app .ws-panel-head, .ws-app .ws-tabs, .ws-app .ws-attr-bar, .ws-app .ws-float .buttons,
+.ws-app .ws-dialog .ws-panel-head, .ws-app .ws-float .ws-panel-head, .ws-app .ws-composer, .ws-app .ws-e2e-foot {
+  background: transparent; border-color: rgba(13,43,69,.10);
+}
+.ws-app .ws-panel-head { color: #0D2B45; font-weight: 700; letter-spacing: .1em; }
+.ws-app .ws-panel-head::before { content: ''; width: 4px; height: 14px; border-radius: 3px; background: #F5B800; margin-right: 2px; box-shadow: 0 0 10px rgba(245,184,0,.8); }
+.ws-app .ws-right .ws-panel-head::before { background: #1f6fb8; box-shadow: 0 0 10px rgba(31,111,184,.6); }
+
+/* Tabs: glass segmented control */
+.ws-app .ws-tabs { padding: 10px 10px 8px; gap: 4px; }
+.ws-app .ws-tab { border: 0; border-radius: 10px; margin: 0; padding: 7px 12px; color: var(--ink-soft); font-weight: 600; }
+.ws-app .ws-tab:hover { background: rgba(255,255,255,.6); color: var(--ink); }
+.ws-app .ws-tab.on { background: #0D2B45; color: #fff; border-bottom-color: transparent; box-shadow: 0 6px 16px -8px rgba(13,43,69,.8); }
+.ws-app .ws-tab.on .count { color: #ffd45c; }
+.ws-app .ws-tab .badge { color: #1a1200; border-radius: 999px; }
+
+/* Layer rows: little glass tiles */
+.ws-app .ws-toc li { border-radius: 12px; margin: 3px 8px; border: 1px solid transparent; }
+.ws-app .ws-toc li:hover { background: rgba(255,255,255,.55); }
+.ws-app .ws-toc li.sel { background: rgba(255,255,255,.85); border-color: rgba(214,160,0,.5); box-shadow: inset 4px 0 0 #F5B800, 0 6px 16px -10px rgba(13,43,69,.5); }
+.ws-app .ws-src.lenga { color: var(--brass-ink); border-color: rgba(214,160,0,.55); background: rgba(255,246,214,.9); }
+.ws-app .ws-src.yours { color: #155f9f; border-color: rgba(21,95,159,.35); background: rgba(232,244,255,.9); }
+
+/* Discussion, history */
+.ws-app .ws-msg { border-bottom-color: rgba(13,43,69,.08); }
+.ws-app .ws-msg .body .mention { color: #7a5a00; background: rgba(245,184,0,.25); border-radius: 4px; padding: 0 3px; }
+.ws-app .ws-pin-tag { color: var(--brass-ink); background: rgba(255,246,214,.9); border-color: rgba(214,160,0,.5); }
+.ws-app .ws-log .line1 .hash { color: var(--brass-ink); }
+.ws-app .ws-log li::after { border-color: #7f9bb5; background: #fff; }
+.ws-app .ws-diff { background: rgba(255,255,255,.7); }
+.ws-app .ws-diff .add { background: rgba(47,143,78,.12); color: #1f5f33; }
+.ws-app .ws-diff .del { background: rgba(192,57,43,.1); color: #9a2418; }
+.ws-app .ws-diff .mod { background: rgba(245,184,0,.18); color: #6b4f00; }
+.ws-app .ws-note { background: rgba(255,246,214,.75); border-color: rgba(214,160,0,.35); border-left-color: #F5B800; color: var(--ink-soft); }
+
+/* Attribute table */
+.ws-app .ws-attr-body th { background: rgba(255,255,255,.88); color: #0D2B45; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.ws-app .ws-attr-body tbody tr:hover td { background: rgba(255,255,255,.6); }
+.ws-app .ws-attr-body tbody tr.sel td { background: rgba(245,184,0,.24); }
+
+/* Status bar floats on the colour */
+.ws-app .ws-statusbar { background: transparent; border-top: 0; color: rgba(230,240,248,.8); }
+.ws-app .ws-statusbar > span { border-right-color: rgba(255,255,255,.15); }
+
+/* Menus, popups, dialogs */
+.ws-app .ws-modal-back { background: rgba(4,16,30,.35); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.ws-app .ws-menu { background: rgba(255,255,255,.86); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-color: rgba(255,255,255,.6); box-shadow: 0 18px 44px -16px rgba(4,16,30,.55); border-radius: 12px; }
+.ws-app .ws-menu button:hover:not(:disabled) { background: rgba(13,43,69,.07); }
+.ws-app .ws-pick-group { background: rgba(255,255,255,.9); color: var(--ink-soft); }
+.ws-app .ws-pick-search { background: transparent; }
+.ws-app .ws-map .maplibregl-popup-content { background: rgba(255,255,255,.9); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); color: var(--ink); border-color: rgba(255,255,255,.6); box-shadow: 0 16px 36px -12px rgba(4,16,30,.5); border-radius: 12px; }
+.ws-app .ws-drop.over { background: rgba(245,184,0,.15); }
+
+/* Phone: same glass, its own layout. */
+.ws-app.phone .ws-phone-tabs { background: rgba(7,22,38,.55); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-top: 1px solid rgba(255,255,255,.14); }
+.ws-app.phone .ws-sheet { background: rgba(240,247,255,.86); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+.ws-app .ws-map-note, .ws-app .ws-phone-notice { background: rgba(255,255,255,.97); color: #0D2B45; z-index: 5; }
+.ws-app.phone .ws-phone-tabs button { color: #dbe8f3; }
+.ws-app.phone .ws-phone-tabs button.on { color: #ffd45c; }
