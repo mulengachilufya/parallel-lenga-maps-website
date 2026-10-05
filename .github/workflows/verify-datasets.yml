@@ -1,0 +1,70 @@
+name: Verify datasets
+
+# Checks every catalogue file against the country it claims to cover
+# (geoBoundaries ADM0): share inside the country, coverage of the country,
+# raster value ranges, plus a preview map per file. Report and previews are
+# pushed to the qa-previews branch (verify/). See scripts/verify-datasets.py.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Only files whose dataset, country or key contains this text (empty = all)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qa-previews
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-gdal python3-numpy python3-boto3
+      - name: Verify
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          set --
+          if [ -n "$ONLY" ]; then set -- "$@" --only "$ONLY"; fi
+          python3 scripts/verify-datasets.py "$@"
+      - name: Publish to the qa-previews branch
+        if: always()
+        run: |
+          [ -f verify-report.md ] || exit 0
+          git config user.name "lenga-qa"; git config user.email "qa@lengamaps.com"
+          tmp=$(mktemp -d); cp -r previews verify-report.* "$tmp"/ 2>/dev/null || true
+          git fetch origin qa-previews && git checkout -B qa-previews origin/qa-previews || git checkout --orphan qa-previews
+          git rm -rq --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 ! -name . ! -name .git ! -name protected-areas -exec rm -rf {} +
+          mkdir -p verify; rm -rf verify/*; cp -r "$tmp"/* verify/
+          git add verify protected-areas 2>/dev/null || git add verify
+          git commit -qm "QA: dataset verification ${{ github.run_id }}" || true
+          git push -f origin qa-previews
+      - name: Summary
+        if: always()
+        run: cat verify-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verify-report
+          path: |
+            verify-report.*
+            previews/
