@@ -47,6 +47,25 @@ const VOICE_ERRORS: Record<string, string> = {
   voice_too_short: 'That recording was too short.',
   voice_format:    'This browser recorded in a format we cannot store.',
 }
+/**
+ * POST with up to 3 tries. Only network failures and server errors are
+ * retried; the same client_id rides every try, so the server stores a
+ * comment or voice note once however many attempts reach it.
+ */
+async function postWithRetry(url: string, init: () => RequestInit): Promise<Response> {
+  let last: unknown = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 800 * 2 ** (attempt - 1)))
+    try {
+      const res = await fetch(url, { ...init(), signal: AbortSignal.timeout(90_000) })
+      if (res.status < 500) return res
+      last = new Error(`Server error ${res.status}`)
+    } catch (e) { last = e }
+  }
+  throw last instanceof Error && last.name !== 'TimeoutError' && last.name !== 'TypeError'
+    ? last : new Error('The connection dropped. Your note is kept here: press send again.')
+}
+
 type Dialog =
   | { kind: 'edit'; layerId: string }
   | { kind: 'remove'; layer: WsLayer }
@@ -393,15 +412,22 @@ function Workstation() {
 
   async function sendMessage(body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) {
     const pin = !parentId && draftPin ? draftPin : null
-    const d = await api<{ message: WsMessage }>(`/api/workspace/projects/${id}/messages`,
-      { method: 'POST', json: { body, mentions, parent_id: parentId, lng: pin?.lng, lat: pin?.lat, revision_seq: revisionSeq ?? undefined } })
-    setMessages((list) => list.some((m) => m.id === d.message.id) ? list : [...list, d.message])
+    const clientId = crypto.randomUUID()
+    const payload = JSON.stringify({ body, mentions, parent_id: parentId, client_id: clientId, lng: pin?.lng, lat: pin?.lat, revision_seq: revisionSeq ?? undefined })
+    const res = await postWithRetry(`/api/workspace/projects/${id}/messages`, () => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }))
+    const d = await res.json().catch(() => ({})) as { message?: WsMessage; error?: string }
+    if (!res.ok || !d.message) throw new Error(d.error ?? 'Could not send')
+    const message = d.message
+    setMessages((list) => list.some((m) => m.id === message.id) ? list : [...list, message])
     if (pin) setDraftPin(null)
   }
 
   async function sendVoiceMessage(clip: VoiceClip, body: string, mentions: string[], parentId: string | null, revisionSeq: number | null) {
     const pin = !parentId && draftPin ? draftPin : null
+    if (!clip.blob.size) throw new Error('Nothing was recorded. Check the microphone and try again.')
+    const clientId = crypto.randomUUID()
     const form = new FormData()
+    form.append('client_id', clientId)
     const ext = clip.blob.type.includes('mp4') ? 'm4a' : clip.blob.type.includes('ogg') ? 'ogg' : 'webm'
     form.append('audio', clip.blob, `voice.${ext}`)
     form.append('seconds', String(clip.seconds))
@@ -410,7 +436,7 @@ function Workstation() {
     if (parentId) form.append('parent_id', parentId)
     if (pin) { form.append('lng', String(pin.lng)); form.append('lat', String(pin.lat)) }
     if (revisionSeq) form.append('revision_seq', String(revisionSeq))
-    const res = await fetch(`/api/workspace/projects/${id}/messages`, { method: 'POST', body: form })
+    const res = await postWithRetry(`/api/workspace/projects/${id}/messages`, () => ({ method: 'POST', body: form }))
     const d = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(VOICE_ERRORS[d.error] ?? d.error ?? 'Could not send the voice note')
     setMessages((list) => list.some((m) => m.id === d.message.id) ? list : [...list, d.message])

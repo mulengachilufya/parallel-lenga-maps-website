@@ -1052,8 +1052,8 @@
   --panel-3:     rgba(255,255,255,.55);
   --white:       rgba(255,255,255,.78);
   --ink:         #0D2B45;
-  --ink-soft:    #33506a;
-  --muted:       #5b7389;
+  --ink-soft:    #24405a;
+  --muted:       #4a6278;
   --rule:        rgba(13,43,69,.10);
   --rule-strong: rgba(13,43,69,.18);
   --navy:        #0D2B45;
@@ -1078,16 +1078,13 @@
     radial-gradient(30% 38% at 88% 18%, #f5b800 0%, transparent 70%),
     radial-gradient(36% 42% at 82% 86%, #f08a24 0%, transparent 72%),
     radial-gradient(40% 50% at 52% 50%, #2b5d8f 0%, transparent 75%);
-  filter: blur(40px);
   opacity: .9;
-  animation: ws-drift 40s ease-in-out infinite alternate;
 }
 @keyframes ws-drift {
   0%   { transform: translate3d(0, 0, 0) scale(1); }
   50%  { transform: translate3d(2.5%, -2%, 0) scale(1.05); }
   100% { transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
 }
-@media (prefers-reduced-motion: reduce) { .ws.ws-app::before { animation: none; } }
 .ws.ws-app ::selection { background: rgba(245,184,0,.4); }
 .ws.ws-app ::-webkit-scrollbar-thumb { background: rgba(13,43,69,.25); border: 2px solid transparent; background-clip: padding-box; border-radius: 6px; }
 .ws.ws-app ::-webkit-scrollbar-track { background: transparent; }
@@ -1096,7 +1093,7 @@
 
 /* Dark glass bars: title and toolbar. */
 .ws-app .ws-titlebar, .ws-app .ws-toolbar {
-  background: rgba(7,22,38,.42); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  background: rgba(7,22,38,.72);
   border-bottom: 1px solid rgba(255,255,255,.12); color: #e6f0f8;
 }
 .ws-app .ws-titlebar a { color: #e6f0f8; }
@@ -1152,15 +1149,15 @@
 .ws-app .ws-input:focus, .ws-app .ws-select:focus, .ws-app .ws-textarea:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(245,184,0,.28); background: #fff; }
 
 /* The floating glass cards. Each takes a different light. */
+.ws-app .ws-float, .ws-app .ws-dialog { -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
 .ws-app:not(.phone) .ws-left, .ws-app:not(.phone) .ws-right, .ws-app .ws-attr, .ws-app .ws-float, .ws-app .ws-dialog {
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(255,255,255,.55); border-radius: 18px;
   box-shadow: 0 18px 44px -20px rgba(4,16,30,.55), inset 0 1px 0 rgba(255,255,255,.75);
 }
-.ws-app:not(.phone) .ws-left  { margin: 12px 0 12px 12px; background: linear-gradient(160deg, rgba(232,244,255,.80), rgba(214,233,252,.62)); }
-.ws-app:not(.phone) .ws-right { margin: 12px 12px 12px 0; background: linear-gradient(200deg, rgba(255,250,234,.82), rgba(255,240,205,.64)); }
-.ws-app .ws-attr { background: rgba(255,255,255,.74); }
-.ws-app .ws-float, .ws-app .ws-dialog { background: rgba(255,255,255,.84); }
+.ws-app:not(.phone) .ws-left  { margin: 12px 0 12px 12px; background: linear-gradient(160deg, rgba(240,248,255,.96), rgba(224,238,252,.92)); }
+.ws-app:not(.phone) .ws-right { margin: 12px 12px 12px 0; background: linear-gradient(200deg, rgba(255,252,242,.97), rgba(255,244,218,.93)); }
+.ws-app .ws-attr { background: rgba(255,255,255,.95); }
+.ws-app .ws-float, .ws-app .ws-dialog { background: rgba(255,255,255,.95); }
 .ws-app.no-left .ws-left, .ws-app.no-right .ws-right { display: none; }
 .ws-app:not(.phone) .ws-mapwrap { margin: 12px; background: transparent; box-shadow: none; }
 .ws-app:not(.phone) .ws-map-area { border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.45), 0 22px 50px -22px rgba(4,16,30,.7); }
@@ -1204,7 +1201,7 @@
 .ws-app .ws-note { background: rgba(255,246,214,.75); border-color: rgba(214,160,0,.35); border-left-color: #F5B800; color: var(--ink-soft); }
 
 /* Attribute table */
-.ws-app .ws-attr-body th { background: rgba(255,255,255,.88); color: #0D2B45; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.ws-app .ws-attr-body th { background: #f4f7fa; color: #0D2B45; }
 .ws-app .ws-attr-body tbody tr:hover td { background: rgba(255,255,255,.6); }
 .ws-app .ws-attr-body tbody tr.sel td { background: rgba(245,184,0,.24); }
 
@@ -1214,16 +1211,25 @@
 
 /* Menus, popups, dialogs */
 .ws-app .ws-modal-back { background: rgba(4,16,30,.35); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-.ws-app .ws-menu { background: rgba(255,255,255,.86); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-color: rgba(255,255,255,.6); box-shadow: 0 18px 44px -16px rgba(4,16,30,.55); border-radius: 12px; }
+.ws-app .ws-menu { background: #fff; border-color: rgba(255,255,255,.6); box-shadow: 0 18px 44px -16px rgba(4,16,30,.55); border-radius: 12px; }
 .ws-app .ws-menu button:hover:not(:disabled) { background: rgba(13,43,69,.07); }
 .ws-app .ws-pick-group { background: rgba(255,255,255,.9); color: var(--ink-soft); }
 .ws-app .ws-pick-search { background: transparent; }
-.ws-app .ws-map .maplibregl-popup-content { background: rgba(255,255,255,.9); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); color: var(--ink); border-color: rgba(255,255,255,.6); box-shadow: 0 16px 36px -12px rgba(4,16,30,.5); border-radius: 12px; }
+.ws-app .ws-map .maplibregl-popup-content { background: #fff; color: var(--ink); border-color: rgba(255,255,255,.6); box-shadow: 0 16px 36px -12px rgba(4,16,30,.5); border-radius: 12px; }
 .ws-app .ws-drop.over { background: rgba(245,184,0,.15); }
 
 /* Phone: same glass, its own layout. */
-.ws-app.phone .ws-phone-tabs { background: rgba(7,22,38,.55); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-top: 1px solid rgba(255,255,255,.14); }
-.ws-app.phone .ws-sheet { background: rgba(240,247,255,.86); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
+.ws-app.phone .ws-phone-tabs { background: rgba(7,22,38,.9); border-top: 1px solid rgba(255,255,255,.14); }
+.ws-app.phone .ws-sheet { background: rgba(244,249,255,.97); }
 .ws-app .ws-map-note, .ws-app .ws-phone-notice { background: rgba(255,255,255,.97); color: #0D2B45; z-index: 5; }
 .ws-app.phone .ws-phone-tabs button { color: #dbe8f3; }
 .ws-app.phone .ws-phone-tabs button.on { color: #ffd45c; }
+/* Nothing that sits on the map blurs what is under it: a blur over the
+   WebGL canvas has to be redrawn on every frame while the map moves. */
+.ws-app .ws-legend, .ws-app .ws-map-note, .ws-app .ws-busy { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ws-app .ws-legend, .ws-app .ws-busy { background: rgba(255,255,255,.96); }
+/* Reply quote: what this comment answers, click to jump to it. */
+.ws-quote { display: block; width: 100%; text-align: left; margin: 4px 0 2px; padding: 5px 9px; border: 0; border-left: 3px solid #F5B800; border-radius: 6px; background: rgba(13,43,69,.06); color: inherit; font: inherit; cursor: pointer; }
+.ws-quote:hover { background: rgba(13,43,69,.1); }
+.ws-quote .to { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.ws-quote .q { display: block; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

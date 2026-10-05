@@ -47,7 +47,7 @@ export default function PrivacyPage() {
                 <li><b>Your account.</b> Name, email address, country, sector and organisation, and your team and role if you join one. Passwords are handled by our sign in provider and stored only in hashed form; we never see them.</li>
                 <li><b>Payments.</b> Your plan, the amount, the payment method (mobile money or bank transfer), the reference and the payment screenshot you upload so we can verify it.</li>
                 <li><b>Downloads.</b> Each time you download a file, from the website, the dashboard or the API, we record the dataset, the country, the format, the size, how it was downloaded and when. We use this to apply your plan, to show your team its download history, to warn you before you download the same file twice and to understand which data people need.</li>
-                <li><b>Workspace.</b> Projects, the files you upload, layers, comments, voice notes, saved views and the change history of each project. Direct messages between team members are end to end encrypted in your browser, so we cannot read them.</li>
+                <li><b>Workspace.</b> Projects, the files you upload, layers, comments, voice notes, saved views and the change history of each project.</li>
                 <li><b>API use.</b> The API keys you create and how many requests and how much data each one uses per month.</li>
                 <li><b>Messages to us.</b> What you send through the contact, quote and data request forms, and your email address if you subscribe to our newsletter.</li>
                 <li><b>Technical data.</b> Your IP address is used briefly to limit abusive traffic. Our hosting provider counts page visits without cookies and without identifying you. Error logs may include the page and time of an error.</li>
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
               <h2 className="text-base font-bold text-navy mb-3">9. How long we keep it</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li>Account data is kept while your account is open.</li>
-                <li>When you delete your account, your profile, API keys and direct messages are deleted. Your download records are kept without your name or email, as anonymous counts. Comments and layers you added to shared team projects stay with that team.</li>
+                <li>When you delete your account, your profile and API keys are deleted. Your download records are kept without your name or email, as anonymous counts. Comments and layers you added to shared team projects stay with that team.</li>
                 <li>Uploaded files are deleted when the project or team they belong to is deleted, or when you ask us.</li>
                 <li>Payment records are kept for as long as accounting and tax law requires.</li>
               </ul>
