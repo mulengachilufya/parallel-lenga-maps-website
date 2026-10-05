@@ -234,9 +234,12 @@ def check_raster(path, outline, label):
     problems = [] if nod is not None else ['no nodata value']
     # Cut to the country at <= 800 px, using overviews where the file has them.
     warp_to = '/vsimem/cut.tif'
+    cut_ds = None
+    if outline is not None:
+        cut_ds = '/vsimem/outline.geojson'
+        gdal.FileFromMemBuffer(cut_ds, json.dumps({'type': 'FeatureCollection', 'features': [{'type': 'Feature', 'properties': {}, 'geometry': json.loads(outline.ExportToJson())}]}))
     opts = gdal.WarpOptions(dstSRS='EPSG:4326', width=800, height=0, resampleAlg='near', dstNodata=nod if nod is not None else -9999,
-                            cutlineWKT=outline.ExportToWkt() if outline is not None else None, cutlineSRS='EPSG:4326' if outline is not None else None,
-                            cropToCutline=outline is not None, multithread=True)
+                            cutlineDSName=cut_ds, cropToCutline=outline is not None, multithread=True)
     cut = gdal.Warp(warp_to, ds, options=opts)
     cb = cut.GetRasterBand(1)
     arr = cb.ReadAsArray().astype('float64')
@@ -280,6 +283,8 @@ def check_raster(path, outline, label):
     except Exception:  # noqa: BLE001
         pass
     gdal.Unlink(warp_to)
+    if cut_ds:
+        gdal.Unlink(cut_ds)
     return status, '; '.join(problems), facts
 
 
