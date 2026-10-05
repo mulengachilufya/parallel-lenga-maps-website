@@ -1,0 +1,69 @@
+name: Clip to country
+
+# Cuts each file of a vector table to its country's geoBoundaries outline,
+# keeping attributes (see scripts/clip-to-country.py). Dry run by default;
+# report and previews go to the qa-previews branch (clip/<table>/).
+
+on:
+  workflow_dispatch:
+    inputs:
+      table:
+        description: 'Catalogue table'
+        required: true
+        default: 'aquifer_layers'
+      only:
+        description: 'Only these countries, comma separated (empty = all)'
+        required: false
+        default: ''
+      apply:
+        description: 'Replace the files in R2 and update the table'
+        type: boolean
+        default: false
+
+concurrency:
+  group: clip-to-country
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  clip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-gdal python3-numpy python3-boto3
+      - name: Clip
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          TABLE: ${{ github.event.inputs.table }}
+          ONLY: ${{ github.event.inputs.only }}
+          APPLY: ${{ github.event.inputs.apply }}
+        run: |
+          set -- --table "$TABLE"
+          if [ -n "$ONLY" ]; then set -- "$@" --only "$ONLY"; fi
+          if [ "$APPLY" = "true" ]; then set -- "$@" --apply; fi
+          python3 scripts/clip-to-country.py "$@"
+      - name: Publish to the qa-previews branch
+        if: always()
+        env:
+          TABLE: ${{ github.event.inputs.table }}
+        run: |
+          [ -f clip-report.md ] || exit 0
+          cat clip-report.md >> "$GITHUB_STEP_SUMMARY"
+          tmp=$(mktemp -d); cp -r previews clip-report.* "$tmp"/ 2>/dev/null || true
+          git config user.name "lenga-qa"; git config user.email "qa@lengamaps.com"
+          git fetch origin qa-previews && git checkout -B qa-previews origin/qa-previews
+          rm -rf "clip/$TABLE"; mkdir -p "clip/$TABLE"; cp -r "$tmp"/* "clip/$TABLE"/
+          git add -A clip
+          git commit -qm "QA: clip $TABLE ${{ github.run_id }}" || true
+          git push origin qa-previews || (git pull --rebase origin qa-previews && git push origin qa-previews)
