@@ -171,8 +171,18 @@ def main():
             rec['tiles'] = len(tiles)
             if not tiles:
                 raise RuntimeError('no WorldCover tiles')
+            # Fetch the tiles first, 8 at a time: warping straight over HTTP
+            # makes thousands of small range requests and is many times slower.
+            tdir = os.path.join(work, 'tiles'); os.makedirs(tdir)
+            urls = os.path.join(work, 'urls.txt')
+            with open(urls, 'w') as fh:
+                fh.write('\n'.join(t.replace('/vsicurl/', '') for t in tiles) + '\n')
+            run(['bash', '-c', f'xargs -P 8 -n 1 curl -sSf --retry 5 --retry-delay 5 -O --output-dir {tdir} < {urls}'])
+            local = sorted(os.path.join(tdir, f) for f in os.listdir(tdir))
+            if len(local) != len(tiles):
+                raise RuntimeError(f'fetched {len(local)} of {len(tiles)} tiles')
             vrt = os.path.join(work, 'wc.vrt')
-            run(['gdalbuildvrt', '-q', vrt, *tiles])
+            run(['gdalbuildvrt', '-q', vrt, *local])
             cut = os.path.join(work, 'outline.geojson')
             with open(cut, 'w') as fh:
                 json.dump({'type': 'FeatureCollection', 'features': [{'type': 'Feature', 'properties': {}, 'geometry': json.loads(geom.ExportToJson())}]}, fh)
