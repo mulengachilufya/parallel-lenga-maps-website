@@ -1,0 +1,34 @@
+country,status,old_features,new_features,inside_pct,coverage_pct,size_mb,applied,key
+Algeria,PASS,2,2,67.7,37.4,0.135,False,aquifer/Algeria/Algeria_aquifer.gpkg
+Angola,PASS,3,3,63.5,14.5,0.909,False,aquifer/Angola/Angola_aquifer.gpkg
+Benin,PASS,1,1,39.0,11.0,0.102,False,aquifer/Benin/Benin_aquifer.gpkg
+Botswana,PASS,1,1,65.5,14.6,0.115,False,aquifer/Botswana/Botswana_aquifer.gpkg
+Cameroon,PASS,1,1,30.2,0.4,0.098,False,aquifer/Cameroon/Cameroon_aquifer.gpkg
+Chad,PASS,2,2,45.7,85.5,0.336,False,aquifer/Chad/Chad_aquifer.gpkg
+Congo,PASS,1,1,37.6,2.3,0.127,False,aquifer/Congo/Congo_aquifer.gpkg
+Democratic Republic of the Congo,PASS,4,4,63.5,41.8,0.77,False,aquifer/Democratic_Republic_of_the_Congo/Democratic_Republic_of_the_Congo_aquifer.gpkg
+Egypt,PASS,4,4,32.6,86.8,0.315,False,aquifer/Egypt/Egypt_aquifer.gpkg
+Ethiopia,PASS,5,5,66.7,10.4,0.213,False,aquifer/Ethiopia/Ethiopia_aquifer.gpkg
+Gabon,PASS,3,3,86.3,13.8,0.193,False,aquifer/Gabon/Gabon_aquifer.gpkg
+Ghana,PASS,1,1,79.9,43.2,0.106,False,aquifer/Ghana/Ghana_aquifer.gpkg
+Ivory Coast,PASS,1,1,86.9,3.5,0.115,False,aquifer/Ivory_Coast/Ivory_Coast_aquifer.gpkg
+Kenya,PASS,3,3,81.3,14.8,0.246,False,aquifer/Kenya/Kenya_aquifer.gpkg
+Lesotho,PASS,1,1,22.6,100.0,0.602,False,aquifer/Lesotho/Lesotho_aquifer.gpkg
+Libya,PASS,1,1,50.2,20.5,0.098,False,aquifer/Libya/Libya_aquifer.gpkg
+Malawi,PASS,13,13,83.2,33.5,0.373,False,aquifer/Malawi/Malawi_aquifer.gpkg
+Mali,PASS,1,1,64.2,56.7,0.139,False,aquifer/Mali/Mali_aquifer.gpkg
+Morocco,PASS,5,5,62.1,2.3,0.156,False,aquifer/Morocco/Morocco_aquifer.gpkg
+Mozambique,PASS,5,5,65.6,2.4,0.36,False,aquifer/Mozambique/Mozambique_aquifer.gpkg
+Namibia,PASS,2,2,69.2,1.0,0.106,False,aquifer/Namibia/Namibia_aquifer.gpkg
+Niger,PASS,1,1,55.2,34.9,0.135,False,aquifer/Niger/Niger_aquifer.gpkg
+Nigeria,PASS,1,1,99.0,21.2,0.106,False,aquifer/Nigeria/Nigeria_aquifer.gpkg
+Senegal,PASS,1,1,52.9,77.9,0.242,False,aquifer/Senegal/Senegal_aquifer.gpkg
+Somalia,PASS,1,1,53.0,2.6,0.127,False,aquifer/Somalia/Somalia_aquifer.gpkg
+South Africa,PASS,4,4,23.6,3.5,0.688,False,aquifer/South_Africa/South_Africa_aquifer.gpkg
+South Sudan,PASS,1,1,83.5,43.9,0.172,False,aquifer/South_Sudan/South_Sudan_aquifer.gpkg
+Sudan,PASS,1,1,77.5,8.9,0.115,False,aquifer/Sudan/Sudan_aquifer.gpkg
+Tanzania,PASS,4,4,74.5,4.7,0.688,False,aquifer/Tanzania/Tanzania_aquifer.gpkg
+Tunisia,PASS,2,2,53.2,17.0,0.291,False,aquifer/Tunisia/Tunisia_aquifer.gpkg
+Uganda,PASS,2,2,37.8,8.9,0.479,False,aquifer/Uganda/Uganda_aquifer.gpkg
+Zambia,PASS,4,4,42.9,6.5,0.197,False,aquifer/Zambia/Zambia_aquifer.gpkg
+Zimbabwe,PASS,1,1,57.0,1.8,0.119,False,aquifer/Zimbabwe/Zimbabwe_aquifer.gpkg
