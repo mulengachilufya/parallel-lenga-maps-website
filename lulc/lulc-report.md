@@ -2,5 +2,7 @@
 
 | ISO3 | Country | Status | Tiles | MB | % valid | Classes | Applied |
 |---|---|---|---|---|---|---|---|
-| BDI | Burundi | PASS | 4 | 53.1 | 99.9 | 8 | False |
-| STP | Sao Tome and Principe | PASS | 2 | 0.9 | 99.8 | 9 | False |
+| CPV | Cabo Verde | PASS | 4 | 7.4 | 99.2 | 8 | False |
+| MWI | Malawi | PASS | 5 | 160.5 | 99.8 | 8 | False |
+| SWZ | Eswatini | PASS | 2 | 30.9 | 100.0 | 8 | False |
+| SYC | Seychelles | CHECK: 85.8% valid | 5 | 15.0 | 85.8 | 8 | False |
