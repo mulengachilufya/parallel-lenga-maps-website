@@ -41,6 +41,11 @@ PBF_URL = 'https://download.geofabrik.de/africa-latest.osm.pbf'
 EQUAL_AREA = 6933  # WGS 84 / NSIDC EASE-Grid 2.0 Global (metres, equal area)
 
 OSMCONF = """
+# Closed ways with these tags are areas, not lines. Without this line every
+# reserve mapped as a single closed way (most small and forest reserves)
+# was dropped.
+closed_ways_are_polygons=aeroway,amenity,boundary,building,craft,geological,historic,landuse,leisure,military,natural,office,place,shop,sport,tourism,protected_area
+
 [multipolygons]
 osm_id=yes
 osm_way_id=yes
@@ -102,10 +107,17 @@ def wdpa_share(iso3):
         return None
 
 
-def load_adm0(s3, bucket, key, work):
-    path = os.path.join(work, 'adm0.zip')
-    s3.download_file(bucket, key, path)
-    ds = ogr.Open(f'/vsizip/{path}')
+def load_adm0(s3, bucket, key, work, iso3=None):
+    if key:
+        path = os.path.join(work, 'adm0.zip')
+        s3.download_file(bucket, key, path)
+        ds = ogr.Open(f'/vsizip/{path}')
+    else:
+        # Not in the admin boundaries table: take it straight from geoBoundaries.
+        url = f'https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/{iso3}/ADM0/geoBoundaries-{iso3}-ADM0.geojson'
+        path = os.path.join(work, 'adm0.geojson')
+        urllib.request.urlretrieve(url, path)
+        ds = ogr.Open(path)
     lyr = ds.GetLayer(0)
     geom = None
     for f in lyr:
@@ -198,11 +210,12 @@ def main():
         if only and iso3 not in only:
             continue
         row = old[iso3]
-        if iso3 not in adm0:
-            report.append({'iso3': iso3, 'country': row['country'], 'status': 'NO ADM0'}); continue
         print(f'== {iso3} {row["country"]}', flush=True)
         cwork = tempfile.mkdtemp(dir=work)
-        outline = load_adm0(s3, bucket, adm0[iso3]['r2_key'], cwork)
+        try:
+            outline = load_adm0(s3, bucket, adm0[iso3]['r2_key'] if iso3 in adm0 else None, cwork, iso3)
+        except Exception as e:  # noqa: BLE001
+            report.append({'iso3': iso3, 'country': row['country'], 'status': f'NO ADM0 ({e})'}); continue
         land = area_km2(outline, ct)
         env_ = outline.GetEnvelope()
         pa.SetSpatialFilterRect(env_[0], env_[2], env_[1], env_[3])
