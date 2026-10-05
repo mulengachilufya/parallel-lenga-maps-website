@@ -1,0 +1,118 @@
+name: Rebuild land use
+
+# Rebuilds land use / land cover per country from ESA WorldCover 2021 (10 m),
+# cut to the geoBoundaries outline, as Cloud Optimized GeoTIFFs with the
+# official colours (see scripts/rebuild-lulc.py). Dry run by default: report
+# and previews go to the qa-previews branch (lulc/). Tick "apply" to replace
+# the files in R2 for countries that pass.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Only these ISO3 codes, comma separated (empty = all 54)'
+        required: false
+        default: ''
+      apply:
+        description: 'Upload passing countries to R2 and update the table'
+        type: boolean
+        default: false
+
+concurrency:
+  group: rebuild-lulc
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      groups: ${{ steps.g.outputs.groups }}
+    steps:
+      - id: g
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          allc = 'DZA AGO BEN BWA BFA BDI CPV CMR CAF TCD COM COD COG CIV DJI EGY GNQ ERI SWZ ETH GAB GMB GHA GIN GNB KEN LSO LBR LBY MDG MWI MLI MRT MUS MAR MOZ NAM NER NGA RWA STP SEN SYC SLE SOM ZAF SSD SDN TZA TGO TUN UGA ZMB ZWE'.split()
+          c = [s.strip().upper() for s in os.environ.get('ONLY', '').split(',') if s.strip()] or allc
+          n = min(12, len(c))
+          print('groups=' + json.dumps([','.join(c[i::n]) for i in range(n)]))
+          PY
+
+  rebuild:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        countries: ${{ fromJson(needs.plan.outputs.groups) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost; df -h /
+      - name: Install GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-gdal python3-numpy python3-boto3
+      - name: Rebuild
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          APPLY: ${{ github.event.inputs.apply }}
+          GROUP: -${{ strategy.job-index }}
+        run: |
+          set -- --only "${{ matrix.countries }}"
+          if [ "$APPLY" = "true" ]; then set -- "$@" --apply; fi
+          python3 scripts/rebuild-lulc.py "$@"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lulc-${{ strategy.job-index }}
+          path: |
+            lulc-report*.csv
+            previews/
+
+  publish:
+    needs: rebuild
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: parts
+      - name: Publish to the qa-previews branch
+        run: |
+          mkdir -p out/previews
+          for d in parts/lulc-*; do cp -r "$d"/previews/* out/previews/ 2>/dev/null || true; done
+          python3 - <<'PY'
+          import csv, glob
+          rows = []
+          for p in sorted(glob.glob('parts/lulc-*/lulc-report*.csv')):
+              rows += list(csv.DictReader(open(p)))
+          rows.sort(key=lambda r: r['iso3'])
+          keys = ['iso3', 'country', 'status', 'tiles', 'size_mb', 'valid_pct', 'classes', 'palette', 'applied', 'key']
+          with open('out/lulc-report.csv', 'w', newline='') as fh:
+              w = csv.DictWriter(fh, fieldnames=keys, extrasaction='ignore'); w.writeheader(); w.writerows(rows)
+          with open('out/lulc-report.md', 'w') as fh:
+              fh.write('# Land use rebuild\n\n| ISO3 | Country | Status | Tiles | MB | % valid | Classes | Applied |\n|---|---|---|---|---|---|---|---|\n')
+              for r in rows:
+                  fh.write(f"| {r['iso3']} | {r.get('country','')} | {r['status']} | {r.get('tiles','')} | {r.get('size_mb','')} | {r.get('valid_pct','')} | {r.get('classes','')} | {r.get('applied','')} |\n")
+          PY
+          cat out/lulc-report.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "lenga-qa"; git config user.email "qa@lengamaps.com"
+          git fetch origin qa-previews && git checkout -B qa-previews origin/qa-previews
+          rm -rf lulc; mkdir -p lulc; cp -r out/* lulc/
+          git add -A lulc
+          git commit -qm "QA: land use rebuild ${{ github.run_id }}" || true
+          git push origin qa-previews || (git pull --rebase origin qa-previews && git push origin qa-previews)
