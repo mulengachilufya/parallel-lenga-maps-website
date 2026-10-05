@@ -172,7 +172,7 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
     bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
     dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
     tagline: 'A shared workspace for GIS teams on real projects.',
-    count: `From ${TEAM_MIN_SEATS} seats`,
+    count: `${TEAM_MIN_SEATS} seats included`,
     datasets: [`$${TEAM_TERMS.month.base} a month, or $${TEAM_TERMS.year.base.toLocaleString()} a year`, `${TEAM_MIN_SEATS} seats, +$${TEAM_TERMS.month.extraSeat}/month per extra seat`, 'Project workspace with live web map', 'Discussion and full project history', 'Every dataset, always up to date'],
   },
 }

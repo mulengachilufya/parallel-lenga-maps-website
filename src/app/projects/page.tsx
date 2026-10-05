@@ -28,10 +28,11 @@ import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
   Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
   Mountain, Building2, FlaskConical, ShieldCheck, Sparkles,
-  Phone, Mail, MessageCircle, Zap,
+  Phone, Mail, MessageCircle, Zap, ChevronDown,
 } from 'lucide-react'
 import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
-import { BANK_FEES_NOTE, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, type TeamTerm } from '@/lib/pricing'
+import { BANK_FEES_NOTE, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
+import SeatStepper from '@/components/SeatStepper'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -70,6 +71,7 @@ const ALL_DATASETS: { name: string; color: string }[] = [
 export default function ProjectsPage() {
   const [isTeamMember, setIsTeamMember] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
+  const pricingRef = useRef<HTMLDivElement>(null)
   const [presetSeats, setPresetSeats] = useState<number | null>(null)
 
   useEffect(() => {
@@ -95,6 +97,8 @@ export default function ProjectsPage() {
           0%, 100% { box-shadow: 0 0 0 1px rgba(245,184,0,0.5), 0 0 30px rgba(245,184,0,0.35), 0 0 60px rgba(245,184,0,0.18); }
           50%      { box-shadow: 0 0 0 1px rgba(245,184,0,0.8), 0 0 45px rgba(245,184,0,0.6),  0 0 90px rgba(245,184,0,0.30); }
         }
+        @keyframes lmBob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 6px); } }
+        .lm-scroll-cue { animation: lmBob 1.8s ease-in-out infinite; }
         .lm-glow {
           animation: lengaGlow 3.2s ease-in-out infinite;
         }
@@ -102,7 +106,7 @@ export default function ProjectsPage() {
           text-decoration: none;
           display: flex;
           flex-direction: column;
-          min-height: 580px;
+          min-height: 560px;
           border-radius: 16px;
           padding: 1.75rem 1.5rem 1.75rem;
           transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
@@ -128,6 +132,7 @@ export default function ProjectsPage() {
         }
         .lm-price { font-size: 48px; line-height: 1; font-weight: 400; }
         .lm-period { font-size: 13px; }
+        .lm-seats { font-size: 17px; font-weight: 700; margin: 0; }
         .lm-instead { font-size: 13px; opacity: 0.8; }
         .lm-blurb { font-size: 13px; line-height: 1.5; margin: 0.5rem 0 1.1rem; }
         .lm-divider { height: 0.5px; opacity: 0.2; margin: 0 0 1rem; }
@@ -183,9 +188,15 @@ export default function ProjectsPage() {
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <button
-              onClick={() => jumpToForm(null)}
+              onClick={() => pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
               className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-bold transition-transform hover:-translate-y-0.5"
               style={{ background: GOLD, color: '#1a1200' }}
+            >
+              See team pricing <ChevronDown size={16} />
+            </button>
+            <button
+              onClick={() => jumpToForm(null)}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-7 py-3.5 text-sm font-semibold text-white hover:border-[#F5B800]/80 hover:bg-white/5 transition-colors"
             >
               Get a quote <ArrowRight size={16} />
             </button>
@@ -202,10 +213,21 @@ export default function ProjectsPage() {
             Quote-based. No checkout, no card. We provision your team within 1 business day.
           </p>
         </div>
+        {/* Scroll cue: the hero fills the screen, so show there is more below. */}
+        <button
+          onClick={() => pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="lm-scroll-cue absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/80 hover:text-white"
+          aria-label="Scroll to pricing and details"
+        >
+          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase">Pricing and details</span>
+          <ChevronDown size={22} />
+        </button>
       </section>
 
       {/* ── Pricing (WHITE) — main /pricing font + glowing dataset banner ─ */}
-      <PricingSection onQuote={jumpToForm} />
+      <div ref={pricingRef} style={{ scrollMarginTop: 80 }}>
+        <PricingSection onQuote={jumpToForm} />
+      </div>
 
       {/* ── Quote form — primary CTA, sits directly below pricing ──── */}
       <div ref={formRef}>
@@ -393,36 +415,33 @@ function TermCard({ term, palette, onQuote, featured = false }: {
   term: TeamTerm; palette: CardPalette; onQuote: (seats: number | null) => void; featured?: boolean
 }) {
   const t = TEAM_TERMS[term]
+  const [seats, setSeats] = useState(TEAM_MIN_SEATS)
+  const price = teamPrice(seats, term)
+  // What the same seats would cost paying month by month: the discount, in dollars.
+  const saved = teamPrice(seats, 'month') * t.months - price
   return (
     <div
-      className="lm-card"
+      className={`lm-card${featured ? ' lm-featured' : ''}`}
       style={{ background: palette.bg, border: `1px solid ${palette.border}`, color: palette.text, width: '100%' }}
     >
-      {featured && (
-        <div
-          className="flex items-center gap-2.5 rounded-xl px-4 py-3 mb-5"
-          style={{ background: 'rgba(245,184,0,0.14)', border: `1.5px solid ${GOLD}` }}
-        >
-          <ShieldCheck size={20} style={{ color: GOLD, flexShrink: 0 }} />
-          <span className="font-display text-[15px] font-bold leading-snug" style={{ color: GOLD }}>
-            Fits a project budget. Nothing renews automatically.
-          </span>
-        </div>
-      )}
-
       <div className="lm-name" style={{ color: palette.nameColor }}>
         {t.label}{t.saving && <span style={{ marginLeft: 10, fontSize: 12, letterSpacing: 0 }}>{t.saving}</span>}
       </div>
 
       <div className="lm-price-row">
-        <span className="lm-price" style={{ color: palette.priceColor }}>${t.base.toLocaleString()}</span>
+        <span className="lm-price" style={{ color: palette.priceColor }}>${price.toLocaleString()}</span>
         <span className="lm-period" style={{ color: palette.muted }}>{t.per}</span>
       </div>
-      <p className="lm-period" style={{ color: palette.muted, margin: 0 }}>
+      <p className="lm-seats" style={{ color: palette.text }}>
+        for {seats} seats{saved > 0 && <span style={{ color: palette.nameColor }}> · you save ${saved.toLocaleString()}</span>}
+      </p>
+
+      <div className="mt-4"><SeatStepper seats={seats} onChange={setSeats} dark={featured} /></div>
+      <p className="lm-period mt-2.5" style={{ color: palette.muted, margin: '10px 0 0' }}>
         {TEAM_MIN_SEATS} seats included. +${t.extraSeat.toLocaleString()} per extra seat.
       </p>
 
-      <div className="lm-divider" style={{ background: palette.dividerColor }} />
+      <div className="lm-divider" style={{ background: palette.dividerColor, marginTop: '1rem' }} />
 
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
         {[
@@ -441,11 +460,11 @@ function TermCard({ term, palette, onQuote, featured = false }: {
 
       <div className="lm-cta">
         <button
-          onClick={() => onQuote(TEAM_MIN_SEATS)}
+          onClick={() => onQuote(seats)}
           className="lm-cta-btn"
           style={{ background: palette.btnBg, color: palette.btnColor }}
         >
-          Get a quote
+          Get a quote for {seats} seats
         </button>
       </div>
     </div>
