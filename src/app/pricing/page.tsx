@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from "react"
 import Link from "next/link"
+import SeatStepper from "@/components/SeatStepper"
 import {
   BANK_FEES_NOTE, FREE_OFFERS, LICENCE_TERMS, PLANS, PLAN_CARD_UI, PLAN_ORDER, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER,
-  UPDATE_MONTHS, UPDATES_PRICE, planCtaHref, type FreeOffer,
+  UPDATE_MONTHS, UPDATES_PRICE, planCtaHref, teamPrice, type FreeOffer,
 } from "@/lib/pricing"
 
 // Both plans send buyers to their planCtaHref (see pricing.ts): individual
@@ -43,6 +45,7 @@ function FreeCard({ offer }: { offer: FreeOffer }) {
 }
 
 export default function PricingPage() {
+  const [seats, setSeats] = useState(TEAM_MIN_SEATS)
   const cards = PLAN_ORDER.map((slug) => ({
     id: slug,
     plan: PLANS[slug],
@@ -52,12 +55,15 @@ export default function PricingPage() {
   return (
     <>
       <style>{`
-        .term-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-        .term-cell { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: rgba(13,43,69,0.55); border: 1px solid rgba(245,184,0,0.25); }
+        .term-calc { margin-top: 14px; padding: 14px; border-radius: 14px; background: rgba(13,43,69,0.55); border: 1px solid rgba(245,184,0,0.25); }
+        .term-calc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: #fff; font-size: 15px; font-weight: 600; }
+        .term-foot { margin: 10px 0 0; font-size: 12px; color: #9fb0c0; }
+        .term-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+        .term-cell { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
         .term-label { font-size: 12px; color: #BFD7EA; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
         .term-label em { font-style: normal; color: #F5B800; font-weight: 600; }
         .term-price { font-size: 22px; color: #fff; font-weight: 500; }
-        .term-note { font-size: 11.5px; color: #9fb0c0; }
+        .term-note { font-size: 12px; color: #F5B800; }
         .group-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.55; color: #b8c2cc; }
         @media (max-width: 640px) { .term-strip { grid-template-columns: 1fr; } }
         .plan-card {
@@ -136,9 +142,13 @@ export default function PricingPage() {
                 </div>
                 <p className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '13px', margin: '0 0 1.25rem', lineHeight: 1.5, color: isTeam ? '#BFD7EA' : undefined }}>{ui.tagline}</p>
                 <div style={{ height: '0.5px', background: ui.dividerColor, opacity: 0.2, margin: '0 0 1rem' }} />
-                <div className={isTeam ? undefined : 'plan-muted'} style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem', color: isTeam ? '#BFD7EA' : undefined }}>
-                  {ui.count}
-                </div>
+                {isTeam ? (
+                  <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '0.6rem', color: '#F5B800' }}>{ui.count}</div>
+                ) : (
+                  <div className="plan-muted" style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+                    {ui.count}
+                  </div>
+                )}
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
                   {ui.datasets.map(d => (
                     <li key={d} className={isTeam ? undefined : 'plan-text'} style={{ fontSize: '12.5px', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '7px', lineHeight: 1.4, color: isTeam ? '#E8F1F8' : undefined }}>
@@ -155,14 +165,25 @@ export default function PricingPage() {
               </Link>
         </div>
         {isTeam ? (
-          <div className="term-strip">
-            {TEAM_TERM_ORDER.map((t) => (
-              <div key={t} className="term-cell">
-                <span className="term-label">{TEAM_TERMS[t].label}{TEAM_TERMS[t].saving && <em>{TEAM_TERMS[t].saving}</em>}</span>
-                <span className="term-price">${TEAM_TERMS[t].base.toLocaleString()}</span>
-                <span className="term-note">{TEAM_MIN_SEATS} seats · +${TEAM_TERMS[t].extraSeat} per extra seat</span>
-              </div>
-            ))}
+          <div className="term-calc">
+            <div className="term-calc-head">
+              <span>Team price for</span>
+              <SeatStepper seats={seats} onChange={setSeats} dark />
+            </div>
+            <div className="term-strip">
+              {TEAM_TERM_ORDER.map((t) => {
+                const price = teamPrice(seats, t)
+                const saved = teamPrice(seats, 'month') * TEAM_TERMS[t].months - price
+                return (
+                  <div key={t} className="term-cell">
+                    <span className="term-label">{TEAM_TERMS[t].label}{TEAM_TERMS[t].saving && <em>{TEAM_TERMS[t].saving}</em>}</span>
+                    <span className="term-price">${price.toLocaleString()}</span>
+                    <span className="term-note">{saved > 0 ? `You save $${saved.toLocaleString()}` : `${TEAM_TERMS[t].per}`}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="term-foot">{TEAM_MIN_SEATS} seats included. Each extra seat: +${TEAM_TERMS.month.extraSeat} a month, +${TEAM_TERMS.quarter.extraSeat} for 3 months, +${TEAM_TERMS.year.extraSeat} a year.</p>
           </div>
         ) : (
           <p className="group-note">
