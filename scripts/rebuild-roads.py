@@ -26,6 +26,8 @@ import boto3
 from botocore.config import Config
 from osgeo import gdal, ogr, osr
 
+from r2_archive import archive
+
 gdal.UseExceptions(); ogr.UseExceptions()
 
 PBF_URL = 'https://download.geofabrik.de/africa-latest.osm.pbf'
@@ -169,6 +171,7 @@ def main():
                'by_class_km': '; '.join(f'{k} {round(v)}' for k, v in sorted(by.items(), key=lambda x: -x[1]))}
         report.append(rec); print(json.dumps(rec), flush=True)
         if a.apply and status == 'PASS':
+            archive(s3, bucket, row['r2_key'], 'roads', row)
             s3.upload_file(out, bucket, row['r2_key'], ExtraArgs={'ContentType': 'application/geopackage+sqlite3'})
             sb(f"road_layers?r2_key=eq.{urllib.parse.quote(row['r2_key'])}", 'PATCH', {
                 'feature_count': n, 'total_km': round(tot, 1), 'file_size_mb': round(size, 2), 'file_format': 'GeoPackage',
