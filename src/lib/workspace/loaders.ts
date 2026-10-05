@@ -92,9 +92,28 @@ async function download(info: SourceInfo): Promise<ArrayBuffer> {
     res = await fetch(info.proxy)
     if (!res.ok) throw new Error('The file could not be downloaded.')
   }
+  const big = 'This file is too large to open in the browser until its fast map version is ready. Download it for QGIS in the meantime.'
   if (tooBig(res)) {
     void res.body?.cancel()
-    throw new Error('This file is too large to open in the browser until its fast map version is ready. Download it for QGIS in the meantime.')
+    throw new Error(big)
+  }
+  // No Content-Length (a streamed proxy response): read with a cap, so a
+  // 900 MB raster stops at the limit instead of crashing the tab.
+  if (!res.headers.get('content-length') && res.body) {
+    const reader = res.body.getReader()
+    const chunks: Uint8Array[] = []
+    let total = 0
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > MAX_WHOLE_FILE) { void reader.cancel(); throw new Error(big) }
+      chunks.push(value)
+    }
+    const out = new Uint8Array(total)
+    let at = 0
+    for (const c of chunks) { out.set(c, at); at += c.byteLength }
+    return out.buffer
   }
   return res.arrayBuffer()
 }

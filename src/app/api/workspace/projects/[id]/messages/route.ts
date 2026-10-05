@@ -1,6 +1,6 @@
 /**
  * GET  /api/workspace/projects/:id/messages  — the latest 500, oldest first
- * POST /api/workspace/projects/:id/messages  — { body, parent_id?, lng?, lat?, mentions?, revision_seq? }
+ * POST /api/workspace/projects/:id/messages  — { body, parent_id?, client_id?, lng?, lat?, mentions?, revision_seq? }
  *      or multipart with the same fields plus `audio` + `seconds` for a
  *      voice note. Voice notes live only here, in project comments, where
  *      the whole team can see them; direct messages are text-only.
@@ -8,7 +8,7 @@
  * Mentions must be members of the same org; each (other than the author)
  * gets an email. New messages reach open workstations through Realtime.
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { sendEmail, workspaceMentionEmail } from '@/lib/email'
 import { VOICE_BUCKET, VOICE_MAX_BYTES, VOICE_MAX_SECONDS, VOICE_TYPES } from '@/lib/workspace/dms'
 import { jsonError, loadProject, readJson, requireWorkspace, service } from '@/lib/workspace/server'
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const num = (k: string) => { const v = form.get(k); return typeof v === 'string' && v !== '' ? Number(v) : undefined }
     const mentionsRaw = form.get('mentions')
     input = {
-      body: form.get('body') ?? '', parent_id: form.get('parent_id') ?? undefined,
+      body: form.get('body') ?? '', parent_id: form.get('parent_id') ?? undefined, client_id: form.get('client_id') ?? undefined,
       lng: num('lng'), lat: num('lat'), revision_seq: num('revision_seq'),
       mentions: typeof mentionsRaw === 'string' && mentionsRaw ? mentionsRaw.split(',') : [],
     }
@@ -61,6 +61,15 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     input = await readJson(req)
   }
   const body = typeof input.body === 'string' ? input.body.replace(/\r\n/g, '\n').trim().slice(0, 4000) : ''
+
+  // A retried send (dropped connection, double tap) carries the same
+  // client_id: hand back the message already stored instead of a copy.
+  const clientId = typeof input.client_id === 'string' && UUID.test(input.client_id) ? input.client_id : null
+  if (clientId) {
+    const { data: existing } = await service.from('workspace_messages').select('*')
+      .eq('project_id', id).eq('client_id', clientId).maybeSingle()
+    if (existing) return NextResponse.json({ message: existing as WsMessage }, { status: 200 })
+  }
 
   let voice: { bytes: Uint8Array; type: string; ext: string } | null = null
   if (isForm) {
@@ -90,7 +99,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const { data: parent } = await service.from('workspace_messages')
       .select('id, parent_id').eq('id', input.parent_id).eq('project_id', id).maybeSingle()
     if (!parent) return jsonError('parent_not_found', 400)
-    parentId = parent.parent_id ?? parent.id   // one level of threading
+    parentId = parent.id   // a reply points at the exact comment or voice note it answers
   }
 
   const lng = typeof input.lng === 'number' && Number.isFinite(input.lng) && Math.abs(input.lng) <= 180 ? input.lng : null
@@ -127,18 +136,26 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       voice_path:    voicePath,
       voice_seconds: voicePath ? seconds : null,
       revision_seq:  revisionSeq,
+      client_id:     clientId,
     })
     .select('*').single()
+  if (error?.code === '23505' && clientId) {
+    // The same send landed a moment ago from another attempt.
+    if (voicePath) await service.storage.from(VOICE_BUCKET).remove([voicePath])
+    const { data: existing } = await service.from('workspace_messages').select('*')
+      .eq('project_id', id).eq('client_id', clientId).maybeSingle()
+    if (existing) return NextResponse.json({ message: existing as WsMessage }, { status: 200 })
+  }
   if (error || !message) {
     if (voicePath) await service.storage.from(VOICE_BUCKET).remove([voicePath])
     return jsonError('post_failed', 500)
   }
 
-  // Mention emails: best-effort, never block the post.
+  // Mention emails go out after the response: posting never waits on email.
   const recipients = mentions.filter((m) => m !== gate.user.id).map((m) => memberIds.get(m)).filter(Boolean) as string[]
-  await Promise.allSettled(recipients.map((to) => sendEmail(workspaceMentionEmail({
+  if (recipients.length) after(() => Promise.allSettled(recipients.map((to) => sendEmail(workspaceMentionEmail({
     to, fromName: gate.name, projectName: project.name, excerpt: body || `Voice note (${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')})`, projectId: id,
-  }))))
+  })))).then(() => undefined))
 
   return NextResponse.json({ message: message as WsMessage }, { status: 201 })
 }

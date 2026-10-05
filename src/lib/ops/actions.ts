@@ -141,13 +141,6 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       return done(sent ? { ok: true, message: `Sent to ${email}.` } : { ok: false, message: 'The link was made but the email failed. Check Health → Email.' })
     }
 
-    case 'reset_messages_key': {
-      const u = await findUser(email)
-      if (!u) return done({ ok: false, message: `No account found for ${email}.` })
-      const { error } = await db.from('workspace_user_keys').update({ retired_at: new Date().toISOString() }).eq('user_id', u.id).is('retired_at', null)
-      return done(error ? { ok: false, message: error.message } : { ok: true, message: `${email} will be asked to set up secure messages again. Their old messages stay unreadable; nobody can recover them.` })
-    }
-
     case 'reset_free_datasets': {
       const u = await findUser(email)
       if (!u) return done({ ok: false, message: `No account found for ${email}.` })

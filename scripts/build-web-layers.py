@@ -89,8 +89,11 @@ def ensure_cors(c, bucket):
                 and 'Content-Range' in r.get('ExposeHeaders', []):
             print('CORS: Range reads already allowed')
             return
-    c.put_bucket_cors(Bucket=bucket, CORSConfiguration={'CORSRules': rules + [rule]})
-    print('CORS: added a rule allowing Range reads from lengamaps.com')
+    try:
+        c.put_bucket_cors(Bucket=bucket, CORSConfiguration={'CORSRules': rules + [rule]})
+        print('CORS: added a rule allowing Range reads from lengamaps.com')
+    except Exception as e:  # the R2 token may not manage bucket settings
+        print(f'CORS: could not update ({e}); the map falls back to the same-origin proxy, so building continues')
 
 
 def run(cmd):

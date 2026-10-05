@@ -1,10 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useInbox } from './useInbox'
 
 export default function TitleBar({ crumbs, right }: { crumbs: { label: string; href?: string }[]; right?: React.ReactNode }) {
-  const { unread } = useInbox()
   return (
     <div className="ws-titlebar">
       <Link href="/" className="ws-wordmark">Lenga <b>Maps</b></Link>
@@ -18,10 +16,7 @@ export default function TitleBar({ crumbs, right }: { crumbs: { label: string; h
       </div>
       <span className="spacer" />
       {right}
-      <Link href="/workspace/messages" className="small ws-inbox-link" style={{ marginLeft: 10 }} title={unread ? `${unread} unread` : 'Messages'}>
-        Messages{unread > 0 && <span className="badge">{unread > 99 ? '99+' : unread}</span>}
-      </Link>
-      <Link href="/dashboard" className="small hide-phone">Dashboard</Link>
+      <Link href="/dashboard" className="small hide-phone" style={{ marginLeft: 10 }}>Dashboard</Link>
       <Link href="/team" className="small hide-phone">Team</Link>
     </div>
   )

@@ -30,7 +30,7 @@ interface Props {
 function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 
 function Body({ text, members, deleted }: { text: string; members: WsMember[]; deleted: boolean }) {
-  if (deleted) return <div className="body deleted">This message was deleted.</div>
+  if (deleted) return <div className="body deleted">This comment was deleted.</div>
   const names = members.map((m) => m.name).filter(Boolean).sort((a, b) => b.length - a.length)
   if (!names.length) return <div className="body">{text}</div>
   const re = new RegExp(`@(${names.map(escapeRe).join('|')})`, 'g')
@@ -57,15 +57,18 @@ export default function DiscussionPanel(p: Props) {
   const scroller = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
 
-  const { roots, replies } = useMemo(() => {
-    const roots: WsMessage[] = []
-    const replies = new Map<string, WsMessage[]>()
-    for (const m of p.messages) {
-      if (m.parent_id) replies.set(m.parent_id, [...(replies.get(m.parent_id) ?? []), m])
-      else roots.push(m)
-    }
-    return { roots, replies }
+  // One timeline, oldest first, like a conversation. A reply sits where it
+  // was posted and quotes what it answers, so anyone can follow the line.
+  const { ordered, byId } = useMemo(() => {
+    const ordered = [...p.messages].sort((a, b) => a.created_at.localeCompare(b.created_at))
+    return { ordered, byId: new Map(p.messages.map((m) => [m.id, m])) }
   }, [p.messages])
+
+  function quoteOf(m: WsMessage): string {
+    if (m.deleted_at) return 'This comment was deleted.'
+    if (m.voice_path) return `Voice note (${clock(m.voice_seconds ?? 0)})${m.body ? `: ${m.body}` : ''}`
+    return m.body
+  }
 
   // Keep the thread pinned to the newest message unless the reader scrolled up.
   useEffect(() => {
@@ -137,6 +140,16 @@ export default function DiscussionPanel(p: Props) {
             <span className="ws-pin-tag" title="Show this change in History" onClick={() => p.onShowRev(m.revision_seq!)}>on r{m.revision_seq}</span>
           )}
         </div>
+        {m.parent_id && (() => {
+          const parent = byId.get(m.parent_id)
+          return (
+            <button type="button" className="ws-quote" title="Show the comment this answers"
+                    onClick={() => parent && document.getElementById(`msg-${parent.id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })}>
+              <span className="to">Replying to {parent ? parent.author_name : 'a removed comment'}</span>
+              {parent && <span className="q">{quoteOf(parent).slice(0, 140)}</span>}
+            </button>
+          )
+        })()}
         {editing?.id === m.id ? (
           <div style={{ marginTop: 4 }}>
             <textarea className="ws-textarea" rows={3} value={editing.text} onChange={(e) => setEditing({ id: m.id, text: e.target.value })} />
@@ -161,16 +174,13 @@ export default function DiscussionPanel(p: Props) {
         )}
         {!deleted && editing?.id !== m.id && (
           <div className="foot">
-            {!m.parent_id && <button onClick={() => { setReplyTo(m); box.current?.focus() }}>Reply</button>}
+            <button onClick={() => { setReplyTo(m); box.current?.focus() }}>Reply</button>
             {mine && !m.voice_path && <button onClick={() => setEditing({ id: m.id, text: m.body })}>Edit</button>}
             {(mine || p.me.role === 'owner') && (
-              <button onClick={() => { if (confirm('Delete this message?')) void p.onDelete(m.id) }}>Delete</button>
+              <button onClick={() => { if (confirm('Delete this comment?')) void p.onDelete(m.id) }}>Delete</button>
             )}
           </div>
         )}
-        {!m.parent_id && replies.get(m.id)?.length ? (
-          <div className="replies">{replies.get(m.id)!.map(renderMsg)}</div>
-        ) : null}
       </div>
     )
   }
@@ -179,14 +189,14 @@ export default function DiscussionPanel(p: Props) {
     <>
       <div className="ws-panel-body" ref={scroller}
            onScroll={(e) => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60 }}>
-        {roots.length === 0 ? (
+        {ordered.length === 0 ? (
           <div className="ws-empty">
-            <b>No messages yet.</b><br />
-            Talk about the project here. Pin a comment to a place on the map, comment on a change
-            from the History tab, leave a voice note, or type <b>@</b> to mention a teammate; they
+            <b>No comments yet.</b><br />
+            Everyone on the project reads this thread. Comment, leave a voice note, pin a comment
+            to a place on the map, reply to anyone, or type <b>@</b> to mention a teammate; they
             get an email.
           </div>
-        ) : <div className="ws-thread">{roots.map((m) => <Fragment key={m.id}>{renderMsg(m)}</Fragment>)}</div>}
+        ) : <div className="ws-thread">{ordered.map((m) => <Fragment key={m.id}>{renderMsg(m)}</Fragment>)}</div>}
       </div>
 
       <div className="ws-composer">
@@ -201,7 +211,7 @@ export default function DiscussionPanel(p: Props) {
         )}
         {replyTo && (
           <div className="small" style={{ marginBottom: 4 }}>
-            Replying to <b>{replyTo.author_name}</b> · <a href="#" onClick={(e) => { e.preventDefault(); setReplyTo(null) }}>cancel</a>
+            Replying to <b>{replyTo.author_name}</b>: <span className="muted">{quoteOf(replyTo).slice(0, 60)}</span> · <a href="#" onClick={(e) => { e.preventDefault(); setReplyTo(null) }}>cancel</a>
           </div>
         )}
         {!replyTo && p.aboutRev && (
@@ -211,7 +221,7 @@ export default function DiscussionPanel(p: Props) {
         )}
         <textarea
           ref={box} className="ws-textarea" rows={3} value={text} maxLength={4000}
-          placeholder={replyTo ? 'Write a reply…' : typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? 'Write a message. @ to mention a teammate.' : 'Write a message. @ to mention, Ctrl+Enter to send.'}
+          placeholder={replyTo ? 'Write a reply…' : typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? 'Write a comment. @ to mention a teammate.' : 'Write a comment. @ to mention, Ctrl+Enter to send.'}
           onChange={(e) => onType(e.target.value)}
           onKeyDown={(e) => {
             if (candidates.length) {
