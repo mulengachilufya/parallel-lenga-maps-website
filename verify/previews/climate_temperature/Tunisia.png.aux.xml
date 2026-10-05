@@ -1,0 +1,15 @@
+<PAMDataset>
+  <SRS dataAxisToSRSAxisMapping="2,1">GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]</SRS>
+  <GeoTransform>  7.5416666666666474e+00,  5.0520833333333338e-03,  0.0000000000000000e+00,  3.7541666666666664e+01,  0.0000000000000000e+00, -5.0520833333333338e-03</GeoTransform>
+  <Metadata>
+    <MDI key="AREA_OR_POINT">Area</MDI>
+    <MDI key="DESCRIPTION">Mean air temperature climatology from WorldClim v2.1, derived from 1970–2000 monthly means averaged to an annual mean. Each pixel value is in degrees Celsius.</MDI>
+    <MDI key="LICENSE">CC BY 4.0 — attribute the original dataset listed under SOURCE.</MDI>
+    <MDI key="SOURCE">WorldClim v2.1 (Fick &amp; Hijmans 2017) — worldclim.org</MDI>
+    <MDI key="TITLE">Mean air temperature (1970–2000 climatology)</MDI>
+    <MDI key="UNITS">degree_Celsius</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Description>Mean air temperature (1970–2000)</Description>
+  </PAMRasterBand>
+</PAMDataset>

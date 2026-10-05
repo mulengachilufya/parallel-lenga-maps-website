@@ -1,0 +1,15 @@
+<PAMDataset>
+  <SRS dataAxisToSRSAxisMapping="2,1">GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]</SRS>
+  <GeoTransform>  2.4750003051012754e+01,  1.5125000225380063e-02,  0.0000000000000000e+00,  3.1649999726563692e+01,  0.0000000000000000e+00, -1.5125000225380063e-02</GeoTransform>
+  <Metadata>
+    <MDI key="AREA_OR_POINT">Area</MDI>
+    <MDI key="DESCRIPTION">Mean annual precipitation total derived from CHIRPS v2.0 daily rainfall, averaged over 1981–2023. Each pixel value is the long-term annual rainfall total in millimetres.</MDI>
+    <MDI key="LICENSE">CC BY 4.0 — attribute the original dataset listed under SOURCE.</MDI>
+    <MDI key="SOURCE">CHIRPS v2.0 (Funk et al. 2015) — climhazards.org/chirps</MDI>
+    <MDI key="TITLE">Annual rainfall total (1981–2023 mean)</MDI>
+    <MDI key="UNITS">mm/year</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Description>Mean annual rainfall total (1981–2023)</Description>
+  </PAMRasterBand>
+</PAMDataset>
