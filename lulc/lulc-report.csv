@@ -1,0 +1,3 @@
+iso3,country,status,tiles,size_mb,valid_pct,classes,palette,applied,key
+BDI,Burundi,PASS,4,53.1,99.9,8,True,False,
+STP,Sao Tome and Principe,PASS,2,0.9,99.8,9,True,False,
