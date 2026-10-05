@@ -1,7 +1,7 @@
 # Uptime watch, independent of the website and of Vercel.
 #
-# Every 15 minutes GitHub checks https://www.lengamaps.com/api/ops/ping
-# (database + sign-in). If it fails twice in a row, it opens an issue
+# Every 12 hours GitHub checks https://www.lengamaps.com/api/ops/ping
+# (database + sign-in). If it fails twice, a minute apart, it opens an issue
 # titled "Lenga Maps is down"; GitHub emails and notifies the repository
 # owner. When the site recovers, the issue is closed with a note.
 # No secrets needed.
@@ -10,7 +10,7 @@ name: Uptime
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7 6,18 * * *'  # 06:07 and 18:07 UTC (about 60 runs, 120 Actions minutes a month)
   workflow_dispatch:
 
 permissions:
@@ -51,7 +51,7 @@ jobs:
             }
             if (open.length) return
             await github.rest.issues.create({ ...context.repo, title, labels: ['site-down'], body: [
-              `The uptime check failed twice at ${new Date().toISOString()}.`, '',
+              `The uptime check failed twice (a minute apart) at ${new Date().toISOString()}.`, '',
               `Result: \`${process.env.DETAIL}\``, '',
               '**What to do**',
               '1. Open https://www.lengamaps.com/ops. If it loads, the Health tab says what is broken.',
