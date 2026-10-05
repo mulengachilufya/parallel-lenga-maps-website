@@ -1,51 +1,45 @@
 iso3,country,status,old_features,new_features,old_area_km2,new_area_km2,land_km2,share_pct,wdpa_pct,size_mb,categories,applied
-AGO,Angola,PASS,4,19,1568.22,126607.2,1282739,9.9,,0.89,National park 9; Nature reserve 8; IUCN/OSM class 4 1; Protected area 1,
-BDI,Burundi,PASS,1,9,0.7,1175.9,25048,4.7,,0.07,National park 7; Nature reserve 2,
-BEN,Benin,PASS,8,25,2667.9,17270.3,115454,15.0,,0.38,Nature reserve 13; National park 8; Protected area 3; IUCN/OSM class 4 1,
-BFA,Burkina Faso,PASS,20,36,10524.48,14734.3,273377,5.4,,0.37,Nature reserve 15; Protected area 14; National park 5; IUCN/OSM class 4 2,
-BWA,Botswana,PASS,49,141,82642.92,310178.2,578132,53.7,,2.65,Nature reserve 103; Protected area 17; National park 17; biosphere reserve 1; World Heritage Site 1,
-CAF,Central African Republic,PASS,5,53,6440.29,201015.4,619739,32.4,,2.06,Zone d'Interêt Cynégétique 23; Nature reserve 19; National park 11,
-CIV,Cote d'Ivoire,PASS,27,46,3384.36,24404.1,320677,7.6,,0.15,Protected area 26; National park 13; Nature reserve 4; IUCN/OSM class 6 1; Zone protégée d'intérêt touristique prioritaire d'Assinie 1970 1,
-CMR,Cameroon,PASS,15,69,7250.61,57538.8,465736,12.4,,1.2,National park 32; Nature reserve 13; Zone d'Interêt Cynégétique 11; IUCN/OSM class 6 5; IUCN/OSM class 4 3,
-COD,Democratic Republic of the Congo,PASS,5,43,86.86,194359.1,2308808,8.4,,1.57,National park 25; Nature reserve 13; Protected area 2; IUCN/OSM class 6 1; Reserve Floristique 1,
-COG,Congo,PASS,1,19,277.44,34446.1,343275,10.0,,0.35,National park 12; Nature reserve 7,
-CPV,Cabo Verde,PASS,15,15,251.47,221.1,4060,5.4,,0.04,National park 6; Nature reserve 6; Ilhéu Grande 1; Protected area 1; Reserva Natural 1,
-DZA,Algeria,CHECK: fewer features than before,22,21,1167.41,139860.3,2310020,6.1,,0.15,National park 10; Protected area 7; Nature reserve 3; IUCN/OSM class 22 1,
-EGY,Egypt,PASS,32,37,18299.55,67012.2,1000005,6.7,,0.18,National park 13; IUCN/OSM class 98 12; IUCN/OSM class 3 5; Nature reserve 3; Protected area 2,
-ERI,Eritrea,PASS,1,1,121.13,121.1,120393,0.1,,0.0,National park 1,
-ETH,Ethiopia,PASS,11,56,2581.2,65565.8,1126359,5.8,,0.37,National park 24; Nature reserve 19; IUCN/OSM class 4 9; IUCN/OSM class 6 4,
-GAB,Gabon,PASS,2,24,1241.32,32164.2,259093,12.4,,0.38,National park 18; Nature reserve 4; IUCN/OSM class 4 1; Protected area 1,
-GHA,Ghana,PASS,88,95,10530.49,20866.0,238761,8.7,,0.35,Forest Reserve 60; Nature reserve 16; National park 14; Protected area 2; Strict Nature Reserve 1,
-GIN,Guinea,PASS,6,16,2244.96,13457.4,244931,5.5,,0.18,National park 7; Nature reserve 6; Protected area 3,
-GMB,Gambia,PASS,22,51,188.26,529.2,10568,5.0,,0.04,Nature reserve 43; National park 8,
-GNB,Guinea-Bissau,PASS,11,14,5854.85,6532.4,35270,18.5,,0.52,National park 11; Nature reserve 1; community_managed_protected_area 1; protected_landscape 1,
-GNQ,Equatorial Guinea,PASS,1,11,322.64,5273.4,27032,19.5,,0.12,National park 8; Nature reserve 3,
-KEN,Kenya,PASS,308,421,126423.86,177583.6,590898,30.1,,2.61,Nature reserve 324; National park 48; IUCN/OSM class 15 29; Protected area 8; Marine Reserve 3,
-LBY,Libya,PASS,10,11,168.97,1368.7,1623759,0.1,,0.02,Nature reserve 9; National park 1; protected_site 1,
-LSO,Lesotho,PASS,9,13,31.6,131.0,30549,0.4,,0.04,Nature reserve 7; Protected area 3; National park 3,
-MAR,Morocco,PASS,68,83,6621.35,6897.3,682756,1.0,,0.11,Protected area 58; National park 12; Nature reserve 12; IUCN/OSM class 1 1,
-MDG,Madagascar,PASS,60,122,4894.34,24176.7,588528,4.1,,0.5,National park 61; Nature reserve 40; Protected area 16; IUCN/OSM class 6 1; Nouvelle Aire Protégée 1,
-MLI,Mali,PASS,12,13,85.31,146.3,1254307,0.0,,0.03,Nature reserve 10; Protected area 2; National park 1,
-MOZ,Mozambique,PASS,20,45,3527.3,113587.6,787269,14.4,,1.08,Nature reserve 35; National park 9; Protected area 1,
-MRT,Mauritania,PASS,2,5,10364.09,5186.5,1035115,0.5,,0.01,Nature reserve 2; National park 2; Protected area 1,
-MUS,Mauritius,CHECK: fewer features than before,11,9,6.84,137.4,1998,6.9,,0.01,Nature reserve 5; Protected area 3; National park 1,
-MWI,Malawi,PASS,39,50,7995.36,15124.4,95821,15.8,,0.17,Nature reserve 20; Protected area 17; National park 10; IUCN/OSM class 4 2; wildlife sanctuary 1,
-NAM,Namibia,PASS,55,174,44505.06,351534.0,825771,42.6,,0.81,Nature reserve 139; National park 20; Protected area 8; IUCN/OSM class 6 4; World Heritage Site 1,
-NER,Niger,PASS,6,15,179000.09,88670.4,1181732,7.5,,0.1,Nature reserve 6; National park 4; Protected area 3; military 1; IUCN/OSM class 98 1,
-NGA,Nigeria,PASS,27,42,5959.9,16923.3,912722,1.9,,0.19,Nature reserve 24; National park 9; Protected area 6; IUCN/OSM class 1 1; Wildlife Sanctuary 1,
-RWA,Rwanda,PASS,4,10,77.27,2140.1,23673,9.0,,0.16,National park 5; Nature reserve 4; Protected area 1,
-SDN,Sudan,PASS,10,21,0.07,31094.8,1871528,1.7,,0.02,Nature reserve 10; National park 6; Protected area 3; Zone d'Interêt Cynégétique 1; IUCN/OSM class 4 1,
-SEN,Senegal,PASS,13,65,214.44,43776.3,196691,22.3,,0.2,Nature reserve 58; National park 5; Protected area 2,
-SLE,Sierra Leone,PASS,7,13,177.85,944.2,72613,1.3,,0.01,Nature reserve 6; National park 5; Protected area 2,
-SOM,Somalia,CHECK: fewer features than before,3,1,9270.18,0.9,633043,0.0,,0.0,Protected area 1,
-SSD,South Sudan,PASS,4,36,20727.86,115386.2,632495,18.2,,0.52,Nature reserve 16; National park 13; Protected area 2; IUCN/OSM class 6 2; IUCN/OSM class 4 1,
-SWZ,Eswatini,PASS,19,26,1047.42,1363.9,17363,7.9,,0.04,Nature reserve 25; National park 1,
-SYC,Seychelles,CHECK: fewer features than before,5,3,24.37,71.0,481,14.8,,0.02,National park 2; Nature reserve 1,
-TCD,Chad,PASS,19,20,159452.88,207154.6,1273902,16.3,,0.18,Nature reserve 12; National park 5; Protected area 1; Zone d'Interêt Cynégétique 1; Réserve de chasse 1,
-TGO,Togo,PASS,6,9,4287.76,6474.4,56899,11.4,,0.06,Nature reserve 5; National park 3; Protected area 1,
-TUN,Tunisia,PASS,11,15,784.87,1253.5,155217,0.8,,0.04,Nature reserve 7; National park 7; IUCN/OSM class 98 1,
-TZA,Tanzania,PASS,69,152,48740.9,271910.8,889855,30.6,,3.0,Nature reserve 100; National park 28; Protected area 15; Forest Reserve 5; Kimaro home land 1,
-UGA,Uganda,PASS,364,672,7548.65,39138.1,209006,18.7,,4.84,Protected area 316; IUCN/OSM class 15 239; Nature reserve 25; Forest reserve 24; IUCN/OSM class 4 17,
-ZAF,South Africa,PASS,1042,1571,46758.94,204153.9,1220813,16.7,,4.81,Nature reserve 1381; Protected area 98; National park 54; IUCN/OSM class 5 10; Marine Protected Area 10,
-ZMB,Zambia,PASS,17,103,5620.32,295008.6,751174,39.3,,2.89,Game Management Area 35; Nature reserve 32; National park 29; Protected area 2; IUCN/OSM class 4 1,
-ZWE,Zimbabwe,PASS,42,112,13534.05,107640.2,390772,27.5,,1.35,Nature reserve 74; National park 24; Protected area 5; Forest Reserve 2; Game Management Area 2,
+AGO,Angola,PASS,4,19,1568.22,126607.2,1282739,9.9,,0.89,National park 9; Nature reserve 8; IUCN/OSM class 4 1; Protected area 1,True
+BDI,Burundi,PASS,1,9,0.7,1175.9,25048,4.7,,0.07,National park 7; Nature reserve 2,True
+BEN,Benin,PASS,8,25,2667.9,17270.3,115454,15.0,,0.38,Nature reserve 13; National park 8; Protected area 3; IUCN/OSM class 4 1,True
+BFA,Burkina Faso,PASS,20,36,10524.48,14734.3,273377,5.4,,0.37,Nature reserve 15; Protected area 14; National park 5; IUCN/OSM class 4 2,True
+BWA,Botswana,PASS,49,141,82642.92,310178.2,578132,53.7,,2.65,Nature reserve 103; Protected area 17; National park 17; biosphere reserve 1; World Heritage Site 1,True
+CAF,Central African Republic,PASS,5,53,6440.29,201015.4,619739,32.4,,2.06,Zone d'Interêt Cynégétique 23; Nature reserve 19; National park 11,True
+CIV,Cote d'Ivoire,PASS,27,46,3384.36,24404.1,320677,7.6,,0.15,Protected area 26; National park 13; Nature reserve 4; IUCN/OSM class 6 1; Zone protégée d'intérêt touristique prioritaire d'Assinie 1970 1,True
+CMR,Cameroon,PASS,15,69,7250.61,57538.8,465736,12.4,,1.2,National park 32; Nature reserve 13; Zone d'Interêt Cynégétique 11; IUCN/OSM class 6 5; IUCN/OSM class 4 3,True
+COD,Democratic Republic of the Congo,PASS,5,43,86.86,194359.1,2308808,8.4,,1.57,National park 25; Nature reserve 13; Protected area 2; IUCN/OSM class 6 1; Reserve Floristique 1,True
+COG,Congo,PASS,1,19,277.44,34446.1,343275,10.0,,0.35,National park 12; Nature reserve 7,True
+CPV,Cabo Verde,PASS,15,15,251.47,221.1,4060,5.4,,0.04,National park 6; Nature reserve 6; Ilhéu Grande 1; Protected area 1; Reserva Natural 1,True
+EGY,Egypt,PASS,32,37,18299.55,67012.2,1000005,6.7,,0.18,National park 13; IUCN/OSM class 98 12; IUCN/OSM class 3 5; Nature reserve 3; Protected area 2,True
+ERI,Eritrea,PASS,1,1,121.13,121.1,120393,0.1,,0.0,National park 1,True
+ETH,Ethiopia,PASS,11,56,2581.2,65565.8,1126359,5.8,,0.37,National park 24; Nature reserve 19; IUCN/OSM class 4 9; IUCN/OSM class 6 4,True
+GAB,Gabon,PASS,2,24,1241.32,32164.2,259093,12.4,,0.38,National park 18; Nature reserve 4; IUCN/OSM class 4 1; Protected area 1,True
+GHA,Ghana,PASS,88,95,10530.49,20866.0,238761,8.7,,0.35,Forest Reserve 60; Nature reserve 16; National park 14; Protected area 2; Strict Nature Reserve 1,True
+GIN,Guinea,PASS,6,16,2244.96,13457.4,244931,5.5,,0.18,National park 7; Nature reserve 6; Protected area 3,True
+GMB,Gambia,PASS,22,51,188.26,529.2,10568,5.0,,0.04,Nature reserve 43; National park 8,True
+GNB,Guinea-Bissau,PASS,11,14,5854.85,6532.4,35270,18.5,,0.52,National park 11; Nature reserve 1; community_managed_protected_area 1; protected_landscape 1,True
+GNQ,Equatorial Guinea,PASS,1,11,322.64,5273.4,27032,19.5,,0.12,National park 8; Nature reserve 3,True
+KEN,Kenya,PASS,308,421,126423.86,177583.6,590898,30.1,,2.61,Nature reserve 324; National park 48; IUCN/OSM class 15 29; Protected area 8; Marine Reserve 3,True
+LBY,Libya,PASS,10,11,168.97,1368.7,1623759,0.1,,0.02,Nature reserve 9; National park 1; protected_site 1,True
+LSO,Lesotho,PASS,9,13,31.6,131.0,30549,0.4,,0.04,Nature reserve 7; Protected area 3; National park 3,True
+MAR,Morocco,PASS,68,83,6621.35,6897.3,682756,1.0,,0.11,Protected area 58; National park 12; Nature reserve 12; IUCN/OSM class 1 1,True
+MDG,Madagascar,PASS,60,122,4894.34,24176.7,588528,4.1,,0.5,National park 61; Nature reserve 40; Protected area 16; IUCN/OSM class 6 1; Nouvelle Aire Protégée 1,True
+MLI,Mali,PASS,12,13,85.31,146.3,1254307,0.0,,0.03,Nature reserve 10; Protected area 2; National park 1,True
+MOZ,Mozambique,PASS,20,45,3527.3,113587.6,787269,14.4,,1.08,Nature reserve 35; National park 9; Protected area 1,True
+MWI,Malawi,PASS,39,50,7995.36,15124.4,95821,15.8,,0.17,Nature reserve 20; Protected area 17; National park 10; IUCN/OSM class 4 2; wildlife sanctuary 1,True
+NAM,Namibia,PASS,55,174,44505.06,351534.0,825771,42.6,,0.81,Nature reserve 139; National park 20; Protected area 8; IUCN/OSM class 6 4; World Heritage Site 1,True
+NGA,Nigeria,PASS,27,42,5959.9,16923.3,912722,1.9,,0.19,Nature reserve 24; National park 9; Protected area 6; IUCN/OSM class 1 1; Wildlife Sanctuary 1,True
+RWA,Rwanda,PASS,4,10,77.27,2140.1,23673,9.0,,0.16,National park 5; Nature reserve 4; Protected area 1,True
+SDN,Sudan,PASS,10,21,0.07,31094.8,1871528,1.7,,0.02,Nature reserve 10; National park 6; Protected area 3; Zone d'Interêt Cynégétique 1; IUCN/OSM class 4 1,True
+SEN,Senegal,PASS,13,65,214.44,43776.3,196691,22.3,,0.2,Nature reserve 58; National park 5; Protected area 2,True
+SLE,Sierra Leone,PASS,7,13,177.85,944.2,72613,1.3,,0.01,Nature reserve 6; National park 5; Protected area 2,True
+SSD,South Sudan,PASS,4,36,20727.86,115386.2,632495,18.2,,0.52,Nature reserve 16; National park 13; Protected area 2; IUCN/OSM class 6 2; IUCN/OSM class 4 1,True
+SWZ,Eswatini,PASS,19,26,1047.42,1363.9,17363,7.9,,0.04,Nature reserve 25; National park 1,True
+TCD,Chad,PASS,19,20,159452.88,207154.6,1273902,16.3,,0.18,Nature reserve 12; National park 5; Protected area 1; Zone d'Interêt Cynégétique 1; Réserve de chasse 1,True
+TGO,Togo,PASS,6,9,4287.76,6474.4,56899,11.4,,0.06,Nature reserve 5; National park 3; Protected area 1,True
+TUN,Tunisia,PASS,11,15,784.87,1253.5,155217,0.8,,0.04,Nature reserve 7; National park 7; IUCN/OSM class 98 1,True
+TZA,Tanzania,PASS,69,152,48740.9,271910.8,889855,30.6,,3.0,Nature reserve 100; National park 28; Protected area 15; Forest Reserve 5; Kimaro home land 1,True
+UGA,Uganda,PASS,364,672,7548.65,39138.1,209006,18.7,,4.84,Protected area 316; IUCN/OSM class 15 239; Nature reserve 25; Forest reserve 24; IUCN/OSM class 4 17,True
+ZAF,South Africa,PASS,1042,1571,46758.94,204153.9,1220813,16.7,,4.81,Nature reserve 1381; Protected area 98; National park 54; IUCN/OSM class 5 10; Marine Protected Area 10,True
+ZMB,Zambia,PASS,17,103,5620.32,295008.6,751174,39.3,,2.89,Game Management Area 35; Nature reserve 32; National park 29; Protected area 2; IUCN/OSM class 4 1,True
+ZWE,Zimbabwe,PASS,42,112,13534.05,107640.2,390772,27.5,,1.35,Nature reserve 74; National park 24; Protected area 5; Forest Reserve 2; Game Management Area 2,True
