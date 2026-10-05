@@ -23,6 +23,8 @@ Per country:
      a new country), copy it to the web/ key the workspace streams from, and
      update or add the lulc_layers row. Only countries that pass.
 
+Each replaced file is first copied to archive/ (see r2_archive.py).
+
 Usage: rebuild-lulc.py [--only ISO3,ISO3] [--apply]
 """
 from __future__ import annotations
@@ -33,6 +35,8 @@ import boto3
 from boto3.s3.transfer import TransferConfig
 from botocore.config import Config
 from osgeo import gdal, ogr, osr
+
+from r2_archive import archive
 
 gdal.UseExceptions()
 _spec = importlib.util.spec_from_file_location('verify', os.path.join(os.path.dirname(__file__), 'verify-datasets.py'))
@@ -155,7 +159,7 @@ def main():
         if str(r.get('admin_level')) == '0' and r.get('country_code'):
             adm0[str(r['country_code']).upper()] = r
     existing = {}
-    for r in sb('lulc_layers?select=id,country,r2_key'):
+    for r in sb('lulc_layers?select=*'):
         iso = ISO3.get(norm(r['country']))
         if iso:
             existing[iso] = r
@@ -215,8 +219,10 @@ def main():
                 if not key.lower().endswith('.tif'):
                     key = f'lulc/{folder}/{folder}_LULC.tif'
                 cfg = TransferConfig(multipart_chunksize=64 * 1024 * 1024, max_concurrency=8)
-                s3.upload_file(out, bucket, key, ExtraArgs={'ContentType': 'image/tiff'}, Config=cfg)
                 web = 'web/' + re.sub(r'\.(zip|tiff?)$', '', key, flags=re.I) + '.cog.tif'
+                archive(s3, bucket, key, 'lulc', row)
+                archive(s3, bucket, web, 'lulc')
+                s3.upload_file(out, bucket, key, ExtraArgs={'ContentType': 'image/tiff'}, Config=cfg)
                 s3.upload_file(out, bucket, web, ExtraArgs={'ContentType': 'image/tiff'}, Config=cfg)
                 body = {'r2_key': key, 'file_size_mb': round(size_mb, 4), 'file_format': 'GeoTIFF (COG)',
                         'source': 'ESA WorldCover 2021 v200', 'resolution': '10m', 'epsg': 4326}

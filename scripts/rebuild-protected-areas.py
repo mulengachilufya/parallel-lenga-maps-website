@@ -34,6 +34,8 @@ import boto3
 from botocore.config import Config
 from osgeo import gdal, ogr, osr
 
+from r2_archive import archive
+
 gdal.UseExceptions()
 ogr.UseExceptions()
 
@@ -312,6 +314,7 @@ def main():
         print(json.dumps(rec), flush=True)
 
         if a.apply and status == 'PASS':
+            archive(s3, bucket, row['r2_key'], 'protected-areas', row)
             s3.upload_file(zpath, bucket, row['r2_key'], ExtraArgs={'ContentType': 'application/zip'})
             sb(f"protected_areas_layers?r2_key=eq.{urllib.parse.quote(row['r2_key'])}", 'PATCH', {
                 'feature_count': n, 'total_area_km2': round(covered, 1), 'file_size_mb': round(size_mb, 2),

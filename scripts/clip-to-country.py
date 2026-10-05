@@ -19,6 +19,8 @@ import argparse, csv, importlib.util, json, os, shutil, sys, tempfile, urllib.re
 
 from osgeo import gdal, ogr, osr
 
+from r2_archive import archive
+
 gdal.UseExceptions(); ogr.UseExceptions()
 _spec = importlib.util.spec_from_file_location('verify', os.path.join(os.path.dirname(__file__), 'verify-datasets.py'))
 _v = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_v)
@@ -131,6 +133,7 @@ def main():
                     body = os.path.join(work, 'out.zip')
                     with zipfile.ZipFile(body, 'w', zipfile.ZIP_DEFLATED) as z:
                         z.write(out, os.path.basename(path).rsplit('.', 1)[0] + '.gpkg')
+                archive(s3, bucket, key, a.table, row)
                 s3.upload_file(body, bucket, key)
                 sb(f"{a.table}?id=eq.{row['id']}", 'PATCH', {'feature_count': n, 'file_size_mb': round(os.path.getsize(body) / 1e6, 4)})
                 rec['applied'] = True
