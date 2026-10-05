@@ -43,13 +43,38 @@ TABLES = {
 RULE = {
     'admin-boundaries': 'tile', 'soil': 'tile', 'population': 'tile', 'hydrology:watersheds': 'tile',
     'hydrology:rivers': 'network', 'roads': 'network',
-    'hydrology:lakes': 'features', 'hydrology:wetlands': 'features', 'aquifer': 'features', 'protected-areas': 'features',
+    # Lakes on a border (Malawi, Victoria, Kivu, Tanganyika) are kept whole, so
+    # most of their area can lie outside: check that each one touches the country.
+    'hydrology:lakes': 'shared', 'hydrology:wetlands': 'features', 'aquifer': 'features', 'protected-areas': 'features',
 }
 # Plausible ranges for rasters (after nodata is removed).
 RANGES = {
+    # Most specific first: a drought file's key can also contain "rainfall".
+    'spi': (-6, 6), 'drought': (-6, 6),
     'rainfall': (0, 12000), 'precip': (0, 12000), 'temperature': (-30, 60), 'temp': (-30, 60),
-    'spi': (-6, 6), 'drought': (-6, 6), 'lulc': (0, 255), 'dem': (-500, 6000), 'elevation': (-500, 6000),
+    'lulc': (0, 255), 'dem': (-500, 6000), 'elevation': (-500, 6000),
 }
+# Every spelling the tables use, normalised, to ISO3. Territories with no
+# geoBoundaries outline (Bir Tawil) stay unmatched and are reported as such.
+ISO3 = {
+    'algeria': 'DZA', 'angola': 'AGO', 'benin': 'BEN', 'botswana': 'BWA', 'burkinafaso': 'BFA', 'burundi': 'BDI',
+    'caboverde': 'CPV', 'capeverde': 'CPV', 'cameroon': 'CMR', 'centralafricanrepublic': 'CAF',
+    'centralafricarepublic': 'CAF', 'centralafricanrep': 'CAF', 'car': 'CAF', 'chad': 'TCD', 'comoros': 'COM',
+    'congo': 'COG', 'republicofthecongo': 'COG', 'congobrazzaville': 'COG', 'democraticrepublicofthecongo': 'COD',
+    'democraticrepublicofcongo': 'COD', 'drcongo': 'COD', 'demrepcongo': 'COD', 'drc': 'COD',
+    'cotedivoire': 'CIV', 'ctedivoire': 'CIV', 'ivorycoast': 'CIV', 'djibouti': 'DJI', 'egypt': 'EGY',
+    'equatorialguinea': 'GNQ', 'eqguinea': 'GNQ', 'eritrea': 'ERI', 'eswatini': 'SWZ', 'swaziland': 'SWZ',
+    'ethiopia': 'ETH', 'gabon': 'GAB', 'gambia': 'GMB', 'thegambia': 'GMB', 'ghana': 'GHA', 'guinea': 'GIN',
+    'guineabissau': 'GNB', 'kenya': 'KEN', 'lesotho': 'LSO', 'liberia': 'LBR', 'libya': 'LBY',
+    'madagascar': 'MDG', 'malawi': 'MWI', 'mali': 'MLI', 'mauritania': 'MRT', 'mauritius': 'MUS',
+    'morocco': 'MAR', 'mozambique': 'MOZ', 'namibia': 'NAM', 'niger': 'NER', 'nigeria': 'NGA', 'rwanda': 'RWA',
+    'saotomeandprincipe': 'STP', 'saotome': 'STP', 'senegal': 'SEN', 'seychelles': 'SYC', 'sierraleone': 'SLE',
+    'somalia': 'SOM', 'southafrica': 'ZAF', 'southsudan': 'SSD', 'ssudan': 'SSD', 'sudan': 'SDN',
+    'tanzania': 'TZA', 'unitedrepublicoftanzania': 'TZA', 'togo': 'TGO', 'tunisia': 'TUN', 'uganda': 'UGA',
+    'zambia': 'ZMB', 'zimbabwe': 'ZWE', 'westernsahara': 'ESH', 'wsahara': 'ESH',
+}
+# Not in geoBoundaries as their own unit: compare with the country that holds them.
+PART_OF = {'somaliland': 'SOM'}
 WORLDCOVER = {10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100}
 EA = 6933
 CELL = 0.25
@@ -105,18 +130,26 @@ def inner(path, work):
     return None
 
 
-def outline_for(country, adm0, s3, bucket, cache):
+def outline_for(country, adm0, s3, bucket, cache, iso=None):
     k = norm(country)
-    if k in cache:
-        return cache[k]
-    row = adm0.get(k)
+    iso = (iso or ISO3.get(k) or PART_OF.get(k) or '').upper()
+    ck = iso or k
+    if ck in cache:
+        return cache[ck]
+    row = adm0.get(iso) or adm0.get(k)
     g = None
     try:
         if row:
             work = tempfile.mkdtemp()
             p = os.path.join(work, 'a.zip'); s3.download_file(bucket, row['r2_key'], p)
             ds = ogr.Open(f'/vsizip/{p}')
+        elif iso:
+            # Not in the admin boundaries table: take it straight from geoBoundaries.
+            ds = ogr.Open(f'/vsicurl/https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/{iso}/ADM0/geoBoundaries-{iso}-ADM0.geojson')
         else:
+            ds = None
+        if ds is None:
+            cache[ck] = None
             return None
         for f in ds.GetLayer(0):
             gg = f.GetGeometryRef().Clone()
@@ -125,7 +158,7 @@ def outline_for(country, adm0, s3, bucket, cache):
             g = g.MakeValid()
     except Exception as e:  # noqa: BLE001
         print('  outline failed', country, e)
-    cache[k] = g
+    cache[ck] = g
     return g
 
 
@@ -189,6 +222,8 @@ def check_vector(path, outline, rule):
         ins = km2(u.Intersection(outline))
         land = km2(outline)
         facts.update(inside=round(ins / tot, 3), coverage=round(ins / land, 3), area_km2=round(tot))
+        if rule == 'shared':
+            facts['inside'] = round(sum(1 for g in geoms if g.Intersects(outline)) / n, 3)
     else:
         cells = grid_cells(outline)
         if kind == 'line':
@@ -211,7 +246,7 @@ def check_vector(path, outline, rule):
             facts['coverage'] = round(hit / len(cells), 3)
 
     problems = []
-    if facts.get('inside', 1) < 0.85 and rule != 'features':
+    if facts.get('inside', 1) < 0.85 and rule not in ('features', 'shared'):
         problems.append(f"only {facts['inside']:.0%} inside the country")
     elif facts.get('inside', 1) < 0.6:
         problems.append(f"only {facts['inside']:.0%} inside the country")
@@ -273,9 +308,11 @@ def check_raster(path, outline, label):
             if odd:
                 problems.append(f'classes not in WorldCover: {sorted(odd)[:8]}')
             facts['classes'] = len(classes)
-    if frac < 0.9:
+    if outline is None:
+        problems.append('no country outline to compare with')
+    elif frac < 0.9:
         problems.append(f'data covers only {frac:.0%} of the country')
-    status = 'FAIL' if frac < 0.7 or 'no CRS' in problems else ('CHECK' if problems else 'PASS')
+    status = 'FAIL' if (outline is not None and frac < 0.7) or 'no CRS' in problems else ('CHECK' if problems else 'PASS')
     # Preview
     try:
         os.makedirs(os.path.dirname(PREVIEW[0]), exist_ok=True)
@@ -332,6 +369,8 @@ def main():
     for r in rows('admin_boundaries'):
         if str(r.get('admin_level')) == '0':
             adm0[norm(r['country'])] = r
+            if r.get('country_code'):
+                adm0[str(r['country_code']).upper()] = r
     files = []
     for t, ds in TABLES.items():
         for r in rows(t):
@@ -352,7 +391,7 @@ def main():
         rule = RULE.get(label) or RULE.get(label.split(':')[0]) or ('tile' if label.startswith('admin-boundaries') else 'features')
         status, note, facts = 'CHECK', '', {}
         try:
-            outline = outline_for(country, adm0, s3, bucket, cache)
+            outline = outline_for(country, adm0, s3, bucket, cache, r.get('iso3') or r.get('country_code'))
             png = os.path.join('previews', re.sub(r'[^a-zA-Z0-9_-]', '_', label), re.sub(r'[^a-zA-Z0-9_-]', '_', country) + '.png')
             if key.lower().endswith(('.tif', '.tiff')):
                 web = 'web/' + re.sub(r'\.(zip|tiff?)$', '', key, flags=re.I) + '.cog.tif'
