@@ -5,6 +5,7 @@
 // won deals) so both follow the same rules.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendEmail, teamInviteEmail } from './email'
 
 export interface ProvisionInput {
   name:        string
@@ -18,22 +19,18 @@ export interface ProvisionInput {
 }
 
 export type ProvisionResult =
-  | { ok: true; org: Record<string, unknown> & { id: string } }
+  | { ok: true; org: Record<string, unknown> & { id: string }; invited?: boolean; emailSent?: boolean }
   | { ok: false; status: number; error: string; message: string }
 
 export async function provisionOrg(db: SupabaseClient, input: ProvisionInput): Promise<ProvisionResult> {
   const ownerEmail = input.ownerEmail.trim().toLowerCase()
 
-  // The owner must already have an account: provisioning attaches a seat to
-  // an existing profile, it does not create logins.
+  // An owner with an account gets the seat now; one without is invited.
   const { data: profile } = await db
     .from('profiles')
     .select('id, email, full_name, org_id')
     .ilike('email', ownerEmail)
     .maybeSingle()
-  if (!profile) {
-    return { ok: false, status: 404, error: 'owner_not_found', message: `No Lenga Maps account exists for ${ownerEmail}. Ask them to sign up first.` }
-  }
 
   const { data: org, error: orgErr } = await db
     .from('organizations')
@@ -52,6 +49,19 @@ export async function provisionOrg(db: SupabaseClient, input: ProvisionInput): P
   if (orgErr || !org) {
     console.error('[teams-admin] create failed:', orgErr)
     return { ok: false, status: 500, error: 'create_failed', message: orgErr?.message ?? 'Could not create the organization.' }
+  }
+
+  // No account yet: the owner gets an emailed invite. Signing up from its
+  // link makes them the owner, on the plan this team was given.
+  if (!profile) {
+    const { data: invite, error: invErr } = await db.from('organization_invites')
+      .insert({ org_id: org.id, email: ownerEmail, role: 'owner' }).select('token').single()
+    if (invErr || !invite) {
+      await db.from('organizations').delete().eq('id', org.id)
+      return { ok: false, status: 500, error: 'invite_failed', message: invErr?.message ?? 'Could not invite the owner.' }
+    }
+    const emailSent = await sendEmail(teamInviteEmail(ownerEmail, org.name, 'Lenga Maps', invite.token)).catch(() => false)
+    return { ok: true, org, invited: true, emailSent }
   }
 
   const { error: memErr } = await db.from('organization_members').insert({

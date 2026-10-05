@@ -11,9 +11,9 @@
  * (the API flips their plan_status); reactivating restores it.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, ArrowLeft, RefreshCw, Crown, Mail, Plus } from 'lucide-react'
+import { Loader2, ArrowLeft, RefreshCw, Crown, Mail, Plus, CheckCircle2, AlertCircle, Minus } from 'lucide-react'
 import { TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, isTeamTerm, teamPrice, type TeamTerm } from '@/lib/pricing'
 
 /** Which term was paid for: month, quarter or year. null = cancelled. */
@@ -47,6 +47,15 @@ export default function AdminOrgsPage() {
   const [forbidden, setForbidden] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [msg, setMsg] = useState('')
+  const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /** Confirmation (or error) that stays on screen for a few seconds. */
+  function notify(ok: boolean, text: string) {
+    setToast({ ok, text })
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), ok ? 4500 : 9000)
+  }
 
   async function load() {
     const res = await fetch('/api/admin/orgs', { cache: 'no-store' })
@@ -56,27 +65,26 @@ export default function AdminOrgsPage() {
   }
   useEffect(() => { load() }, [])
 
-  async function patch(id: string, changes: Record<string, unknown>) {
+  async function patch(id: string, changes: Record<string, unknown>, okText = 'Saved.'): Promise<boolean> {
     setMsg('')
     const res = await fetch('/api/admin/orgs', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...changes }),
-    })
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}))
-      setMsg(j.message ?? 'Update failed.')
-    }
+    }).catch(() => null)
+    if (!res?.ok) {
+      const j = await res?.json().catch(() => ({})) ?? {}
+      notify(false, j.message ?? 'That did not save. Try again.')
+    } else notify(true, okText)
     await load()
+    return !!res?.ok
   }
 
   /** Admin write to a team; shows the error, reloads. True when it worked. */
-  async function call(url: string, method: string, body: Record<string, unknown>): Promise<boolean> {
+  async function call(url: string, method: string, body: Record<string, unknown>, okText = 'Done.'): Promise<boolean> {
     setMsg('')
     const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null)
-    if (!res?.ok) {
-      const j = await res?.json().catch(() => ({})) ?? {}
-      setMsg(j.message ?? 'That did not work. Try again.')
-    }
+    const j = await res?.json().catch(() => ({})) ?? {}
+    notify(!!res?.ok, j.message ?? (res?.ok ? okText : 'That did not work. Try again.'))
     await load()
     return !!res?.ok
   }
@@ -119,8 +127,17 @@ export default function AdminOrgsPage() {
         </div>
 
         {msg && <p className="mt-4 text-sm text-red-600">{msg}</p>}
+        {toast && (
+          <div role="status" aria-live="polite"
+               className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-2.5 max-w-lg w-[calc(100%-2rem)] rounded-xl px-4 py-3 text-sm font-medium shadow-2xl ${
+                 toast.ok ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+            {toast.ok ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <AlertCircle size={18} className="shrink-0 mt-0.5" />}
+            <span className="flex-1">{toast.text}</span>
+            <button onClick={() => setToast(null)} className="opacity-80 hover:opacity-100" aria-label="Close">✕</button>
+          </div>
+        )}
 
-        {showCreate && <CreateOrgForm onDone={() => { setShowCreate(false); load() }} />}
+        {showCreate && <CreateOrgForm onDone={(m) => { setShowCreate(false); notify(true, m); load() }} />}
 
         {/* Promo-email helper: copy-ready list of opted-in member addresses. */}
         {promoList.length > 0 && (
@@ -180,21 +197,21 @@ export default function AdminOrgsPage() {
                         const term = askTerm()
                         if (!term) return
                         const price = Number(prompt(`Amount paid, USD ${TEAM_TERMS[term].per}`, String(teamPrice(seats, term))))
-                        patch(o.id, { upgrade: true, seat_count: seats, term, ...(Number.isFinite(price) ? { monthly_price_usd: price } : {}) })
+                        patch(o.id, { upgrade: true, seat_count: seats, term, ...(Number.isFinite(price) ? { monthly_price_usd: price } : {}) }, `${o.name} is now a paid team with ${seats} seats and every dataset.`)
                       }}
                       className="rounded-lg bg-[#0D2B45] text-white px-2.5 py-1.5 text-xs font-semibold"
                     >Upgrade to paid</button>
                   )}
                   {o.plan !== 'free' && o.access_expires_at && (
                     <button
-                      onClick={() => { const term = askTerm(); if (term && confirm(`Record a renewal payment for ${o.name}? Adds ${TEAM_TERMS[term].label.toLowerCase()} of access for every member.`)) patch(o.id, { extend: true, term }) }}
+                      onClick={() => { const term = askTerm(); if (term && confirm(`Record a renewal payment for ${o.name}? Adds ${TEAM_TERMS[term].label.toLowerCase()} of access for every member.`)) patch(o.id, { extend: true, term }, `${o.name}: ${TEAM_TERMS[term].label.toLowerCase()} added for every member.`) }}
                       className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-gray-50"
                     >Record renewal</button>
                   )}
                   <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer">
                     <input
                       type="checkbox" checked={o.promo_emails}
-                      onChange={(e) => patch(o.id, { promo_emails: e.target.checked })}
+                      onChange={(e) => patch(o.id, { promo_emails: e.target.checked }, e.target.checked ? 'Promo emails on.' : 'Promo emails off.')}
                     />
                     promo emails
                   </label>
@@ -203,7 +220,7 @@ export default function AdminOrgsPage() {
                     onChange={(e) => {
                       const v = e.target.value
                       if (v !== 'active' && !confirm(`Set ${o.name} to ${v}? Every member loses download access immediately.`)) { load(); return }
-                      patch(o.id, { status: v })
+                      patch(o.id, { status: v }, `${o.name} is now ${v}.${v === 'active' ? ' Members have access again.' : ' Members lost download access.'}`)
                     }}
                     className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs bg-white"
                   >
@@ -211,15 +228,10 @@ export default function AdminOrgsPage() {
                     <option value="suspended">suspended</option>
                     <option value="cancelled">cancelled</option>
                   </select>
-                  <input
-                    type="number" min={1} defaultValue={o.seat_count}
-                    onBlur={(e) => {
-                      const v = Number(e.target.value)
-                      if (v !== o.seat_count && v >= o.members.length) patch(o.id, { seat_count: v })
-                      else if (v < o.members.length) { setMsg(`Cannot set ${o.name} below ${o.members.length} seats (members would exceed the cap).`); e.target.value = String(o.seat_count) }
-                    }}
-                    className="w-16 rounded-lg border border-gray-200 px-2 py-1.5 text-xs"
-                    title="Seat count (applies on blur)"
+                  <SeatsControl
+                    key={`${o.id}-${o.seat_count}`}
+                    seats={o.seat_count} min={Math.max(1, o.members.length)} max={o.plan === 'free' ? 2 : 500}
+                    onSave={(v) => patch(o.id, { seat_count: v }, `${o.name} now has ${v} seats. Their team page shows it straight away.`)}
                   />
                 </div>
               </div>
@@ -243,7 +255,7 @@ export default function AdminOrgsPage() {
                         <td className="py-1.5 text-right">
                           {m.role !== 'owner' && (
                             <button
-                              onClick={() => { if (confirm(`Remove ${m.member_email ?? 'this person'} from ${o.name}? They leave its projects too.`)) void call('/api/admin/orgs/members', 'DELETE', { org_id: o.id, user_id: m.user_id }) }}
+                              onClick={() => { if (confirm(`Remove ${m.member_email ?? 'this person'} from ${o.name}? They leave its projects too.`)) void call('/api/admin/orgs/members', 'DELETE', { org_id: o.id, user_id: m.user_id }, 'Removed.') }}
                               className="text-red-600 font-semibold hover:underline"
                             >Remove</button>
                           )}
@@ -256,24 +268,18 @@ export default function AdminOrgsPage() {
                         <td className="py-1.5">{i.email}</td>
                         <td className="py-1.5">member</td>
                         <td className="py-1.5">—</td>
-                        <td />
+                        <td className="py-1.5 text-right">
+                          <button
+                            onClick={() => { if (confirm(`Cancel the invite to ${i.email}?`)) void call('/api/admin/orgs/members', 'DELETE', { org_id: o.id, invite_id: i.id }, 'Invite cancelled.') }}
+                            className="text-red-600 font-semibold hover:underline"
+                          >Cancel invite</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <form
-                  className="mt-3 flex flex-wrap items-center gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    const input = e.currentTarget.elements.namedItem('email') as HTMLInputElement
-                    const email = input.value.trim()
-                    if (email) void call('/api/admin/orgs/members', 'POST', { org_id: o.id, email }).then((ok) => { if (ok) input.value = '' })
-                  }}
-                >
-                  <input name="email" type="email" placeholder="Add a person by email (they need an account)" className="flex-1 min-w-[220px] rounded-lg border border-gray-200 px-3 py-1.5 text-xs" />
-                  <button className="rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold">Add to team</button>
-                </form>
-                <ProjectsPanel orgId={o.id} />
+                <AddPerson onAdd={(email) => call('/api/admin/orgs/members', 'POST', { org_id: o.id, email }, `${email} added.`)} />
+                <ProjectsPanel orgId={o.id} notify={notify} onChange={load} />
               </div>
             </div>
           ))}
@@ -283,7 +289,7 @@ export default function AdminOrgsPage() {
   )
 }
 
-function CreateOrgForm({ onDone }: { onDone: () => void }) {
+function CreateOrgForm({ onDone }: { onDone: (message: string) => void }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -298,7 +304,7 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setErr(j.message ?? 'Create failed.'); return }
-      onDone()
+      onDone(j.message ?? 'Team created.')
     } catch { setErr('Network error.') } finally { setBusy(false) }
   }
 
@@ -308,7 +314,7 @@ function CreateOrgForm({ onDone }: { onDone: () => void }) {
       <h2 className="sm:col-span-2 text-sm font-bold text-gray-900">Provision a new organization</h2>
       <div><label className="text-xs text-gray-500">Org name *</label><input name="name" required className={field} /></div>
       <div>
-        <label className="text-xs text-gray-500">Owner email * (must have an account)</label>
+        <label className="text-xs text-gray-500">Owner email * (no account yet? they get an invite)</label>
         <input name="owner_email" type="email" required className={field} />
       </div>
       <div><label className="text-xs text-gray-500">Seats *</label><input name="seat_count" type="number" min={1} defaultValue={TEAM_MIN_SEATS} required className={field} /></div>
@@ -339,7 +345,7 @@ interface AdminProject {
 }
 
 /** A team's projects and everyone's role on each; the admin can change any of them. */
-function ProjectsPanel({ orgId }: { orgId: string }) {
+function ProjectsPanel({ orgId, notify, onChange }: { orgId: string; notify: (ok: boolean, text: string) => void; onChange: () => void }) {
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<AdminProject[] | null>(null)
   const [err, setErr] = useState('')
@@ -356,8 +362,20 @@ function ProjectsPanel({ orgId }: { orgId: string }) {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project_id: projectId, user_id: userId, role }),
     }).catch(() => null)
-    if (!res?.ok) setErr((await res?.json().catch(() => ({})))?.message ?? 'Could not change that role.')
+    if (!res?.ok) notify(false, (await res?.json().catch(() => ({})))?.message ?? 'Could not change that role.')
+    else notify(true, role === 'none' ? 'Taken off the project.' : `Role saved: ${role}.`)
     await load()
+  }
+
+  async function invite(projectId: string, email: string, role: string): Promise<boolean> {
+    const res = await fetch('/api/admin/orgs/members', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ org_id: orgId, email, project_id: projectId, project_role: role }),
+    }).catch(() => null)
+    const j = await res?.json().catch(() => ({})) ?? {}
+    notify(!!res?.ok, j.message ?? (res?.ok ? 'Done.' : 'That did not work. Try again.'))
+    await load(); onChange()
+    return !!res?.ok
   }
 
   return (
@@ -395,10 +413,68 @@ function ProjectsPanel({ orgId }: { orgId: string }) {
                   </div>
                 ))}
               </div>
+              <AddPerson compact roles onAdd={(email, role) => invite(p.id, email, role ?? 'editor')} />
             </div>
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+/** − n + seat control; Save appears once the number changes. */
+function SeatsControl({ seats, min, max, onSave }: { seats: number; min: number; max: number; onSave: (n: number) => Promise<boolean> }) {
+  const [n, setN] = useState(seats)
+  const [busy, setBusy] = useState(false)
+  const btn = 'w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30'
+  return (
+    <div className="flex items-center gap-1.5" title="Seats">
+      <button type="button" className={btn} disabled={n <= min || busy} onClick={() => setN(n - 1)} aria-label="One seat fewer"><Minus size={13} /></button>
+      <span className="min-w-[4.2rem] text-center text-xs font-bold tabular-nums">{n} seats</span>
+      <button type="button" className={btn} disabled={n >= max || busy} onClick={() => setN(n + 1)} aria-label="One seat more"><Plus size={13} /></button>
+      {n !== seats && (
+        <button
+          type="button" disabled={busy}
+          onClick={async () => { setBusy(true); const ok = await onSave(n); setBusy(false); if (!ok) setN(seats) }}
+          className="rounded-md bg-emerald-600 text-white px-2.5 py-1.5 text-xs font-bold disabled:opacity-60"
+        >{busy ? 'Saving…' : 'Save'}</button>
+      )}
+    </div>
+  )
+}
+
+/** Email box that adds someone (or invites them when they have no account). */
+function AddPerson({ onAdd, compact = false, roles = false }: {
+  onAdd: (email: string, role?: string) => Promise<boolean>; compact?: boolean; roles?: boolean
+}) {
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('editor')
+  const [busy, setBusy] = useState(false)
+  return (
+    <form
+      className={`${compact ? 'mt-2.5' : 'mt-3'} flex flex-wrap items-center gap-2`}
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (!email.trim() || busy) return
+        setBusy(true)
+        const ok = await onAdd(email.trim(), roles ? role : undefined)
+        setBusy(false)
+        if (ok) setEmail('')
+      }}
+    >
+      <input
+        type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+        placeholder={compact ? 'Invite to this project by email' : 'Add a person by email (no account? they get an invite)'}
+        className="flex-1 min-w-[220px] rounded-lg border border-gray-200 px-3 py-1.5 text-xs"
+      />
+      {roles && (
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs">
+          <option value="viewer">Viewer</option><option value="editor">Editor</option><option value="manager">Manager</option>
+        </select>
+      )}
+      <button disabled={busy || !email.trim()} className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 text-white px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+        {busy && <Loader2 size={12} className="animate-spin" />}{busy ? 'Working…' : compact ? 'Add to project' : 'Add to team'}
+      </button>
+    </form>
   )
 }
