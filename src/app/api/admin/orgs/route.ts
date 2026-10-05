@@ -97,8 +97,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error, message: result.message }, { status: result.status })
   }
   const org = result.org
-
-  return NextResponse.json({ ok: true, org })
+  const message = result.invited
+    ? `${name} created. ${ownerEmail} has no account yet, so ${result.emailSent ? 'we emailed them an invite' : 'an invite was saved (the email failed)'}; they become the owner when they sign up from it.`
+    : `${name} created with ${ownerEmail} as owner.`
+  return NextResponse.json({ ok: true, org, message })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -144,6 +146,22 @@ export async function PATCH(req: NextRequest) {
 
   if (Object.keys(changes).length === 0) {
     return NextResponse.json({ error: 'validation', message: 'No valid changes.' }, { status: 400 })
+  }
+
+  // Seats: never below the people already on the team, and a free team
+  // stays at 2 until it is upgraded to paid.
+  if ('seat_count' in changes) {
+    const [{ data: cur }, { count: used }] = await Promise.all([
+      service.from('organizations').select('plan').eq('id', id).maybeSingle(),
+      service.from('organization_members').select('user_id', { count: 'exact', head: true }).eq('org_id', id),
+    ])
+    const seats = changes.seat_count as number
+    if (cur?.plan === 'free' && seats > 2) {
+      return NextResponse.json({ error: 'validation', message: 'A free team has 2 seats. Use "Upgrade to paid" to give it more.' }, { status: 400 })
+    }
+    if (seats < (used ?? 0)) {
+      return NextResponse.json({ error: 'validation', message: `This team has ${used} members, so it needs at least ${used} seats. Remove someone first.` }, { status: 400 })
+    }
   }
 
   const { error } = await service.from('organizations').update(changes).eq('id', id)

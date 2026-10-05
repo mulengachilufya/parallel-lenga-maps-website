@@ -740,7 +740,7 @@ function TeamDialog({ account, action, contacts, hasTeam, onClose, onDone }: {
             : 'If this person already started a free team, that team is upgraded. Otherwise a new team is created with them as owner. Either way, the paid term starts today.'}
         </p>
         {needOwner && (
-          <Field label="Team owner" hint="They need a Lenga Maps account with this email. If not, ask them to sign up first (it is free).">
+          <Field label="Team owner" hint="No account yet? They get an emailed invite and become the owner when they sign up.">
             <select className={inputCls} value={contactId} onChange={(e) => setContactId(e.target.value)}>
               {withEmail.length === 0 && <option value="">Add a contact with an email first</option>}
               {withEmail.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}

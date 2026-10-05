@@ -64,6 +64,15 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ invites })
 }
 
+/** An invite made for a project also gives its role on that project. */
+async function joinInvitedProject(invite: { project_id?: string | null; project_role?: string | null }, userId: string) {
+  if (!invite.project_id) return
+  const { error } = await service.from('workspace_project_members').upsert({
+    project_id: invite.project_id, user_id: userId, role: invite.project_role ?? 'editor',
+  })
+  if (error) console.error('[team/join] project role failed', error)
+}
+
 export async function POST(req: NextRequest) {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
@@ -81,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   const q = service
     .from('organization_invites')
-    .select('id, org_id, email, role, status, organizations!inner(name, status, access_expires_at, plan)')
+    .select('id, org_id, email, role, status, project_id, project_role, organizations!inner(name, status, access_expires_at, plan)')
   const { data: invite } = await (token ? q.eq('token', token) : q.eq('id', inviteId)).maybeSingle()
 
   if (!invite || !['pending', 'accepted'].includes(invite.status)) {
@@ -107,6 +116,7 @@ export async function POST(req: NextRequest) {
     if (invite.status === 'pending') {
       await service.from('organization_invites').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', invite.id)
     }
+    await joinInvitedProject(invite, user.id)
     return NextResponse.json({ ok: true, org_name: org.name })
   }
   if (invite.status !== 'pending') {
@@ -158,6 +168,7 @@ export async function POST(req: NextRequest) {
     org.plan === 'free' ? Promise.resolve() : service.from('profiles')
       .update({ plan: 'team', plan_status: 'active', plan_expires_at: org.access_expires_at })
       .eq('id', user.id),
+    joinInvitedProject(invite, user.id),
   ])
 
   return NextResponse.json({ ok: true, org_name: org.name })

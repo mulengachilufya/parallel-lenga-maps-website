@@ -139,6 +139,21 @@ export default function TeamPage() {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
+  // Seats, plan and members can change on our side (an admin adds seats
+  // after a payment): pick that up when the tab regains focus and every
+  // minute, quietly (a failed background fetch keeps what is on screen).
+  useEffect(() => {
+    const quiet = () => {
+      fetch('/api/team', { cache: 'no-store' })
+        .then(async (r) => { if (r.ok) setData(await r.json()) })
+        .catch(() => {})
+    }
+    const onFocus = () => { if (document.visibilityState === 'visible') quiet() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    const t = setInterval(quiet, 60_000)
+    return () => { window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); clearInterval(t) }
+  }, [])
   // No auto-redirect on signed_out. /team is publicly routable; if /api/team
   // returns 401, the cookies may not have propagated yet (cookie-race on
   // sign-in) — auto-redirecting to /login here would race with /login's

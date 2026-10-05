@@ -49,8 +49,13 @@ function JoinInner() {
       if (!inv.ok) { setPhase('error'); setMessage(inv.j.message ?? 'This invite is not valid any more.'); return }
       setInfo(inv.j)
       setOrgName(inv.j.org_name)
-      setPhase(session ? 'ready' : 'signin')
+      if (!session) { setPhase('signin'); return }
+      // Signed in with the invited address (e.g. straight back from creating
+      // the account): take the seat without another click.
+      if (session.user.email?.toLowerCase() === String(inv.j.email ?? '').toLowerCase()) void accept()
+      else setPhase('ready')
     }).catch(() => { setPhase('error'); setMessage('Network error. Try the link again.') })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   async function accept() {
