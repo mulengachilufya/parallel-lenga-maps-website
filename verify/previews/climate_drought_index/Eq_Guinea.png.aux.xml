@@ -1,6 +1,6 @@
 <PAMDataset>
   <SRS dataAxisToSRSAxisMapping="2,1">GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]</SRS>
-  <GeoTransform>  5.6000003814697266e+00,  7.1875001071020957e-03,  0.0000000000000000e+00,  3.7999994605779648e+00,  0.0000000000000000e+00, -7.1875001071020957e-03</GeoTransform>
+  <GeoTransform>  5.6500003822147846e+00,  7.1250001061707738e-03,  0.0000000000000000e+00,  3.7499994598329067e+00,  0.0000000000000000e+00, -7.1250001061707738e-03</GeoTransform>
   <Metadata>
     <MDI key="AREA_OR_POINT">Area</MDI>
     <MDI key="DESCRIPTION">12-month Standardized Precipitation Index, derived from CHIRPS v2.0 monthly rainfall, baseline 2014–2023. Negative values = drier than normal; positive = wetter. |z| &lt; 1 = near-normal, |z| 1–2 = moderate, |z| ≥ 2 = severe.</MDI>
