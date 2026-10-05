@@ -1,0 +1,78 @@
+name: Rebuild roads
+
+# Rebuilds every country's classified road network (motorway to tertiary)
+# from OpenStreetMap, replacing the Natural Earth highways layer. Clipped to
+# geoBoundaries ADM0 (see scripts/rebuild-roads.py).
+# Dry run by default: the report and the rebuilt files are attached to the
+# run. Tick "apply" to replace the files in R2 for countries that pass.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Only these ISO3 codes, comma separated (empty = all 54)'
+        required: false
+        default: ''
+      apply:
+        description: 'Upload passing countries to R2 and update the table'
+        type: boolean
+        default: false
+
+concurrency:
+  group: rebuild-roads
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL; df -h /
+      - name: Install GDAL and osmium
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin python3-gdal osmium-tool python3-boto3
+          gdalinfo --version; osmium --version | head -1
+      - name: Rebuild
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          ONLY: ${{ github.event.inputs.only }}
+          APPLY: ${{ github.event.inputs.apply }}
+        run: |
+          set --
+          if [ -n "$ONLY" ]; then set -- "$@" --only "$ONLY"; fi
+          if [ "$APPLY" = "true" ]; then set -- "$@" --apply; fi
+          python3 scripts/rebuild-roads.py "$@"
+      - name: Publish previews to the qa-previews branch
+        if: always()
+        run: |
+          [ -d previews ] || exit 0
+          git config user.name "lenga-qa"; git config user.email "qa@lengamaps.com"
+          tmp=$(mktemp -d); cp -r previews rebuild-report.* "$tmp"/ 2>/dev/null || true
+          git fetch origin qa-previews && git checkout -B qa-previews origin/qa-previews || git checkout --orphan qa-previews
+          git rm -rq --cached . >/dev/null 2>&1 || true
+          git checkout origin/qa-previews -- . 2>/dev/null || true
+          rm -rf roads; mkdir -p roads; cp -r "$tmp"/* roads/
+          git add -A roads $(git ls-tree --name-only origin/qa-previews 2>/dev/null)
+          git commit -qm "QA previews: roads ${{ github.run_id }}" || true
+          git push origin qa-previews || (git pull --rebase origin qa-previews && git push origin qa-previews)
+      - name: Summary
+        if: always()
+        run: cat rebuild-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: roads-rebuild
+          path: |
+            rebuild-report.*
+            rebuilt/
