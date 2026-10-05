@@ -10,11 +10,13 @@ The first build mosaicked tiles by hand and many countries came out partial
 Per country:
   1. Outline: geoBoundaries ADM0 from the admin boundaries table, or straight
      from geoBoundaries when the table has none.
-  2. Every 3 x 3 degree WorldCover tile touching the outline, read over HTTP
-     from the public ESA bucket (no download step).
-  3. gdalwarp cut to the outline into a Cloud Optimized GeoTIFF (DEFLATE,
+  2. Every 3 x 3 degree WorldCover tile touching the outline, downloaded
+     from the public ESA bucket, 8 at a time.
+  3. Cut to the outline into a Cloud Optimized GeoTIFF (DEFLATE,
      nearest neighbour overviews). WorldCover's own colour table is kept, so
      QGIS and ArcGIS open it in the official colours with no sidecar.
+     No warping (the grid is WorldCover's own): the box is copied and
+     everything outside the outline is blanked with gdal_rasterize -i.
   4. Check: share of the country with a valid class (must be >= 98%), and
      that every class is a WorldCover class. Preview PNG and report.
   5. --apply: upload to the existing key (or lulc/<Name>/<Name>_LULC.tif for
@@ -186,11 +188,21 @@ def main():
             cut = os.path.join(work, 'outline.geojson')
             with open(cut, 'w') as fh:
                 json.dump({'type': 'FeatureCollection', 'features': [{'type': 'Feature', 'properties': {}, 'geometry': json.loads(geom.ExportToJson())}]}, fh)
+            # Same grid as WorldCover, so no warping: copy the country's box,
+            # blank everything outside the outline in place, then write the
+            # COG. A gdalwarp cutline took 49 min for Malawi at 10 m.
+            mnx, mxx, mny, mxy = geom.GetEnvelope()
+            crop = os.path.join(work, 'crop.tif')
+            run(['gdal_translate', '-q', '-projwin', str(mnx), str(mxy), str(mxx), str(mny), '-a_nodata', '0',
+                 '-co', 'TILED=YES', '-co', 'BLOCKXSIZE=512', '-co', 'BLOCKYSIZE=512', '-co', 'COMPRESS=DEFLATE',
+                 '-co', 'BIGTIFF=YES', '-co', 'NUM_THREADS=ALL_CPUS', '--config', 'GDAL_CACHEMAX', '2048', vrt, crop])
+            shutil.rmtree(tdir, ignore_errors=True)
+            run(['gdal_rasterize', '-q', '-i', '-burn', '0', '--config', 'GDAL_CACHEMAX', '2048', cut, crop])
             out = os.path.join(work, 'lulc.tif')
-            run(['gdalwarp', '-q', '-overwrite', '-multi', '-wo', 'NUM_THREADS=ALL_CPUS', '-wm', '2048',
-                 '--config', 'GDAL_CACHEMAX', '2048', '-cutline', cut, '-crop_to_cutline', '-dstnodata', '0',
-                 '-r', 'near', '-of', 'COG', '-co', 'COMPRESS=DEFLATE', '-co', 'PREDICTOR=2', '-co', 'BIGTIFF=YES',
-                 '-co', 'BLOCKSIZE=512', '-co', 'OVERVIEW_RESAMPLING=NEAREST', '-co', 'NUM_THREADS=ALL_CPUS', vrt, out])
+            run(['gdal_translate', '-q', '-of', 'COG', '-co', 'COMPRESS=DEFLATE', '-co', 'PREDICTOR=2', '-co', 'BIGTIFF=YES',
+                 '-co', 'BLOCKSIZE=512', '-co', 'OVERVIEW_RESAMPLING=NEAREST', '-co', 'NUM_THREADS=ALL_CPUS',
+                 '--config', 'GDAL_CACHEMAX', '2048', crop, out])
+            os.remove(crop)
             size_mb = os.path.getsize(out) / 1e6
             share, classes, palette = check(out, geom, os.path.join('previews', f'{iso3}.png'))
             odd = sorted(classes - CLASSES)
