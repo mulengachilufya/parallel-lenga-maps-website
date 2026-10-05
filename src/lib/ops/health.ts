@@ -3,7 +3,7 @@
 // Health checks, each in plain language: what was tested, whether it's
 // fine, and exactly what to do if not. Used by the ops console, the daily
 // report and (in a reduced form, no details) the public /api/ops/ping that
-// the GitHub uptime watch calls every 15 minutes.
+// the GitHub uptime watch calls every 12 hours.
 
 import { listFiles } from '@/lib/r2'
 import { opsDb } from './log'

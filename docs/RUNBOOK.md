@@ -53,8 +53,8 @@ you, rotate the keys (section 7) straight away.
 - **Daily report** at 08:00 Lusaka time on days something needs you, and
   every Monday regardless, so silence never lasts more than a week.
   Subject line: "all clear" or "N things need you".
-- **GitHub "Lenga Maps is down" issue**: GitHub checks the site every 15
-  minutes from outside. If it's down twice in a row, you get a GitHub
+- **GitHub "Lenga Maps is down" issue**: GitHub checks the site every 12
+  hours (06:07 and 18:07 UTC) from outside. If it fails twice, a minute apart, you get a GitHub
   notification/email; it closes itself when the site is back.
 
 ---
