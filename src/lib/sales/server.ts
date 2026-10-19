@@ -216,7 +216,12 @@ export function mergeFields(account: { name: string; country_iso3: string | null
 export { fill }
 
 function esc(s: string) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!)) }
-function linkify(s: string) { return s.replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" style="color:#1E5F8E">${u}</a>`) }
+// Full URLs and bare www. addresses ("www.lengamaps.com") both become links;
+// a trailing full stop or comma stays outside the link.
+function linkify(s: string) {
+  return s.replace(/\b(?:https?:\/\/|www\.)[^\s<]*[^\s<.,;:!?)]/g, (u) =>
+    `<a href="${u.startsWith('www.') ? `https://${u}` : u}" style="color:#1E5F8E">${u}</a>`)
+}
 
 /**
  * A 1-to-1 email from the founder. Deliberately plain: it should read like a
