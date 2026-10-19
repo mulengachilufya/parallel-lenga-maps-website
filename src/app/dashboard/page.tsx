@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Users } from 'lucide-react'
+import { Loader2, ArrowLeft, Globe2, FileDown, Lock, Users, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import FreeDatasetPicker from '@/components/FreeDatasetPicker'
@@ -324,6 +324,38 @@ function ContinueProjects() {
 }
 
 /** One of the two main, equal-size panels a free account sees first. */
+/**
+ * Floating "scroll down to choose your datasets" pill for free accounts that
+ * still have picks left. Shown only while the picker is off screen (on
+ * phones the dataset list comes first, so the picker sits far down); a tap
+ * scrolls to it. Purely visual: it never changes picks or access.
+ */
+function PickerCue({ targetId, left }: { targetId: string; left: number }) {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const el = document.getElementById(targetId)
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.top > 0), { threshold: 0.2 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [targetId])
+  if (!show) return null
+  return (
+    <button
+      type="button"
+      onClick={() => document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+      className="picker-cue fixed bottom-6 left-1/2 z-40 flex items-center gap-2 rounded-full bg-[#0D2B45] px-5 py-3 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(13,43,69,0.6)] ring-2 ring-[#F5B800]"
+    >
+      <style>{`
+        @keyframes pickerBob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+        .picker-cue { animation: pickerBob 1.8s ease-in-out infinite; }
+      `}</style>
+      Scroll down to choose your {left === FREE_DATASET_LIMIT ? FREE_DATASET_LIMIT : left} free dataset{left === 1 ? '' : 's'}
+      <ChevronDown size={18} className="text-[#F5B800]" />
+    </button>
+  )
+}
+
 function MainPanel({ step, title, text, cta, href, delay = 0, children }: {
   step: string; title: string; text: string; cta?: string; href?: string; delay?: number; children?: React.ReactNode
 }) {
@@ -825,13 +857,14 @@ function DashboardContent() {
           <>
             {/* Free accounts: the two things to do first, side by side and the
                 same size. Pricing follows underneath as the way to get more. */}
-            <div className="grid grid-cols-1 gap-5 items-stretch">
+            <div id="free-picker" className="grid grid-cols-1 gap-5 items-stretch" style={{ scrollMarginTop: 96 }}>
               <MainPanel delay={0.05} step="1" title={`Choose your ${FREE_DATASET_LIMIT} free datasets`}
                          text={`You're on the free plan. Pick ${FREE_DATASET_LIMIT} datasets to keep for good, then download them for all 54 African countries as often as you like.`}>
                 <FreeDatasetPicker large bare picks={access.personal.picks} endpoint="/api/account/free-datasets"
                                    onSaved={() => reloadAccess()} />
               </MainPanel>
             </div>
+            {access.personal.left > 0 && <PickerCue targetId="free-picker" left={access.personal.left} />}
 
             <div className="mt-10 mb-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9a7400]">Want more datasets?</p>
