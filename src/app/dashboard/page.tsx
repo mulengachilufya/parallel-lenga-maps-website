@@ -59,7 +59,7 @@ const SECTIONS: Record<string, {
   },
   'rivers': {
     title: '🌊 River Networks',
-    subtitle: 'HydroSHEDS HydroRIVERS v1.0 · detailed network · GeoPackage per country',
+    subtitle: 'HydroSHEDS HydroRIVERS v1.0 · full network or main rivers · GeoPackage per country',
     component: () => <RiversList />,
   },
   'rainfall': {

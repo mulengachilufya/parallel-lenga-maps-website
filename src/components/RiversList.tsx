@@ -19,6 +19,8 @@ export default function RiversList({
 }: RiversListProps) {
   const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [rivers, setRivers]           = useState<HydrologyLayer[]>([])
+  // Lighter "main rivers" file per country (Strahler order 4+), when built.
+  const [mainByCountry, setMainByCountry] = useState<Record<string, HydrologyLayer>>({})
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
   const [downloading, setDownloading] = useState<number | null>(null)
@@ -31,10 +33,18 @@ export default function RiversList({
         setError(null)
         const params = new URLSearchParams({ layerType: 'rivers', includeUrl: 'true' })
         if (filterCountry) params.set('country', filterCountry)
-        const res = await fetch(`/api/hydrology?${params}`)
+        const mainParams = new URLSearchParams(params)
+        mainParams.set('layerType', 'rivers_main')
+        const [res, mainRes] = await Promise.all([
+          fetch(`/api/hydrology?${params}`),
+          fetch(`/api/hydrology?${mainParams}`).catch(() => null),
+        ])
         if (!res.ok) throw new Error('Failed to fetch river data')
         const { layers } = await res.json()
         setRivers(layers ?? [])
+        // Optional extra: a failure here just hides the "Main rivers" buttons.
+        const main = mainRes?.ok ? ((await mainRes.json().catch(() => ({}))).layers ?? []) as HydrologyLayer[] : []
+        setMainByCountry(Object.fromEntries(main.map((m) => [m.country, m])))
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -60,6 +70,12 @@ export default function RiversList({
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-gray-600 max-w-3xl">
+        <strong className="text-gray-800">Full network</strong> includes every drainage channel, many of them seasonal or
+        dry outside the rains. <strong className="text-gray-800">Main rivers</strong> keeps the named rivers and large
+        tributaries (Strahler order 4 and up): lighter, and cleaner on a national map.
+      </p>
+
       {/* Country filter */}
       <div className="max-w-xs">
         <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Country</label>
@@ -104,7 +120,8 @@ export default function RiversList({
                   <th className="text-left px-4 py-3 font-semibold">Format</th>
                   <th className="text-left px-4 py-3 font-semibold">Source</th>
                   <th className="text-right px-4 py-3 font-semibold">Size (MB)</th>
-                  <th className="text-center px-4 py-3 font-semibold">Download</th>
+                  <th className="text-center px-4 py-3 font-semibold">Full network</th>
+                  {Object.keys(mainByCountry).length > 0 && <th className="text-center px-4 py-3 font-semibold">Main rivers</th>}
                 </tr>
               </thead>
               <tbody>
@@ -144,6 +161,23 @@ export default function RiversList({
                         )}
                       </motion.button>
                     </td>
+                    {Object.keys(mainByCountry).length > 0 && (
+                      <td className="px-4 py-3 text-center">
+                        {mainByCountry[river.country] ? (
+                          <button
+                            onClick={() => handleDownload(mainByCountry[river.country])}
+                            disabled={downloading === mainByCountry[river.country].id}
+                            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                              !mainByCountry[river.country].download_url
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-[#0D2B45] text-white hover:bg-[#123a5c]'
+                            }`}
+                          >
+                            ⬇️ {mainByCountry[river.country].file_size_mb.toFixed(1)} MB
+                          </button>
+                        ) : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>

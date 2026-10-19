@@ -100,7 +100,7 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'rivers',
     name:        'River networks',
-    description: 'HydroSHEDS HydroRIVERS v1.0 detailed river network per African country (full dendritic network, tiny headwater streams filtered).',
+    description: 'HydroSHEDS HydroRIVERS v1.0 detailed river network per African country (full dendritic network, tiny headwater streams filtered). Includes seasonal and ephemeral channels; filter by ORD_STRA (e.g. >= 4) or DIS_AV_CMS for perennial rivers.',
     category:    'hydrology',
     table:       'hydrology_layers',
     layer_type:  'rivers',

@@ -7,11 +7,13 @@ import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
 const LAYER_LABELS: Record<string, string> = {
   rivers: 'Rivers',
+  rivers_main: 'Main rivers',
   lakes:  'Lakes',
 }
 
 const LAYER_COLORS: Record<string, string> = {
   rivers: 'bg-blue-100 text-blue-800',
+  rivers_main: 'bg-blue-100 text-blue-800',
   lakes:  'bg-cyan-100 text-cyan-800',
 }
 
