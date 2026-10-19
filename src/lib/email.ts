@@ -70,6 +70,7 @@ export interface EmailMessage {
   html:     string
   text:     string
   replyTo?: string
+  bcc?:     string
   headers?: Record<string, string>
 }
 
@@ -104,6 +105,7 @@ export async function sendEmail(
         html:     msg.html,
         text:     msg.text,
         reply_to: msg.replyTo || undefined,
+        bcc:      msg.bcc ? [msg.bcc] : undefined,
         headers:  msg.headers,
       }),
     })
