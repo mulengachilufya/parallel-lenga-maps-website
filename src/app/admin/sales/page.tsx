@@ -4,6 +4,7 @@
  * /admin/sales — the enterprise sales pipeline.
  *
  *   Today      what to do now: tasks due, replies waiting, deals going cold
+ *   Drafts     researched first emails to read, edit and send
  *   Prospects  everyone on the radar, filterable by country, stage, sector
  *   Board      the pipeline as columns, one per stage
  *   Countries  how each focus country is going
@@ -27,10 +28,11 @@ import {
   type AccountSummary, type Settings, type Task,
 } from '@/lib/sales/client'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
+import DraftsTab from '@/components/sales/DraftsTab'
 
-type Tab = 'today' | 'prospects' | 'board' | 'countries' | 'numbers'
+type Tab = 'today' | 'drafts' | 'prospects' | 'board' | 'countries' | 'numbers'
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'today', label: 'Today' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
+  { id: 'today', label: 'Today' }, { id: 'drafts', label: 'Drafts' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
   { id: 'countries', label: 'Countries' }, { id: 'numbers', label: 'Numbers' },
 ]
 
@@ -48,12 +50,16 @@ function SalesPage() {
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) || 'today')
   const [modal, setModal] = useState<null | 'add' | 'import' | 'settings'>(null)
   const [filters, setFilters] = useState({ q: '', country: params.get('country') || 'focus', stage: 'open', sector: '' })
+  const [drafts, setDrafts] = useState(0)
 
   const load = useCallback(async () => {
     try { setData(await api('/api/admin/sales')); setErr('') }
     catch (e) { setErr(e instanceof Error ? e.message : 'Could not load') }
   }, [])
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    api<{ counts: { draft: number } }>('/api/admin/sales/drafts?status=draft').then((d) => setDrafts(d.counts.draft)).catch(() => {})
+  }, [])
 
   function go(t: Tab, patch?: Partial<typeof filters>) {
     setTab(t)
@@ -94,12 +100,14 @@ function SalesPage() {
                   className={`shrink-0 px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px ${tab === t.id ? 'border-[#0D2B45] text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
             {t.label}
             {t.id === 'today' && dueToday(data.tasks) > 0 && <span className="ml-1.5 rounded-full bg-red-600 text-white text-[10px] px-1.5 py-0.5">{dueToday(data.tasks)}</span>}
+            {t.id === 'drafts' && drafts > 0 && <span className="ml-1.5 rounded-full bg-[#0D2B45] text-white text-[10px] px-1.5 py-0.5">{drafts}</span>}
           </button>
         ))}
       </nav>
 
       <div className="mt-5">
         {tab === 'today' && <TodayTab data={data} onOpen={(id, task) => router.push(`/admin/sales/${id}${task ? `?task=${task}` : ''}`)} onAdd={() => setModal('add')} onImport={() => setModal('import')} onSettings={() => setModal('settings')} />}
+        {tab === 'drafts' && <DraftsTab onCount={setDrafts} />}
         {tab === 'prospects' && <ProspectsTab accounts={data.accounts} focus={focus} filters={filters} setFilters={setFilters} />}
         {tab === 'board' && <BoardTab accounts={data.accounts} focus={focus} />}
         {tab === 'countries' && <CountriesTab accounts={data.accounts} focus={focus} onCountry={(c) => go('prospects', { country: c, stage: 'all' })} onSettings={() => setModal('settings')} />}
