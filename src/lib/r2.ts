@@ -128,3 +128,15 @@ export async function deletePrefix(prefix: string) {
     token = page.IsTruncated ? page.NextContinuationToken : undefined
   } while (token)
 }
+
+/** Whole object as bytes (server-side processing of dataset files). */
+export async function getObjectBytes(key: string): Promise<Uint8Array> {
+  const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+  if (!res.Body) throw new Error(`empty object ${key}`)
+  return res.Body.transformToByteArray()
+}
+
+/** Write bytes to a key (server-side; overwrites). */
+export async function putObjectBytes(key: string, bytes: Uint8Array, contentType = 'application/octet-stream') {
+  return r2.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: contentType }))
+}

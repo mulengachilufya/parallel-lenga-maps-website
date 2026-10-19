@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export interface HydrologyLayer {
   id: number
   country: string
-  layer_type: 'rivers' | 'lakes' | 'watersheds'
+  layer_type: 'rivers' | 'rivers_main' | 'lakes' | 'watersheds'
   r2_key: string
   file_size_mb: number
   file_format: string
@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
         layers.map(async (layer) => {
           const ok =
             layer.layer_type === 'rivers'     ? riversAllowed :
+            layer.layer_type === 'rivers_main' ? riversAllowed :
             layer.layer_type === 'lakes'      ? maxAllowed :
             layer.layer_type === 'watersheds' ? watershedsAllowed :
             false

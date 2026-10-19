@@ -226,6 +226,8 @@ function Fix({ settings, reload, via }: { settings: Overview['settings']; reload
         <div className="btns">{b('run_daily_job', 'Run the daily job now', {}, undefined, false)}</div>
       </Tool>
 
+      <RiversMainTool />
+
       <Tool title="&ldquo;Too many attempts&rdquo;" help="If a real person is blocked from the contact form, sign-up or quotes after several tries, clear the blocks.">
         <div className="btns">{b('clear_rate_limits', 'Clear all blocks', {}, undefined, false)}</div>
       </Tool>
@@ -406,3 +408,55 @@ const CSS = `
 @media print { .ops header, .ops nav, .ops .banner, .ops .tool:not(:has(.keys)), .ops .btns, .ops label { display: none !important; } }
 .ops .help dt { font-weight: 600; margin-top: 10px; } .ops .help dd { margin: 2px 0 0 0; }
 `
+
+/** Builds each country's lighter "main rivers" file from its full rivers file, one country per request. */
+function RiversMainTool() {
+  const [rows, setRows] = useState<{ id: number; country: string; full_mb: number; main_mb: number | null }[] | null>(null)
+  const [running, setRunning] = useState(false)
+  const [log, setLog] = useState<string[]>([])
+  const [err, setErr] = useState('')
+
+  async function load() {
+    const res = await fetch('/api/admin/datasets/rivers-main', { cache: 'no-store' }).catch(() => null)
+    if (!res?.ok) { setErr('Could not load the rivers list (sign in with an owner email).'); return }
+    setRows((await res.json()).countries ?? [])
+  }
+
+  async function build(onlyMissing: boolean) {
+    if (!rows) return
+    const todo = rows.filter((r) => !onlyMissing || r.main_mb === null)
+    if (!todo.length) { setLog(['Every country already has its main-rivers file.']); return }
+    setRunning(true); setLog([])
+    let ok = 0
+    for (const [i, r] of todo.entries()) {
+      const res = await fetch('/api/admin/datasets/rivers-main', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id }),
+      }).catch(() => null)
+      const j = await res?.json().catch(() => ({})) ?? {}
+      if (j.ok) ok++
+      setLog((l) => [`${i + 1}/${todo.length} ${r.country}: ${j.ok ? `kept ${j.kept} of ${j.total} segments (order ${j.order}+), ${j.size_mb} MB` : `FAILED: ${j.message ?? j.error ?? 'no response'}`}`, ...l])
+    }
+    setLog((l) => [`Done: ${ok} of ${todo.length} built.`, ...l])
+    setRunning(false)
+    void load()
+  }
+
+  const missing = rows?.filter((r) => r.main_mb === null).length ?? 0
+  return (
+    <Tool title="Main rivers files" help="Makes a light 'main rivers' copy (Strahler order 4 and up) of every country's full rivers file, for customers who want a clean national map. The full files are never changed. Takes a few minutes for all countries; keep this tab open.">
+      {!rows ? (
+        <div className="btns"><button onClick={() => void load()}>Check status</button></div>
+      ) : (
+        <>
+          <p className="muted">{rows.length} countries · {rows.length - missing} built · {missing} to build</p>
+          <div className="btns">
+            <button disabled={running || missing === 0} onClick={() => void build(true)}>{running ? 'Building…' : `Build missing (${missing})`}</button>
+            <button disabled={running} onClick={() => { if (confirm('Rebuild main rivers for every country?')) void build(false) }}>Rebuild all</button>
+          </div>
+        </>
+      )}
+      {err && <p className="muted" style={{ color: '#c0392b' }}>{err}</p>}
+      {log.length > 0 && <pre style={{ maxHeight: 220, overflow: 'auto', fontSize: 12, whiteSpace: 'pre-wrap' }}>{log.join('\n')}</pre>}
+    </Tool>
+  )
+}
