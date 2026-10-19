@@ -101,8 +101,18 @@ function DraftCard({ d, onDone, onRestored }: {
   const [busy, setBusy] = useState<'' | 'send' | 'save' | 'discard'>('')
   const [err, setErr] = useState('')
   const editable = d.status === 'draft'
-  const c = d.contact
-  const blocked = !c ? 'There is no person on this draft.' : !c.email ? `No email address for ${c.name}. Reach them on LinkedIn instead.` : c.opted_out_at ? `${c.name} asked not to be emailed.` : ''
+  const [c, setC] = useState(d.contact)
+  const [email, setEmail] = useState('')
+  const blocked = !c ? 'There is no person on this draft.' : !c.email ? `No email address for ${c.name} yet. Add it below, or reach them on LinkedIn.` : c.opted_out_at ? `${c.name} asked not to be emailed.` : ''
+
+  async function saveEmail() {
+    const e = email.trim()
+    if (!c || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { setErr('That does not look like an email address.'); return }
+    setBusy('save'); setErr('')
+    try { await api(`/api/admin/sales/${d.account_id}/contacts`, { method: 'PATCH', body: { contact_id: c.id, email: e } }); setC({ ...c, email: e }) }
+    catch (x) { setErr(x instanceof Error ? x.message : 'Could not save the email') }
+    finally { setBusy('') }
+  }
 
   useEffect(() => {
     if (!confirming) return
@@ -190,6 +200,12 @@ function DraftCard({ d, onDone, onRestored }: {
       </div>
 
       {blocked && editable && <p className="mt-2 text-sm text-amber-700 inline-flex items-center gap-1"><AlertTriangle size={14} /> {blocked}</p>}
+      {editable && c && !c.email && (
+        <div className="mt-2 flex gap-2 max-w-md">
+          <input className={inputCls} type="email" placeholder={`${c.name.split(' ')[0]}'s email`} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <button disabled={!!busy} onClick={() => void saveEmail()} className="shrink-0 rounded-lg border border-gray-200 text-sm px-3 py-2 text-gray-700">Save</button>
+        </div>
+      )}
       {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
 
       {editable && (
