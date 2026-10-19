@@ -67,17 +67,20 @@ export const validStage = (v: unknown): Stage | null =>
 
 // ── Settings ────────────────────────────────────────────────────────────────
 
-export interface SalesSettings { focus_countries: string[]; signature: string; my_name: string }
+export interface SalesSettings { focus_countries: string[]; signature: string; my_name: string; copy_to: string | null }
 
 export async function getSettings(): Promise<SalesSettings> {
   const { data } = await db.from('ops_settings').select('key, value')
-    .in('key', ['sales_focus_countries', 'sales_signature', 'sales_my_name'])
+    .in('key', ['sales_focus_countries', 'sales_signature', 'sales_my_name', 'sales_copy_to'])
   const get = (k: string) => data?.find((r) => r.key === k)?.value
   const focus = get('sales_focus_countries')
   return {
     focus_countries: Array.isArray(focus) ? focus.filter((c): c is string => typeof c === 'string') : [],
     signature:       typeof get('sales_signature') === 'string' ? get('sales_signature') as string : 'Lenga Maps\nwww.lengamaps.com',
     my_name:         typeof get('sales_my_name') === 'string' ? get('sales_my_name') as string : 'Mulenga',
+    // Where a copy of every outreach email goes, so it shows up in Gmail:
+    // the site sends through Resend, which Gmail's Sent folder never sees.
+    copy_to:         typeof get('sales_copy_to') === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(get('sales_copy_to') as string) ? get('sales_copy_to') as string : null,
   }
 }
 
@@ -229,7 +232,7 @@ function linkify(s: string) {
  * to stop further emails (also sent as List-Unsubscribe).
  */
 export async function sendOutreach(opts: {
-  to: string; subject: string; body: string; signature: string; optoutToken: string
+  to: string; subject: string; body: string; signature: string; optoutToken: string; bcc?: string | null
 }): Promise<boolean> {
   const optout = `${APP_URL}/api/sales/optout?t=${opts.optoutToken}`
   const full = `${opts.body.trim()}\n\n${opts.signature.trim()}`
@@ -239,7 +242,7 @@ ${full.split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${linkify(esc(p)).
 </div>`
   const text = `${full}\n\n--\nRather not hear from me? ${optout}`
   return sendEmail({
-    to: opts.to, subject: opts.subject, html, text,
+    to: opts.to, subject: opts.subject, html, text, bcc: opts.bcc ?? undefined,
     headers: { 'List-Unsubscribe': `<${optout}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
   }, 'sales')
 }
@@ -274,6 +277,7 @@ export async function sendToContact(opts: {
   const ok = await sendOutreach({
     to: contact.email, subject, body: text,
     signature: `${settings.my_name}\n${settings.signature}`, optoutToken: contact.optout_token,
+    bcc: settings.copy_to,
   })
   if (!ok) {
     void logEvent('error', 'email', 'sales_send_failed', `An outreach email to ${account.name} could not be sent.`, { account: account.id })
