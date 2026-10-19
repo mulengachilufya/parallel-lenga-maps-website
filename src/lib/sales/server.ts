@@ -8,6 +8,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdminEmail } from '@/lib/admin'
 import { sendEmail } from '@/lib/email'
+import { logEvent } from '@/lib/ops/log'
 import { AFRICAN_COUNTRIES } from '@/lib/workspace/templates'
 import {
   ALL_STAGES, SECTORS, SEQUENCE, STAGE, dueDate, fill, stageIndex,
@@ -184,7 +185,11 @@ export async function touched(account: AccountRow, kind: string, direction: 'out
 
 /** Lay out the outreach sequence as tasks, starting today. */
 export async function startSequence(accountId: string, contact: { id: string; email: string | null; linkedin_url: string | null } | null) {
+  // South Africa (POPIA s69): one unsolicited email only, so no email follow-ups.
+  const { data: acc } = await db.from('sales_accounts').select('country_iso3').eq('id', accountId).maybeSingle()
+  const oneEmail = acc?.country_iso3 === 'ZAF'
   const rows = SEQUENCE
+    .filter((s) => !(oneEmail && s.kind === 'email' && s.day > 0))
     .filter((s) => s.kind === 'call' || (s.kind === 'email' ? !!contact?.email : !!contact?.linkedin_url) || !contact)
     .map((s) => ({
       account_id: accountId, contact_id: contact?.id ?? null, kind: s.kind, template: s.template,
@@ -232,6 +237,71 @@ ${full.split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${linkify(esc(p)).
     to: opts.to, subject: opts.subject, html, text,
     headers: { 'List-Unsubscribe': `<${optout}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
   }, 'sales')
+}
+
+/** Merge fields or [square bracket] gaps still in a message. */
+export const hasPlaceholders = (s: string) => /\{(first_name|company|country|sector_hook|my_name)\}|\[[a-z ]+\]/i.test(s)
+
+/**
+ * Send one 1-to-1 email to a contact as the founder, log it on the timeline
+ * and nudge the stage. Used by the compose box and by the Drafts tab, and
+ * only ever called from an admin's own click.
+ */
+export async function sendToContact(opts: {
+  account: AccountRow; contactId: unknown; subject: unknown; body: unknown; by: string; meta?: Record<string, unknown>
+}): Promise<{ ok: true; activity: unknown } | { ok: false; res: NextResponse }> {
+  const fail = (error: string, status: number, message: string) => ({ ok: false as const, res: jsonError(error, status, message) })
+  const { account } = opts
+  if (!isUuid(opts.contactId)) return fail('validation', 400, 'Pick who to send it to.')
+  const { data: contact } = await db.from('sales_contacts').select('*').eq('id', opts.contactId).eq('account_id', account.id).maybeSingle()
+  if (!contact) return fail('not_found', 404, 'That contact no longer exists.')
+  if (!contact.email) return fail('no_email', 400, `There is no email address for ${contact.name}. Add one, or reach them on LinkedIn.`)
+  if (contact.opted_out_at) return fail('opted_out', 409, `${contact.name} asked not to be emailed, so this was not sent.`)
+
+  const subject = str(opts.subject, 200)
+  const text = str(opts.body, 20000)
+  if (!subject || !text) return fail('validation', 400, 'The email needs a subject and a message.')
+  if (hasPlaceholders(`${subject}\n${text}`)) {
+    return fail('placeholders', 400, 'There are still placeholders in square or curly brackets. Fill them in before sending.')
+  }
+
+  const settings = await getSettings()
+  const ok = await sendOutreach({
+    to: contact.email, subject, body: text,
+    signature: `${settings.my_name}\n${settings.signature}`, optoutToken: contact.optout_token,
+  })
+  if (!ok) {
+    void logEvent('error', 'email', 'sales_send_failed', `An outreach email to ${account.name} could not be sent.`, { account: account.id })
+    return fail('send_failed', 502, 'The email could not be sent. Check the Ops page (Health) for the email service, or send it from Gmail and log it here.')
+  }
+
+  const activity = await logActivity({
+    account_id: account.id, contact_id: contact.id, kind: 'email', direction: 'out', subject, body: text,
+    meta: { to: contact.email, sent_from_site: true, ...(opts.meta ?? {}) }, created_by: opts.by,
+  })
+  await touched(account, 'email', 'out', opts.by)
+  return { ok: true, activity }
+}
+
+/**
+ * After a researched first email: the rest of the outreach as tasks. In
+ * South Africa POPIA (s69) allows one unsolicited electronic approach, so
+ * there the follow-ups are LinkedIn and a call, never another email.
+ */
+export async function followUpsAfterFirstEmail(account: AccountRow, contact: { id: string; linkedin_url: string | null }) {
+  const noMoreEmail = account.country_iso3 === 'ZAF'
+  const rows = SEQUENCE
+    .filter((s) => s.day > 0)
+    .filter((s) => (s.kind === 'email' ? !noMoreEmail : true))
+    .map((s) => ({
+      account_id: account.id, contact_id: contact.id, kind: s.kind, template: s.template,
+      title: s.kind === 'linkedin' && !contact.linkedin_url ? `${s.title} (find them first)` : s.title,
+      due_on: dueDate(s.day), sequence: true,
+    }))
+  await db.from('sales_tasks').update({ done_at: new Date().toISOString(), outcome: 'skipped' })
+    .eq('account_id', account.id).eq('sequence', true).is('done_at', null)
+  if (rows.length) await db.from('sales_tasks').insert(rows)
+  return rows.length
 }
 
 /** The editable account fields present in a request body, validated. */

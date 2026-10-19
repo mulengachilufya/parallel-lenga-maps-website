@@ -344,3 +344,6 @@ export const todayIso = () => new Date().toISOString().slice(0, 10)
 /** Accounts in these stages with no touch for this long show as going cold. */
 export const STALE_DAYS = 14
 export const ACTIVE_STAGES: Stage[] = ['contacted', 'replied', 'meeting', 'free', 'proposal', 'won']
+
+/** Outreach emails a day before the Drafts tab asks "send anyway?". */
+export const DRAFTS_PER_DAY = 15
