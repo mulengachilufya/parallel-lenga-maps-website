@@ -125,15 +125,15 @@ export const DATASETS: Dataset[] = [
     name: 'Administrative Boundaries',
     category: 'Boundary Mapping',
     description: 'Country, provincial, and district boundaries for all 54 African nations',
-    source: 'GADM / OpenStreetMap',
+    source: 'geoBoundaries',
     format: 'Shapefile, GeoJSON, KML',
     resolution: '1:50,000 – 1:250,000',
     icon: '🗺️',
     tier: 'starter',
     color: '#1E3A5C', // deep oceanic navy — admin / boundary
     epsg: 'EPSG:4326',
-    licence: 'GADM (non-commercial) / ODbL',
-    last_update: 'GADM v4.1 · 2022',
+    licence: 'CC BY 4.0 (geoBoundaries)',
+    last_update: 'geoBoundaries gbOpen',
     size_label: '~2–8 MB / country',
   },
 

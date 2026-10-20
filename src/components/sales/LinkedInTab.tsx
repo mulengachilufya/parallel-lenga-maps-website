@@ -23,7 +23,7 @@ import { LinkedInIcon, inputCls } from './ui'
 
 interface Person {
   id: string; account_id: string; name: string; title: string | null; linkedin_url: string | null
-  account: { id: string; name: string; country_iso3: string | null; sector: string | null; stage: string }
+  account: { id: string; name: string; country_iso3: string | null; sector: string | null; stage: string; pipeline?: 'sales' | 'partner' }
   li: LinkedInRow | null
 }
 type View = 'todo' | 'waiting' | 'find' | 'meeting' | 'closed' | 'all'
@@ -106,7 +106,9 @@ export default function LinkedInTab({ onCount }: { onCount?: (n: number) => void
 function PersonCard({ p, step, due, onSaved }: {
   p: Person; step: LiStep; due: string | null; onSaved: (id: string, li: LinkedInRow, url: string | null) => void
 }) {
-  const meta = LI_STEP[step]
+  const partner = p.account.pipeline === 'partner'
+  // Partners get an ask to work together in place of the pricing message.
+  const meta = partner && step === 'pitch' ? { ...LI_STEP.pitch, label: 'Suggest working together' } : LI_STEP[step]
   const first = firstName(p.name)
   const [hook, setHook] = useState(p.li?.hook ?? '')
   const [url, setUrl] = useState('')
@@ -120,8 +122,8 @@ function PersonCard({ p, step, due, onSaved }: {
 
   // The message for this step, rebuilt whenever the step or the hook changes.
   useEffect(() => {
-    if (kind) setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, edited }))
-  }, [kind, first, p.account.name, p.li?.hook, edited])
+    if (kind) setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, edited, partner }))
+  }, [kind, first, p.account.name, p.li?.hook, edited, partner])
 
   async function patch(body: Record<string, unknown>, label: string) {
     setBusy(label); setErr('')
@@ -141,7 +143,7 @@ function PersonCard({ p, step, due, onSaved }: {
   // Saves the edit only if it differs from what the template gives.
   function saveText() {
     if (!kind) return
-    const plain = liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null })
+    const plain = liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner })
     const stored = text.trim() === plain.trim() ? null : text
     if ((stored ?? null) !== (edited ?? null)) void patch({ message: { kind, text: stored } }, 'save')
   }
@@ -155,7 +157,7 @@ function PersonCard({ p, step, due, onSaved }: {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <p className="text-base font-bold text-gray-900">{p.name}</p>
+          <p className="text-base font-bold text-gray-900">{p.name}{partner && <span className="ml-2 align-middle rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5">Partner</span>}</p>
           <p className="text-xs text-gray-500 mt-0.5">
             {[p.title, <Link key="o" href={`/admin/sales/${p.account_id}`} className="hover:underline">{p.account.name}</Link>, country(p.account.country_iso3)]
               .filter(Boolean).reduce<React.ReactNode[]>((acc, x, i) => (i ? [...acc, ' · ', x] : [x]), [])}
@@ -217,9 +219,9 @@ function PersonCard({ p, step, due, onSaved }: {
             <span>
               {kind === 'connect' && <>Add it as a note on the request. <span className={text.length > LI_CONNECT_LIMIT ? 'text-red-600 font-semibold' : ''}>{text.length}/{LI_CONNECT_LIMIT}</span></>}
               {kind === 'thank' && 'Short and warm. No pitch yet.'}
-              {kind === 'pitch' && (notYet ? `Ready, but wait until ${LI_PITCH_AFTER_DAYS} days after the thank-you.` : 'Free to start, the price, and the ask for a 10 minute call.')}
+              {kind === 'pitch' && (notYet ? `Ready, but wait until ${LI_PITCH_AFTER_DAYS} days after the thank-you.` : partner ? 'A partner: no pricing, an ask to explore working together.' : 'Free to start, the price, and the ask for a 10 minute call.')}
             </span>
-            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
+            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
           </div>
         </div>
       )}

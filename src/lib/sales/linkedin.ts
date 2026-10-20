@@ -97,10 +97,20 @@ For bigger teams, the Team plan is ${money(month.base)} a month with ${TEAM_MIN_
 Would you be open to a quick 10 minute video call? I'd show you how it works and answer any questions. Happy to work around your schedule.`,
 }
 
+// For partners (the Partnerships pipeline) the third message asks to work
+// together instead of selling seats, so it carries no pricing.
+export const LI_PARTNER_PITCH = `Hi {first}, hope your week is going well.
+
+I wanted to share a bit about what I'm building. Lenga Maps is one of Africa's biggest and most centralised GIS environmental data platforms, with over 15 environmental GIS datasets, heavily geoprocessed and cleaned, across all 54 African countries, and a shared GIS project workspace where teams view, comment on and suggest changes to the same map in real time.
+
+After reading about {hook}, I think there's a real opportunity for us to work together, whether that's on a project, a joint bid, or getting Lenga Maps into the hands of the teams you work with. I'd love to hear what you're working on next and where ready to use spatial data would help.
+
+Would you be open to a quick 15 minute video call to explore it? Happy to work around your schedule.`
+
 export const LI_CONNECT_LIMIT = 300
 
-export function liMessage(kind: LiMessage, f: { first: string; org: string; hook: string | null; edited?: string | null }): string {
-  const text = f.edited?.trim() || LI_TEMPLATES[kind]
+export function liMessage(kind: LiMessage, f: { first: string; org: string; hook: string | null; edited?: string | null; partner?: boolean }): string {
+  const text = f.edited?.trim() || (kind === 'pitch' && f.partner ? LI_PARTNER_PITCH : LI_TEMPLATES[kind])
   return text
     .replace(/\{first\}/g, f.first || 'there')
     .replace(/\{org\}/g, f.org)
