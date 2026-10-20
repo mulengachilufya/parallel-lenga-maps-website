@@ -37,6 +37,13 @@ const DATASETS = {
     folder: 'CropProduction', table: 'crop_production_layers',
     columns: { total_phys_ha: 'total_phys_ha', top_crop: 'top_crop' },
   },
+  'forest-loss': {
+    folder: 'ForestLoss', table: 'forest_loss_layers',
+    columns: {
+      tc2000_ha: 'tc2000_ha', loss_total_ha: 'loss_total_ha', loss_since_2021_ha: 'loss_since_2021_ha',
+      forest2020_ha: 'forest2020_ha', year_start: 'year_start', year_end: 'year_end',
+    },
+  },
 }
 
 const slug = process.argv[2]

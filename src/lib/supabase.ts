@@ -89,6 +89,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   16: '/dashboard?section=temperature',
   17: '/dashboard?section=lakes',
   18: '/dashboard?section=crop-production',
+  19: '/dashboard?section=forest-loss',
 }
 
 export type DatasetSource = {
@@ -406,6 +407,42 @@ export const DATASETS: Dataset[] = [
         institution: 'International Food Policy Research Institute (IFPRI)',
         url: 'https://doi.org/10.7910/DVN/SWPENT',
         contribution: 'Spatially disaggregated crop statistics for 2020 on a 5 arc-minute grid, summed to districts with area weights. CC BY 4.0.',
+      },
+      {
+        name: 'geoBoundaries',
+        institution: 'William & Mary geoLab',
+        url: 'https://www.geoboundaries.org',
+        contribution: 'District (ADM2) outlines. Open licence per country (mostly CC BY), shown on each file.',
+      },
+    ],
+  },
+  {
+    id: 19,
+    name: 'Forest Cover & Tree Cover Loss (EUDR)',
+    category: 'Conservation',
+    description: 'Tree cover 2000, tree cover loss for every year since 2001, loss since the EUDR cut-off (31 Dec 2020) and JRC forest cover 2020, per district.',
+    source: 'Hansen/UMD GFC · EC JRC GFC2020',
+    format: 'GeoPackage',
+    resolution: 'District (ADM2) · 30 m / 10 m source',
+    icon: '🌳',
+    tier: 'pro',
+    color: '#166534', // forest green
+    epsg: 'EPSG:4326',
+    licence: 'CC BY 4.0',
+    last_update: 'GFC v1.12+ · GFC2020',
+    size_label: '~0.5–5 MB / country',
+    sources: [
+      {
+        name: 'Global Forest Change',
+        institution: 'Hansen / University of Maryland, Google, USGS, NASA',
+        url: 'https://glad.earthengine.app/view/global-forest-change',
+        contribution: 'Tree cover in 2000 and yearly tree cover loss at 30 m, summed to districts with exact pixel areas. CC BY 4.0.',
+      },
+      {
+        name: 'Global Forest Cover 2020 (GFC2020)',
+        institution: 'European Commission Joint Research Centre (JRC)',
+        url: 'https://forest-observatory.ec.europa.eu/',
+        contribution: 'The EUDR reference map of forest cover on 31 Dec 2020, at 10 m. CC BY 4.0.',
       },
       {
         name: 'geoBoundaries',

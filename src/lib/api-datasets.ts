@@ -384,6 +384,34 @@ export const DATASETS: DatasetSpec[] = [
       },
     }),
   },
+  {
+    id:          'forest-loss',
+    name:        'Forest cover and tree cover loss by district',
+    description: 'Tree cover 2000 (≥30% canopy), yearly tree cover loss, loss since the EUDR cut-off (31 Dec 2020) and EC JRC GFC2020 forest cover per district (geoBoundaries ADM2), from Hansen/UMD Global Forest Change. One GeoPackage per country. Tree cover loss is not the same as deforestation: it includes plantation harvest and fire.',
+    category:    'environment',
+    table:       'forest_loss_layers',
+    source:      'Hansen/UMD Global Forest Change + EC JRC GFC2020 · CC BY 4.0',
+    toFile: (r) => ({
+      country_name: String(r.country),
+      country_iso3: String(r.iso3 ?? iso3For(String(r.country))),
+      r2_key:       String(r.r2_key),
+      file_size_mb: Number(r.file_size_mb ?? 0),
+      file_format:  String(r.file_format ?? 'GeoPackage'),
+      source:       String(r.source ?? 'Hansen/UMD Global Forest Change'),
+      meta: {
+        district_count:     r.district_count,
+        admin_level:        r.admin_level,
+        tc2000_ha:          r.tc2000_ha,
+        loss_total_ha:      r.loss_total_ha,
+        loss_since_2021_ha: r.loss_since_2021_ha,
+        forest2020_ha:      r.forest2020_ha,
+        year_start:         r.year_start,
+        year_end:           r.year_end,
+        boundary_license:   r.boundary_license,
+        epsg:               r.epsg,
+      },
+    }),
+  },
 ]
 
 export function findDataset(id: string): DatasetSpec | undefined {
@@ -421,6 +449,7 @@ export async function listFilesForDataset(
       'road_layers',
       'soil_layers',
       'crop_production_layers',
+      'forest_loss_layers',
     ])
     if (/^[A-Za-z]{3}$/.test(trimmed)) {
       const upper = trimmed.toUpperCase()
