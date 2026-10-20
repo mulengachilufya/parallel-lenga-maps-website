@@ -1,0 +1,100 @@
+/**
+ * PATCH /api/admin/sales/linkedin/:contactId — move someone along the
+ * LinkedIn track, or edit what we have on them. Body, any of:
+ *   { linkedin_url }              their profile (saved on the contact)
+ *   { hook }                      what we noticed about them, used in the messages
+ *   { message: { kind, text } }   an edited connect / thank / pitch message
+ *   { action, text?, reason? }    a step done: requested | connected | thanked |
+ *                                 comment1 | comment2 | pitched | replied |
+ *                                 meeting | closed, or 'undo' for the latest step
+ *
+ * Steps land on the account's timeline, and the account's stage follows
+ * (first message → Contacted, a reply → Replied, a call booked → Meeting).
+ * Nothing is sent from here: the founder sends every message on LinkedIn.
+ */
+import { NextRequest, NextResponse } from 'next/server'
+import { db, isUuid, jsonError, loadAccount, logActivity, requireAdmin, str, touched } from '@/lib/sales/server'
+import { LI_ACTION_FIELD, LI_CLOSE_REASONS, LI_ORDER, cleanProfileUrl, type LiAction, type LiMessage } from '@/lib/sales/linkedin'
+
+export const dynamic = 'force-dynamic'
+
+const TIMELINE: Partial<Record<LiAction, string>> = {
+  requested: 'Sent a LinkedIn connection request',
+  connected: 'Accepted the LinkedIn connection',
+  thanked:   'Sent a LinkedIn thank-you message',
+  comment1:  'Commented on one of their LinkedIn posts',
+  comment2:  'Commented on another of their LinkedIn posts',
+  pitched:   'Sent the Lenga Maps message on LinkedIn',
+  replied:   'Replied on LinkedIn',
+  meeting:   'Booked a video call from LinkedIn',
+  closed:    'Closed on LinkedIn',
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ contactId: string }> }) {
+  const gate = await requireAdmin()
+  if ('denied' in gate) return gate.denied
+  const { contactId } = await params
+  if (!isUuid(contactId)) return jsonError('not_found', 404)
+  let body: Record<string, unknown> = {}
+  try { body = await req.json() } catch { /* validated below */ }
+
+  const { data: contact } = await db.from('sales_contacts').select('id, account_id, name, linkedin_url').eq('id', contactId).maybeSingle()
+  if (!contact) return jsonError('not_found', 404, 'That person is no longer in the pipeline.')
+  const { data: existing } = await db.from('sales_linkedin').select('*').eq('contact_id', contactId).maybeSingle()
+  const now = new Date().toISOString()
+  const patch: Record<string, unknown> = { contact_id: contactId, account_id: contact.account_id, updated_at: now }
+
+  if ('linkedin_url' in body) {
+    const url = body.linkedin_url === '' || body.linkedin_url === null ? null : cleanProfileUrl(body.linkedin_url)
+    if (body.linkedin_url && !url) return jsonError('validation', 400, 'Paste the address of their profile, the one with linkedin.com/in/ in it.')
+    await db.from('sales_contacts').update({ linkedin_url: url }).eq('id', contactId)
+    contact.linkedin_url = url
+  }
+  if ('hook' in body) patch.hook = str(body.hook, 300)
+  if (body.message && typeof body.message === 'object') {
+    const m = body.message as { kind?: unknown; text?: unknown }
+    if (m.kind !== 'connect' && m.kind !== 'thank' && m.kind !== 'pitch') return jsonError('validation', 400, 'Unknown message.')
+    patch.messages = { ...(existing?.messages ?? {}), [m.kind as LiMessage]: str(m.text, 5000) }
+  }
+
+  const action = body.action
+  let logged: LiAction | null = null
+  if (action === 'undo') {
+    const last = [...LI_ORDER].reverse().find((a) => existing?.[LI_ACTION_FIELD[a]])
+    if (!last) return jsonError('nothing_to_undo', 400, 'Nothing to undo yet.')
+    patch[LI_ACTION_FIELD[last]] = null
+    if (last === 'closed') patch.closed_reason = null
+  } else if (typeof action === 'string') {
+    if (!(action in LI_ACTION_FIELD)) return jsonError('validation', 400, 'Unknown step.')
+    const a = action as LiAction
+    if (a === 'requested' && !contact.linkedin_url) return jsonError('no_profile', 400, `Add ${contact.name}'s LinkedIn profile first.`)
+    patch[LI_ACTION_FIELD[a]] = now
+    if (a === 'closed') patch.closed_reason = LI_CLOSE_REASONS.includes(String(body.reason)) ? String(body.reason) : 'Other'
+    logged = a
+  }
+
+  const { data: row, error } = await db.from('sales_linkedin').upsert(patch, { onConflict: 'contact_id' }).select('*').single()
+  if (error) {
+    console.error('[admin/sales/linkedin] save failed', error)
+    return jsonError('save_failed', 500, 'Could not save. Has migration 050 been applied?')
+  }
+
+  if (logged) {
+    const account = await loadAccount(contact.account_id)
+    if (account) {
+      const inbound = logged === 'connected' || logged === 'replied'
+      const reason = logged === 'closed' ? ` Reason: ${row.closed_reason}.` : ''
+      await logActivity({
+        account_id: account.id, contact_id: contact.id, kind: logged === 'replied' ? 'reply' : logged === 'meeting' ? 'meeting' : 'linkedin',
+        direction: inbound ? 'in' : logged === 'closed' ? null : 'out',
+        subject: `${TIMELINE[logged]}${inbound ? ` (${contact.name})` : ''}`,
+        body: `${str(body.text, 5000) ?? ''}${reason}`.trim() || null,
+        meta: { channel: 'linkedin', step: logged }, created_by: gate.email,
+      })
+      if (logged !== 'closed' && logged !== 'connected') {
+        await touched(account, logged === 'replied' ? 'reply' : logged === 'meeting' ? 'meeting' : 'linkedin', inbound ? 'in' : 'out', gate.email)
+      }
+    }
+  }
+  return NextResponse.json({ ok: true, li: row, linkedin_url: contact.linkedin_url })
+}
