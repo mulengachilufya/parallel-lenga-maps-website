@@ -25,15 +25,17 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   // Pick up a free team their people started since we last looked.
   if (!account.org_id && (await linkTeams(id)).length) account = (await loadAccount(id))!
 
-  const [contacts, activities, tasks, team, settings] = await Promise.all([
+  const [contacts, activities, tasks, team, settings, partnership] = await Promise.all([
     db.from('sales_contacts').select('*').eq('account_id', id).order('is_primary', { ascending: false }).order('created_at'),
     db.from('sales_activities').select('*').eq('account_id', id).order('created_at', { ascending: false }).limit(300),
     db.from('sales_tasks').select('*').eq('account_id', id).order('done_at', { ascending: false, nullsFirst: true }).order('due_on'),
     teamStatus(account.org_id),
     getSettings(),
+    db.from('sales_partnerships').select('*').eq('account_id', id).maybeSingle(),
   ])
   return NextResponse.json({
     account, contacts: contacts.data ?? [], activities: activities.data ?? [], tasks: tasks.data ?? [], team, settings,
+    partnership: partnership.data ?? null,
   })
 }
 

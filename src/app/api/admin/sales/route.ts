@@ -1,5 +1,6 @@
 /**
- * GET  /api/admin/sales — every account in the pipeline with its main
+ * GET  /api/admin/sales — every account in the sales pipeline (partners
+ *                         live in /api/admin/sales/partners) with its main
  *                         contact and next open task, the open tasks due
  *                         in the next week, and the sales settings.
  * POST /api/admin/sales — add an account: { name, country_iso3?, sector?,
@@ -23,7 +24,7 @@ export async function GET() {
   const [accounts, contacts, tasks, settings] = await Promise.all([
     db.from('sales_accounts')
       .select('id, name, country_iso3, sector, source, stage, priority, seats_estimate, value_usd, next_step, next_step_due, lost_reason, nurture_until, org_id, stage_history, stage_changed_at, last_touch_at, created_at, updated_at')
-      .order('updated_at', { ascending: false }).limit(3000),
+      .eq('pipeline', 'sales').order('updated_at', { ascending: false }).limit(3000),
     db.from('sales_contacts').select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at').limit(10000),
     db.from('sales_tasks').select('id, account_id, contact_id, kind, title, template, due_on, sequence')
       .is('done_at', null).order('due_on', { ascending: true }).limit(5000),
@@ -48,7 +49,7 @@ export async function GET() {
   const horizon = dueDate(7)
   const names = new Map(rows.map((a) => [a.id, a]))
   const contactById = new Map((contacts.data ?? []).map((c) => [c.id, c]))
-  const upcoming = (tasks.data ?? []).filter((t) => t.due_on <= horizon).map((t) => ({
+  const upcoming = (tasks.data ?? []).filter((t) => t.due_on <= horizon && names.has(t.account_id)).map((t) => ({
     ...t,
     account_name: names.get(t.account_id)?.name ?? '',
     account_stage: names.get(t.account_id)?.stage ?? 'target',

@@ -17,7 +17,7 @@ export async function GET() {
 
   const [contacts, rows] = await Promise.all([
     db.from('sales_contacts')
-      .select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at, account:sales_accounts!inner(id, name, country_iso3, sector, stage)')
+      .select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at, account:sales_accounts!inner(id, name, country_iso3, sector, stage, pipeline)')
       .is('opted_out_at', null).neq('account.stage', 'lost')
       .order('created_at', { ascending: true }).limit(2000),
     db.from('sales_linkedin').select('*').limit(2000),

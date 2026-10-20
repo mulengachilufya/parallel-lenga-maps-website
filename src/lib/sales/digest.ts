@@ -20,7 +20,7 @@ const DAY = 86400_000
 function esc(s: string) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!)) }
 
 export async function runSalesJob(): Promise<Record<string, unknown>> {
-  const { data: accounts, error } = await db.from('sales_accounts').select('*').limit(5000)
+  const { data: accounts, error } = await db.from('sales_accounts').select('*').eq('pipeline', 'sales').limit(5000)
   if (error) throw new Error(`sales_accounts: ${error.message}`)
   const rows = (accounts ?? []) as (AccountRow & { stage_changed_at: string; next_step_due: string | null })[]
 
@@ -49,8 +49,12 @@ export async function runSalesJob(): Promise<Record<string, unknown>> {
   const cold = rows.filter((r) => (ACTIVE_STAGES as Stage[]).includes(r.stage) && r.stage !== 'contacted'
     && now - new Date(r.last_touch_at ?? r.stage_changed_at).getTime() > STALE_DAYS * DAY)
 
-  const summary = { acquired: acquired.length, due: due.length, waiting: waiting.length, cold: cold.length, free_teams: newFree.length, sent: false }
-  if (!due.length && !waiting.length && !newFree.length && !acquired.length && !(cold.length && new Date().getUTCDay() === 1)) return summary
+  // Partnerships whose next step is due, not paused or dropped.
+  const { data: partnerDue } = await db.from('sales_partnerships').select('next_step, next_step_due, stage, account:sales_accounts!inner(name)')
+    .lte('next_step_due', today).not('stage', 'in', '(paused,dropped)').limit(50)
+
+  const summary = { acquired: acquired.length, due: due.length, waiting: waiting.length, cold: cold.length, free_teams: newFree.length, partners_due: partnerDue?.length ?? 0, sent: false }
+  if (!due.length && !waiting.length && !newFree.length && !acquired.length && !partnerDue?.length && !(cold.length && new Date().getUTCDay() === 1)) return summary
 
   const place = (r: AccountRow) => countryName(r.country_iso3) ? ` (${countryName(r.country_iso3)})` : ''
   const sections: { title: string; lines: string[] }[] = []
@@ -58,6 +62,9 @@ export async function runSalesJob(): Promise<Record<string, unknown>> {
   if (due.length) sections.push({ title: `Due today (${due.length})`, lines: due.slice(0, 25).map((t) => `${byId.get(t.account_id)!.name}${place(byId.get(t.account_id)!)}: ${t.title}${t.due_on < today ? ` (was due ${t.due_on})` : ''}`) })
   if (waiting.length) sections.push({ title: 'Replied and waiting on you', lines: waiting.map((r) => `${r.name}${place(r)}: book the call.`) })
   if (newFree.length) sections.push({ title: 'Started a free team', lines: newFree.map((n) => `${n}: now on the free plan. A check-in is on your list.`) })
+  if (partnerDue?.length) {
+    sections.push({ title: `Partnerships due (${partnerDue.length})`, lines: partnerDue.map((p) => `${(p.account as unknown as { name: string }).name}: ${p.next_step ?? 'next step'}${p.next_step_due && p.next_step_due < today ? ` (was due ${p.next_step_due})` : ''}`) })
+  }
   if (cold.length && new Date().getUTCDay() === 1) {
     sections.push({ title: `Going cold, no contact for ${STALE_DAYS}+ days`, lines: cold.slice(0, 15).map((r) => `${r.name}${place(r)}: ${STAGE[r.stage].label}`) })
   }

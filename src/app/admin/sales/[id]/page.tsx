@@ -24,6 +24,7 @@ import {
 } from '@/lib/sales/client'
 import { TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
+import { TRACKS, partnerStageLabel, track, type PartnerTrack, type Partnership } from '@/lib/sales/partnerships'
 
 interface Account {
   id: string; name: string; country_iso3: string | null; sector: string | null; website: string | null
@@ -31,6 +32,7 @@ interface Account {
   seats_estimate: number | null; value_usd: number | null; discovery: Record<string, string>
   lost_reason: string | null; nurture_until: string | null; notes: string | null; org_id: string | null
   stage_history: Record<string, string>; stage_changed_at: string; last_touch_at: string | null; created_at: string
+  pipeline: 'sales' | 'partner'
 }
 interface Team {
   id: string; name: string; status: string; seat_count: number; access_expires_at: string | null
@@ -38,7 +40,7 @@ interface Team {
   pending_invites: number; project_count: number; last_project_at: string | null
   plan: 'paid' | 'free'; free_datasets: string[] | null
 }
-interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings }
+interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings; partnership: Partnership | null }
 
 const DISCOVERY: { key: string; label: string; hint: string }[] = [
   { key: 'project', label: 'The project', hint: 'What are they working on right now, and where?' },
@@ -122,7 +124,7 @@ function AccountPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-gray-900">
-      <Link href="/admin/sales" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"><ArrowLeft size={14} /> Pipeline</Link>
+      <Link href={a.pipeline === 'partner' ? '/admin/sales?tab=partners' : '/admin/sales'} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"><ArrowLeft size={14} /> {a.pipeline === 'partner' ? 'Partnerships' : 'Pipeline'}</Link>
 
       <div className="mt-3 flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
@@ -134,13 +136,21 @@ function AccountPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <StageChip stage={a.stage} />
+          {a.pipeline === 'partner' ? null : <StageChip stage={a.stage} />}
+          <PipelineSwitch id={a.id} pipeline={a.pipeline} onMoved={() => void load()} />
           <button onClick={() => setDialog({ kind: 'edit' })} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Pencil size={12} /> Edit</button>
         </div>
       </div>
 
+      {a.pipeline === 'partner' && d.partnership && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+          <b>Partner</b> on the {track(d.partnership.track).label} track, at <b>{partnerStageLabel(d.partnership.stage)}</b>.{' '}
+          <Link href="/admin/sales?tab=partners" className="underline">Manage the partnership</Link>. The sales stages below don&apos;t apply.
+        </div>
+      )}
+
       {/* Stage bar */}
-      <div className="mt-4 flex gap-1 overflow-x-auto pb-1">
+      <div className={`mt-4 flex gap-1 overflow-x-auto pb-1 ${a.pipeline === 'partner' ? 'hidden' : ''}`}>
         {STAGES.map((s, i) => {
           const at = stageIndex(a.stage)
           const done = at >= 0 && i < at
@@ -789,5 +799,39 @@ function EditDialog({ account, focus, onClose, onDone }: { account: Account; foc
         <Primary className="w-full" disabled={s.busy || !f.name.trim()} onClick={() => s.run(() => api(`/api/admin/sales/${account.id}`, { method: 'PATCH', body: { ...f, country_iso3: f.country_iso3 || null, sector: f.sector || null } }))}>{s.busy ? 'Saving…' : 'Save'}</Primary>
       </div>
     </Modal>
+  )
+}
+
+/** Move this organisation to the Partnerships pipeline, or back to sales. */
+function PipelineSwitch({ id, pipeline, onMoved }: { id: string; pipeline: 'sales' | 'partner'; onMoved: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  async function move(body: { to: 'partner'; track: PartnerTrack } | { to: 'sales' }) {
+    setBusy(true)
+    try { await api(`/api/admin/sales/partners/${id}`, { method: 'POST', body }); setOpen(false); onMoved() }
+    finally { setBusy(false) }
+  }
+  if (pipeline === 'partner') {
+    return (
+      <button disabled={busy} onClick={() => { if (window.confirm('Move back to the sales pipeline?')) void move({ to: 'sales' }) }}
+              className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700">Back to sales</button>
+    )
+  }
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-900">Move to Partnerships</button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 w-72 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+          <p className="px-2 py-1 text-[11px] text-gray-500">Pick the track: how they get Lenga Maps used. Unsent email drafts are set aside.</p>
+          {TRACKS.map((t) => (
+            <button key={t.id} disabled={busy} onClick={() => void move({ to: 'partner', track: t.id })}
+                    className="block w-full text-left rounded-lg px-2 py-1.5 hover:bg-gray-50">
+              <span className="block text-sm font-semibold text-gray-900">{t.label}</span>
+              <span className="block text-[11px] text-gray-500">{t.how}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
