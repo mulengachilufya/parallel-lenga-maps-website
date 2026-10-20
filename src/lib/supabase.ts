@@ -88,6 +88,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   15: '/dashboard?section=rainfall',
   16: '/dashboard?section=temperature',
   17: '/dashboard?section=lakes',
+  18: '/dashboard?section=crop-production',
 }
 
 export type DatasetSource = {
@@ -383,5 +384,35 @@ export const DATASETS: Dataset[] = [
     licence: 'HydroSHEDS (free with attribution)',
     last_update: 'HydroLAKES v1.0',
     size_label: '~1–8 MB / country',
+  },
+  {
+    id: 18,
+    name: 'Crop Production by District',
+    category: 'Agriculture',
+    description: 'Physical area, harvested area, production and yield of 15 key crops per district, with all 46 MapSPAM crops in a long table.',
+    source: 'IFPRI MapSPAM 2020',
+    format: 'GeoPackage',
+    resolution: 'District (ADM2) · 5 arc-min source grid',
+    icon: '🌽',
+    tier: 'pro',
+    color: '#4D7C0F', // lime green — crops
+    epsg: 'EPSG:4326',
+    licence: 'CC BY 4.0',
+    last_update: 'SPAM 2020 v1.0',
+    size_label: '~0.5–5 MB / country',
+    sources: [
+      {
+        name: 'MapSPAM 2020 v1.0',
+        institution: 'International Food Policy Research Institute (IFPRI)',
+        url: 'https://doi.org/10.7910/DVN/SWPENT',
+        contribution: 'Spatially disaggregated crop statistics for 2020 on a 5 arc-minute grid, summed to districts with area weights. CC BY 4.0.',
+      },
+      {
+        name: 'geoBoundaries',
+        institution: 'William & Mary geoLab',
+        url: 'https://www.geoboundaries.org',
+        contribution: 'District (ADM2) outlines. Open licence per country (mostly CC BY), shown on each file.',
+      },
+    ],
   },
 ]

@@ -360,6 +360,30 @@ export const DATASETS: DatasetSpec[] = [
       },
     }),
   },
+  {
+    id:          'crop-production',
+    name:        'Crop production by district',
+    description: 'Physical area, harvested area, production and yield of 15 key crops (all 46 SPAM crops in the crops_long table) per district (geoBoundaries ADM2), from IFPRI MapSPAM 2020 v1.0. One GeoPackage per country.',
+    category:    'agriculture',
+    table:       'crop_production_layers',
+    source:      'IFPRI MapSPAM 2020 v1.0 · CC BY 4.0',
+    toFile: (r) => ({
+      country_name: String(r.country),
+      country_iso3: String(r.iso3 ?? iso3For(String(r.country))),
+      r2_key:       String(r.r2_key),
+      file_size_mb: Number(r.file_size_mb ?? 0),
+      file_format:  String(r.file_format ?? 'GeoPackage'),
+      source:       String(r.source ?? 'IFPRI MapSPAM 2020 v1.0'),
+      meta: {
+        district_count:   r.district_count,
+        admin_level:      r.admin_level,
+        total_phys_ha:    r.total_phys_ha,
+        top_crop:         r.top_crop,
+        boundary_license: r.boundary_license,
+        epsg:             r.epsg,
+      },
+    }),
+  },
 ]
 
 export function findDataset(id: string): DatasetSpec | undefined {
@@ -396,6 +420,7 @@ export async function listFilesForDataset(
       'protected_areas_layers',
       'road_layers',
       'soil_layers',
+      'crop_production_layers',
     ])
     if (/^[A-Za-z]{3}$/.test(trimmed)) {
       const upper = trimmed.toUpperCase()

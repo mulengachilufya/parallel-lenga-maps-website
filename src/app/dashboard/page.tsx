@@ -16,7 +16,7 @@ import WorkspaceBox from '@/components/WorkspaceBox'
 import type { Access } from '@/lib/entitlements'
 import type { WsProjectSummary } from '@/lib/workspace/types'
 import {
-  FREE_DATASET_LIMIT, PLANS, UPDATE_MONTHS, UPDATES_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
+  DATASET_COUNT, FREE_DATASET_LIMIT, PLANS, UPDATE_MONTHS, UPDATES_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
@@ -34,6 +34,7 @@ import PopulationList       from '@/components/PopulationList'
 import ProtectedAreasList   from '@/components/ProtectedAreasList'
 import RoadsList            from '@/components/RoadsList'
 import SoilList             from '@/components/SoilList'
+import DistrictStatsList    from '@/components/DistrictStatsList'
 
 // ─── Plan style tokens ────────────────────────────────────────
 const PLAN_STYLE: Record<string, {
@@ -117,6 +118,11 @@ const SECTIONS: Record<string, {
     subtitle: 'ISRIC SoilGrids v2.0 · GeoTIFF (250m) per country',
     component: () => <SoilList />,
   },
+  'crop-production': {
+    title: '🌽 Crop Production by District',
+    subtitle: 'IFPRI MapSPAM 2020 · 15 key crops per district · GeoPackage per country',
+    component: () => <DistrictStatsList dataset="crop-production" />,
+  },
   'rivers-hydro': {
     title: '🌊 HydroRIVERS',
     subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
@@ -139,6 +145,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'rainfall':         'rainfall',
   'temperature':      'temperature',
   'lakes':            'lakes',
+  'crop-production':  'crop-production',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────
@@ -812,7 +819,7 @@ function DashboardContent() {
               {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
             </h1>
             <p className="hidden sm:block text-white/80 text-sm mt-1">
-              54 African countries · 15 datasets · harmonised to EPSG:4326
+              54 African countries · {DATASET_COUNT} datasets · harmonised to EPSG:4326
             </p>
           </div>
         </div>

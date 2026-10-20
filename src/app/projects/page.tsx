@@ -9,7 +9,7 @@
  *   Hero (navy, satellite photo)
  *     → WHITE pricing section with Lenga logo, main /pricing font styles
  *       (inline 48px price, 13px tracked uppercase label), and a glowing
- *       "ALL 15 DATASETS" badge above the 3 cards.
+ *       "ALL <DATASET_COUNT> DATASETS" badge above the 3 cards.
  *     → Industries (full-bleed home-page style: 4 photos at h-[480px],
  *       free-floating with gold rule + uppercase tracked label, no boxes).
  *     → Feature cards
@@ -31,7 +31,7 @@ import {
   Phone, Mail, MessageCircle, Zap, ChevronDown,
 } from 'lucide-react'
 import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
-import { BANK_FEES_NOTE, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
+import { BANK_FEES_NOTE, DATASET_COUNT, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
 import SeatStepper from '@/components/SeatStepper'
 
 const NAVY = '#0D2B45'
@@ -66,6 +66,7 @@ const ALL_DATASETS: { name: string; color: string }[] = [
   { name: 'Lakes',                     color: '#0284C7' },
   { name: 'Soil Classification',       color: '#78350F' },
   { name: 'Wetlands & Floodplains',    color: '#155E63' },
+  { name: 'Crop Production',           color: '#4D7C0F' },
 ]
 
 export default function ProjectsPage() {
@@ -255,7 +256,7 @@ export default function ProjectsPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: Layers,     title: 'The full catalogue',        body: 'All 15 datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, population, protected areas and more. This tier is never a reduced catalogue.' },
+              { icon: Layers,     title: 'The full catalogue',        body: `All ${DATASET_COUNT} datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, crops, population, protected areas and more. This tier is never a reduced catalogue.` },
               { icon: History,    title: 'Shared download history',   body: 'Every pull is logged with dataset, country, CRS, format, who and when. New joiners see months of team context on day one.' },
               { icon: Crosshair,  title: 'Duplicate-pull warnings',   body: 'Opening a layer a teammate already downloaded? The workspace says so before you spend another download on it.' },
               { icon: KeyRound,   title: 'API access',                body: 'Programmatic access to the catalogue with per-minute rate limits and monthly quotas. Exclusive to team plans.' },
@@ -300,7 +301,7 @@ export default function ProjectsPage() {
 // ── Pricing section ───────────────────────────────────────────────────────
 // WHITE background. Mirrors the main /pricing card font metrics (inline
 // styles, 48px price, 13px tracked uppercase label). Logo + tracked label
-// at top; glowing "ALL 15 DATASETS" banner above the cards so the catalogue
+// at top; glowing "ALL <DATASET_COUNT> DATASETS" banner above the cards so the catalogue
 // is impossible to miss. Three term cards: monthly, 3 months (cream) and
 // 1 year (navy, featured).
 
@@ -349,7 +350,7 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           </p>
         </div>
 
-        {/* ── Glowing ALL 15 DATASETS banner ─────────────────────────── */}
+        {/* ── Glowing ALL DATASETS banner ─────────────────────────── */}
         <div
           className="lm-glow mt-12 rounded-2xl"
           style={{ background: 'linear-gradient(135deg, #0D2B45 0%, #102f4e 50%, #0a2238 100%)', padding: '1.5rem 1.5rem 1.25rem' }}
@@ -357,7 +358,7 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           <div className="flex items-center justify-center gap-2 mb-3.5">
             <Sparkles size={16} style={{ color: GOLD }} />
             <span className="text-[0.72rem] font-extrabold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-              Every team plan unlocks all 15 datasets
+              Every team plan unlocks all {DATASET_COUNT} datasets
             </span>
             <Sparkles size={16} style={{ color: GOLD }} />
           </div>
