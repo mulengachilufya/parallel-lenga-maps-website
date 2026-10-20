@@ -59,7 +59,7 @@ export default function DraftsTab({ onCount }: { onCount?: (n: number) => void }
             <h2 className="text-sm font-bold text-gray-900">Researched first emails</h2>
             <p className="text-sm text-gray-600 mt-1">
               Each one is written for that person. Read it, change anything you like, then press Send. It goes from your address
-              with an opt-out link, lands on their timeline, and LinkedIn and call follow-ups are planned for you.
+              with an opt-out link, lands on their timeline, and a call follow-up is planned for you. LinkedIn runs alongside it in the LinkedIn tab.
             </p>
             <p className="text-xs text-gray-500 mt-2">
               South Africa: POPIA allows one unsolicited email, so after this the follow-ups are LinkedIn and a call, never another email unless they reply.

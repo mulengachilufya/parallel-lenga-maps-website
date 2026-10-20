@@ -29,10 +29,12 @@ import {
 } from '@/lib/sales/client'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
 import DraftsTab from '@/components/sales/DraftsTab'
+import LinkedInTab from '@/components/sales/LinkedInTab'
+import { liActionable, liStep, type LinkedInRow } from '@/lib/sales/linkedin'
 
-type Tab = 'today' | 'drafts' | 'prospects' | 'board' | 'countries' | 'numbers'
+type Tab = 'today' | 'drafts' | 'linkedin' | 'prospects' | 'board' | 'countries' | 'numbers'
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'today', label: 'Today' }, { id: 'drafts', label: 'Drafts' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
+  { id: 'today', label: 'Today' }, { id: 'drafts', label: 'Drafts' }, { id: 'linkedin', label: 'LinkedIn' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
   { id: 'countries', label: 'Countries' }, { id: 'numbers', label: 'Numbers' },
 ]
 
@@ -51,6 +53,7 @@ function SalesPage() {
   const [modal, setModal] = useState<null | 'add' | 'import' | 'settings'>(null)
   const [filters, setFilters] = useState({ q: '', country: params.get('country') || 'focus', stage: 'open', sector: '' })
   const [drafts, setDrafts] = useState(0)
+  const [liTodo, setLiTodo] = useState(0)
 
   const load = useCallback(async () => {
     try { setData(await api('/api/admin/sales')); setErr('') }
@@ -59,6 +62,9 @@ function SalesPage() {
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     api<{ counts: { draft: number } }>('/api/admin/sales/drafts?status=draft').then((d) => setDrafts(d.counts.draft)).catch(() => {})
+    api<{ people: { linkedin_url: string | null; li: LinkedInRow | null }[] }>('/api/admin/sales/linkedin')
+      .then((d) => setLiTodo(d.people.filter((p) => { const s = liStep(p.li, p.linkedin_url); return s.step !== 'find' && liActionable(s.step, s.due) }).length))
+      .catch(() => {})
   }, [])
 
   function go(t: Tab, patch?: Partial<typeof filters>) {
@@ -101,6 +107,7 @@ function SalesPage() {
             {t.label}
             {t.id === 'today' && dueToday(data.tasks) > 0 && <span className="ml-1.5 rounded-full bg-red-600 text-white text-[10px] px-1.5 py-0.5">{dueToday(data.tasks)}</span>}
             {t.id === 'drafts' && drafts > 0 && <span className="ml-1.5 rounded-full bg-[#0D2B45] text-white text-[10px] px-1.5 py-0.5">{drafts}</span>}
+            {t.id === 'linkedin' && liTodo > 0 && <span className="ml-1.5 rounded-full bg-[#0A66C2] text-white text-[10px] px-1.5 py-0.5">{liTodo}</span>}
           </button>
         ))}
       </nav>
@@ -108,6 +115,7 @@ function SalesPage() {
       <div className="mt-5">
         {tab === 'today' && <TodayTab data={data} onOpen={(id, task) => router.push(`/admin/sales/${id}${task ? `?task=${task}` : ''}`)} onAdd={() => setModal('add')} onImport={() => setModal('import')} onSettings={() => setModal('settings')} />}
         {tab === 'drafts' && <DraftsTab onCount={setDrafts} />}
+        {tab === 'linkedin' && <LinkedInTab onCount={setLiTodo} />}
         {tab === 'prospects' && <ProspectsTab accounts={data.accounts} focus={focus} filters={filters} setFilters={setFilters} />}
         {tab === 'board' && <BoardTab accounts={data.accounts} focus={focus} />}
         {tab === 'countries' && <CountriesTab accounts={data.accounts} focus={focus} onCountry={(c) => go('prospects', { country: c, stage: 'all' })} onSettings={() => setModal('settings')} />}
@@ -147,7 +155,7 @@ function TodayTab({ data, onOpen, onAdd, onImport, onSettings }: {
         <ol className="mt-3 space-y-2.5 text-sm text-gray-700 list-decimal pl-5">
           <li><button onClick={onSettings} className="text-blue-700 underline">Pick your focus countries</button>. Start with a few big markets rather than the whole continent.</li>
           <li>Build a target list: 10 to 20 organisations per country (mining houses, EIA consultancies, water utilities, engineering firms, NGOs). <button onClick={onImport} className="text-blue-700 underline">Paste it in</button>, or <button onClick={onAdd} className="text-blue-700 underline">add them one by one</button>.</li>
-          <li>For each one, find the right person on LinkedIn and start the outreach sequence. It plans the next three weeks: emails, LinkedIn and a call.</li>
+          <li>For each one, find the right person on LinkedIn and start the outreach sequence. It plans the next three weeks: emails and a call. LinkedIn runs alongside it in the LinkedIn tab.</li>
           <li>Come back to this tab every morning. It lists exactly what to do. You also get it by email.</li>
         </ol>
       </div>
