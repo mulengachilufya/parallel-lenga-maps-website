@@ -201,7 +201,11 @@ def gfw_reference(year_end: int) -> dict:
         return json.loads(cache.read_text())
     key = os.environ.get("GFW_API_KEY")
     if not key:
-        return {}
+        out = gfw_spreadsheet()
+        if out:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps(out, indent=2))
+        return out
     base = "https://data-api.globalforestwatch.org/dataset"
     hdr = {**HEADERS, "x-api-key": key}
     isos = ",".join(f"'{i}'" for i in GFW_TEST)
@@ -227,6 +231,48 @@ def gfw_reference(year_end: int) -> dict:
     return out
 
 
+GFW_XLSX = "https://gfw2-data.s3.amazonaws.com/country-pages/country_stats/download/global_country_stats.xlsx"
+GFW_NAMES = {"CIV": ("côte d'ivoire", "cote d'ivoire", "ivory coast"),
+             "COD": ("democratic republic of the congo", "dr congo", "congo, the democratic republic of the"),
+             "ZMB": ("zambia",)}
+
+
+def gfw_spreadsheet() -> dict:
+    """
+    The country statistics workbook behind the GFW dashboards' "Download
+    data" button (no API key needed): tree cover extent 2000 and loss per
+    year, by country and canopy threshold.
+    """
+    import pandas as pd
+    from common import download
+    try:
+        path = download(GFW_XLSX, CACHE_DIR / "gfw" / "global_country_stats.xlsx")
+    except Exception:
+        return {}
+    sheets = pd.read_excel(path, sheet_name=None)
+    sheet = next((df for name, df in sheets.items() if "country" in name.lower() and "loss" in name.lower()), None)
+    if sheet is None:
+        return {}
+    cols = {c.lower(): c for c in sheet.columns}
+    ccol = next((cols[c] for c in cols if c in ("country", "name", "iso")), None)
+    tcol = next((cols[c] for c in cols if "threshold" in c), None)
+    ecol = next((cols[c] for c in cols if "extent_2000" in c), None)
+    lcols = {c.rsplit("_", 1)[-1]: cols[c] for c in cols if c.startswith("tc_loss_ha_")}
+    if not (ccol and tcol and ecol and lcols):
+        return {}
+    sub = sheet[sheet[tcol] == 30]
+    out = {}
+    for iso3, names in GFW_NAMES.items():
+        row = sub[sub[ccol].astype(str).str.strip().str.lower().isin(names + (iso3.lower(),))]
+        if row.empty:
+            continue
+        r = row.iloc[0]
+        out[iso3] = {"tc2000_ha": float(r[ecol]),
+                     "loss_by_year_ha": {y: float(r[c]) for y, c in lcols.items()},
+                     "reference": "GFW global_country_stats.xlsx (threshold 30)"}
+    return out
+
+
 def forest_national(manifest: list[dict], rep: Report) -> None:
     by_iso = {m["iso3"]: m for m in manifest}
     if not all(i in by_iso for i in GFW_TEST):
@@ -239,7 +285,7 @@ def forest_national(manifest: list[dict], rep: Report) -> None:
         rep.fail(f"GFW reference could not be fetched: {err}")
         return
     if not ref:
-        rep.fail("GFW reference missing: set GFW_API_KEY or add reference/gfw_country_totals.json")
+        rep.fail("GFW reference missing: the GFW country workbook could not be read; set GFW_API_KEY or add reference/gfw_country_totals.json")
         return
     rows = {}
     for iso3 in GFW_TEST:

@@ -29,8 +29,8 @@ other two) before seeding. The seeder refuses to run without a passing
 geoBoundaries via `media.githubusercontent.com`; MapSPAM via
 `dataverse.harvard.edu`; Hansen via `storage.googleapis.com`; JRC GFC2020 via
 `jeodpp.jrc.ec.europa.eu` and `data.jrc.ec.europa.eu`; iSDAsoil via
-`isdasoil.s3.amazonaws.com`; checks via `data-api.globalforestwatch.org`
-(`GFW_API_KEY`) and `api.isda-africa.com` (`ISDA_USERNAME`/`ISDA_PASSWORD`).
+`isdasoil.s3.amazonaws.com`; checks via `gfw2-data.s3.amazonaws.com` (GFW country workbook, no key) or
+`data-api.globalforestwatch.org` (`GFW_API_KEY`) and `api.isda-africa.com` (`ISDA_USERNAME`/`ISDA_PASSWORD`).
 
 ## Boundaries and licences
 
