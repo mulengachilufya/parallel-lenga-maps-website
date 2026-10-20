@@ -77,4 +77,18 @@ export const DISTRICT_STATS: Partial<Record<DatasetSlug, DistrictStatsConfig>> =
       ...(l.forest2020_ha !== null && l.forest2020_ha !== undefined ? [`JRC forest 2020: ${num(l.forest2020_ha)} ha`] : []),
     ],
   },
+  'soil-fertility': {
+    slug: 'soil-fertility', api: '/api/soil-fertility', noun: 'soil fertility data',
+    source: 'iSDAsoil Africa 30 m v1 · CC BY 4.0',
+    tone: { banner: 'bg-orange-50 border-orange-200', hover: 'hover:border-orange-300', button: 'bg-orange-800 hover:bg-orange-900 text-white', ring: 'focus:ring-orange-500/30 focus:border-orange-400', icon: 'text-orange-800' },
+    credits: [{
+      name: 'iSDAsoil Africa 30 m v1', by: 'iSDA (Innovative Solutions for Decision Agriculture)',
+      url: 'https://www.isda-africa.com/isdasoil/', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    }],
+    note: 'District means (and p10/p90 for pH and organic carbon) of 30 m modelled soil properties, 0–20 cm (organic carbon also 20–50 cm). Water, built-up land and bare rock are masked out; valid_pct shows the share of each district with values. For WRB soil classes see Soil Classification.',
+    facts: (l) => [
+      ...(l.valid_pct_median !== null && l.valid_pct_median !== undefined ? [`Median coverage: ${num(l.valid_pct_median, 1)}% of each district`] : []),
+      '11 soil properties + texture class',
+    ],
+  },
 }
