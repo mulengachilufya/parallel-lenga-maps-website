@@ -57,6 +57,7 @@ export const DATASET_META: Record<DatasetSlug, DatasetMeta> = {
   'lakes':            { name: 'Lakes',                             epsg: 'EPSG:4326', formats: 'Shapefile · GeoJSON',       raster: false },
   'soil':             { name: 'Soil Classification (WRB)',         epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
   'wetlands':         { name: 'Wetlands & Floodplains',            epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
+  'crop-production':  { name: 'Crop Production by District',       epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
 }
 
 export function datasetMeta(slug: string): DatasetMeta | null {
