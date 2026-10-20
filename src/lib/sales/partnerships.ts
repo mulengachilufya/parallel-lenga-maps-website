@@ -19,6 +19,7 @@ export interface Partnership {
   account_id: string; track: PartnerTrack; stage: PartnerStage; stage_history: Record<string, string>
   document: PartnerDoc | null; we_give: string | null; we_get: string | null; revenue_model: string | null
   est_annual_usd: number | null; next_step: string | null; next_step_due: string | null; dropped_reason: string | null
+  research: string | null; sources: { label: string; url: string }[]
   created_at: string; updated_at: string
 }
 

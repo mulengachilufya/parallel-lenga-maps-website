@@ -105,7 +105,20 @@ export default function AdminPage() {
             </div>
             <h2 className="text-base font-bold text-navy mb-1">Sales pipeline</h2>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Every organisation you are going after, by country: outreach by email and LinkedIn, next steps, pilots, and website quote requests.
+              Customers you are going after, by country: outreach by email and LinkedIn, next steps, free teams, and website quote requests.
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/partners"
+            className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+          >
+            <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center mb-4">
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#9A3412' }}>PAR</span>
+            </div>
+            <h2 className="text-base font-bold text-navy mb-1">Partnerships</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Partners who get Lenga Maps used and paid for: marketplaces, built into their product, joint bids, project partners, resellers. Own drafts, LinkedIn and research.
             </p>
           </Link>
 

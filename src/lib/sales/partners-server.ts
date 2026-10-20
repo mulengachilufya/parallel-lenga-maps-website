@@ -16,6 +16,7 @@ export function partnershipPatch(body: Record<string, unknown>): Record<string, 
   if ('est_annual_usd' in body) p.est_annual_usd = num(body.est_annual_usd)
   if ('next_step' in body) p.next_step = str(body.next_step, 300)
   if ('next_step_due' in body) p.next_step_due = isoDate(body.next_step_due)
+  if ('research' in body) p.research = str(body.research, 5000)
   return p
 }
 

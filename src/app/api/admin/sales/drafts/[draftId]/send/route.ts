@@ -12,6 +12,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { DRAFTS_PER_DAY } from '@/lib/sales/playbook'
+import { movePartnerStage } from '@/lib/sales/partners-server'
 import {
   db, followUpsAfterFirstEmail, isUuid, jsonError, loadAccount, logActivity, requireAdmin, sendToContact,
 } from '@/lib/sales/server'
@@ -46,6 +47,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ dra
 
   const now = new Date().toISOString()
   await db.from('sales_drafts').update({ status: 'sent', subject, body: text, sent_at: now, sent_by: gate.email, updated_at: now }).eq('id', draft.id)
+  // A partner has its own track: no sales follow-ups, the partnership moves to Intro.
+  if ((account as { pipeline?: string }).pipeline === 'partner') {
+    const { data: p } = await db.from('sales_partnerships').select('stage').eq('account_id', account.id).maybeSingle()
+    if (p?.stage === 'identified') await movePartnerStage(account.id, 'intro', gate.email, { note: 'First email sent from Partnerships drafts.' })
+    return NextResponse.json({ ok: true, followups: 0 })
+  }
   const { data: contact } = await db.from('sales_contacts').select('id, linkedin_url').eq('id', draft.contact_id).single()
   const steps = contact ? await followUpsAfterFirstEmail(account, contact) : 0
   if (steps) {

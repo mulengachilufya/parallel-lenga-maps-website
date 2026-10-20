@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * The Partnerships tab of /admin/sales: partners whose job is to get Lenga
+ * The Board tab of /admin/partners: partners whose job is to get Lenga
  * Maps used and paid for, grouped by track (how the money reaches us).
  * Each card holds the stage, what each side brings, how we earn, the
  * document that closes it and the next step. Their people, timeline and
@@ -121,7 +121,9 @@ function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partner
   const [f, setF] = useState({
     we_give: s.we_give ?? '', we_get: s.we_get ?? '', revenue_model: s.revenue_model ?? '',
     est_annual_usd: s.est_annual_usd === null ? '' : String(s.est_annual_usd), next_step: s.next_step ?? '', next_step_due: s.next_step_due ?? '',
+    research: s.research ?? '',
   })
+  const [why, setWhy] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [dropping, setDropping] = useState(false)
@@ -144,7 +146,7 @@ function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partner
     <div className={`bg-white rounded-2xl border shadow-sm p-4 sm:p-5 ${isLive(s.stage) ? 'border-green-200' : 'border-gray-100'}`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <Link href={`/admin/sales/${p.id}`} className="text-base font-bold text-gray-900 hover:underline">{p.name}</Link>
+          <Link href={`/admin/partners/${p.id}`} className="text-base font-bold text-gray-900 hover:underline">{p.name}</Link>
           <p className="text-xs text-gray-500 mt-0.5">
             <span className="rounded-full bg-[#E8F1F8] text-[#0D2B45] font-semibold px-2 py-0.5 mr-1.5">{t.short}</span>
             {[country(p.country_iso3) || 'Global', docLabel(s.document)].join(' · ')}
@@ -201,6 +203,22 @@ function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partner
         </label>
       </div>
 
+      <div className="mt-3 rounded-xl bg-[#F7F4EC] px-3 py-2">
+        <button onClick={() => setWhy(!why)} className="w-full flex items-center gap-1 text-xs font-semibold text-[#7A5B0C]">
+          {why ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Why them
+        </button>
+        {why && (
+          <div className="mt-1.5 space-y-2">
+            <textarea className={inputCls} rows={3} value={f.research} placeholder="Why this partner, what we know, what to check" onChange={(e) => setF({ ...f, research: e.target.value })} onBlur={() => saveField('research')} />
+            {s.sources?.length > 0 && (
+              <ul className="space-y-0.5">
+                {s.sources.map((x) => <li key={x.url}><a href={x.url} target="_blank" rel="noreferrer" className="text-xs text-blue-700 hover:underline">{x.label}</a></li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
       <button onClick={() => setOpen(!open)} className="mt-3 text-xs font-semibold text-gray-600 inline-flex items-center gap-1">
         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} The deal: what each side brings, how we earn, the document
       </button>
@@ -224,7 +242,7 @@ function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partner
         </div>
       )}
       {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
-      <Link href={`/admin/sales/${p.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-700">People, timeline and notes <ArrowRight size={12} /></Link>
+      <Link href={`/admin/partners/${p.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-700">People, timeline and notes <ArrowRight size={12} /></Link>
     </div>
   )
 }

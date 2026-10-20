@@ -26,17 +26,17 @@ export interface Draft {
 type View = 'draft' | 'sent' | 'discarded'
 interface Payload { drafts: Draft[]; counts: Record<View, number>; sent_today: number; per_day: number }
 
-export default function DraftsTab({ onCount }: { onCount?: (n: number) => void }) {
+export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
   const [view, setView] = useState<View>('draft')
   const [data, setData] = useState<Payload | null>(null)
   const [err, setErr] = useState('')
 
   const load = useCallback(async () => {
     try {
-      const d = await api<Payload>(`/api/admin/sales/drafts?status=${view}`)
+      const d = await api<Payload>(`/api/admin/sales/drafts?status=${view}&pipeline=${pipeline}`)
       setData(d); setErr(''); onCount?.(d.counts.draft)
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the drafts') }
-  }, [view, onCount])
+  }, [view, onCount, pipeline])
   useEffect(() => { void load() }, [load])
 
   function done(id: string, sentNow: boolean) {
@@ -56,10 +56,11 @@ export default function DraftsTab({ onCount }: { onCount?: (n: number) => void }
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="max-w-2xl">
-            <h2 className="text-sm font-bold text-gray-900">Researched first emails</h2>
+            <h2 className="text-sm font-bold text-gray-900">{pipeline === 'partner' ? 'Partnership emails' : 'Researched first emails'}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Each one is written for that person. Read it, change anything you like, then press Send. It goes from your address
-              with an opt-out link, lands on their timeline, and a call follow-up is planned for you. LinkedIn runs alongside it in the LinkedIn tab.
+              {pipeline === 'partner'
+                ? 'Each one proposes working together, written for that partner. Read it, change anything you like, then press Send. It goes from your address with an opt-out link, lands on their timeline, and the partnership moves to Intro made.'
+                : 'Each one is written for that person. Read it, change anything you like, then press Send. It goes from your address with an opt-out link, lands on their timeline, and a call follow-up is planned for you. LinkedIn runs alongside it in the LinkedIn tab.'}
             </p>
             <p className="text-xs text-gray-500 mt-2">
               South Africa: POPIA allows one unsolicited email, so after this the follow-ups are LinkedIn and a call, never another email unless they reply.
@@ -85,13 +86,13 @@ export default function DraftsTab({ onCount }: { onCount?: (n: number) => void }
           {view === 'draft' ? 'No drafts waiting. New researched emails show up here.' : view === 'sent' ? 'Nothing sent from drafts yet.' : 'Nothing set aside.'}
         </p>
       )}
-      {data.drafts.map((d) => <DraftCard key={d.id} d={d} onDone={done} onRestored={() => void load()} />)}
+      {data.drafts.map((d) => <DraftCard key={d.id} d={d} base={pipeline === 'partner' ? '/admin/partners' : '/admin/sales'} onDone={done} onRestored={() => void load()} />)}
     </div>
   )
 }
 
-function DraftCard({ d, onDone, onRestored }: {
-  d: Draft; onDone: (id: string, sent: boolean) => void; onRestored: () => void
+function DraftCard({ d, base, onDone, onRestored }: {
+  d: Draft; base: string; onDone: (id: string, sent: boolean) => void; onRestored: () => void
 }) {
   const [subject, setSubject] = useState(d.subject)
   const [body, setBody] = useState(d.body)
@@ -154,7 +155,7 @@ function DraftCard({ d, onDone, onRestored }: {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <Link href={`/admin/sales/${d.account_id}`} className="text-base font-bold text-gray-900 hover:underline">{d.account?.name ?? 'Organisation'}</Link>
+          <Link href={`${base}/${d.account_id}`} className="text-base font-bold text-gray-900 hover:underline">{d.account?.name ?? 'Organisation'}</Link>
           <p className="text-xs text-gray-500 mt-0.5">
             {[country(d.account?.country_iso3), d.account?.sector ? sectorLabel(d.account.sector) : '', d.batch].filter(Boolean).join(' · ')}
             {d.account?.website && <> · <a href={d.account.website} target="_blank" rel="noreferrer" className="text-blue-700 hover:underline">website</a></>}

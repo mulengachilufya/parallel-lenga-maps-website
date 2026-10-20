@@ -30,12 +30,11 @@ import {
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
 import DraftsTab from '@/components/sales/DraftsTab'
 import LinkedInTab from '@/components/sales/LinkedInTab'
-import PartnersTab from '@/components/sales/PartnersTab'
 import { liActionable, liStep, type LinkedInRow } from '@/lib/sales/linkedin'
 
-type Tab = 'today' | 'drafts' | 'linkedin' | 'partners' | 'prospects' | 'board' | 'countries' | 'numbers'
+type Tab = 'today' | 'drafts' | 'linkedin' | 'prospects' | 'board' | 'countries' | 'numbers'
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'today', label: 'Today' }, { id: 'drafts', label: 'Drafts' }, { id: 'linkedin', label: 'LinkedIn' }, { id: 'partners', label: 'Partnerships' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
+  { id: 'today', label: 'Today' }, { id: 'drafts', label: 'Drafts' }, { id: 'linkedin', label: 'LinkedIn' }, { id: 'prospects', label: 'Prospects' }, { id: 'board', label: 'Board' },
   { id: 'countries', label: 'Countries' }, { id: 'numbers', label: 'Numbers' },
 ]
 
@@ -63,7 +62,7 @@ function SalesPage() {
   useEffect(() => { void load() }, [load])
   useEffect(() => {
     api<{ counts: { draft: number } }>('/api/admin/sales/drafts?status=draft').then((d) => setDrafts(d.counts.draft)).catch(() => {})
-    api<{ people: { linkedin_url: string | null; li: LinkedInRow | null }[] }>('/api/admin/sales/linkedin')
+    api<{ people: { linkedin_url: string | null; li: LinkedInRow | null }[] }>('/api/admin/sales/linkedin?pipeline=sales')
       .then((d) => setLiTodo(d.people.filter((p) => { const s = liStep(p.li, p.linkedin_url); return s.step !== 'find' && liActionable(s.step, s.due) }).length))
       .catch(() => {})
   }, [])
@@ -117,7 +116,6 @@ function SalesPage() {
         {tab === 'today' && <TodayTab data={data} onOpen={(id, task) => router.push(`/admin/sales/${id}${task ? `?task=${task}` : ''}`)} onAdd={() => setModal('add')} onImport={() => setModal('import')} onSettings={() => setModal('settings')} />}
         {tab === 'drafts' && <DraftsTab onCount={setDrafts} />}
         {tab === 'linkedin' && <LinkedInTab onCount={setLiTodo} />}
-        {tab === 'partners' && <PartnersTab focus={focus} />}
         {tab === 'prospects' && <ProspectsTab accounts={data.accounts} focus={focus} filters={filters} setFilters={setFilters} />}
         {tab === 'board' && <BoardTab accounts={data.accounts} focus={focus} />}
         {tab === 'countries' && <CountriesTab accounts={data.accounts} focus={focus} onCountry={(c) => go('prospects', { country: c, stage: 'all' })} onSettings={() => setModal('settings')} />}
