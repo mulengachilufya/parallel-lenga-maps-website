@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * /admin/sales/:id — one organisation in the pipeline: where it is and what
+ * /admin/sales/:id (and /admin/partners/:id) — one organisation, customer or
+ * partner: where it is and what
  * to do next (the playbook for its stage), the people there, email /
  * LinkedIn / call tools, tasks, discovery notes, the team account once it
  * has one, and the full timeline.
@@ -124,7 +125,7 @@ function AccountPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-gray-900">
-      <Link href={a.pipeline === 'partner' ? '/admin/sales?tab=partners' : '/admin/sales'} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"><ArrowLeft size={14} /> {a.pipeline === 'partner' ? 'Partnerships' : 'Pipeline'}</Link>
+      <Link href={a.pipeline === 'partner' ? '/admin/partners' : '/admin/sales'} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"><ArrowLeft size={14} /> {a.pipeline === 'partner' ? 'Partnerships' : 'Pipeline'}</Link>
 
       <div className="mt-3 flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
@@ -145,7 +146,7 @@ function AccountPage() {
       {a.pipeline === 'partner' && d.partnership && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
           <b>Partner</b> on the {track(d.partnership.track).label} track, at <b>{partnerStageLabel(d.partnership.stage)}</b>.{' '}
-          <Link href="/admin/sales?tab=partners" className="underline">Manage the partnership</Link>. The sales stages below don&apos;t apply.
+          <Link href="/admin/partners" className="underline">Manage the partnership</Link>. The sales stages below don&apos;t apply.
         </div>
       )}
 
@@ -277,7 +278,7 @@ function AccountPage() {
 
           {a.notes && <Box title="Notes"><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.notes}</p></Box>}
 
-          <button onClick={async () => { if (confirm(`Delete ${a.name} and its whole history from the pipeline? This cannot be undone.`)) { await api(`/api/admin/sales/${id}`, { method: 'DELETE' }); router.push('/admin/sales') } }}
+          <button onClick={async () => { if (confirm(`Delete ${a.name} and its whole history from the pipeline? This cannot be undone.`)) { await api(`/api/admin/sales/${id}`, { method: 'DELETE' }); router.push(a.pipeline === 'partner' ? '/admin/partners' : '/admin/sales') } }}
                   className="text-xs text-gray-400 hover:text-red-600 inline-flex items-center gap-1"><Trash2 size={12} /> Delete from the pipeline</button>
         </aside>
       </div>

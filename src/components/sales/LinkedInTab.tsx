@@ -41,15 +41,15 @@ function viewOf(step: LiStep, due: string | null): View {
   return liActionable(step, due) ? 'todo' : 'waiting'
 }
 
-export default function LinkedInTab({ onCount }: { onCount?: (n: number) => void }) {
+export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [view, setView] = useState<View>('todo')
   const [err, setErr] = useState('')
 
   const load = useCallback(async () => {
-    try { const d = await api<{ people: Person[] }>('/api/admin/sales/linkedin'); setPeople(d.people); setErr('') }
+    try { const d = await api<{ people: Person[] }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setErr('') }
     catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the LinkedIn list') }
-  }, [])
+  }, [pipeline])
   useEffect(() => { void load() }, [load])
 
   const rows = useMemo(() => (people ?? []).map((p) => {
@@ -79,8 +79,8 @@ export default function LinkedInTab({ onCount }: { onCount?: (n: number) => void
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
         <h2 className="text-sm font-bold text-gray-900 inline-flex items-center gap-1.5"><LinkedInIcon size={15} className="text-[#0A66C2]" /> LinkedIn track</h2>
         <p className="text-sm text-gray-600 mt-1 max-w-3xl">
-          Runs alongside email for everyone in the pipeline. Connect, and once they accept: thank them, comment on two of their posts,
-          then {LI_PITCH_AFTER_DAYS} days after the thank-you send the Lenga Maps message with the price and an ask for a 10 minute video call.
+          Runs alongside email for everyone in {pipeline === 'partner' ? 'Partnerships' : 'the sales pipeline'}. Connect, and once they accept: thank them, comment on two of their posts,
+          then {LI_PITCH_AFTER_DAYS} days after the thank-you send {pipeline === 'partner' ? 'an ask to explore working together (no pricing)' : 'the Lenga Maps message with the price and an ask for a 10 minute video call'}.
           Each message is written for you. Copy it, send it on LinkedIn, then press the button so the next step comes up.
         </p>
         <div className="mt-4 flex gap-1.5 flex-wrap">
@@ -159,7 +159,7 @@ function PersonCard({ p, step, due, onSaved }: {
         <div className="min-w-0">
           <p className="text-base font-bold text-gray-900">{p.name}{partner && <span className="ml-2 align-middle rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5">Partner</span>}</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {[p.title, <Link key="o" href={`/admin/sales/${p.account_id}`} className="hover:underline">{p.account.name}</Link>, country(p.account.country_iso3)]
+            {[p.title, <Link key="o" href={`/admin/${p.account.pipeline === 'partner' ? 'partners' : 'sales'}/${p.account_id}`} className="hover:underline">{p.account.name}</Link>, country(p.account.country_iso3)]
               .filter(Boolean).reduce<React.ReactNode[]>((acc, x, i) => (i ? [...acc, ' · ', x] : [x]), [])}
           </p>
           {profile && (

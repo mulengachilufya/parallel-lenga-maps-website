@@ -1,24 +1,25 @@
 /**
- * GET /api/admin/sales/linkedin — everyone in the pipeline for the LinkedIn
- * tab: each person with their organisation and where they are on the
+ * GET /api/admin/sales/linkedin?pipeline=sales|partner — everyone in that
+ * pipeline for its LinkedIn tab: each person with their organisation and where they are on the
  * LinkedIn track (src/lib/sales/linkedin.ts). People who opted out of
  * contact, and accounts marked lost, are left out.
  *
  * Admin only. Listing never sends anything.
  */
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db, jsonError, requireAdmin } from '@/lib/sales/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const gate = await requireAdmin()
   if ('denied' in gate) return gate.denied
+  const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
   const [contacts, rows] = await Promise.all([
     db.from('sales_contacts')
       .select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at, account:sales_accounts!inner(id, name, country_iso3, sector, stage, pipeline)')
-      .is('opted_out_at', null).neq('account.stage', 'lost')
+      .is('opted_out_at', null).neq('account.stage', 'lost').eq('account.pipeline', pipeline)
       .order('created_at', { ascending: true }).limit(2000),
     db.from('sales_linkedin').select('*').limit(2000),
   ])
