@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && if [ \"$(git rev-parse --abbrev-ref HEAD)\" = main ]; then git pull --ff-only origin main; else git fetch origin main; fi >/dev/null 2>&1; git log -1 --format='Repo synced: %h %s' 2>/dev/null; exit 0",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
