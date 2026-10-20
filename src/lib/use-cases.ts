@@ -3,7 +3,7 @@
  * (project managers and specialists who know GIS but carry a larger project).
  * Drives the navbar dropdown and the /use-cases page (one card per entry,
  * linked by #slug). Images are real renders from open data (Sentinel-2, NDVI,
- * WorldCover, iSDAsoil, CHIRPS, SPI, Overture, WDPA, HRSL, HydroBASINS,
+ * WorldCover, iSDAsoil, CHIRPS, SPI, Overture, OpenStreetMap, HRSL, HydroBASINS,
  * geoBoundaries, Copernicus DEM), not stock.
  * Where a ready-made workspace template exists, `template` is its id.
  */
@@ -186,7 +186,7 @@ export const USE_CASES: UseCase[] = [
       'Measure pressure at protected area edges from roads and settlements',
       'Support the Locate phase of a TNFD LEAP assessment',
     ],
-    image: img('protected-areas'), imageNote: 'Protected areas (WDPA)',
+    image: img('protected-areas'), imageNote: 'Protected areas (OpenStreetMap)',
   },
   {
     slug: 'infrastructure', name: 'Roads and infrastructure corridors', line: 'Route options compared on one map',

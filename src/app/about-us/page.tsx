@@ -15,7 +15,7 @@ const values = [
   {
     icon: <Database size={24} />,
     title: 'Data Integrity',
-    description: 'Sourced from world-class institutions: USGS, ESA, FAO, GADM, WorldPop and more.',
+    description: 'Sourced from world-class institutions: USGS, ESA, FAO, geoBoundaries, WorldPop and more.',
   },
   {
     icon: <Users size={24} />,
@@ -33,7 +33,7 @@ const partners = [
   { name: 'USGS Earth Resources', category: 'Satellite Data' },
   { name: 'ESA Copernicus', category: 'Earth Observation' },
   { name: 'FAO GeoNetwork', category: 'Agricultural Data' },
-  { name: 'GADM Database', category: 'Administrative Boundaries' },
+  { name: 'geoBoundaries', category: 'Administrative Boundaries' },
   { name: 'HydroSHEDS', category: 'Hydrological Data' },
   { name: 'WorldPop', category: 'Population Data' },
 ]

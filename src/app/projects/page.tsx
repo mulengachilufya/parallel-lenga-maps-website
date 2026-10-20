@@ -288,7 +288,7 @@ export default function ProjectsPage() {
             <li className="flex gap-3"><Globe2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">One CRS, stated everywhere.</strong> Every layer ships in EPSG:4326 (WGS84) and the workspace shows the CRS on every download record, because projection mismatches are how team GIS projects quietly fall apart.</span></li>
             <li className="flex gap-3"><Layers size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Formats teams actually use.</strong> Shapefile, GeoJSON and KML for vectors; GeoTIFF for rasters; QGIS symbology included where it helps.</span></li>
             <li className="flex gap-3"><CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Country-complete coverage.</strong> Each dataset is clipped, validated and packaged per country, all 54, islands included.</span></li>
-            <li className="flex gap-3"><Users size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Sources you can cite.</strong> GADM, HydroSHEDS, ESA WorldCover, CHIRPS, WorldPop, ISRIC, WDPA lineage, with attribution preserved for your reports.</span></li>
+            <li className="flex gap-3"><Users size={18} className="shrink-0 mt-0.5" style={{ color: GOLD }} /><span><strong className="text-white">Sources you can cite.</strong> geoBoundaries, HydroSHEDS, ESA WorldCover, CHIRPS, WorldPop, ISRIC, OpenStreetMap, with attribution preserved for your reports.</span></li>
           </ul>
         </div>
       </section>

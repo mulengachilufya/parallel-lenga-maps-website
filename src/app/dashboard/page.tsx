@@ -54,7 +54,7 @@ const SECTIONS: Record<string, {
 }> = {
   'admin-boundaries': {
     title: '🗺️ Administrative Boundaries',
-    subtitle: 'GADM v4.1 · Shapefile, GeoJSON, KML · All 54 African countries',
+    subtitle: 'geoBoundaries · Shapefile, GeoJSON, KML · All 54 African countries',
     component: () => <AdminBoundariesList />,
   },
   'rivers': {
