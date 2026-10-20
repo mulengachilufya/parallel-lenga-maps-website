@@ -1,8 +1,8 @@
 /**
  * seed-district-stats.mjs
  *
- * Seeds one of the district-statistics datasets (crop-production first;
- * forest-loss and soil-fertility follow the same shape). Same pattern as seed-rivers-hydrorivers.mjs:
+ * Seeds one of the district-statistics datasets (crop-production,
+ * forest-loss, soil-fertility). Same pattern as seed-rivers-hydrorivers.mjs:
  * reads output/<Folder>/manifest.json (written by
  * scripts/district_stats/<dataset>.py), uploads each country GeoPackage to R2
  * at datasets/<iso3>/<slug>/<file>, and writes one row per country into the
@@ -43,6 +43,10 @@ const DATASETS = {
       tc2000_ha: 'tc2000_ha', loss_total_ha: 'loss_total_ha', loss_since_2021_ha: 'loss_since_2021_ha',
       forest2020_ha: 'forest2020_ha', year_start: 'year_start', year_end: 'year_end',
     },
+  },
+  'soil-fertility': {
+    folder: 'SoilFertility', table: 'soil_fertility_layers',
+    columns: { valid_pct_median: 'valid_pct_median' },
   },
 }
 

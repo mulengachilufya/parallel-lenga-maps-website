@@ -90,6 +90,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   17: '/dashboard?section=lakes',
   18: '/dashboard?section=crop-production',
   19: '/dashboard?section=forest-loss',
+  20: '/dashboard?section=soil-fertility',
 }
 
 export type DatasetSource = {
@@ -443,6 +444,36 @@ export const DATASETS: Dataset[] = [
         institution: 'European Commission Joint Research Centre (JRC)',
         url: 'https://forest-observatory.ec.europa.eu/',
         contribution: 'The EUDR reference map of forest cover on 31 Dec 2020, at 10 m. CC BY 4.0.',
+      },
+      {
+        name: 'geoBoundaries',
+        institution: 'William & Mary geoLab',
+        url: 'https://www.geoboundaries.org',
+        contribution: 'District (ADM2) outlines. Open licence per country (mostly CC BY), shown on each file.',
+      },
+    ],
+  },
+  {
+    id: 20,
+    name: 'Topsoil Fertility by District',
+    category: 'Agriculture',
+    description: 'pH, organic carbon, N, P, K, texture, CEC and bulk density per district: the soil properties farmers, input suppliers and carbon projects ask for.',
+    source: 'iSDAsoil Africa 30 m',
+    format: 'GeoPackage',
+    resolution: 'District (ADM2) · 30 m source',
+    icon: '🧪',
+    tier: 'pro',
+    color: '#9A3412', // burnt orange — soil chemistry
+    epsg: 'EPSG:4326',
+    licence: 'CC BY 4.0',
+    last_update: 'iSDAsoil v1',
+    size_label: '~0.5–4 MB / country',
+    sources: [
+      {
+        name: 'iSDAsoil',
+        institution: 'iSDA (Innovative Solutions for Decision Agriculture)',
+        url: 'https://www.isda-africa.com/isdasoil/',
+        contribution: 'Soil properties and nutrients for Africa at 30 m, 0–20 and 20–50 cm, back-transformed to real units and averaged by district. CC BY 4.0.',
       },
       {
         name: 'geoBoundaries',

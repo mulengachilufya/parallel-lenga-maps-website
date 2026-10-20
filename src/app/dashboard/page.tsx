@@ -128,6 +128,11 @@ const SECTIONS: Record<string, {
     subtitle: 'Hansen/UMD GFC + EC JRC GFC2020 · EUDR-ready · GeoPackage per country',
     component: () => <DistrictStatsList dataset="forest-loss" />,
   },
+  'soil-fertility': {
+    title: '🧪 Topsoil Fertility by District',
+    subtitle: 'iSDAsoil Africa 30 m · pH, carbon, N, P, K, texture · GeoPackage per country',
+    component: () => <DistrictStatsList dataset="soil-fertility" />,
+  },
   'rivers-hydro': {
     title: '🌊 HydroRIVERS',
     subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
@@ -152,6 +157,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'lakes':            'lakes',
   'crop-production':  'crop-production',
   'forest-loss':      'forest-loss',
+  'soil-fertility':   'soil-fertility',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────

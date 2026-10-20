@@ -68,6 +68,7 @@ const ALL_DATASETS: { name: string; color: string }[] = [
   { name: 'Wetlands & Floodplains',    color: '#155E63' },
   { name: 'Crop Production',           color: '#4D7C0F' },
   { name: 'Forest Loss (EUDR)',        color: '#166534' },
+  { name: 'Soil Fertility',            color: '#9A3412' },
 ]
 
 export default function ProjectsPage() {

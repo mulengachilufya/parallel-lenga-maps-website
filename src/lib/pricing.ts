@@ -186,13 +186,13 @@ export type DatasetSlug =
   | 'rainfall' | 'protected-areas'
   | 'watersheds' | 'population' | 'rivers' | 'roads'
   | 'temperature' | 'hydrorivers' | 'lulc' | 'lakes' | 'soil' | 'wetlands'
-  | 'crop-production' | 'forest-loss'
+  | 'crop-production' | 'forest-loss' | 'soil-fertility'
 
 export const ALL_DATASETS: DatasetSlug[] = [
   'admin-boundaries', 'aquifer', 'drought-index', 'rainfall', 'protected-areas',
   'watersheds', 'population', 'rivers', 'roads',
   'temperature', 'hydrorivers', 'lulc', 'lakes', 'soil', 'wetlands',
-  'crop-production', 'forest-loss',
+  'crop-production', 'forest-loss', 'soil-fertility',
 ]
 
 export const DATASET_COUNT = ALL_DATASETS.length
@@ -209,6 +209,7 @@ export const DATASET_ADDED: Record<DatasetSlug, string> = {
   temperature: '2026-01-01', hydrorivers: '2026-01-01', lulc: '2026-01-01',
   lakes: '2026-01-01', soil: '2026-01-01', wetlands: '2026-01-01',
   'crop-production': '2026-10-20', 'forest-loss': '2026-10-20',
+  'soil-fertility': '2026-10-20',
 }
 
 /** Is this dataset covered by a licence whose updates run until `until`?

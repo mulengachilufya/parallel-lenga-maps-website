@@ -230,6 +230,7 @@ const DATASET_STYLE: Record<string, Partial<LayerStyle>> = {
   'wetlands':         { ramp: 'categorical' },
   'crop-production':  { color: '#6b8e23', width: 0.8, fill: true  },
   'forest-loss':      { color: '#1b5e20', width: 0.8, fill: true  },
+  'soil-fertility':   { color: '#8d5524', width: 0.8, fill: true  },
 }
 
 export function defaultStyle(datasetSlug: string): LayerStyle {
