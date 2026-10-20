@@ -123,6 +123,11 @@ const SECTIONS: Record<string, {
     subtitle: 'IFPRI MapSPAM 2020 · 15 key crops per district · GeoPackage per country',
     component: () => <DistrictStatsList dataset="crop-production" />,
   },
+  'forest-loss': {
+    title: '🌳 Forest Cover & Tree Cover Loss',
+    subtitle: 'Hansen/UMD GFC + EC JRC GFC2020 · EUDR-ready · GeoPackage per country',
+    component: () => <DistrictStatsList dataset="forest-loss" />,
+  },
   'rivers-hydro': {
     title: '🌊 HydroRIVERS',
     subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
@@ -146,6 +151,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'temperature':      'temperature',
   'lakes':            'lakes',
   'crop-production':  'crop-production',
+  'forest-loss':      'forest-loss',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────

@@ -55,4 +55,26 @@ export const DISTRICT_STATS: Partial<Record<DatasetSlug, DistrictStatsConfig>> =
       ...(l.top_crop ? [`Top crop: ${l.top_crop}`] : []),
     ],
   },
+  'forest-loss': {
+    slug: 'forest-loss', api: '/api/forest-loss', noun: 'forest cover and loss data',
+    source: 'Hansen/UMD GFC + JRC GFC2020 · CC BY 4.0',
+    tone: { banner: 'bg-green-50 border-green-200', hover: 'hover:border-green-300', button: 'bg-green-800 hover:bg-green-900 text-white', ring: 'focus:ring-green-600/30 focus:border-green-500', icon: 'text-green-800' },
+    credits: [
+      {
+        name: 'Global Forest Change', by: 'Hansen / UMD / Google / USGS / NASA',
+        url: 'https://glad.earthengine.app/view/global-forest-change', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0/',
+      },
+      {
+        name: 'Global Forest Cover 2020 (GFC2020)', by: 'European Commission Joint Research Centre',
+        url: 'https://forest-observatory.ec.europa.eu/', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0/',
+      },
+    ],
+    note: 'Tree cover loss is not the same as deforestation: it includes plantation harvest and fire. GFC2020 overestimates forest in cocoa and coffee agroforestry. Loss counted inside ≥30% tree cover of 2000; "since 2021" = after the EUDR cut-off of 31 Dec 2020.',
+    facts: (l) => [
+      `Tree cover 2000: ${num(l.tc2000_ha)} ha`,
+      `Loss ${l.year_start ?? 2001}–${l.year_end ?? ''}: ${num(l.loss_total_ha)} ha`,
+      `Loss since 2021: ${num(l.loss_since_2021_ha)} ha`,
+      ...(l.forest2020_ha !== null && l.forest2020_ha !== undefined ? [`JRC forest 2020: ${num(l.forest2020_ha)} ha`] : []),
+    ],
+  },
 }

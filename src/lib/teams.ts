@@ -58,6 +58,7 @@ export const DATASET_META: Record<DatasetSlug, DatasetMeta> = {
   'soil':             { name: 'Soil Classification (WRB)',         epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
   'wetlands':         { name: 'Wetlands & Floodplains',            epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
   'crop-production':  { name: 'Crop Production by District',       epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'forest-loss':      { name: 'Forest Cover & Tree Cover Loss',    epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
 }
 
 export function datasetMeta(slug: string): DatasetMeta | null {
