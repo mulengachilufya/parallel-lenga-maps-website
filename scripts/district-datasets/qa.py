@@ -4,7 +4,8 @@ import sys, glob, json, sqlite3, numpy as np, geopandas as gpd, pyogrio
 folder = sys.argv[1]
 RANGES = {'ph_mean': (3, 10), 'ph_p10': (3, 10), 'ph_p90': (3, 10), 'soc_0_20_mean': (0, 300), 'soc_20_50_mean': (0, 300),
           'clay_mean': (0, 100), 'sand_mean': (0, 100), 'silt_mean': (0, 100), 'bulk_density_mean': (0.3, 2.2),
-          'pct_loss_since_2000': (0, 100.01)}
+          'pct_loss_since_2000': (0, 100.01),
+          'n_total_mean': (0.05, 20), 'p_ext_mean': (0, 500), 'k_ext_mean': (0, 3000), 'ecec_mean': (0, 150)}
 fails, warns = [], []
 if folder == 'Forest_Loss':
     import os
@@ -31,8 +32,10 @@ for f in sorted(glob.glob(f'out/{folder}/*.gpkg')):
         if not about.get(k): p.append(f'about.{k} missing')
     if ncols < len(g.columns) - 1: p.append('columns table incomplete')
     if 'loss_total_ha' in g:
-        s = g[[c for c in g if c.startswith('loss_20')]].sum(axis=1)
-        if not np.allclose(s, g['loss_total_ha'], atol=1): p.append('loss years != total')
+        k = g['loss_total_ha'].notna()
+        s = g.loc[k, [c for c in g if c.startswith('loss_20')]].sum(axis=1)
+        if not np.allclose(s, g.loc[k, 'loss_total_ha'], atol=1): p.append('loss years != total')
+        if g['tc2000_ha'].isna().any(): warns.append(f'{iso}: {g["tc2000_ha"].isna().sum()} districts outside source coverage (empty, not zero)')
         if (g['loss_total_ha'] > g['tc2000_ha'] + 1).any(): p.append('loss > tc2000')
     if 'ph_mean' in g and g['ph_mean'].isna().all() and iso not in ('CPV', 'MUS', 'SYC'): p.append('no soil values')
     if 'ph_mean' in g and g['ph_mean'].isna().any() and not g['ph_mean'].isna().all(): warns.append(f'{iso}: {g["ph_mean"].isna().sum()} districts without soil data')
