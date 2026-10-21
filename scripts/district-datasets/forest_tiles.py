@@ -25,6 +25,13 @@ def fetch(url, path):
     with urllib.request.urlopen(url, timeout=600) as r, open(tmp, 'wb') as f: shutil.copyfileobj(r, f, 1 << 22)
     os.replace(tmp, path)
 def do_tile(args):
+    for attempt in range(3):
+        try:
+            return _do_tile(args)
+        except Exception as e:
+            err = f'{type(e).__name__}: {e}'
+    return tile_name(*args), 'ERROR ' + err
+def _do_tile(args):
     top, left = args
     t = tile_name(top, left); out = f'forest/parts/{t}.json'
     if os.path.exists(out): return t, 'cached'

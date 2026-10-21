@@ -6,6 +6,11 @@ RANGES = {'ph_mean': (3, 10), 'ph_p10': (3, 10), 'ph_p90': (3, 10), 'soc_0_20_me
           'clay_mean': (0, 100), 'sand_mean': (0, 100), 'silt_mean': (0, 100), 'bulk_density_mean': (0.3, 2.2),
           'pct_loss_since_2000': (0, 100.01)}
 fails, warns = [], []
+if folder == 'Forest_Loss':
+    import os
+    tiles = [f"{abs(t):02d}{'N' if t >= 0 else 'S'}_{abs(l):03d}{'E' if l >= 0 else 'W'}" for t in [40,30,20,10,0,-10,-20,-30] for l in [-30,-20,-10,0,10,20,30,40,50]]
+    missing = [t for t in tiles if not os.path.exists(f'forest/parts/{t}.json')]
+    if missing: fails.append(f'missing forest tiles: {missing}')
 for f in sorted(glob.glob(f'out/{folder}/*.gpkg')):
     iso = f.split('/')[-1][:3]
     layers = [l[0] for l in pyogrio.list_layers(f)]
