@@ -2,7 +2,7 @@
 Per tile: classify each 30 m pixel (0 = <30% cover in 2000, 1 = forest no loss, 1+y = loss in 2000+y),
 sum true pixel areas (sphere, by latitude row) inside each district (pixel-centre rule).
 Writes forest/parts/<tile>.json {district_uid: [27 class areas in m2]}. Resumable, parallel."""
-import os, sys, json, glob, math, urllib.request, shutil
+import os, sys, json, glob, math, urllib.request, urllib.error, shutil
 import numpy as np, geopandas as gpd, pandas as pd, rasterio
 from rasterio.windows import from_bounds, Window
 from rasterio.features import geometry_mask
@@ -40,9 +40,15 @@ def _do_tile(args):
     if sub.empty:
         json.dump({}, open(out, 'w')); return t, 'empty'
     tc_p, ly_p = f'forest/tiles/{t}_tc.tif', f'forest/tiles/{t}_ly.tif'
-    fetch(H.format(v='treecover2000', t=t), tc_p); fetch(H.format(v='lossyear', t=t), ly_p)
+    fetch(H.format(v='treecover2000', t=t), tc_p)
+    try:
+        fetch(H.format(v='lossyear', t=t), ly_p); has_loss = True
+    except urllib.error.HTTPError as e:
+        if e.code != 404: raise
+        has_loss = False  # Hansen publishes no loss layer for this tile: loss is unknown, not zero
     res = {}
-    with rasterio.open(tc_p) as tc, rasterio.open(ly_p) as ly:
+    import contextlib
+    with rasterio.open(tc_p) as tc, (rasterio.open(ly_p) if has_loss else contextlib.nullcontext()) as ly:
         T = tc.transform; dlat = -T.e; dlon = T.a
         for _, d in sub.iterrows():
             geom = d.geometry.intersection(tb)
@@ -58,15 +64,17 @@ def _do_tile(args):
                 st = tc.window_transform(sw)
                 m = geometry_mask([geom], out_shape=(int(sw.height), int(sw.width)), transform=st, invert=True)
                 if not m.any(): continue
-                a = tc.read(1, window=sw); b = ly.read(1, window=sw)
+                a = tc.read(1, window=sw); b = ly.read(1, window=sw) if has_loss else np.zeros_like(a)
                 code = np.where(a >= 30, 1 + b.astype(np.int16), 0).astype(np.int16)
                 lat_top = st.f - np.arange(int(sw.height)) * dlat
                 rowarea = R * R * math.radians(dlon) * np.abs(np.sin(np.radians(lat_top)) - np.sin(np.radians(lat_top - dlat)))
                 wts = np.broadcast_to(rowarea[:, None], code.shape)[m]
                 acc += np.bincount(code[m].ravel(), weights=wts, minlength=NC)[:NC]
             res[d.uid] = acc.round(1).tolist()
+    if not has_loss: res['_no_loss_layer'] = True
     json.dump(res, open(out, 'w'))
-    os.remove(tc_p); os.remove(ly_p)
+    os.remove(tc_p)
+    if has_loss: os.remove(ly_p)
     return t, f'{len(res)} districts'
 def init():
     global D

@@ -34,10 +34,12 @@ BASE_COLS = [('iso3', '', 'ISO 3166-1 alpha-3 country code'), ('country', '', 'C
   ('area_ha', 'ha', 'District area (geodesic, WGS84)')]
 BOUND_ABOUT = 'District boundaries: geoBoundaries gbOpen (Runfola et al. 2020, PLoS ONE 15(4): e0231866); licence per country, see boundary_licence.'
 def forest(D):
-    parts = {}
+    parts, noloss = {}, set()
     for f in glob.glob('forest/parts/*.json'):
-        for k, v in json.load(open(f)).items():
+        j = json.load(open(f)); nl = j.pop('_no_loss_layer', False)
+        for k, v in j.items():
             parts[k] = np.add(parts.get(k, np.zeros(27)), v)
+            if nl: noloss.add(k)
     years = list(range(2001, 2026))
     rows = []
     for uid in D.uid:
@@ -47,6 +49,9 @@ def forest(D):
         r['loss_total_ha'] = round(a[2:].sum(), 1)
         r['loss_since_2021_ha'] = round(a[2 + 20:].sum(), 1)
         r['pct_loss_since_2000'] = round(100 * r['loss_total_ha'] / r['tc2000_ha'], 2) if r['tc2000_ha'] > 0 else None
+        if uid in noloss:  # outside Hansen coverage (no loss layer, tree cover all 0): unknown, not zero
+            for k in list(r):
+                if k != 'uid': r[k] = None
         rows.append(r)
     return pd.DataFrame(rows), years
 def build(which):
@@ -66,7 +71,7 @@ def build(which):
           'licence': 'CC BY 4.0 (Hansen GFC). Distributed by Lenga Maps with attribution.',
           'boundaries': BOUND_ABOUT,
           'method': 'Each 30 m pixel classed by tree cover 2000 (>=30%) and loss year; true pixel areas (by latitude) summed for pixels whose centre lies in the district.',
-          'note': 'Tree cover loss is not the same as deforestation: it includes plantation harvest, fire and other stand-replacing disturbance. Data for 2001-2010 and 2011-2025 were produced with different methods; compare trends with care.',
+          'note': 'Tree cover loss is not the same as deforestation: it includes plantation harvest, fire and other stand-replacing disturbance. Data for 2001-2010 and 2011-2025 were produced with different methods; compare trends with care. Seychelles is outside Hansen GFC coverage (tile 00N_050E has no loss layer and no tree cover values), so its forest columns are empty (unknown), not zero.',
           'crs': 'EPSG:4326', 'processed': TODAY, 'producer': 'Lenga Maps (lengamaps.com)'}
     else:
         S = soil_table(D)
@@ -77,7 +82,7 @@ def build(which):
           'citation': 'Hengl, T. et al. 2021. African soil properties and nutrients mapped at 30 m spatial resolution using two-scale ensemble machine learning. Scientific Reports 11: 6130. https://doi.org/10.1038/s41598-021-85639-y',
           'licence': 'CC BY 4.0 (iSDAsoil). Distributed by Lenga Maps with attribution.',
           'boundaries': BOUND_ABOUT,
-          'method': 'Values back-transformed to real units per iSDA metadata (pH x/10; organic C, N, P, K, eCEC expm1(x/10); bulk density x/100) BEFORE averaging; district mean and 10th/90th percentiles weighted by the share of each 240 m cell inside the district.',
+          'method': 'Values back-transformed to real units per iSDA metadata (pH x/10; organic C, P, K, eCEC expm1(x/10); total N expm1(x/100) per the Earth Engine catalogue; bulk density x/100) BEFORE averaging; district mean and 10th/90th percentiles weighted by the share of each 240 m cell inside the district.',
           'note': 'Model predictions, not lab measurements; use for planning and screening, and confirm with soil tests before fertiliser or carbon-credit decisions. Not available for Cabo Verde, Mauritius and Seychelles.',
           'crs': 'EPSG:4326', 'processed': TODAY, 'producer': 'Lenga Maps (lengamaps.com)'}
     G = D.merge(S, on='uid', how='left')

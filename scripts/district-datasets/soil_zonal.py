@@ -12,6 +12,9 @@ BT = {  # iSDA back-transformation (from each layer's STAC json)
 }
 def back(var, v):
     v = np.asarray(v, dtype=float)
+    # Total N: expm1(x/100) per the Earth Engine catalogue (ISDASOIL/Africa/v1/nitrogen_total).
+    # The S3 STAC json says expm1(x/10), which gives impossible ~500 g/kg; verified against typical 0.5-2 g/kg.
+    if var == 'nitrogen_total': return np.expm1(v / 100)
     return BT[var](v / 10) if BT[var] is np.expm1 else BT[var](v)
 def wq(vals, w, q):
     o = np.argsort(vals); c = np.cumsum(w[o]); c /= c[-1]
