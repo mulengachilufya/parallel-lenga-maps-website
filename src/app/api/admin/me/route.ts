@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { currentAccess } from '@/lib/staff'
 
 /**
  * GET /api/admin/me
  *
- * Lightweight check: is the currently signed-in user an admin?
- * Returns { isAdmin: boolean } — always 200 so the dashboard header can
- * fetch this without retry/ceremony. ADMIN_EMAILS is server-only, so we
- * can't check it from the browser without this endpoint.
+ * Lightweight check: can the signed-in user open /admin, and which parts?
+ * Returns { isAdmin, isOwner, full, areas }. Always 200 so the dashboard
+ * header can fetch this without retry/ceremony. ADMIN_EMAILS and the staff
+ * table are server-only, so the browser asks here.
  */
 export async function GET() {
-  const auth = await createServerSupabase()
-  const { data: { user } } = await auth.auth.getUser()
+  const a = await currentAccess()
   return NextResponse.json({
-    isAdmin: !!user && isAdminEmail(user.email),
+    isAdmin: !!a,
+    isOwner: !!a?.owner,
+    full: !!a?.full,
+    areas: a?.areas ?? [],
   })
 }

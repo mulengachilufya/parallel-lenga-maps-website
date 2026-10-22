@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { accessFor, can } from '@/lib/staff'
 import { sendEmail } from '@/lib/email'
 import { logEvent } from '@/lib/ops/log'
 import { AFRICAN_COUNTRIES } from '@/lib/workspace/templates'
@@ -27,12 +27,24 @@ export function jsonError(error: string, status: number, message?: string) {
   return NextResponse.json({ error, message: message ?? error }, { status })
 }
 
-/** The signed-in admin's email, or a ready-to-return 403. */
-export async function requireAdmin(): Promise<{ email: string } | { denied: NextResponse }> {
+/**
+ * The signed-in admin's email, or a ready-to-return 403. Owners, and staff
+ * given the Sales or Partnerships area at /admin/team.
+ */
+export async function requireAdmin(): Promise<{ email: string; full: boolean } | { denied: NextResponse }> {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user?.email || !isAdminEmail(user.email)) return { denied: jsonError('forbidden', 403, 'Admin access only.') }
-  return { email: user.email }
+  const access = await accessFor(user?.email)
+  if (!user?.email || !can(access, 'sales', 'partners')) return { denied: jsonError('forbidden', 403, 'Admin access only.') }
+  return { email: user.email, full: !!access?.full }
+}
+
+/** Deleting stays with the owners and ADMIN_EMAILS. */
+export async function requireFullAdmin(): Promise<{ email: string } | { denied: NextResponse }> {
+  const gate = await requireAdmin()
+  if ('denied' in gate) return gate
+  if (!gate.full) return { denied: jsonError('forbidden', 403, 'Only the owners can delete.') }
+  return { email: gate.email }
 }
 
 export const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)
@@ -98,7 +110,7 @@ export async function saveSettings(s: Partial<SalesSettings>, by: string) {
 export interface AccountRow {
   id: string; name: string; stage: Stage; stage_history: Record<string, string>
   country_iso3: string | null; sector: string | null; org_id: string | null
-  last_touch_at: string | null
+  last_touch_at: string | null; pipeline: 'sales' | 'partner'; quote_request_id: string | null
 }
 
 export async function loadAccount(id: string): Promise<AccountRow | null> {

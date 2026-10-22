@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { canOpen, useAdminAccess } from '@/components/admin/AdminAccess'
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [signedIn, setSignedIn] = useState(true)
+  const access = useAdminAccess()
 
   useEffect(() => {
     const check = async () => {
@@ -57,7 +59,7 @@ export default function AdminPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-          <Link
+          {canOpen(access, '/admin/payments') && (<Link
             href="/admin/payments"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -68,9 +70,9 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Review manual payment screenshots, approve or reject, and activate user plans.
             </p>
-          </Link>
+          </Link>)}
 
-          <Link
+          {canOpen(access, '/admin/users') && (<Link
             href="/admin/users"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -81,9 +83,9 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Browse all accounts, subscription statuses, plan tiers, and signup dates.
             </p>
-          </Link>
+          </Link>)}
 
-<Link
+{canOpen(access, '/admin/downloads') && (<Link
             href="/admin/downloads"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -94,9 +96,9 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               How many files leave Lenga, which datasets and countries, who takes them, paying or free. CSV export.
             </p>
-          </Link>
+          </Link>)}
 
-          <Link
+          {canOpen(access, '/admin/sales') && (<Link
             href="/admin/sales"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -107,9 +109,9 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Customers you are going after, by country: outreach by email and LinkedIn, next steps, free teams, and website quote requests.
             </p>
-          </Link>
+          </Link>)}
 
-          <Link
+          {canOpen(access, '/admin/partners') && (<Link
             href="/admin/partners"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -120,9 +122,9 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Partners who get Lenga Maps used and paid for: marketplaces, built into their product, joint bids, project partners, resellers. Own drafts, LinkedIn and research.
             </p>
-          </Link>
+          </Link>)}
 
-          <Link
+          {canOpen(access, '/admin/organizations') && (<Link
             href="/admin/organizations"
             className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
           >
@@ -133,9 +135,27 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 leading-relaxed">
               Provision team accounts, manage seats and status, see every member and the promo-email list.
             </p>
-          </Link>
+          </Link>)}
+
+          {access.isOwner && (
+            <Link
+              href="/admin/team"
+              className="group block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+            >
+              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>KEY</span>
+              </div>
+              <h2 className="text-base font-bold text-navy mb-1">Team access</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Give staff access to parts of admin, change what they can open, or remove them.
+              </p>
+            </Link>
+          )}
 
         </div>
+        {access.loaded && !access.isAdmin && (
+          <p className="mt-8 text-sm text-gray-500">This account has no admin access. Ask an owner to add you at Team access.</p>
+        )}
       </div>
     </div>
   )

@@ -10,8 +10,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronDown, ChevronRight, Loader2, Plus } from 'lucide-react'
-import { api, country, dueLabel, money } from '@/lib/sales/client'
+import { ArrowRight, ChevronDown, ChevronRight, Loader2, Plus, Trash2 } from 'lucide-react'
+import { api, country, deleteOrg, dueLabel, money } from '@/lib/sales/client'
+import { useAdminAccess } from '@/components/admin/AdminAccess'
 import {
   DOCUMENTS, DROP_REASONS, PARTNER_OFF, PARTNER_STAGES, TRACKS, docLabel, isLive, partnerStageIndex, partnerStageLabel, track,
   type PartnerStage, type PartnerTrack, type Partnership,
@@ -58,6 +59,7 @@ export default function PartnersTab({ focus }: { focus: string[] }) {
   const live = active.filter((p) => isLive(p.partnership.stage))
   const liveValue = live.reduce((s, p) => s + (Number(p.partnership.est_annual_usd) || 0), 0)
   const t = filter === 'all' ? null : track(filter)
+  const removed = (id: string) => setPartners((list) => (list ?? []).filter((x) => x.id !== id))
 
   function updated(id: string, partnership: Partnership) {
     setPartners((ps) => ps?.map((p) => (p.id === id ? { ...p, partnership } : p)) ?? ps)
@@ -99,14 +101,14 @@ export default function PartnersTab({ focus }: { focus: string[] }) {
       </div>
 
       {active.length === 0 && <p className="text-sm text-gray-400 py-6 text-center">No partners on this track yet. Add one, or move an organisation here from its page.</p>}
-      {active.map((p) => <PartnerCard key={p.id} p={p} onSaved={updated} />)}
+      {active.map((p) => <PartnerCard key={p.id} p={p} onSaved={updated} onDeleted={removed} />)}
 
       {off.length > 0 && (
         <div>
           <button onClick={() => setShowOff(!showOff)} className="text-xs font-semibold text-gray-500 inline-flex items-center gap-1">
             {showOff ? <ChevronDown size={13} /> : <ChevronRight size={13} />} Paused and dropped · {off.length}
           </button>
-          {showOff && <div className="mt-2 space-y-3">{off.map((p) => <PartnerCard key={p.id} p={p} onSaved={updated} />)}</div>}
+          {showOff && <div className="mt-2 space-y-3">{off.map((p) => <PartnerCard key={p.id} p={p} onSaved={updated} onDeleted={removed} />)}</div>}
         </div>
       )}
 
@@ -115,8 +117,9 @@ export default function PartnersTab({ focus }: { focus: string[] }) {
   )
 }
 
-function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partnership: Partnership) => void }) {
+function PartnerCard({ p, onSaved, onDeleted }: { p: Partner; onSaved: (id: string, partnership: Partnership) => void; onDeleted: (id: string) => void }) {
   const s = p.partnership
+  const { full: canDelete } = useAdminAccess()
   const [open, setOpen] = useState(false)
   const [f, setF] = useState({
     we_give: s.we_give ?? '', we_get: s.we_get ?? '', revenue_model: s.revenue_model ?? '',
@@ -242,7 +245,14 @@ function PartnerCard({ p, onSaved }: { p: Partner; onSaved: (id: string, partner
         </div>
       )}
       {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
-      <Link href={`/admin/partners/${p.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-700">People, timeline and notes <ArrowRight size={12} /></Link>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <Link href={`/admin/partners/${p.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700">People, timeline and notes <ArrowRight size={12} /></Link>
+        {canDelete && (
+          <button onClick={() => void deleteOrg(p.id, p.name).then((ok) => ok && onDeleted(p.id))} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600">
+            <Trash2 size={12} /> Remove
+          </button>
+        )}
+      </div>
     </div>
   )
 }

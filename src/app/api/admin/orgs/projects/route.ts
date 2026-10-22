@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { accessFor, can } from '@/lib/staff'
 import { audit } from '@/lib/ops/log'
 import { ROLE_LABEL, resolveRole, type ProjectRole } from '@/lib/workspace/types'
 
@@ -30,7 +30,7 @@ const service = createClient(
 async function admin() {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
-  return user && isAdminEmail(user.email) ? user : null
+  return user && can(await accessFor(user.email), 'orgs') ? user : null
 }
 
 const bad = (message: string, status = 400) => NextResponse.json({ error: 'validation', message }, { status })

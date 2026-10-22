@@ -41,6 +41,22 @@ export default function PendingInvites() {
     } finally { setBusy(null) }
   }
 
+  async function decline(i: Pending) {
+    if (!confirm(`Decline the invitation to ${i.org_name}?`)) return
+    setBusy(i.id); setError('')
+    try {
+      const res = await fetch('/api/team/join', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invite_id: i.id }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok && res.status !== 404) { setError(j.message ?? 'Could not decline. Try again.'); return }
+      setInvites((list) => list.filter((x) => x.id !== i.id))
+    } catch {
+      setError('Network error. Try again.')
+    } finally { setBusy(null) }
+  }
+
   if (joined) {
     return (
       <div className="mb-6 rounded-2xl border border-emerald-400/40 bg-emerald-50 p-4 text-sm text-emerald-900 flex flex-wrap items-center gap-3">
@@ -66,6 +82,13 @@ export default function PendingInvites() {
             className="rounded-lg bg-[#F5B800] px-4 py-2 text-xs font-bold text-[#1a1200] disabled:opacity-60 inline-flex items-center gap-1.5"
           >
             {busy === i.id && <Loader2 size={13} className="animate-spin" />} Join team
+          </button>
+          <button
+            onClick={() => decline(i)}
+            disabled={!!busy}
+            className="rounded-lg border border-[#0D2B45]/25 px-3 py-2 text-xs font-semibold text-[#0D2B45] hover:bg-white/60 disabled:opacity-60"
+          >
+            Decline
           </button>
         </div>
       ))}
