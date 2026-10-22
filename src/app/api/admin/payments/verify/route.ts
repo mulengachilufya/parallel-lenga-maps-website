@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { accessFor, can } from '@/lib/staff'
 import { UPDATE_MONTHS, accessExpiry } from '@/lib/pricing'
 import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
 
@@ -72,7 +72,7 @@ async function notifyCustomer(
 export async function POST(req: NextRequest) {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user || !isAdminEmail(user.email)) {
+  if (!user || !can(await accessFor(user.email), 'payments_approve')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

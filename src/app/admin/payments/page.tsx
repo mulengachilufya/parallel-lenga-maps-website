@@ -7,8 +7,9 @@ import { motion } from 'framer-motion'
 import {
   Loader2, CheckCircle2, XCircle, Clock, ShieldCheck, AlertCircle,
   Phone, User, Mail, Calendar, Hash, ArrowLeft, RefreshCw, Send,
-  Globe2, Briefcase,
+  Globe2, Briefcase, Trash2,
 } from 'lucide-react'
+import { useAdminAccess } from '@/components/admin/AdminAccess'
 import { supabase } from '@/lib/supabase'
 import { sectorLabel } from '@/lib/sectors'
 
@@ -60,6 +61,10 @@ export default function AdminPaymentsPage() {
   const [actioning, setActioning] = useState<string | null>(null) // reference being acted on
   const [rejectingRef, setRejectingRef] = useState<string | null>(null)
   const [rejectNote, setRejectNote] = useState('')
+  // Staff with "Payments (view)" see everything but can't approve; deleting
+  // (test orders) is for the owners.
+  const access = useAdminAccess()
+  const canApprove = access.areas.includes('payments_approve')
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [testing, setTesting] = useState(false)
 
@@ -169,6 +174,22 @@ export default function AdminPaymentsPage() {
     }
   }
 
+  const remove = async (p: Payment) => {
+    if (!confirm(`Delete payment ${p.reference} (${p.user_email}) for good?\n\nUse this for test orders. It removes the record only: a plan it already turned on stays on.`)) return
+    setActioning(p.reference)
+    setFlash(null)
+    try {
+      const res = await fetch(`/api/admin/payments/${p.id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setFlash({ kind: 'err', msg: data.message || data.error || 'Delete failed.' })
+      else { setFlash({ kind: 'ok', msg: `Deleted ${p.reference}.` }); await load(tab) }
+    } catch {
+      setFlash({ kind: 'err', msg: 'Network error.' })
+    } finally {
+      setActioning(null)
+    }
+  }
+
   // ── Auth states ───────────────────────────────────────────────────────────
   if (authState === 'loading') {
     return (
@@ -196,8 +217,7 @@ export default function AdminPaymentsPage() {
           <XCircle size={40} className="text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-black text-navy mb-2">Not authorised</h1>
           <p className="text-gray-500 mb-6">
-            Your account is not on the admin allow-list. Contact the site owner to be added
-            to <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">ADMIN_EMAILS</code>.
+            Your account does not have Payments access. Ask an owner to add it at Admin, Team access.
           </p>
           <Link href="/dashboard" className="text-primary font-semibold">Back to dashboard</Link>
         </div>
@@ -216,7 +236,7 @@ export default function AdminPaymentsPage() {
           </Link>
           <h1 className="text-lg font-black text-navy">Manual payments</h1>
           <div className="flex items-center gap-3">
-            <button
+            {access.full && <button
               onClick={sendTestEmail}
               disabled={testing}
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary disabled:opacity-50"
@@ -224,7 +244,7 @@ export default function AdminPaymentsPage() {
             >
               <Send size={14} className={testing ? 'animate-pulse' : ''} />
               {testing ? 'Sending…' : 'Test email'}
-            </button>
+            </button>}
             <button
               onClick={() => load(tab)}
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary"
@@ -254,6 +274,17 @@ export default function AdminPaymentsPage() {
             )
           })}
         </div>
+
+        {(tab === 'verified' || tab === 'all') && payments.some((p) => p.status === 'verified') && (() => {
+          const v = payments.filter((p) => p.status === 'verified')
+          const usd = v.filter((p) => p.currency !== 'ZMW').reduce((n, p) => n + (p.amount_usd ?? 0), 0)
+          const zmw = v.filter((p) => p.currency === 'ZMW').reduce((n, p) => n + (p.amount_zmw ?? 0), 0)
+          return (
+            <p className="mb-4 text-sm text-gray-600">
+              Verified in this list: <strong className="text-navy">{[usd && `$${usd.toLocaleString()}`, zmw && `K${zmw.toLocaleString()}`].filter(Boolean).join(' + ') || '0'}</strong> from {v.length} payment{v.length === 1 ? '' : 's'} (latest 100).
+            </p>
+          )
+        })()}
 
         {flash && (
           <div className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${
@@ -287,6 +318,8 @@ export default function AdminPaymentsPage() {
                 cancelReject={() => { setRejectingRef(null); setRejectNote('') }}
                 confirmReject={() => act(p.reference, 'reject', rejectNote)}
                 verify={() => act(p.reference, 'verify')}
+                canApprove={canApprove}
+                onDelete={access.full ? () => remove(p) : undefined}
                 busy={actioning === p.reference}
               />
             ))}
@@ -301,7 +334,7 @@ export default function AdminPaymentsPage() {
 
 function PaymentCard({
   p, isRejecting, rejectNote, setRejectNote,
-  startReject, cancelReject, confirmReject, verify, busy,
+  startReject, cancelReject, confirmReject, verify, canApprove, onDelete, busy,
 }: {
   p: Payment
   isRejecting: boolean
@@ -311,6 +344,8 @@ function PaymentCard({
   cancelReject: () => void
   confirmReject: () => void
   verify: () => void
+  canApprove: boolean
+  onDelete?: () => void
   busy: boolean
 }) {
   const amount = p.currency === 'ZMW' ? `K${p.amount_zmw}` : `$${p.amount_usd}`
@@ -379,7 +414,10 @@ function PaymentCard({
             {p.admin_note && <InfoRow icon={<AlertCircle size={13} />} label="Note" value={p.admin_note} />}
           </div>
 
-          {p.status === 'pending' && (
+          {p.status === 'pending' && !canApprove && (
+            <p className="text-xs text-gray-500">Waiting for an owner to approve.</p>
+          )}
+          {p.status === 'pending' && canApprove && (
             isRejecting ? (
               <div className="space-y-2">
                 <textarea
@@ -426,6 +464,16 @@ function PaymentCard({
                 </button>
               </div>
             )
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              disabled={busy}
+              className="mt-3 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+              title="Delete this record (for test orders)"
+            >
+              <Trash2 size={12} /> Delete (test order)
+            </button>
           )}
         </div>
       </div>

@@ -4,12 +4,14 @@
  *                               team is getting on.
  * PATCH  /api/admin/sales/:id — edit fields; { stage, lost_reason?,
  *                               nurture_until?, note? } moves the stage.
- * DELETE /api/admin/sales/:id — remove it and everything under it.
+ * DELETE /api/admin/sales/:id — remove it and everything under it, and the
+ *                              website quote request it came from. Owners only.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { LOST_REASONS } from '@/lib/sales/playbook'
+import { audit } from '@/lib/ops/log'
 import {
-  accountPatch, db, getSettings, isoDate, linkTeams, jsonError, loadAccount, moveStage, requireAdmin, str, teamStatus, validStage,
+  accountPatch, db, getSettings, isoDate, linkTeams, jsonError, loadAccount, moveStage, requireAdmin, requireFullAdmin, str, teamStatus, validStage,
 } from '@/lib/sales/server'
 
 export const dynamic = 'force-dynamic'
@@ -67,11 +69,16 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const gate = await requireAdmin()
+  const gate = await requireFullAdmin()
   if ('denied' in gate) return gate.denied
   const { id } = await params
   const account = await loadAccount(id)
   if (!account) return jsonError('not_found', 404)
-  await db.from('sales_accounts').delete().eq('id', id)
+  const { error } = await db.from('sales_accounts').delete().eq('id', id)
+  if (error) return jsonError('delete_failed', 500, error.message)
+  // A quote request from the website came in as this account: it goes too,
+  // so test orders leave nothing behind.
+  if (account.quote_request_id) await db.from('quote_requests').delete().eq('id', account.quote_request_id)
+  await audit(gate.email, 'console', 'pipeline_org_deleted', account.name, { id, pipeline: account.pipeline })
   return NextResponse.json({ ok: true })
 }

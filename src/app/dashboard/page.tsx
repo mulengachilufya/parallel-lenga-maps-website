@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import DownloadGateProvider from '@/contexts/DownloadGateContext'
 import FreeDatasetPicker from '@/components/FreeDatasetPicker'
 import PendingInvites from '@/components/PendingInvites'
+import MyOrders from '@/components/MyOrders'
 import DeleteAccount from '@/components/DeleteAccount'
 import DataRail from '@/components/DataRail'
 import RequestDataCta from '@/components/RequestDataCta'
@@ -821,10 +822,10 @@ function DashboardContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
         <PendingInvites />
+        <MyOrders />
 
-        {/* Admin link — only shown if /api/admin/me confirmed this user is
-            on the server-side ADMIN_EMAILS allowlist. Adding a new admin
-            now means editing one env var, no code change. */}
+        {/* Admin link — only shown if /api/admin/me says this user is an
+            owner, on ADMIN_EMAILS, or staff added at /admin/team. */}
         {isAdmin && (
           <div className="mb-6">
             <Link

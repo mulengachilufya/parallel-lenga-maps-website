@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { accessFor, can } from '@/lib/staff'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +26,7 @@ const service = createClient(
 export async function GET(req: NextRequest) {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user || !isAdminEmail(user.email)) {
+  if (!user || !can(await accessFor(user.email), 'users')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

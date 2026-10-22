@@ -20,11 +20,12 @@ import {
   type Channel, type MergeFields, type Stage,
 } from '@/lib/sales/playbook'
 import {
-  ago, api, country, dueLabel, linkedinSearch, money,
+  ago, api, country, deleteOrg, dueLabel, linkedinSearch, money,
   type Activity, type Contact, type Settings, type Task,
 } from '@/lib/sales/client'
 import { TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
+import { useAdminAccess } from '@/components/admin/AdminAccess'
 import { TRACKS, partnerStageLabel, track, type PartnerTrack, type Partnership } from '@/lib/sales/partnerships'
 
 interface Account {
@@ -70,6 +71,7 @@ export default function Wrapper() {
 const Spinner = () => <div className="py-24 flex justify-center"><Loader2 size={28} className="animate-spin text-gray-400" /></div>
 
 function AccountPage() {
+  const access = useAdminAccess()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const params = useSearchParams()
@@ -278,8 +280,10 @@ function AccountPage() {
 
           {a.notes && <Box title="Notes"><p className="text-sm text-gray-700 whitespace-pre-wrap">{a.notes}</p></Box>}
 
-          <button onClick={async () => { if (confirm(`Delete ${a.name} and its whole history from the pipeline? This cannot be undone.`)) { await api(`/api/admin/sales/${id}`, { method: 'DELETE' }); router.push(a.pipeline === 'partner' ? '/admin/partners' : '/admin/sales') } }}
-                  className="text-xs text-gray-400 hover:text-red-600 inline-flex items-center gap-1"><Trash2 size={12} /> Delete from the pipeline</button>
+          {access.full && (
+            <button onClick={async () => { if (await deleteOrg(id, a.name)) router.push(a.pipeline === 'partner' ? '/admin/partners' : '/admin/sales') }}
+                    className="text-xs text-gray-400 hover:text-red-600 inline-flex items-center gap-1"><Trash2 size={12} /> Delete from the pipeline</button>
+          )}
         </aside>
       </div>
 

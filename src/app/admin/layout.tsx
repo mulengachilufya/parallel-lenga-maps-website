@@ -10,15 +10,17 @@
  * back to the main app.
  *
  * Layout-level auth: middleware already redirects anonymous users to
- * /login. Admin-email enforcement still happens in each /api/admin/*
- * route, so a non-admin who somehow lands here sees the chrome but the
+ * /login. The nav shows only the areas this person was given (owners see
+ * all; staff are set at /admin/team). Enforcement still happens in each
+ * /api/admin/* route, so a non-admin who somehow lands here sees the chrome but the
  * data calls fail. Pages render their own "Not authorised" state when
  * that happens.
  */
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, CreditCard, Users, LayoutGrid, Wrench, Target, Download, Handshake } from 'lucide-react'
+import { ArrowLeft, CreditCard, Users, LayoutGrid, Wrench, Target, Download, Handshake, KeyRound } from 'lucide-react'
+import { AdminAccessProvider, canOpen, useAdminAccess } from '@/components/admin/AdminAccess'
 
 const NAV = [
   { href: '/admin',          label: 'Overview', icon: LayoutGrid },
@@ -27,11 +29,19 @@ const NAV = [
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/users',    label: 'Users',    icon: Users },
   { href: '/admin/downloads', label: 'Downloads', icon: Download },
+  { href: '/admin/team',     label: 'Team access', icon: KeyRound },
   { href: '/ops',            label: 'Ops & fixes', icon: Wrench },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return <AdminAccessProvider><Shell>{children}</Shell></AdminAccessProvider>
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const access = useAdminAccess()
+  // Staff see only their areas. Until /api/admin/me answers, show just Overview.
+  const nav = NAV.filter(({ href }) => href === '/admin' || canOpen(access, href))
 
   return (
     <div className="admin-shell min-h-screen bg-gray-50 text-gray-900">
@@ -51,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
 
           <nav className="hidden sm:flex items-center gap-1 ml-2">
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {nav.map(({ href, label, icon: Icon }) => {
               const active = pathname === href ||
                 (href !== '/admin' && pathname?.startsWith(href))
               return (
@@ -84,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Tabs on mobile — same routes, just stacked under the bar */}
         <nav className="sm:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {nav.map(({ href, label, icon: Icon }) => {
             const active = pathname === href ||
               (href !== '/admin' && pathname?.startsWith(href))
             return (

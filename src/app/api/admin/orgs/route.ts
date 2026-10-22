@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { accessExpiry, termMonths } from '@/lib/pricing'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { isAdminEmail } from '@/lib/admin'
+import { accessFor, can } from '@/lib/staff'
 import { provisionOrg, upgradeOrg } from '@/lib/teams-admin'
 
 export const dynamic = 'force-dynamic'
@@ -37,7 +37,7 @@ const service = createClient(
 async function requireAdmin(): Promise<NextResponse | null> {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user || !isAdminEmail(user.email)) {
+  if (!user || !can(await accessFor(user.email), 'orgs')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
   return null

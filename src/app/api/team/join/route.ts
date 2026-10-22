@@ -173,3 +173,32 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, org_name: org.name })
 }
+
+/**
+ * DELETE /api/team/join — turn an invitation down: { invite_id }. Only the
+ * person it was sent to can, and only while it is pending. Frees the seat
+ * it was holding.
+ */
+export async function DELETE(req: NextRequest) {
+  const auth = await createServerSupabase()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user?.email) return NextResponse.json({ error: 'unauthorized', message: 'Sign in first.' }, { status: 401 })
+
+  let body: { invite_id?: string } = {}
+  try { body = await req.json() } catch { /* validated below */ }
+  const inviteId = (body.invite_id ?? '').trim()
+  if (!inviteId) return NextResponse.json({ error: 'validation', message: 'Missing invite.' }, { status: 400 })
+
+  const { data, error } = await service.from('organization_invites')
+    .update({ status: 'declined' })
+    .eq('id', inviteId)
+    .ilike('email', user.email)
+    .eq('status', 'pending')
+    .select('id')
+  if (error) {
+    console.error('[team/join] decline failed', error)
+    return NextResponse.json({ error: 'decline_failed', message: 'Could not decline. Try again.' }, { status: 500 })
+  }
+  if (!data?.length) return NextResponse.json({ error: 'not_found', message: 'That invite is no longer open.' }, { status: 404 })
+  return NextResponse.json({ ok: true })
+}

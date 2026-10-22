@@ -18,13 +18,14 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  Loader2, Plus, Upload, Settings2, Search, Mail, Phone, CalendarCheck, Circle, RefreshCw, X, ChevronRight, Flag,
+  Loader2, Plus, Upload, Settings2, Search, Mail, Phone, CalendarCheck, Circle, RefreshCw, X, ChevronRight, Flag, Trash2,
 } from 'lucide-react'
+import { useAdminAccess } from '@/components/admin/AdminAccess'
 import {
   ACTIVE_STAGES, LOST_REASONS, SECTORS, SOURCES, STAGE, STAGES, STALE_DAYS, furthest, sectorLabel, stageIndex, type Stage,
 } from '@/lib/sales/playbook'
 import {
-  AFRICAN_COUNTRIES, ago, api, country, dueLabel, money,
+  AFRICAN_COUNTRIES, ago, api, country, deleteOrg, dueLabel, money,
   type AccountSummary, type Settings, type Task,
 } from '@/lib/sales/client'
 import { CountrySelect, Field, LinkedInIcon, Modal, StageChip, inputCls } from '@/components/sales/ui'
@@ -116,7 +117,7 @@ function SalesPage() {
         {tab === 'today' && <TodayTab data={data} onOpen={(id, task) => router.push(`/admin/sales/${id}${task ? `?task=${task}` : ''}`)} onAdd={() => setModal('add')} onImport={() => setModal('import')} onSettings={() => setModal('settings')} />}
         {tab === 'drafts' && <DraftsTab onCount={setDrafts} />}
         {tab === 'linkedin' && <LinkedInTab onCount={setLiTodo} />}
-        {tab === 'prospects' && <ProspectsTab accounts={data.accounts} focus={focus} filters={filters} setFilters={setFilters} />}
+        {tab === 'prospects' && <ProspectsTab accounts={data.accounts} focus={focus} filters={filters} setFilters={setFilters} onDeleted={load} />}
         {tab === 'board' && <BoardTab accounts={data.accounts} focus={focus} />}
         {tab === 'countries' && <CountriesTab accounts={data.accounts} focus={focus} onCountry={(c) => go('prospects', { country: c, stage: 'all' })} onSettings={() => setModal('settings')} />}
         {tab === 'numbers' && <NumbersTab accounts={data.accounts} focus={focus} />}
@@ -254,9 +255,12 @@ function applyFilters(accounts: AccountSummary[], f: Filters, focus: string[]) {
   })
 }
 
-function ProspectsTab({ accounts, focus, filters, setFilters }: {
-  accounts: AccountSummary[]; focus: string[]; filters: Filters; setFilters: (f: Filters) => void
+function ProspectsTab({ accounts, focus, filters, setFilters, onDeleted }: {
+  accounts: AccountSummary[]; focus: string[]; filters: Filters; setFilters: (f: Filters) => void; onDeleted: () => void
 }) {
+  // Owners can remove any organisation straight from the list.
+  const { full: canDelete } = useAdminAccess()
+  async function remove(a: AccountSummary) { if (await deleteOrg(a.id, a.name)) onDeleted() }
   const shown = useMemo(() => applyFilters(accounts, filters, focus)
     .sort((a, b) => (a.priority - b.priority) || (stageIndex(b.stage) - stageIndex(a.stage)) || a.name.localeCompare(b.name)),
   [accounts, filters, focus])
@@ -301,7 +305,7 @@ function ProspectsTab({ accounts, focus, filters, setFilters }: {
       <div className="hidden md:block mt-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs text-gray-500">
-            <tr><th className="px-4 py-2.5 font-semibold">Organisation</th><th className="px-3 py-2.5 font-semibold">Country</th><th className="px-3 py-2.5 font-semibold">Stage</th><th className="px-3 py-2.5 font-semibold">Next step</th><th className="px-3 py-2.5 font-semibold">Last contact</th><th className="px-4 py-2.5 font-semibold text-right">Value</th></tr>
+            <tr><th className="px-4 py-2.5 font-semibold">Organisation</th><th className="px-3 py-2.5 font-semibold">Country</th><th className="px-3 py-2.5 font-semibold">Stage</th><th className="px-3 py-2.5 font-semibold">Next step</th><th className="px-3 py-2.5 font-semibold">Last contact</th><th className="px-4 py-2.5 font-semibold text-right">Value</th>{canDelete && <th className="w-10" />}</tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.map((a) => {
@@ -317,6 +321,11 @@ function ProspectsTab({ accounts, focus, filters, setFilters }: {
                   <td className="px-3 py-2.5 text-xs">{a.next_task ? <><span className="text-gray-800">{a.next_task.title}</span> <span className={d!.late ? 'text-red-600 font-semibold' : 'text-gray-400'}>{d!.text}</span></> : <span className="text-gray-400">None planned</span>}</td>
                   <td className="px-3 py-2.5 text-xs text-gray-500">{ago(a.last_touch_at)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-700">{money(a.value_usd)}</td>
+                  {canDelete && (
+                    <td className="pr-3 text-right">
+                      <button onClick={() => remove(a)} title={`Remove ${a.name}`} className="p-1.5 rounded text-gray-300 hover:text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
+                    </td>
+                  )}
                 </tr>
               )
             })}
@@ -329,7 +338,12 @@ function ProspectsTab({ accounts, focus, filters, setFilters }: {
           <Link key={a.id} href={`/admin/sales/${a.id}`} className="block bg-white rounded-xl border border-gray-100 p-3.5">
             <div className="flex items-start justify-between gap-2">
               <span className="font-semibold text-gray-900">{a.priority === 1 && <Flag size={12} className="inline mr-1 text-red-500" />}{a.name}</span>
-              <StageChip stage={a.stage} />
+              <span className="flex items-center gap-1">
+                <StageChip stage={a.stage} />
+                {canDelete && (
+                  <button onClick={(e) => { e.preventDefault(); void remove(a) }} title={`Remove ${a.name}`} className="p-1 text-gray-300 hover:text-red-600"><Trash2 size={14} /></button>
+                )}
+              </span>
             </div>
             <div className="text-xs text-gray-500 mt-1">{[country(a.country_iso3), a.contact?.name ?? 'No contact yet', money(a.value_usd)].filter(Boolean).join(' · ')}</div>
             {a.next_task && <div className={`text-xs mt-1.5 ${dueLabel(a.next_task.due_on).late ? 'text-red-600' : 'text-gray-600'}`}>Next: {a.next_task.title}, {dueLabel(a.next_task.due_on).text}</div>}

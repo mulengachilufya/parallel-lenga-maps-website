@@ -76,3 +76,19 @@ export const money = (n: number | null | undefined) =>
 
 export const linkedinSearch = (company: string) =>
   `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company)}`
+
+/**
+ * Remove an organisation from either pipeline, with everything under it
+ * (people, drafts, LinkedIn, tasks, its website quote request). Owners only.
+ * Asks first; true when it was deleted.
+ */
+export async function deleteOrg(id: string, name: string): Promise<boolean> {
+  if (!confirm(`Remove ${name} for good?\n\nIts people, drafts, LinkedIn steps, tasks, notes and any website quote request go with it. This can't be undone.`)) return false
+  try {
+    await api(`/api/admin/sales/${id}`, { method: 'DELETE' })
+    return true
+  } catch (e) {
+    alert(e instanceof Error ? e.message : 'Could not delete it.')
+    return false
+  }
+}
