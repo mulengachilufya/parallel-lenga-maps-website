@@ -22,11 +22,15 @@ def get(url, dst):
             if i == 3: raise
             time.sleep(5 * (i + 1))
 def one(iso):
+    part = f'wpop/parts/{iso}.json'
+    if os.path.exists(part): return json.load(open(part))
     raw = f'wpop/raw/{iso}.tif'
     if not os.path.exists(raw):
         get(f'https://data.worldpop.org/GIS/Population/Global_2015_2030/R2025A/{YEAR}/{iso}/v1/100m/constrained/{iso.lower()}_pop_{YEAR}_CN_100m_R2025A_v1.tif', raw)
+    src_total = 0.0
     with rasterio.open(raw) as r:
-        a = r.read(1, masked=True); src_total = float(a.sum())
+        for _, win in r.block_windows(1):
+            src_total += float(r.read(1, window=win, masked=True).sum() or 0)
     fn = f'{iso}_Population_{YEAR}_WorldPop_100m.tif'
     st = clip(iso, raw, f'out/Population_WorldPop/{fn}', dict(TITLE=f'Population {YEAR}, people per 100 m cell, {COUNTRIES[iso]}',
         SOURCE=f'WorldPop Global2 R2025A v1, constrained, {YEAR} estimate, 3 arc-second (~100 m)', CITATION=CIT,
@@ -35,10 +39,14 @@ def one(iso):
         f'population_{YEAR}', max_missing=1.0)
     # district totals on the clipped raster
     d = gpd.read_file(f'bnd/{iso}.gpkg')
+    tot = np.zeros(len(d) + 1); raster_total = 0.0
+    from rasterio.windows import Window
     with rasterio.open(f'out/Population_WorldPop/{fn}') as r:
-        p = r.read(1, masked=True).filled(0).astype('float64'); T = r.transform
-    ids = rasterize(((g, i + 1) for i, g in enumerate(d.geometry)), out_shape=p.shape, transform=T, fill=0, dtype='int32')
-    tot = np.bincount(ids.ravel(), weights=p.ravel(), minlength=len(d) + 1)
+        for r0 in range(0, r.height, 1024):
+            h = min(1024, r.height - r0)
+            p = r.read(1, window=Window(0, r0, r.width, h), masked=True).filled(0).astype('float64')
+            ids = rasterize(((g, i + 1) for i, g in enumerate(d.geometry)), out_shape=p.shape, transform=r.transform * r.transform.translation(0, r0), fill=0, dtype='int32')
+            tot += np.bincount(ids.ravel(), weights=p.ravel(), minlength=len(d) + 1); raster_total += p.sum()
     d['area_ha'] = [round(abs(GEOD.geometry_area_perimeter(g)[0]) / 1e4, 1) for g in d.geometry]
     d[f'pop_{YEAR}'] = np.round(tot[1:]).astype('int64')
     d['density_km2'] = (d[f'pop_{YEAR}'] / (d.area_ha / 100)).round(2)
@@ -56,12 +64,15 @@ def one(iso):
     gp = f'{iso}_Population_Districts_{YEAR}_WorldPop.gpkg'
     write(g, f'out/Population_WorldPop/{gp}', 'population', about, cols)
     os.remove(raw)
-    return {'iso3': iso, 'country': COUNTRIES[iso], 'raster': fn, 'districts_gpkg': gp, 'source_total': round(src_total),
-            'district_total': int(d[f'pop_{YEAR}'].sum()), 'raster_total': round(float(p.sum())), **{f'raster_{k}': v for k, v in st.items()}}
+    res = {'iso3': iso, 'country': COUNTRIES[iso], 'raster': fn, 'districts_gpkg': gp, 'source_total': round(src_total),
+            'district_total': int(d[f'pop_{YEAR}'].sum()), 'raster_total': round(raster_total), **{f'raster_{k}': v for k, v in st.items()}}
+    json.dump(res, open(part, 'w')); return res
 if __name__ == '__main__':
     isos = sys.argv[1:] or sorted(COUNTRIES)
-    with Pool(3) as pool:
+    os.makedirs('wpop/parts', exist_ok=True)
+    with Pool(2) as pool:
         man = []
         for r in pool.imap_unordered(one, isos):
             man.append(r); print(r['iso3'], r['source_total'], r['raster_total'], r['district_total'], flush=True)
+    man = [json.load(open(f'wpop/parts/{i}.json')) for i in sorted(COUNTRIES) if os.path.exists(f'wpop/parts/{i}.json')]
     json.dump(sorted(man, key=lambda r: r['iso3']), open('out/Population_WorldPop/manifest.json', 'w'), indent=1)
