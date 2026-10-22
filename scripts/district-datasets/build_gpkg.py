@@ -16,7 +16,7 @@ def districts():
 def bnd_license(iso):
     import urllib.request
     return None
-def write(gdf, path, layer, about, cols):
+def write(gdf, path, layer, about, cols, extra=None):
     if os.path.exists(path): os.remove(path)
     gdf.to_file(path, layer=layer, driver='GPKG')
     con = sqlite3.connect(path)
@@ -24,7 +24,12 @@ def write(gdf, path, layer, about, cols):
     con.executemany('insert into about values (?,?)', list(about.items()))
     con.execute('create table columns (name text primary key, unit text, description text)')
     con.executemany('insert into columns values (?,?,?)', cols)
-    for t in ('about', 'columns'):
+    tables = ['about', 'columns']
+    if extra is not None:  # attribute-only table (e.g. crops_long)
+        name, df, desc = extra
+        df.to_sql(name, con, index=False)
+        tables.append(name)
+    for t in tables:
         con.execute("insert into gpkg_contents (table_name, data_type, identifier, description, last_change) values (?, 'attributes', ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))", (t, t, f'{layer} {t}'))
     con.execute('update gpkg_contents set description = ? where table_name = ?', (about['title'], layer))
     con.commit(); con.execute('vacuum'); con.close()
@@ -73,6 +78,19 @@ def build(which):
           'method': 'Each 30 m pixel classed by tree cover 2000 (>=30%) and loss year; true pixel areas (by latitude) summed for pixels whose centre lies in the district.',
           'note': 'Tree cover loss is not the same as deforestation: it includes plantation harvest, fire and other stand-replacing disturbance. Data for 2001-2010 and 2011-2025 were produced with different methods; compare trends with care. Seychelles is outside Hansen GFC coverage (tile 00N_050E has no loss layer and no tree cover values), so its forest columns are empty (unknown), not zero.',
           'crs': 'EPSG:4326', 'processed': TODAY, 'producer': 'Lenga Maps (lengamaps.com)'}
+    elif which == 'crops':
+        S, LONG = crops_tables(D)
+        cols = BASE_COLS + CROP_COLS + [('boundary_licence', '', 'Licence of the district boundary')]
+        title, layer, folder, suffix = 'Crop Production by District (MapSPAM SPAM 2020 v2.2)', 'crops', 'Crop_Production', 'Crop_Production'
+        about = {'title': title,
+          'source': 'IFPRI MapSPAM, Global Spatially-Disaggregated Crop Production Statistics for 2020, version 2.2 (SPAM2020V2r2, April 2026), 5 arc-minute grid, all technologies (irrigated + rainfed)',
+          'citation': 'International Food Policy Research Institute (IFPRI), 2025, "Global Spatially-Disaggregated Crop Production Statistics Data for 2020 Version 2.0.0", https://doi.org/10.7910/DVN/SWPENT, Harvard Dataverse (release V2r2).',
+          'licence': 'CC BY 4.0 (MapSPAM). Distributed by Lenga Maps with attribution.',
+          'boundaries': BOUND_ABOUT,
+          'method': 'Each SPAM cell belongs to the country under its centre (majority for coastal cells), as in SPAM; within that country its value is split among districts by the share of the cell each covers (10x10 sub-cells). Country totals equal SPAM cell sums exactly. Yield = production / harvested area.',
+          'note': 'Modelled estimates for circa 2020 (SPAM allocates national and subnational statistics to cells), not survey results for any one season. Physical area counts land once; harvested area counts every harvest, so it can exceed physical area where land is cropped twice a year. Values are SPAM\'s as published: some districts show irrigated-estate sugarcane yields above 120 t/ha.',
+          'crops_long': 'Table crops_long holds all 46 SPAM crops per district (shapeID, crop, crop_name, phys_ha, harv_ha, prod_t, yield_kgha).',
+          'crs': 'EPSG:4326', 'processed': TODAY, 'producer': 'Lenga Maps (lengamaps.com)'}
     else:
         S = soil_table(D)
         cols = BASE_COLS + SOIL_COLS + [('valid_pct', '%', 'Share of the district with iSDAsoil predictions (water/no-data excluded)'), ('boundary_licence', '', 'Licence of the district boundary')]
@@ -87,12 +105,16 @@ def build(which):
           'crs': 'EPSG:4326', 'processed': TODAY, 'producer': 'Lenga Maps (lengamaps.com)'}
     G = D.merge(S, on='uid', how='left')
     for iso in sorted(COUNTRIES):
+        extra = None
+        if which == 'crops':
+            l = LONG[LONG.uid.str.startswith(iso + ':')].copy(); l['shapeID'] = l.uid.str[4:]
+            extra = ('crops_long', l[['shapeID', 'crop', 'crop_name', 'phys_ha', 'harv_ha', 'prod_t', 'yield_kgha']], 'All 46 SPAM crops per district')
         g = G[G.iso3 == iso].drop(columns=['uid']).copy()
         if g.empty: continue
         g['boundary_licence'] = lic.get(iso, {}).get('license')
         g = g[[c[0] for c in cols] + ['geometry']]
         path = f'out/{folder}/{iso}_{suffix}.gpkg'
-        write(g, path, layer, dict(about, country=COUNTRIES[iso], boundary_licence=str(lic.get(iso, {}).get('license'))), cols)
+        write(g, path, layer, dict(about, country=COUNTRIES[iso], boundary_licence=str(lic.get(iso, {}).get('license'))), cols, extra)
         manifest.append({'iso3': iso, 'country': COUNTRIES[iso], 'filename': os.path.basename(path), 'districts': len(g), 'size_mb': round(os.path.getsize(path) / 1048576, 2)})
     json.dump(manifest, open(f'out/{folder}/manifest.json', 'w'), indent=1)
     print(folder, len(manifest), 'files', round(sum(m['size_mb'] for m in manifest), 1), 'MB')
@@ -119,5 +141,27 @@ def soil_table(D):
     t = pd.read_csv('soil/parts/texture_class_b1.csv')
     T = T.merge(t[['uid']].assign(texture_class=t['mode'].map(TEXTURE)), on='uid', how='left')
     return T
+SPAM_NAMES = {'WHEA':'Wheat','RICE':'Rice','MAIZ':'Maize','BARL':'Barley','MILL':'Small millet','PMIL':'Pearl millet','SORG':'Sorghum','OCER':'Other cereals','POTA':'Potato','SWPO':'Sweet potato','YAMS':'Yams','CASS':'Cassava','ORTS':'Other roots','BEAN':'Bean','CHIC':'Chickpea','COWP':'Cowpea','PIGE':'Pigeon pea','LENT':'Lentil','OPUL':'Other pulses','SOYB':'Soybean','GROU':'Groundnut','CNUT':'Coconut','OILP':'Oil palm','SUNF':'Sunflower','RAPE':'Rapeseed','SESA':'Sesame seed','OOIL':'Other oil crops','SUGC':'Sugarcane','SUGB':'Sugar beet','COTT':'Cotton','OFIB':'Other fibre crops','COFF':'Arabica coffee','RCOF':'Robusta coffee','COCO':'Cocoa','TEAS':'Tea','TOBA':'Tobacco','BANA':'Banana','PLNT':'Plantain','CITR':'Citrus','TROF':'Other tropical fruit','TEMF':'Temperate fruit','TOMA':'Tomato','ONIO':'Onion','VEGE':'Other vegetables','RUBB':'Rubber','REST':'Rest of crops'}
+GROUPS = [('maize',['MAIZ'],'Maize'),('cassava',['CASS'],'Cassava'),('sorghum',['SORG'],'Sorghum'),('millet',['MILL','PMIL'],'Millet (small + pearl)'),('rice',['RICE'],'Rice'),('wheat',['WHEA'],'Wheat'),('beans',['BEAN'],'Beans'),('groundnut',['GROU'],'Groundnut'),('soybean',['SOYB'],'Soybean'),('cocoa',['COCO'],'Cocoa'),('coffee',['COFF','RCOF'],'Coffee (arabica + robusta)'),('cotton',['COTT'],'Cotton'),('tobacco',['TOBA'],'Tobacco'),('sugarcane',['SUGC'],'Sugarcane'),('banana',['BANA','PLNT'],'Banana and plantain')]
+CROP_COLS = []
+for k, _, n in GROUPS:
+    CROP_COLS += [(f'{k}_phys_ha','ha',f'{n}: physical area'),(f'{k}_harv_ha','ha',f'{n}: harvested area'),(f'{k}_prod_t','t',f'{n}: production'),(f'{k}_yield_kgha','kg/ha',f'{n}: yield = production / harvested area (empty where not grown)')]
+CROP_COLS += [('total_phys_ha','ha','All 46 crops: physical area'),('top_crop','','Crop with the largest physical area')]
+def crops_tables(D):
+    L = pd.read_csv('crops/district_crops.csv')
+    L['crop_name'] = L.crop.map(SPAM_NAMES)
+    L['yield_kgha'] = np.where(L.harv_ha > 0, L.prod_t * 1000 / L.harv_ha.where(L.harv_ha > 0), np.nan)
+    for c in ('phys_ha', 'harv_ha', 'prod_t'): L[c] = L[c].round(1)
+    L['yield_kgha'] = L['yield_kgha'].round(0)
+    W = L.pivot(index='uid', columns='crop', values=['phys_ha', 'harv_ha', 'prod_t'])
+    T = pd.DataFrame(index=W.index)
+    for k, codes, _ in GROUPS:
+        for v, suf in (('phys_ha','phys_ha'),('harv_ha','harv_ha'),('prod_t','prod_t')):
+            T[f'{k}_{suf}'] = W[v][codes].sum(axis=1).round(1)
+        T[f'{k}_yield_kgha'] = (T[f'{k}_prod_t'] * 1000 / T[f'{k}_harv_ha'].where(T[f'{k}_harv_ha'] > 0)).round(0)
+    T['total_phys_ha'] = W['phys_ha'].sum(axis=1).round(1)
+    top = W['phys_ha'].idxmax(axis=1).map(SPAM_NAMES)
+    T['top_crop'] = top.where(T['total_phys_ha'] > 0)
+    return T.reset_index(), L[L.phys_ha + L.harv_ha + L.prod_t > 0]
 if __name__ == '__main__':
     build(sys.argv[1])
