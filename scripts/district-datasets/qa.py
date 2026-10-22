@@ -40,6 +40,18 @@ for f in sorted(glob.glob(f'out/{folder}/*.gpkg')):
     if 'ph_mean' in g and g['ph_mean'].isna().all() and iso not in ('CPV', 'MUS', 'SYC'): p.append('no soil values')
     if 'ph_mean' in g and g['ph_mean'].isna().any() and not g['ph_mean'].isna().all(): warns.append(f'{iso}: {g["ph_mean"].isna().sum()} districts without soil data')
     (fails if p else []).append(f'{iso}: ' + '; '.join(p)) if p else None
+if folder == 'Crop_Production':
+    import pandas as pd
+    nat = pd.read_csv('crops/spam_national.csv').groupby('iso3').spam_prod_t.sum()
+    for f in sorted(glob.glob('out/Crop_Production/*.gpkg')):
+        iso = f.split('/')[-1][:3]
+        tot = sqlite3.connect(f).execute('select coalesce(sum(prod_t),0) from crops_long').fetchone()[0]
+        ref = nat.get(iso, 0)
+        if ref > 0 and abs(tot - ref) / ref > 0.01: fails.append(f'{iso}: crops_long production {tot:.0f} vs SPAM {ref:.0f}')
+        g = gpd.read_file(f, layer='crops')
+        y = g[[c for c in g if c.endswith('_yield_kgha') and not c.startswith('sugarcane')]]
+        if (y > 120000).any().any(): warns.append(f'{iso}: implausible yield > 120 t/ha')
+        if (g['sugarcane_yield_kgha'] > 200000).any(): warns.append(f'{iso}: sugarcane yield > 200 t/ha')
 print(f'{folder}: {len(glob.glob(f"out/{folder}/*.gpkg"))} files')
 print('FAILS:', fails or 'none'); print('WARNINGS:', warns or 'none')
 print('VERDICT:', 'FAIL' if fails else ('PASS-WITH-WARNINGS' if warns else 'PASS'))
