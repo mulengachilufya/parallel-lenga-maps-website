@@ -1,0 +1,380 @@
+[
+ {
+  "iso3": "AGO",
+  "country": "Angola",
+  "filename": "AGO_Forest_Loss.gpkg",
+  "districts": 157,
+  "size_mb": 7.05
+ },
+ {
+  "iso3": "BDI",
+  "country": "Burundi",
+  "filename": "BDI_Forest_Loss.gpkg",
+  "districts": 119,
+  "size_mb": 0.92
+ },
+ {
+  "iso3": "BEN",
+  "country": "Benin",
+  "filename": "BEN_Forest_Loss.gpkg",
+  "districts": 77,
+  "size_mb": 0.28
+ },
+ {
+  "iso3": "BFA",
+  "country": "Burkina Faso",
+  "filename": "BFA_Forest_Loss.gpkg",
+  "districts": 45,
+  "size_mb": 0.95
+ },
+ {
+  "iso3": "BWA",
+  "country": "Botswana",
+  "filename": "BWA_Forest_Loss.gpkg",
+  "districts": 25,
+  "size_mb": 0.26
+ },
+ {
+  "iso3": "CAF",
+  "country": "Central African Republic",
+  "filename": "CAF_Forest_Loss.gpkg",
+  "districts": 72,
+  "size_mb": 0.77
+ },
+ {
+  "iso3": "CIV",
+  "country": "Cote d'Ivoire",
+  "filename": "CIV_Forest_Loss.gpkg",
+  "districts": 33,
+  "size_mb": 1.14
+ },
+ {
+  "iso3": "CMR",
+  "country": "Cameroon",
+  "filename": "CMR_Forest_Loss.gpkg",
+  "districts": 60,
+  "size_mb": 0.32
+ },
+ {
+  "iso3": "COD",
+  "country": "Democratic Republic of the Congo",
+  "filename": "COD_Forest_Loss.gpkg",
+  "districts": 189,
+  "size_mb": 2.55
+ },
+ {
+  "iso3": "COG",
+  "country": "Congo",
+  "filename": "COG_Forest_Loss.gpkg",
+  "districts": 46,
+  "size_mb": 0.35
+ },
+ {
+  "iso3": "COM",
+  "country": "Comoros",
+  "filename": "COM_Forest_Loss.gpkg",
+  "districts": 17,
+  "size_mb": 0.38
+ },
+ {
+  "iso3": "CPV",
+  "country": "Cabo Verde",
+  "filename": "CPV_Forest_Loss.gpkg",
+  "districts": 32,
+  "size_mb": 4.84
+ },
+ {
+  "iso3": "DJI",
+  "country": "Djibouti",
+  "filename": "DJI_Forest_Loss.gpkg",
+  "districts": 11,
+  "size_mb": 0.12
+ },
+ {
+  "iso3": "DZA",
+  "country": "Algeria",
+  "filename": "DZA_Forest_Loss.gpkg",
+  "districts": 48,
+  "size_mb": 0.16
+ },
+ {
+  "iso3": "EGY",
+  "country": "Egypt",
+  "filename": "EGY_Forest_Loss.gpkg",
+  "districts": 365,
+  "size_mb": 3.21
+ },
+ {
+  "iso3": "ERI",
+  "country": "Eritrea",
+  "filename": "ERI_Forest_Loss.gpkg",
+  "districts": 58,
+  "size_mb": 1.78
+ },
+ {
+  "iso3": "ETH",
+  "country": "Ethiopia",
+  "filename": "ETH_Forest_Loss.gpkg",
+  "districts": 74,
+  "size_mb": 0.62
+ },
+ {
+  "iso3": "GAB",
+  "country": "Gabon",
+  "filename": "GAB_Forest_Loss.gpkg",
+  "districts": 49,
+  "size_mb": 0.31
+ },
+ {
+  "iso3": "GHA",
+  "country": "Ghana",
+  "filename": "GHA_Forest_Loss.gpkg",
+  "districts": 260,
+  "size_mb": 10.5
+ },
+ {
+  "iso3": "GIN",
+  "country": "Guinea",
+  "filename": "GIN_Forest_Loss.gpkg",
+  "districts": 34,
+  "size_mb": 0.38
+ },
+ {
+  "iso3": "GMB",
+  "country": "Gambia",
+  "filename": "GMB_Forest_Loss.gpkg",
+  "districts": 48,
+  "size_mb": 0.38
+ },
+ {
+  "iso3": "GNB",
+  "country": "Guinea-Bissau",
+  "filename": "GNB_Forest_Loss.gpkg",
+  "districts": 39,
+  "size_mb": 1.22
+ },
+ {
+  "iso3": "GNQ",
+  "country": "Equatorial Guinea",
+  "filename": "GNQ_Forest_Loss.gpkg",
+  "districts": 28,
+  "size_mb": 0.36
+ },
+ {
+  "iso3": "KEN",
+  "country": "Kenya",
+  "filename": "KEN_Forest_Loss.gpkg",
+  "districts": 290,
+  "size_mb": 4.24
+ },
+ {
+  "iso3": "LBR",
+  "country": "Liberia",
+  "filename": "LBR_Forest_Loss.gpkg",
+  "districts": 136,
+  "size_mb": 0.82
+ },
+ {
+  "iso3": "LBY",
+  "country": "Libya",
+  "filename": "LBY_Forest_Loss.gpkg",
+  "districts": 22,
+  "size_mb": 0.16
+ },
+ {
+  "iso3": "LSO",
+  "country": "Lesotho",
+  "filename": "LSO_Forest_Loss.gpkg",
+  "districts": 78,
+  "size_mb": 2.29
+ },
+ {
+  "iso3": "MAR",
+  "country": "Morocco",
+  "filename": "MAR_Forest_Loss.gpkg",
+  "districts": 75,
+  "size_mb": 1.77
+ },
+ {
+  "iso3": "MDG",
+  "country": "Madagascar",
+  "filename": "MDG_Forest_Loss.gpkg",
+  "districts": 119,
+  "size_mb": 10.17
+ },
+ {
+  "iso3": "MLI",
+  "country": "Mali",
+  "filename": "MLI_Forest_Loss.gpkg",
+  "districts": 50,
+  "size_mb": 0.46
+ },
+ {
+  "iso3": "MOZ",
+  "country": "Mozambique",
+  "filename": "MOZ_Forest_Loss.gpkg",
+  "districts": 159,
+  "size_mb": 8.79
+ },
+ {
+  "iso3": "MRT",
+  "country": "Mauritania",
+  "filename": "MRT_Forest_Loss.gpkg",
+  "districts": 57,
+  "size_mb": 0.22
+ },
+ {
+  "iso3": "MUS",
+  "country": "Mauritius",
+  "filename": "MUS_Forest_Loss.gpkg",
+  "districts": 12,
+  "size_mb": 0.27
+ },
+ {
+  "iso3": "MWI",
+  "country": "Malawi",
+  "filename": "MWI_Forest_Loss.gpkg",
+  "districts": 28,
+  "size_mb": 2.08
+ },
+ {
+  "iso3": "NAM",
+  "country": "Namibia",
+  "filename": "NAM_Forest_Loss.gpkg",
+  "districts": 109,
+  "size_mb": 1.23
+ },
+ {
+  "iso3": "NER",
+  "country": "Niger",
+  "filename": "NER_Forest_Loss.gpkg",
+  "districts": 67,
+  "size_mb": 0.21
+ },
+ {
+  "iso3": "NGA",
+  "country": "Nigeria",
+  "filename": "NGA_Forest_Loss.gpkg",
+  "districts": 774,
+  "size_mb": 4.34
+ },
+ {
+  "iso3": "RWA",
+  "country": "Rwanda",
+  "filename": "RWA_Forest_Loss.gpkg",
+  "districts": 30,
+  "size_mb": 2.42
+ },
+ {
+  "iso3": "SDN",
+  "country": "Sudan",
+  "filename": "SDN_Forest_Loss.gpkg",
+  "districts": 189,
+  "size_mb": 0.83
+ },
+ {
+  "iso3": "SEN",
+  "country": "Senegal",
+  "filename": "SEN_Forest_Loss.gpkg",
+  "districts": 45,
+  "size_mb": 0.82
+ },
+ {
+  "iso3": "SLE",
+  "country": "Sierra Leone",
+  "filename": "SLE_Forest_Loss.gpkg",
+  "districts": 14,
+  "size_mb": 0.45
+ },
+ {
+  "iso3": "SOM",
+  "country": "Somalia",
+  "filename": "SOM_Forest_Loss.gpkg",
+  "districts": 118,
+  "size_mb": 0.36
+ },
+ {
+  "iso3": "SSD",
+  "country": "South Sudan",
+  "filename": "SSD_Forest_Loss.gpkg",
+  "districts": 78,
+  "size_mb": 0.33
+ },
+ {
+  "iso3": "STP",
+  "country": "Sao Tome and Principe",
+  "filename": "STP_Forest_Loss.gpkg",
+  "districts": 7,
+  "size_mb": 0.18
+ },
+ {
+  "iso3": "SWZ",
+  "country": "Eswatini",
+  "filename": "SWZ_Forest_Loss.gpkg",
+  "districts": 53,
+  "size_mb": 0.36
+ },
+ {
+  "iso3": "SYC",
+  "country": "Seychelles",
+  "filename": "SYC_Forest_Loss.gpkg",
+  "districts": 8,
+  "size_mb": 7.46
+ },
+ {
+  "iso3": "TCD",
+  "country": "Chad",
+  "filename": "TCD_Forest_Loss.gpkg",
+  "districts": 70,
+  "size_mb": 0.34
+ },
+ {
+  "iso3": "TGO",
+  "country": "Togo",
+  "filename": "TGO_Forest_Loss.gpkg",
+  "districts": 37,
+  "size_mb": 0.29
+ },
+ {
+  "iso3": "TUN",
+  "country": "Tunisia",
+  "filename": "TUN_Forest_Loss.gpkg",
+  "districts": 264,
+  "size_mb": 3.86
+ },
+ {
+  "iso3": "TZA",
+  "country": "Tanzania",
+  "filename": "TZA_Forest_Loss.gpkg",
+  "districts": 170,
+  "size_mb": 6.9
+ },
+ {
+  "iso3": "UGA",
+  "country": "Uganda",
+  "filename": "UGA_Forest_Loss.gpkg",
+  "districts": 151,
+  "size_mb": 0.88
+ },
+ {
+  "iso3": "ZAF",
+  "country": "South Africa",
+  "filename": "ZAF_Forest_Loss.gpkg",
+  "districts": 52,
+  "size_mb": 11.65
+ },
+ {
+  "iso3": "ZMB",
+  "country": "Zambia",
+  "filename": "ZMB_Forest_Loss.gpkg",
+  "districts": 116,
+  "size_mb": 12.57
+ },
+ {
+  "iso3": "ZWE",
+  "country": "Zimbabwe",
+  "filename": "ZWE_Forest_Loss.gpkg",
+  "districts": 91,
+  "size_mb": 6.13
+ }
+]
