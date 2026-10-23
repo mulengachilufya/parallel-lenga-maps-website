@@ -1,0 +1,380 @@
+[
+ {
+  "iso3": "AGO",
+  "country": "Angola",
+  "filename": "AGO_Crop_Production.gpkg",
+  "districts": 157,
+  "size_mb": 7.32
+ },
+ {
+  "iso3": "BDI",
+  "country": "Burundi",
+  "filename": "BDI_Crop_Production.gpkg",
+  "districts": 119,
+  "size_mb": 1.11
+ },
+ {
+  "iso3": "BEN",
+  "country": "Benin",
+  "filename": "BEN_Crop_Production.gpkg",
+  "districts": 77,
+  "size_mb": 0.42
+ },
+ {
+  "iso3": "BFA",
+  "country": "Burkina Faso",
+  "filename": "BFA_Crop_Production.gpkg",
+  "districts": 45,
+  "size_mb": 1.05
+ },
+ {
+  "iso3": "BWA",
+  "country": "Botswana",
+  "filename": "BWA_Crop_Production.gpkg",
+  "districts": 25,
+  "size_mb": 0.3
+ },
+ {
+  "iso3": "CAF",
+  "country": "Central African Republic",
+  "filename": "CAF_Crop_Production.gpkg",
+  "districts": 72,
+  "size_mb": 0.91
+ },
+ {
+  "iso3": "CIV",
+  "country": "Cote d'Ivoire",
+  "filename": "CIV_Crop_Production.gpkg",
+  "districts": 33,
+  "size_mb": 1.24
+ },
+ {
+  "iso3": "CMR",
+  "country": "Cameroon",
+  "filename": "CMR_Crop_Production.gpkg",
+  "districts": 60,
+  "size_mb": 0.42
+ },
+ {
+  "iso3": "COD",
+  "country": "Democratic Republic of the Congo",
+  "filename": "COD_Crop_Production.gpkg",
+  "districts": 189,
+  "size_mb": 2.96
+ },
+ {
+  "iso3": "COG",
+  "country": "Congo",
+  "filename": "COG_Crop_Production.gpkg",
+  "districts": 46,
+  "size_mb": 0.46
+ },
+ {
+  "iso3": "COM",
+  "country": "Comoros",
+  "filename": "COM_Crop_Production.gpkg",
+  "districts": 17,
+  "size_mb": 0.39
+ },
+ {
+  "iso3": "CPV",
+  "country": "Cabo Verde",
+  "filename": "CPV_Crop_Production.gpkg",
+  "districts": 32,
+  "size_mb": 4.86
+ },
+ {
+  "iso3": "DJI",
+  "country": "Djibouti",
+  "filename": "DJI_Crop_Production.gpkg",
+  "districts": 11,
+  "size_mb": 0.15
+ },
+ {
+  "iso3": "DZA",
+  "country": "Algeria",
+  "filename": "DZA_Crop_Production.gpkg",
+  "districts": 48,
+  "size_mb": 0.25
+ },
+ {
+  "iso3": "EGY",
+  "country": "Egypt",
+  "filename": "EGY_Crop_Production.gpkg",
+  "districts": 365,
+  "size_mb": 3.9
+ },
+ {
+  "iso3": "ERI",
+  "country": "Eritrea",
+  "filename": "ERI_Crop_Production.gpkg",
+  "districts": 58,
+  "size_mb": 1.86
+ },
+ {
+  "iso3": "ETH",
+  "country": "Ethiopia",
+  "filename": "ETH_Crop_Production.gpkg",
+  "districts": 74,
+  "size_mb": 0.8
+ },
+ {
+  "iso3": "GAB",
+  "country": "Gabon",
+  "filename": "GAB_Crop_Production.gpkg",
+  "districts": 49,
+  "size_mb": 0.4
+ },
+ {
+  "iso3": "GHA",
+  "country": "Ghana",
+  "filename": "GHA_Crop_Production.gpkg",
+  "districts": 260,
+  "size_mb": 11.03
+ },
+ {
+  "iso3": "GIN",
+  "country": "Guinea",
+  "filename": "GIN_Crop_Production.gpkg",
+  "districts": 34,
+  "size_mb": 0.46
+ },
+ {
+  "iso3": "GMB",
+  "country": "Gambia",
+  "filename": "GMB_Crop_Production.gpkg",
+  "districts": 48,
+  "size_mb": 0.45
+ },
+ {
+  "iso3": "GNB",
+  "country": "Guinea-Bissau",
+  "filename": "GNB_Crop_Production.gpkg",
+  "districts": 39,
+  "size_mb": 1.29
+ },
+ {
+  "iso3": "GNQ",
+  "country": "Equatorial Guinea",
+  "filename": "GNQ_Crop_Production.gpkg",
+  "districts": 28,
+  "size_mb": 0.39
+ },
+ {
+  "iso3": "KEN",
+  "country": "Kenya",
+  "filename": "KEN_Crop_Production.gpkg",
+  "districts": 290,
+  "size_mb": 4.81
+ },
+ {
+  "iso3": "LBR",
+  "country": "Liberia",
+  "filename": "LBR_Crop_Production.gpkg",
+  "districts": 136,
+  "size_mb": 1.04
+ },
+ {
+  "iso3": "LBY",
+  "country": "Libya",
+  "filename": "LBY_Crop_Production.gpkg",
+  "districts": 22,
+  "size_mb": 0.21
+ },
+ {
+  "iso3": "LSO",
+  "country": "Lesotho",
+  "filename": "LSO_Crop_Production.gpkg",
+  "districts": 78,
+  "size_mb": 2.36
+ },
+ {
+  "iso3": "MAR",
+  "country": "Morocco",
+  "filename": "MAR_Crop_Production.gpkg",
+  "districts": 75,
+  "size_mb": 1.97
+ },
+ {
+  "iso3": "MDG",
+  "country": "Madagascar",
+  "filename": "MDG_Crop_Production.gpkg",
+  "districts": 119,
+  "size_mb": 10.41
+ },
+ {
+  "iso3": "MLI",
+  "country": "Mali",
+  "filename": "MLI_Crop_Production.gpkg",
+  "districts": 50,
+  "size_mb": 0.57
+ },
+ {
+  "iso3": "MOZ",
+  "country": "Mozambique",
+  "filename": "MOZ_Crop_Production.gpkg",
+  "districts": 159,
+  "size_mb": 9.14
+ },
+ {
+  "iso3": "MRT",
+  "country": "Mauritania",
+  "filename": "MRT_Crop_Production.gpkg",
+  "districts": 57,
+  "size_mb": 0.27
+ },
+ {
+  "iso3": "MUS",
+  "country": "Mauritius",
+  "filename": "MUS_Crop_Production.gpkg",
+  "districts": 12,
+  "size_mb": 0.3
+ },
+ {
+  "iso3": "MWI",
+  "country": "Malawi",
+  "filename": "MWI_Crop_Production.gpkg",
+  "districts": 28,
+  "size_mb": 2.16
+ },
+ {
+  "iso3": "NAM",
+  "country": "Namibia",
+  "filename": "NAM_Crop_Production.gpkg",
+  "districts": 109,
+  "size_mb": 1.35
+ },
+ {
+  "iso3": "NER",
+  "country": "Niger",
+  "filename": "NER_Crop_Production.gpkg",
+  "districts": 67,
+  "size_mb": 0.35
+ },
+ {
+  "iso3": "NGA",
+  "country": "Nigeria",
+  "filename": "NGA_Crop_Production.gpkg",
+  "districts": 774,
+  "size_mb": 5.77
+ },
+ {
+  "iso3": "RWA",
+  "country": "Rwanda",
+  "filename": "RWA_Crop_Production.gpkg",
+  "districts": 30,
+  "size_mb": 2.5
+ },
+ {
+  "iso3": "SDN",
+  "country": "Sudan",
+  "filename": "SDN_Crop_Production.gpkg",
+  "districts": 189,
+  "size_mb": 1.1
+ },
+ {
+  "iso3": "SEN",
+  "country": "Senegal",
+  "filename": "SEN_Crop_Production.gpkg",
+  "districts": 45,
+  "size_mb": 0.9
+ },
+ {
+  "iso3": "SLE",
+  "country": "Sierra Leone",
+  "filename": "SLE_Crop_Production.gpkg",
+  "districts": 14,
+  "size_mb": 0.5
+ },
+ {
+  "iso3": "SOM",
+  "country": "Somalia",
+  "filename": "SOM_Crop_Production.gpkg",
+  "districts": 118,
+  "size_mb": 0.45
+ },
+ {
+  "iso3": "SSD",
+  "country": "South Sudan",
+  "filename": "SSD_Crop_Production.gpkg",
+  "districts": 78,
+  "size_mb": 0.45
+ },
+ {
+  "iso3": "STP",
+  "country": "Sao Tome and Principe",
+  "filename": "STP_Crop_Production.gpkg",
+  "districts": 7,
+  "size_mb": 0.21
+ },
+ {
+  "iso3": "SWZ",
+  "country": "Eswatini",
+  "filename": "SWZ_Crop_Production.gpkg",
+  "districts": 53,
+  "size_mb": 0.45
+ },
+ {
+  "iso3": "SYC",
+  "country": "Seychelles",
+  "filename": "SYC_Crop_Production.gpkg",
+  "districts": 8,
+  "size_mb": 7.47
+ },
+ {
+  "iso3": "TCD",
+  "country": "Chad",
+  "filename": "TCD_Crop_Production.gpkg",
+  "districts": 70,
+  "size_mb": 0.46
+ },
+ {
+  "iso3": "TGO",
+  "country": "Togo",
+  "filename": "TGO_Crop_Production.gpkg",
+  "districts": 37,
+  "size_mb": 0.37
+ },
+ {
+  "iso3": "TUN",
+  "country": "Tunisia",
+  "filename": "TUN_Crop_Production.gpkg",
+  "districts": 264,
+  "size_mb": 4.25
+ },
+ {
+  "iso3": "TZA",
+  "country": "Tanzania",
+  "filename": "TZA_Crop_Production.gpkg",
+  "districts": 170,
+  "size_mb": 7.32
+ },
+ {
+  "iso3": "UGA",
+  "country": "Uganda",
+  "filename": "UGA_Crop_Production.gpkg",
+  "districts": 151,
+  "size_mb": 1.21
+ },
+ {
+  "iso3": "ZAF",
+  "country": "South Africa",
+  "filename": "ZAF_Crop_Production.gpkg",
+  "districts": 52,
+  "size_mb": 11.76
+ },
+ {
+  "iso3": "ZMB",
+  "country": "Zambia",
+  "filename": "ZMB_Crop_Production.gpkg",
+  "districts": 116,
+  "size_mb": 12.77
+ },
+ {
+  "iso3": "ZWE",
+  "country": "Zimbabwe",
+  "filename": "ZWE_Crop_Production.gpkg",
+  "districts": 91,
+  "size_mb": 6.34
+ }
+]
