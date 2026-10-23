@@ -1,0 +1,57 @@
+BDI 17 classes
+BEN 15 classes
+BFA 14 classes
+BWA 19 classes
+AGO 23 classes
+CIV 16 classes
+CAF 14 classes
+CMR 18 classes
+COM 8 classes
+COG 9 classes
+CPV 10 classes
+DJI 9 classes
+EGY 14 classes
+ERI 12 classes
+DZA 16 classes
+GAB 12 classes
+COD 22 classes
+ETH 19 classes
+GMB 11 classes
+GIN 17 classes
+GNQ 8 classes
+GHA 17 classes
+GNB 11 classes
+LBR 8 classes
+LSO 15 classes
+KEN 21 classes
+LBY 12 classes
+MAR 18 classes
+MDG 22 classes
+MLI 15 classes
+MOZ 19 classes
+MUS 7 classes
+MRT 12 classes
+MWI 16 classes
+NER 17 classes
+RWA 18 classes
+NGA 19 classes
+NAM 16 classes
+ERROR 1: TIFFFillStrip:Read error at scanline 1606; got 526 bytes, expected 736
+ERROR 1: TIFFReadEncodedStrip() failed.
+ERROR 1: 369.tif, band 1: IReadBlock failed at X offset 0, Y offset 804: TIFFReadEncodedStrip() failed.
+SLE 13 classes
+SEN 14 classes
+SDN 0 classes
+STP 5 classes
+SWZ 12 classes
+SSD 18 classes
+SOM 15 classes
+SYC 9 classes
+TGO 13 classes
+TUN 15 classes
+TCD 15 classes
+UGA 22 classes
+ZMB cached
+TZA 20 classes
+ZWE 16 classes
+ZAF 23 classes
