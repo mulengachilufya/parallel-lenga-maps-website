@@ -55,6 +55,10 @@ export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<
           </li>
         ))}
       </ul>
+      <Link href="/dashboard?section=country-profiles"
+            className="flex items-center gap-2 border-t border-gray-100 px-5 py-4 text-[14px] font-semibold text-[#6d28d9] hover:bg-[#f5f3ff]">
+        📄 No GIS software? Get a ready-made country report (PDF)
+      </Link>
       <Link href="/request-data"
             className="flex items-center gap-2 border-t border-gray-100 px-5 py-4 text-[14px] font-semibold text-[#9a7400] hover:bg-[#fbf5e2]">
         <MessageSquarePlus size={16} /> Can&apos;t find the data you need? Ask us for it

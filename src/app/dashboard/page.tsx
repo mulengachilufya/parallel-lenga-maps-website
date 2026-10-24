@@ -144,6 +144,11 @@ const SECTIONS: Record<string, {
     subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
     component: () => <CatalogList slug="solar-wind" />,
   },
+  'country-profiles': {
+    title: '📄 Country Data Profiles (PDF)',
+    subtitle: 'Ready-made reports, no GIS software needed · one PDF per country',
+    component: () => <CatalogList slug="country-profiles" />,
+  },
   'power-plants': {
     title: '🏭 Existing Power Plants',
     subtitle: 'OpenStreetMap via Overture Maps · energy source, capacity, operator · GeoPackage per country',
@@ -177,6 +182,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'mining-geology':   'mining-geology',
   'solar-wind':       'solar-wind',
   'power-plants':     'power-plants',
+  'country-profiles': 'country-profiles',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────

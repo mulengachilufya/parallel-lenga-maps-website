@@ -101,6 +101,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: '© OpenStreetMap contributors · ODbL',
     accent: '#0E7490',
   },
+  'country-profiles': {
+    title: 'Country Data Profiles: ready-made PDF reports',
+    facts: [
+      { label: 'For', value: 'Anyone without GIS software: managers, investors, students, NGOs' },
+      { label: 'Inside', value: 'Key figures, 4 district maps, crops, power plants, every district' },
+      { label: 'Format', value: 'PDF, 4–8 pages per country' },
+    ],
+    note: 'Built only from the GIS datasets in this catalogue (WorldPop 2026, CHIRPS v3, Solar & Wind Atlas, Hansen tree cover, MapSPAM crops, iSDA soils, FRST roads, OpenStreetMap power plants), with sources on the last page. Need the underlying data for your own maps? Every figure has a GIS dataset.',
+    credit: 'Lenga Maps · sources listed in each report',
+    accent: '#7C3AED',
+  },
   'population': {
     title: 'Population 2026 by district (WorldPop, 100 m)',
     facts: [

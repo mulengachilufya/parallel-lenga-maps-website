@@ -195,6 +195,7 @@ const LIVE_DATASETS = LIVE_DATASET_ROUTES
 
 export default function DatasetsPage() {
   const [industry, setIndustry] = useState('all')
+  const [kind, setKind] = useState<'gis' | 'reports'>('gis')
   const shown = inIndustry(ORDERED_DATASETS, industry)
   return (
     <>
@@ -266,6 +267,41 @@ export default function DatasetsPage() {
             </p>
           </motion.div>
 
+          <div className="mb-6 flex justify-center">
+            <div className="inline-flex rounded-full border border-gray-200 bg-white p-1" role="tablist" aria-label="Product type">
+              {([['gis', 'GIS data (for QGIS / ArcGIS)'], ['reports', 'Ready-made reports (PDF)']] as const).map(([k, label]) => (
+                <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => setKind(k)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${kind === k ? 'bg-navy text-white' : 'text-gray-600 hover:text-navy'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {kind === 'reports' ? (
+            <div className="mx-auto max-w-4xl grid gap-8 md:grid-cols-2 items-center bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <Image src="/images/reports/zambia-profile-1.png" alt="Page 1 of the Zambia Country Data Profile: key figures and four district maps"
+                width={662} height={936} className="w-full h-auto rounded-lg border border-gray-200" />
+              <div>
+                <span className="inline-block text-xs font-bold uppercase tracking-wider text-[#6d28d9] mb-2">No GIS software needed</span>
+                <h3 className="text-2xl font-black text-navy mb-3">Country Data Profiles</h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                  One PDF per country, ready to read, print or put in a proposal: key figures, district maps of population,
+                  rainfall, solar potential and forest loss, top crops, power plants already built, and a table of every district.
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1 mb-5 list-disc pl-5">
+                  <li>All 54 African countries</li>
+                  <li>Built from the GIS datasets in this catalogue, sources on every report</li>
+                  <li>Need the data behind a figure? Switch to GIS data</li>
+                </ul>
+                <Link href="/dashboard?section=country-profiles"
+                  className="inline-flex items-center gap-2 rounded-xl bg-navy px-5 py-3 text-sm font-semibold text-white hover:bg-primary">
+                  Choose a country <ArrowRight size={15} />
+                </Link>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="mb-8">
             <IndustryChips value={industry} onChange={setIndustry} />
             {industry !== 'all' && (
@@ -302,6 +338,8 @@ export default function DatasetsPage() {
               )
             })}
           </div>
+          </>
+          )}
         </div>
       </section>
 

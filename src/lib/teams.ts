@@ -63,6 +63,7 @@ export const DATASET_META: Record<DatasetSlug, DatasetMeta> = {
   'mining-geology':   { name: 'Mines, Minerals & Geology',         epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
   'solar-wind':       { name: 'Solar & Wind Resource',             epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
   'power-plants':     { name: 'Existing Power Plants',             epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'country-profiles': { name: 'Country Data Profiles (PDF)',       epsg: '—',         formats: 'PDF',                       raster: false },
 }
 
 export function datasetMeta(slug: string): DatasetMeta | null {
