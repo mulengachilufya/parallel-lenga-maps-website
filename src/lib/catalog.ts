@@ -68,6 +68,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: 'Solargis / World Bank ESMAP · DTU · CC BY 4.0',
     accent: '#B45309',
   },
+  'rainfall': {
+    title: 'Rainfall 1981–2025 by district (CHIRPS v3.0)',
+    facts: [
+      { label: 'Source', value: 'CHIRPS v3.0, Climate Hazards Center (2025)' },
+      { label: 'Years', value: '1981–2025, one band per year' },
+      { label: 'District stats', value: '1991–2020 normal, 2025 anomaly, driest/wettest year, trend' },
+    ],
+    note: 'District values are area-weighted, so small districts get the share of each 5 km cell they cover. Each GeoPackage also has a rainfall_by_year table (every district, every year). Cabo Verde, Mauritius and Seychelles lie outside the CHIRPS Africa grid and use the v2.0 files below.',
+    credit: 'CHC, UC Santa Barbara · public domain',
+    accent: '#1F3A8A',
+  },
   'power-plants': {
     title: 'Existing power plants',
     facts: [

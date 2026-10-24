@@ -66,8 +66,8 @@ const SECTIONS: Record<string, {
   },
   'rainfall': {
     title: '🌧️ Rainfall Data',
-    subtitle: 'CHIRPS v2.0 · GeoTIFF (ZIP) · 0.05° (~5 km)',
-    component: () => <RainfallClimateList layerType="rainfall" />,
+    subtitle: 'CHIRPS v3.0 1981–2025 by district + yearly GeoTIFF · CHIRPS v2.0 archive below',
+    component: () => <><CatalogList slug="rainfall" hideWhenEmpty /><div className="mt-8"><RainfallClimateList layerType="rainfall" /></div></>,
   },
   'temperature': {
     title: '🌡️ Temperature Data',
