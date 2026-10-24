@@ -28,10 +28,13 @@ export async function getUploadUrl(key: string, contentType: string, expiresIn =
 /**
  * Generate a presigned URL for downloading a file from R2
  */
-export async function getDownloadUrl(key: string, expiresIn = 3600) {
+export async function getDownloadUrl(key: string, expiresIn = 3600, downloadAs?: string) {
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,
+    // With a file name the browser saves the file instead of opening it
+    // (PDFs would otherwise open in a tab and never land in Downloads).
+    ...(downloadAs ? { ResponseContentDisposition: `attachment; filename="${downloadAs.replace(/["\\\r\n]/g, '_')}"` } : {}),
   })
   return getSignedUrl(r2, command, { expiresIn })
 }

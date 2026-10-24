@@ -11,6 +11,17 @@ export function isDatasetReport(f: CatalogFile) {
   return f.file_format === 'PDF' && f.slug !== 'country-profiles'
 }
 
+/** Start a download in place: the link carries Content-Disposition: attachment,
+ *  so the browser saves the file instead of opening an empty tab. */
+export function startDownload(url: string) {
+  const a = document.createElement('a')
+  a.href = url
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
 /** iso3 (lower case) from an R2 key laid out as datasets/<iso3>/<folder>/<file>. */
 export function isoFromKey(key: string) {
   return key.split('/')[1]?.toLowerCase() ?? ''
@@ -48,7 +59,7 @@ export function ReportButton({ slug, report }: { slug: DatasetSlug; report?: Cat
     if (!report.download_url) { notifyUnavailable(slug); return }
     if (!(await consumeDownload(slug, report.country))) return
     setBusy(true)
-    window.open(report.download_url, '_blank')
+    startDownload(report.download_url)
     setTimeout(() => setBusy(false), 1000)
   }
   return (

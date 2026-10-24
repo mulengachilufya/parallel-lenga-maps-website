@@ -20,7 +20,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
       { label: 'Crops', value: '46 crops in 15 groups' },
       { label: 'Unit', value: 'District (ADM2)' },
     ],
-    note: 'Modelled estimates for 2020, not official statistics. District totals add up exactly to SPAM national figures. Each GeoPackage has a crops_long table (every crop) and a columns table explaining each field.',
+    note: 'Modelled estimates for 2020, not official statistics. District totals add up exactly to SPAM national figures. Each GeoPackage has a crops_long table (every crop) and a columns table explaining each field. This data was provided by the International Food Policy Research Institute (IFPRI). IFPRI bears no responsibility for the analyses or interpretations of the data presented here.',
     credit: 'IFPRI MapSPAM · CC BY 4.0',
     accent: '#4D7C0F',
   },
@@ -109,7 +109,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
       { label: 'Management', value: 'Rain-fed, low input and high input' },
     ],
     note: 'Per country: a district GeoPackage (share of each district rated medium or better for every crop, plus its best crops) and two 29-band GeoTIFFs at about 1 km (index 0–100). Suitability describes climate, soil and terrain under the stated management, not what is grown today: pair it with Crop Production by District.',
-    credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0 IGO',
+    credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0',
     accent: '#15803D',
   },
   'built-up': {

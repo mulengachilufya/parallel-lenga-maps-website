@@ -6,7 +6,7 @@ import type { CatalogFile } from '@/app/api/catalog/[slug]/route'
 import { CATALOG } from '@/lib/catalog'
 import type { DatasetSlug } from '@/lib/pricing'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
-import { isDatasetReport, ReportButton } from '@/components/DatasetReport'
+import { isDatasetReport, ReportButton, startDownload } from '@/components/DatasetReport'
 
 /** Per-country files of a catalog_files dataset, grouped by country. */
 export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: DatasetSlug; hideWhenEmpty?: boolean }) {
@@ -52,7 +52,7 @@ export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: Dat
     if (!f.download_url) { notifyUnavailable(slug); return }
     if (!(await consumeDownload(slug, f.country))) return
     setDownloading(f.id)
-    window.open(f.download_url, '_blank')
+    startDownload(f.download_url)
     setTimeout(() => setDownloading(null), 1000)
   }
 

@@ -140,7 +140,7 @@ export const DATASETS: Dataset[] = [
     tier: 'starter',
     color: '#1E3A5C', // deep oceanic navy — admin / boundary
     epsg: 'EPSG:4326',
-    licence: 'CC BY 4.0 (geoBoundaries)',
+    licence: 'Varies by country (CC BY, CC BY IGO, ODbL, public domain)',
     last_update: 'geoBoundaries gbOpen',
     size_label: '~2–8 MB / country',
   },
@@ -484,7 +484,7 @@ export const DATASETS: Dataset[] = [
     tier: 'pro',
     color: '#15803D',
     epsg: 'EPSG:4326',
-    licence: 'CC BY 4.0 IGO (FAO)',
+    licence: 'CC BY 4.0 (FAO)',
     last_update: 'GAEZ v5 · 2025',
     size_label: '~0.1–30 MB / country',
   },
