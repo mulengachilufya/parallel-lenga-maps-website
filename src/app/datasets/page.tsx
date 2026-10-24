@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { previewFor } from '@/lib/dataset-previews'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -109,9 +110,18 @@ function Badge({ label, color }: { label: string; color?: string }) {
 
 function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean }) {
   const tip = DATASET_TIPS[dataset.id]
+  const preview = previewFor(dataset.id)
   return (
     <>
-      <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
+      {preview ? (
+        <div className="h-32 w-full relative overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt={`Map preview: ${dataset.name}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ backgroundColor: dataset.color }} />
+        </div>
+      ) : (
+        <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
+      )}
       <div className="p-5">
         {/* Top row: icon + name + tier pill */}
         <div className="flex items-start justify-between gap-3 mb-3">
