@@ -51,6 +51,9 @@ def _scalebar(ax, g):
     nx, ny = x1 - (x1 - x0) * 0.05, y1 - (y1 - y0) * 0.12
     ax.annotate('N', xy=(nx, ny + (y1 - y0) * 0.07), xytext=(nx, ny), ha='center', fontsize=7, fontweight='bold',
                 arrowprops=dict(arrowstyle='-|>', color='black', lw=1))
+    # in-frame mark so a map cropped from the page still carries its maker
+    ax.text(0.99, 0.01, '\u00a9 Lenga Maps\u2122 \u00b7 lengamaps.com', transform=ax.transAxes, ha='right', va='bottom',
+            fontsize=6.5, color='#0D2B45', alpha=0.55, fontweight='bold')
 
 def draw_classed(ax, g, col, title, cmap, unit, k=5, scheme='quantiles', decimals=0, nodata_label='No data', legend_out=True, fs=7):
     """Draw a classed map on ax: k classes (quantiles by default, so each class holds a similar number of districts),
@@ -91,7 +94,7 @@ def choropleth(g, col, title, cmap, unit, k=5, scheme='quantiles', decimals=0, w
     """Full width classed map as a reportlab Image. Districts without data are grey and counted in the legend."""
     fig, ax = plt.subplots(figsize=(7.6, 5.3))
     draw_classed(ax, g, col, title, cmap, unit, k, scheme, decimals, nodata_label)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=170); plt.close(fig); b.seek(0)
+    b = _save(fig, 170)
     return Image(b, width=width_mm * mm, height=height_mm * mm)
 
 def map_grid(g, panels, width_mm=172, height_mm=150):
@@ -99,7 +102,7 @@ def map_grid(g, panels, width_mm=172, height_mm=150):
     fig, axs = plt.subplots(2, 2, figsize=(9.6, 8.4))
     for ax, (col, title, cmap, unit, dec) in zip(axs.flat, panels):
         draw_classed(ax, g, col, title, cmap, unit, decimals=dec, legend_out=False, fs=5.5)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=160); plt.close(fig); b.seek(0)
+    b = _save(fig, 160)
     return Image(b, width=width_mm * mm, height=height_mm * mm)
 
 def bar_chart(labels, values, title, unit, color='#0D2B45', horizontal=True, width_mm=172, height_mm=70):
@@ -114,7 +117,7 @@ def bar_chart(labels, values, title, unit, color='#0D2B45', horizontal=True, wid
     from matplotlib.ticker import FuncFormatter
     (ax.xaxis if horizontal else ax.yaxis).set_major_formatter(FuncFormatter(lambda x, _: f'{x:,.0f}' if abs(x) >= 10 else f'{x:,.1f}'))
     for s in ('top', 'right'): ax.spines[s].set_visible(False)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=170); plt.close(fig); b.seek(0)
+    b = _save(fig, 170)
     return Image(b, width=width_mm * mm, height=height_mm * mm)
 
 def line_chart(x, y, title, unit, ref=None, ref_label=None, width_mm=172, height_mm=62):
@@ -123,8 +126,46 @@ def line_chart(x, y, title, unit, ref=None, ref_label=None, width_mm=172, height
     if ref is not None: ax.axhline(ref, color='#B45309', lw=1, ls='--', label=ref_label); ax.legend(fontsize=7, frameon=False)
     ax.set_title(title, fontsize=9, loc='left', color='#0D2B45'); ax.set_ylabel(unit, fontsize=7); ax.tick_params(labelsize=7)
     for s in ('top', 'right'): ax.spines[s].set_visible(False)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=170); plt.close(fig); b.seek(0)
+    b = _save(fig, 170)
     return Image(b, width=width_mm * mm, height=height_mm * mm)
+
+
+# ---------- branding: Lenga Maps made the map; the data belong to the credited sources ----------
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+LOGO = _os.path.join(_HERE, 'logo.png'); ICON = _os.path.join(_HERE, 'logo_icon.png')
+CTX = {'credit': ''}   # short data credit stamped on every figure, set per report
+YEAR = TODAY.year
+MARK = 'Lenga Maps\u2122'
+
+def _save(fig, dpi=170):
+    """Stamp the figure itself (so a cropped map keeps it): logo, 'Map: Lenga Maps, lengamaps.com' and the data credit."""
+    fig.tight_layout(rect=(0, 0.045, 1, 1))
+    fig.text(0.055, 0.012, f'Map: {MARK} \u00b7 lengamaps.com' + (f'   |   Data: {CTX["credit"]}' if CTX['credit'] else ''),
+             fontsize=6.3, color='#334155', ha='left', va='bottom')
+    try:
+        ia = fig.add_axes((0.008, 0.004, 0.04, 0.04), anchor='SW'); ia.imshow(plt.imread(ICON)); ia.set_axis_off()
+    except Exception: pass
+    b = io.BytesIO(); fig.savefig(b, format='png', dpi=dpi); plt.close(fig); b.seek(0)
+    return b
+
+def brand_page(c, doc, footer):
+    """Header with the logo top left and the mark top right; footer with ownership and data attribution."""
+    c.saveState()
+    c.setFillColor(GOLD); c.rect(0, 287 * mm, 210 * mm, 3 * mm, fill=1, stroke=0)
+    c.drawImage(LOGO, 15 * mm, 262 * mm, width=17.3 * mm, height=24.3 * mm, mask='auto', preserveAspectRatio=True)
+    c.setFillColor(NAVY); c.setFont('Helvetica-Bold', 9); c.drawRightString(195 * mm, 279 * mm, MARK)
+    c.setFont('Helvetica', 8); c.setFillColor(GREY); c.drawRightString(195 * mm, 274.5 * mm, 'www.lengamaps.com')
+    c.setStrokeColor(colors.HexColor('#E2E8F0')); c.setLineWidth(0.5); c.line(15 * mm, 260 * mm, 195 * mm, 260 * mm)
+    c.setFont('Helvetica', 7); c.setFillColor(GREY)
+    c.drawString(15 * mm, 11.5 * mm, clean(footer)); c.drawRightString(195 * mm, 11.5 * mm, f'Page {doc.page}')
+    c.setFont('Helvetica', 6.3)
+    c.drawString(15 * mm, 7.5 * mm, f'\u00a9 {YEAR} {MARK}. Maps, analysis and layout by Lenga Maps; underlying data belong to the sources credited in this report and are used under their licences.')
+    c.restoreState()
+
+ATTRIB = ('Maps, analysis and layout: Lenga Maps (www.lengamaps.com). The underlying data were produced by the organisations '
+          'credited in this report and are used under their licences; Lenga Maps does not claim ownership of the source data. '
+          'When you reuse a map or figure, credit both Lenga Maps and the data source.')
 
 DISCLAIMER = ('This report summarises the GIS file named on its first page and is provided for information, planning and screening. '
               'Figures are estimates derived from the cited third party sources using the method described; they are not official statistics '
@@ -135,18 +176,16 @@ DISCLAIMER = ('This report summarises the GIS file named on its first page and i
 def build(path, title, country, gis_file, intro, sections, about, notes):
     """sections: list of flowables or lists; about: dict from the GeoPackage about table (source, citation, licence, method)."""
     story = [Paragraph(clean(f'{title}'), H1), Paragraph(clean(f'{country} · Data report · Lenga Maps · {TODAY:%d %B %Y}'), SM), Spacer(1, 2 * mm),
-             Paragraph(clean(f'This report accompanies the GIS file <b>{gis_file}</b> from lengamaps.com. {intro}'), P)]
+             Paragraph(clean(f'This report accompanies the GIS file <b>{gis_file}</b> obtained from Lenga Maps (www.lengamaps.com). {intro}'), P),
+             Paragraph(clean(f'<b>Data:</b> {CTX["credit"]}. ' + ATTRIB) if CTX['credit'] else ATTRIB, SM)]
     for s in sections:
         story += s if isinstance(s, list) else [s]
     story += [Paragraph('Source and method', H2)]
     for k, label in (('source', 'Source'), ('method', 'Method'), ('licence', 'Licence'), ('boundaries', 'Boundaries')):
         if about.get(k): story.append(Paragraph(clean(f'<b>{label}.</b> {about[k]}'), P))
     story += [Paragraph('Notes and limitations', H2)] + [Paragraph(clean(f'• {n}'), B) for n in notes]
-    if about.get('citation'): story += [Paragraph('How to cite', H2), Paragraph(clean(f'{about["citation"]} Processed by Lenga Maps (lengamaps.com), {TODAY:%B %Y}.'), SM)]
+    if about.get('citation'): story += [Paragraph('How to cite', H2), Paragraph(clean(f'{about["citation"]} Maps and report: Lenga Maps (www.lengamaps.com), {TODAY:%B %Y}.'), SM)]
     story += [Paragraph('Disclaimer', H2), Paragraph(DISCLAIMER, SM)]
-    def foot(c, doc):
-        c.saveState(); c.setFont('Helvetica', 7); c.setFillColor(GREY)
-        c.drawString(15 * mm, 10 * mm, clean(f'{title} · {country} · lengamaps.com')); c.drawRightString(195 * mm, 10 * mm, f'Page {doc.page}')
-        c.setFillColor(GOLD); c.rect(0, 287 * mm, 210 * mm, 3 * mm, fill=1, stroke=0); c.restoreState()
-    SimpleDocTemplate(path, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm, bottomMargin=16 * mm,
-                      title=f'{title}, {country}', author='Lenga Maps').build(story, onFirstPage=foot, onLaterPages=foot)
+    foot = lambda c, doc: brand_page(c, doc, f'{title} · {country} · Data report')
+    SimpleDocTemplate(path, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=36 * mm, bottomMargin=18 * mm,
+                      title=f'{title}, {country}', author='Lenga Maps', creator='Lenga Maps (www.lengamaps.com)').build(story, onFirstPage=foot, onLaterPages=foot)
