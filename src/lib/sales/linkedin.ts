@@ -107,17 +107,42 @@ After reading about {hook}, I think there's a real opportunity for us to work to
 
 Would you be open to a quick 15 minute video call to explore it? Happy to work around your schedule.`
 
+// Wiza's voice (Chief Commercial Officer): the same steps, warmer and more
+// personal. Picked when the person signed in is a staff member, not an owner.
+export type LiVoice = 'founder' | 'staff'
+
+export const LI_TEMPLATES_STAFF: Record<LiMessage, string> = {
+  connect: `Hi {first}, I came across {hook} and really loved it. I'm the Chief Commercial Officer at Lenga Maps, a GIS environmental data platform covering all 54 African countries. I'd be so glad to connect.`,
+
+  thank: `Thank you so much for connecting, {first}, it means a lot! I've been reading about {hook}, and honestly it's inspiring work. I'd love to keep learning from you and the team at {org}.`,
+
+  pitch: LI_TEMPLATES.pitch
+    .replace("I wanted to share a bit about what I'm building.", "I've really enjoyed following your work, and I wanted to share a little about what we're building at Lenga Maps.")
+    .replace("Just reply here, or request it at www.lengamaps.com/projects, and I'll set it up for you.", "Just reply here, or request it at www.lengamaps.com/projects, and I'll personally make sure it's set up for you and your team.")
+    .replace("Would you be open to a quick 10 minute video call? I'd show you how it works and answer any questions. Happy to work around your schedule.", "Would you be open to a quick 10 minute video call? I'd love to walk you through it and hear what your team needs. I'm very happy to work around your schedule."),
+}
+
+const LI_PARTNER_PITCH_STAFF = LI_PARTNER_PITCH
+  .replace("I wanted to share a bit about what I'm building.", "I've really enjoyed following your work, and I wanted to share a little about what we're building at Lenga Maps.")
+  .replace("I think there's a real opportunity for us to work together", "I genuinely believe there's a lovely opportunity for us to work together")
+  .replace("Happy to work around your schedule.", "I'm very happy to work around your schedule.")
+
 export const LI_CONNECT_LIMIT = 300
 
-export function liMessage(kind: LiMessage, f: { first: string; org: string; hook: string | null; edited?: string | null; partner?: boolean }): string {
-  const text = f.edited?.trim() || (kind === 'pitch' && f.partner ? LI_PARTNER_PITCH : LI_TEMPLATES[kind])
+export function liMessage(kind: LiMessage, f: { first: string; org: string; hook: string | null; edited?: string | null; partner?: boolean; voice?: LiVoice }): string {
+  const staff = f.voice === 'staff'
+  const text = f.edited?.trim() || (kind === 'pitch' && f.partner ? (staff ? LI_PARTNER_PITCH_STAFF : LI_PARTNER_PITCH) : (staff ? LI_TEMPLATES_STAFF : LI_TEMPLATES)[kind])
   return text
     .replace(/\{first\}/g, f.first || 'there')
     .replace(/\{org\}/g, f.org)
     .replace(/\{hook\}/g, f.hook?.trim() || `the work ${f.org} is doing`)
 }
 
+// A role in place of a name ("GIS / Remote Sensing Lead") until the person is found.
+const ROLE = /\b(officer|lead|manager|head|director|specialist|analyst|coordinator|team|engineer|unit)\b/i
+
 export const firstName = (name: string) => {
+  if (ROLE.test(name)) return ''
   const parts = name.trim().split(/\s+/)
   // "Dr Valerie Naidoo": LinkedIn is first-name terms.
   return (/^(dr|prof|mr|mrs|ms)\.?$/i.test(parts[0] ?? '') ? parts[1] : parts[0]) ?? ''

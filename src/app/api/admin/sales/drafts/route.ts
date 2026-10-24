@@ -7,7 +7,7 @@
  * Admin only. Listing never sends anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { db, jsonError, requireAdmin } from '@/lib/sales/server'
+import { db, jsonError, requireAdmin, voiceFor } from '@/lib/sales/server'
 import { DRAFTS_PER_DAY } from '@/lib/sales/playbook'
 
 export const dynamic = 'force-dynamic'
@@ -18,14 +18,16 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') || 'draft'
   const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
+  // Each person sees the drafts written in their own voice.
+  const voice = await voiceFor(gate.email)
   let q = db.from('sales_drafts')
     .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts(id, name, title, email, linkedin_url, opted_out_at)')
-    .eq('account.pipeline', pipeline).order('created_at', { ascending: true }).limit(500)
+    .eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
   if (status !== 'all') q = q.eq('status', status)
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
   const [drafts, counts, today] = await Promise.all([
     q,
-    db.from('sales_drafts').select('status, account:sales_accounts!inner(pipeline)').eq('account.pipeline', pipeline),
+    db.from('sales_drafts').select('status, account:sales_accounts!inner(pipeline)').eq('account.pipeline', pipeline).eq('voice', voice).limit(10000),
     db.from('sales_activities').select('id', { count: 'exact', head: true })
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
   ])
