@@ -86,7 +86,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
       { label: 'Per road', value: 'paved / unpaved, district, length (km)' },
       { label: 'District summary', value: 'paved km, unpaved km, paved %, road density' },
     ],
-    note: 'Roads from OpenStreetMap classified by surface (reported accuracy 77–96% by country). Lengths are recomputed on the ellipsoid; the source lengths are Web Mercator and overstate distance. Not covered by the source: Cabo Verde, Comoros, Mauritius, São Tomé and Príncipe, Seychelles. Large countries are big files (up to ~770 MB).',
+    note: 'Roads from OpenStreetMap classified by surface (reported accuracy 77–96% by country). Lengths are recomputed on the ellipsoid; the source lengths are Web Mercator and overstate distance. Not covered by the source: Cabo Verde, Comoros, Mauritius, São Tomé and Príncipe, Seychelles. Large countries are big files (Nigeria and South Africa are about 1–1.2 GB).',
     credit: 'Zhou et al. 2026 (CC BY 4.0) · © OpenStreetMap contributors (ODbL)',
     accent: '#A16207',
   },
