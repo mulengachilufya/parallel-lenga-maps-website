@@ -15,7 +15,7 @@ Everything below is live on lengamaps.com, stored in R2 bucket `gis-data-lenga-m
 | Existing Power Plants (`power-plants`) | catalog_files | `power_plants/` | 54 | `power_plants.py` |
 | Population 2026, WorldPop (`population`) | catalog_files | `population/` | 108 | `worldpop_build.py` |
 | Rainfall 1981-2025, CHIRPS v3 (`rainfall`) | catalog_files | `rainfall_chirps3/` | 102 (51 countries) | `chirps_build.py` |
-| Road surface, paved/unpaved (`roads`) | catalog_files | `road_surface/` | 49 (all FRST countries) | `road_surface.py` |
+| Road surface, paved/unpaved (`roads`) | catalog_files | `road_surface/` | 49 (all FRST countries, live) | `road_surface.py` |
 | Crop Suitability, GAEZ v5 (`crop-suitability`) | catalog_files | `crop_suitability/` | 162 | `gaez_build.py fetch` + `build` |
 | Built-up Area Growth, GHSL (`built-up`) | catalog_files | `built_up/` | 108 | `ghsl_build.py` |
 | Country Data Profiles, PDF (`country-profiles`) | catalog_files | `reports/` | 54 | `country_profile.py` (run after all the above) |
