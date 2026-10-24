@@ -101,6 +101,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: '© OpenStreetMap contributors · ODbL',
     accent: '#0E7490',
   },
+  'crop-suitability': {
+    title: 'Crop suitability: 29 crops by district (GAEZ v5)',
+    facts: [
+      { label: 'Source', value: 'FAO / IIASA GAEZ v5 (2025), climate 2001–2020' },
+      { label: 'Crops', value: 'Maize, cassava, sorghum, millets, rice, beans, soy, coffee, tea, cocoa, cashew, sugarcane and more' },
+      { label: 'Management', value: 'Rain-fed, low input and high input' },
+    ],
+    note: 'Per country: a district GeoPackage (share of each district rated medium or better for every crop, plus its best crops) and two 29-band GeoTIFFs at about 1 km (index 0–100). Suitability describes climate, soil and terrain under the stated management, not what is grown today: pair it with Crop Production by District.',
+    credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0 IGO',
+    accent: '#15803D',
+  },
   'country-profiles': {
     title: 'Country Data Profiles: ready-made PDF reports',
     facts: [
