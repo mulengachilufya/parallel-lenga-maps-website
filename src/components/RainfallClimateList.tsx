@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Download, Search, CloudRain, Thermometer, AlertTriangle } from 'lucide-react'
 import type { RainfallClimateLayer } from '@/app/api/rainfall-climate/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
+import { isoFromKey, ReportButton, useDatasetReports } from '@/components/DatasetReport'
 
 // ─── Per-type styling ───────────────────────────────────────────────────────
 
@@ -80,6 +81,7 @@ export default function RainfallClimateList({
   const [error, setError]               = useState<string | null>(null)
   const [downloading, setDownloading]   = useState<number | null>(null)
   const [searchQuery, setSearchQuery]   = useState('')
+  const reports = useDatasetReports('temperature')
 
   const meta = layerType ? TYPE_META[layerType] : null
   const gisMeta = layerType ? GIS_META[layerType] : null
@@ -188,8 +190,9 @@ export default function RainfallClimateList({
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.015, 0.35) }}
-                className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors gap-4"
+                className="px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
               >
+                <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-8 h-8 rounded-lg ${rowMeta?.accent || 'bg-gray-50'} flex items-center justify-center flex-shrink-0`}>
                     {rowMeta?.icon}
@@ -230,6 +233,10 @@ export default function RainfallClimateList({
                     </>
                   )}
                 </motion.button>
+                </div>
+                {layer.layer_type === 'temperature' && (
+                  <div className="mt-2"><ReportButton slug="temperature" report={reports.get(isoFromKey(layer.r2_key))} /></div>
+                )}
               </motion.div>
             )
           })}

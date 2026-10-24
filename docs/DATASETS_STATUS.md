@@ -27,6 +27,15 @@ Scripts: `scripts/district-datasets/` (README lists the order). Per-folder manif
 The site reads catalog_files through `/api/catalog/[slug]` and `src/components/CatalogList.tsx`; dataset text lives in
 `src/lib/catalog.ts` (facts shown above the files) and `src/lib/supabase.ts` (catalogue cards).
 
+## PDF data reports per dataset
+
+Every GIS file can have a PDF version shown under it ("Download PDF version, includes insights and notes").
+Reports are catalog_files rows under the dataset's own slug with `file_format = 'PDF'`, stored at
+`datasets/<iso3>/dataset_reports/<ISO>_<slug>_report.pdf`. `src/components/DatasetReport.tsx` finds them; countries
+without one show "PDF version coming soon". soil and temperature list their GIS files elsewhere, so `/api/catalog`
+accepts those two slugs for reports only. Built by `dataset_reports.py` (13 datasets); first 15 countries: ZAF ZMB
+ZWE KEN GHA RWA NGA LBY ETH EGY TZA MAR CIV AGO BWA.
+
 ## Catalogue navigation
 
 - Industry filter: `src/lib/industries.tsx` maps catalogue ids to industries (catalogue page and dashboard rail).
