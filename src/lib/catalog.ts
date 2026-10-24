@@ -62,9 +62,9 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     facts: [
       { label: 'Solar', value: 'Global Solar Atlas, April 2026 (GHI 250 m, PV output 1 km)' },
       { label: 'Wind', value: 'Global Wind Atlas 4.0 (speed & power density at 100 m)' },
-      { label: 'Format', value: 'GeoTIFF per country' },
+      { label: 'Format', value: 'GeoTIFF + district GeoPackage' },
     ],
-    note: 'Long-term averages, clipped to the country outline. Solar values are daily totals: multiply by 365 for a year.',
+    note: 'Includes a district screening GeoPackage per country: average, 10th and 90th percentile solar and wind values, 2026 population, and the share of each district within 10 km of a mapped transmission line. The GeoTIFFs are long-term averages clipped to the country outline; solar values are daily totals (multiply by 365 for a year). Screening data, not a site assessment.',
     credit: 'Solargis / World Bank ESMAP · DTU · CC BY 4.0',
     accent: '#B45309',
   },
