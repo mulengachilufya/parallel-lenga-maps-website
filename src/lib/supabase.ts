@@ -95,6 +95,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   22: '/dashboard?section=solar-wind',
   23: '/dashboard?section=power-plants',
   24: '/dashboard?section=crop-suitability',
+  25: '/dashboard?section=built-up',
 }
 
 export type DatasetSource = {
@@ -486,5 +487,21 @@ export const DATASETS: Dataset[] = [
     licence: 'CC BY 4.0 IGO (FAO)',
     last_update: 'GAEZ v5 · 2025',
     size_label: '~0.1–30 MB / country',
+  },
+  {
+    id: 25,
+    name: 'Built-up Area Growth by District',
+    category: 'Socioeconomic',
+    description: 'How much land is built up in every district in 1975, 1990, 2000, 2010 and 2020 (plus a 2025 projection), with growth, share of area and m² per person.',
+    source: 'EU JRC GHSL (GHS-BUILT-S R2023A)',
+    format: 'GeoTIFF + GeoPackage',
+    resolution: '30 arc-sec (~1 km) + district',
+    icon: '🏙️',
+    tier: 'pro',
+    color: '#B91C1C',
+    epsg: 'EPSG:4326',
+    licence: 'CC BY 4.0 (EC JRC)',
+    last_update: 'GHSL R2023A · to 2020 (+2025 projection)',
+    size_label: '~0.1–12 MB / country',
   },
 ]

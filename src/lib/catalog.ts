@@ -112,6 +112,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0 IGO',
     accent: '#15803D',
   },
+  'built-up': {
+    title: 'Built-up area growth by district, 1975–2025',
+    facts: [
+      { label: 'Source', value: 'EU JRC Global Human Settlement Layer, GHS-BUILT-S R2023A' },
+      { label: 'Years', value: '1975, 1990, 2000, 2010, 2020 observed · 2025 projected' },
+      { label: 'Per district', value: 'built-up km², growth 2000–2020, share of area, m² per person' },
+    ],
+    note: 'Where towns and settlements have grown: useful for utilities, telecoms, real estate, planning and market sizing. Built-up surface is roofed area from Sentinel-2 and Landsat at about 1 km; 2025 is the GHSL projection.',
+    credit: 'European Commission JRC · CC BY 4.0',
+    accent: '#B91C1C',
+  },
   'country-profiles': {
     title: 'Country Data Profiles: ready-made PDF reports',
     facts: [

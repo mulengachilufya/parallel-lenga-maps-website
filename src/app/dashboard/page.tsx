@@ -149,6 +149,11 @@ const SECTIONS: Record<string, {
     subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input · GeoTIFF + GeoPackage',
     component: () => <CatalogList slug="crop-suitability" />,
   },
+  'built-up': {
+    title: '🏙️ Built-up Area Growth by District',
+    subtitle: 'EU JRC GHSL · 1975–2020 observed, 2025 projected · GeoTIFF + GeoPackage',
+    component: () => <CatalogList slug="built-up" />,
+  },
   'country-profiles': {
     title: '📄 Country Data Profiles (PDF)',
     subtitle: 'Ready-made reports, no GIS software needed · one PDF per country',
@@ -189,6 +194,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'power-plants':     'power-plants',
   'country-profiles': 'country-profiles',
   'crop-suitability': 'crop-suitability',
+  'built-up':         'built-up',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────
@@ -862,7 +868,7 @@ function DashboardContent() {
               {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
             </h1>
             <p className="hidden sm:block text-white/80 text-sm mt-1">
-              54 African countries · 20 datasets · harmonised to EPSG:4326
+              54 African countries · 21 datasets · harmonised to EPSG:4326
             </p>
           </div>
         </div>

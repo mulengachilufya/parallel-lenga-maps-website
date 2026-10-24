@@ -337,7 +337,7 @@ export function newsletterWelcomeEmail(to: string): EmailMessage {
     </ul>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
       New issues land every Monday. Lenga Maps gives you professional GIS data across all
-      <strong>54 African countries</strong>: 20 datasets, harmonised to EPSG:4326 and ready for
+      <strong>54 African countries</strong>: 21 datasets, harmonised to EPSG:4326 and ready for
       QGIS. Browsing is free, a <strong>3-day trial</strong> unlocks full access with 10 downloads
       and no card, and plans start at <strong>$5/month</strong>.
     </p>`
@@ -351,7 +351,7 @@ My name is Mulenga, founder of Lenga Maps, a tech startup building Africa's larg
 - GIS Trick of the Week: one practical QGIS, Python or GDAL tip you can use that day.
 - The Question: one honest question. Hit reply, I read every one.
 
-New issues land every Monday. Lenga Maps gives you professional GIS data across all 54 African countries: 20 datasets, harmonised to EPSG:4326 and ready for QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
+New issues land every Monday. Lenga Maps gives you professional GIS data across all 54 African countries: 21 datasets, harmonised to EPSG:4326 and ready for QGIS. Browsing is free, a 3-day trial unlocks full access with 10 downloads and no card, and plans start at $5/month.
 
 Explore the Atlas: ${cta}
 Download GIS data: ${dl}
@@ -441,14 +441,14 @@ export function quoteAckEmail(to: string, contactName: string | null, orgName: s
       with a quote and the next steps.
     </p>
     <p style="margin:0 0 4px;font-size:15px;line-height:1.7;color:#333;">
-      Your team plan covers all 20 datasets across all 54 African countries, a shared
+      Your team plan covers all 21 datasets across all 54 African countries, a shared
       team workspace with download history, and API access.
     </p>`
   const text = `Hi ${name},
 
 Thanks for your interest in For Project Teams and Businesses for ${orgName}. We received your request and will be in touch within 1 business day with a quote and the next steps.
 
-Your team plan covers all 20 datasets across all 54 African countries, a shared team workspace with download history, and API access.
+Your team plan covers all 21 datasets across all 54 African countries, a shared team workspace with download history, and API access.
 
 ${cta}
 
