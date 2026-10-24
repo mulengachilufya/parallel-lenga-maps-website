@@ -1,0 +1,8 @@
+-- 056_bulk_prospects.sql
+-- lenga_add_prospects(rows, batch): bulk-load sales prospects as
+-- [[iso3 | null, sector, name], ...]. Each gets a role to find on LinkedIn and
+-- a templated first email in both voices (founder and staff). Names already in
+-- the pipeline are skipped, and Zambia is never loaded (the founders are
+-- job-hunting there). Applied directly; this file records it.
+-- See the function in the database for the full body:
+--   select pg_get_functiondef('public.lenga_add_prospects(jsonb, text)'::regprocedure);

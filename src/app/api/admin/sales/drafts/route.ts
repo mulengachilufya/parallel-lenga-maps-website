@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
   const [drafts, counts, today] = await Promise.all([
     q,
-    db.from('sales_drafts').select('status, account:sales_accounts!inner(pipeline)').eq('account.pipeline', pipeline).eq('voice', voice).limit(10000),
+    Promise.all((['draft', 'sent', 'discarded'] as const).map((st) => db.from('sales_drafts')
+      .select('id, account:sales_accounts!inner(pipeline)', { count: 'exact', head: true })
+      .eq('account.pipeline', pipeline).eq('voice', voice).eq('status', st))),
     db.from('sales_activities').select('id', { count: 'exact', head: true })
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
   ])
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
     console.error('[admin/sales/drafts] list failed', drafts.error)
     return jsonError('list_failed', 500, 'Could not load the drafts. Has migration 049 been applied?')
   }
-  const tally = { draft: 0, sent: 0, discarded: 0 }
-  for (const r of counts.data ?? []) tally[r.status as keyof typeof tally]++
+  // Counted in the database: there can be thousands of drafts.
+  const tally = { draft: counts[0].count ?? 0, sent: counts[1].count ?? 0, discarded: counts[2].count ?? 0 }
   return NextResponse.json({ drafts: drafts.data ?? [], counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY })
 }
