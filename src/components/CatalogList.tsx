@@ -6,6 +6,7 @@ import type { CatalogFile } from '@/app/api/catalog/[slug]/route'
 import { CATALOG } from '@/lib/catalog'
 import type { DatasetSlug } from '@/lib/pricing'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
+import { isDatasetReport, ReportButton } from '@/components/DatasetReport'
 
 /** Per-country files of a catalog_files dataset, grouped by country. */
 export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: DatasetSlug; hideWhenEmpty?: boolean }) {
@@ -32,15 +33,19 @@ export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: Dat
     })()
   }, [slug])
 
+  // PDF data reports sit under the same slug; each is shown below its country's GIS files.
+  const reports = useMemo(() => new Map(files.filter(isDatasetReport).map((f) => [f.country, f])), [files])
+  const showReports = slug !== 'country-profiles'
   const byCountry = useMemo(() => {
     const m = new Map<string, CatalogFile[]>()
     for (const f of files) {
+      if (isDatasetReport(f)) continue
       if (query && !f.country.toLowerCase().includes(query.toLowerCase())) continue
       m.set(f.country, [...(m.get(f.country) ?? []), f])
     }
     return [...m.entries()]
   }, [files, query])
-  const countries = new Set(files.map((f) => f.country)).size
+  const countries = new Set(files.filter((f) => !isDatasetReport(f)).map((f) => f.country)).size
 
   async function handleDownload(f: CatalogFile) {
     if (!checkAccess(slug)) { openGate(slug); return }
@@ -97,11 +102,12 @@ export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: Dat
                   : 'bg-gray-50 text-navy hover:bg-gray-100'}`}>
                 <span className="min-w-0">
                   <span className="block font-semibold truncate">{f.label}</span>
-                  <span className="block text-[11px] text-gray-400">{f.file_format} · {f.file_size_mb} MB</span>
+                  <span className="block text-[11px] text-gray-400">{showReports ? 'Download GIS file · ' : ''}{f.file_format} · {f.file_size_mb} MB</span>
                 </span>
                 <span className="shrink-0">{!hasAccess ? '🔒' : downloading === f.id ? '✓' : <Download size={13} />}</span>
               </button>
             ))}
+            {showReports && <ReportButton slug={slug} report={reports.get(country)} />}
           </div>
         ))}
       </div>

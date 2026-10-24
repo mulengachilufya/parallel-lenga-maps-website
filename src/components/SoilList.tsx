@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Download, Search, Layers } from 'lucide-react'
 import type { SoilLayer } from '@/app/api/soil/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
+import { ReportButton, useDatasetReports } from '@/components/DatasetReport'
 
 interface SoilListProps {
   userPlan?:  string
@@ -23,6 +24,7 @@ export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
   const [error,       setError]       = useState<string | null>(null)
   const [downloading, setDownloading] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const reports = useDatasetReports('soil')
 
   useEffect(() => {
     (async () => {
@@ -102,8 +104,9 @@ export default function SoilList({ userPlan = 'starter' }: SoilListProps) {
                 : 'bg-amber-600 hover:bg-amber-700 text-white'}`}>
               {!hasAccess ? '🔒 Unlock to download'
                 : downloading === layer.id ? '✓ Downloading…'
-                : <><Download size={13} />Download .tif</>}
+                : <><Download size={13} />Download GIS file (GeoTIFF)</>}
             </button>
+            <ReportButton slug="soil" report={reports.get(layer.iso3.toLowerCase())} />
           </motion.div>
         ))}
       </div>

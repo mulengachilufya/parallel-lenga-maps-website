@@ -12,6 +12,9 @@ from multiprocessing import Pool
 warnings.filterwarnings('ignore')
 sys.path.insert(0, 'tools')
 from countries import COUNTRIES
+from report_lib import map_grid, clean
+from reportlab.platypus import Paragraph as _RLP
+def Paragraph(t, style, *a, **k): return _RLP(clean(t) if isinstance(t, str) else t, style, *a, **k)
 NAVY = colors.HexColor('#0D2B45'); GOLD = colors.HexColor('#F5B800'); GREY = colors.HexColor('#5F6B76')
 SS = getSampleStyleSheet()
 H1 = ParagraphStyle('h1', parent=SS['Title'], textColor=NAVY, fontSize=22, leading=26, alignment=0, spaceAfter=2)
@@ -19,14 +22,15 @@ H2 = ParagraphStyle('h2', parent=SS['Heading2'], textColor=NAVY, fontSize=13, sp
 P = ParagraphStyle('p', parent=SS['BodyText'], fontSize=9, leading=12)
 SM = ParagraphStyle('sm', parent=P, fontSize=7.5, leading=10, textColor=GREY)
 def fmt(x, d=0):
-    if x is None or (isinstance(x, float) and not np.isfinite(x)): return '–'
+    if x is None or (isinstance(x, float) and not np.isfinite(x)): return 'not available'
     return f'{x:,.{d}f}'
-def txt(v, default='–', n=40):
+def txt(v, default='not recorded', n=40):
     return default if v is None or (isinstance(v, float) and not np.isfinite(v)) or str(v).strip() in ('', 'nan', 'None') else str(v)[:n]
 def read(path, layer=None, geom=False):
     if not os.path.exists(path): return None
     return gpd.read_file(path, layer=layer) if geom else gpd.read_file(path, layer=layer, ignore_geometry=True)
 def tbl(rows, widths, head=True, zebra=True, size=8):
+    rows = [[clean(c) if isinstance(c, str) else c for c in r] for r in rows]
     t = Table(rows, colWidths=widths, repeatRows=1 if head else 0)
     st = [('FONT', (0, 0), (-1, -1), 'Helvetica', size), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
           ('LINEBELOW', (0, 0), (-1, 0), 0.6, NAVY), ('TOPPADDING', (0, 0), (-1, -1), 2), ('BOTTOMPADDING', (0, 0), (-1, -1), 2)]
@@ -97,13 +101,13 @@ def one(iso):
              ['Wind speed at 100 m (area-weighted)', f'{fmt(wmean("wind_ms_mean"), 1)} m/s', 'Global Wind Atlas 4.0'],
              ['Area within 10 km of a mapped power line', f'{fmt(wmean("grid_10km_pct"), 1)} %', 'USGS 2018 ref.'],
              ['Tree cover 2000 / lost 2001–2025', f'{fmt(g["tc2000_ha"].sum(min_count=1) if "tc2000_ha" in g else None)} / {fmt(g["loss_total_ha"].sum(min_count=1) if "loss_total_ha" in g else None)} ha', 'Hansen GFC v1.13'],
-             ['Built-up area 2000 → 2020', (lambda b: f'{fmt(b[0])} → {fmt(b[1])} km²' if b else '–')(builtup(iso)), 'JRC GHSL R2023A'],
+             ['Built-up area 2000 to 2020', (lambda b: f'{fmt(b[0])} to {fmt(b[1])} km²' if b else 'not available')(builtup(iso)), 'JRC GHSL R2023A'],
              ['Mapped roads: paved / unpaved', f'{fmt(g["paved_km"].sum(min_count=1) if "paved_km" in g else None)} / {fmt(g["unpaved_km"].sum(min_count=1) if "unpaved_km" in g else None)} km', 'FRST (OSM)']]
     story += [Spacer(1, 3 * mm), tbl(rows, [80 * mm, 55 * mm, 40 * mm])]
     story += [Paragraph('District maps', H2),
-              maps(g, [('density_km2', 'Population density 2026', 'YlOrRd', 'people/km²'), ('rain_normal_1991_2020_mm', 'Rainfall normal 1991–2020', 'Blues', 'mm/yr'),
-                       ('pvout_mean', 'PV power potential', 'YlOrBr', 'kWh/kWp/day'), ('pct_loss_since_2000', 'Tree cover lost since 2000', 'Greens', '% of 2000 cover')]),
-              Paragraph('Colour scales run from the 2nd to the 98th percentile of districts. Grey: no data.', SM)]
+              map_grid(g, [('density_km2', 'Population density 2026', 'YlOrRd', 'people per km²', 1), ('rain_normal_1991_2020_mm', 'Rainfall normal 1991 to 2020', 'Blues', 'mm per year', 0),
+                       ('pvout_mean', 'PV power potential', 'YlOrBr', 'kWh per kWp per day', 2), ('pct_loss_since_2000', 'Tree cover lost since 2000', 'Greens', 'percent of 2000 cover', 1)], height_mm=140),
+              Paragraph('Each map has five classes holding a similar number of districts (quantiles); the legend gives each range and its district count. Dark lines are provinces. Grey: no data or not applicable.', SM)]
     # agriculture
     story.append(PageBreak()); story.append(Paragraph('Agriculture', H2))
     cp = f'{O}/Crop_Production/{iso}_Crop_Production.gpkg'
