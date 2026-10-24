@@ -44,9 +44,9 @@ const GIS_META: Record<string, { source: string; units: string; resolution: stri
     resolution: '0.05° (~5 km)',
   },
   temperature: {
-    source: 'WorldClim v2.1',
+    source: 'CHELSA v2.1 (1981–2010)',
     units: '°C (mean)',
-    resolution: '2.5 arc-min (~5 km)',
+    resolution: '30 arc-sec (~1 km)',
   },
   drought_index: {
     source: 'CHIRPS-derived SPI',
@@ -144,7 +144,7 @@ export default function RainfallClimateList({
       {/* ── GIS info strip ───────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         <span className="bg-gray-100 rounded-full px-3 py-1">CRS: EPSG:4326 (WGS 84)</span>
-        <span className="bg-gray-100 rounded-full px-3 py-1">Format: GeoTIFF (ZIP)</span>
+        <span className="bg-gray-100 rounded-full px-3 py-1">Format: {layerType === 'temperature' ? 'GeoTIFF' : 'GeoTIFF (ZIP)'}</span>
         <span className="bg-gray-100 rounded-full px-3 py-1">NoData: −9999</span>
         {gisMeta && (
           <>

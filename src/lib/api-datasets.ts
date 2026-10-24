@@ -192,18 +192,18 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'temperature',
     name:        'Temperature',
-    description: 'WorldClim v2.1 monthly / annual temperature rasters per African country.',
+    description: 'CHELSA v2.1 annual + monthly mean temperature (1981–2010) per African country.',
     category:    'climate',
     table:       'rainfall_climate_layers',
     layer_type:  'temperature',
-    source:      'WorldClim v2.1',
+    source:      'CHELSA v2.1',
     toFile: (r) => ({
       country_name: String(r.country),
       country_iso3: iso3For(String(r.country)),
       r2_key:       String(r.r2_key),
       file_size_mb: Number(r.file_size_mb ?? 0),
-      file_format:  String(r.file_format ?? 'GeoTIFF (ZIP)'),
-      source:       String(r.source ?? 'WorldClim v2.1'),
+      file_format:  String(r.file_format ?? 'GeoTIFF'),
+      source:       String(r.source ?? 'CHELSA v2.1'),
       meta: {
         variable_name: r.variable_name,
         year_start:    r.year_start,

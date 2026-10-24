@@ -42,7 +42,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">6. Intellectual Property</h2>
-              <p>The Lenga Maps platform, including its processing pipelines, curation logic, UI, and brand, is the intellectual property of Lenga Maps. Underlying datasets are sourced from open-data providers (IGRAC, CHIRPS, WorldClim, HydroSHEDS, ISRIC, ESA, and others) under their respective licences. Attribution requirements of source licences are the responsibility of the customer when publishing derived work.</p>
+              <p>The Lenga Maps platform, including its processing pipelines, curation logic, UI, and brand, is the intellectual property of Lenga Maps. Underlying datasets are sourced from open-data providers (IGRAC, CHIRPS, CHELSA, HydroSHEDS, ISRIC, ESA, and others) under their respective licences. Attribution requirements of source licences are the responsibility of the customer when publishing derived work.</p>
             </section>
 
             <section>
