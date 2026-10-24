@@ -844,7 +844,7 @@ function DashboardContent() {
               {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
             </h1>
             <p className="hidden sm:block text-white/80 text-sm mt-1">
-              54 African countries · 15 datasets · harmonised to EPSG:4326
+              54 African countries · 18 datasets · harmonised to EPSG:4326
             </p>
           </div>
         </div>

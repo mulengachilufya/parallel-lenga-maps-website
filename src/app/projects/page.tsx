@@ -255,7 +255,7 @@ export default function ProjectsPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: Layers,     title: 'The full catalogue',        body: 'All 15 datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, population, protected areas and more. This tier is never a reduced catalogue.' },
+              { icon: Layers,     title: 'The full catalogue',        body: 'All 18 datasets across all 54 African countries. Boundaries, rivers, rainfall, LULC, soils, population, protected areas and more. This tier is never a reduced catalogue.' },
               { icon: History,    title: 'Shared download history',   body: 'Every pull is logged with dataset, country, CRS, format, who and when. New joiners see months of team context on day one.' },
               { icon: Crosshair,  title: 'Duplicate-pull warnings',   body: 'Opening a layer a teammate already downloaded? The workspace says so before you spend another download on it.' },
               { icon: KeyRound,   title: 'API access',                body: 'Programmatic access to the catalogue with per-minute rate limits and monthly quotas. Exclusive to team plans.' },
@@ -357,7 +357,7 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           <div className="flex items-center justify-center gap-2 mb-3.5">
             <Sparkles size={16} style={{ color: GOLD }} />
             <span className="text-[0.72rem] font-extrabold tracking-[0.22em] uppercase" style={{ color: GOLD }}>
-              Every team plan unlocks all 15 datasets
+              Every team plan unlocks all 18 datasets
             </span>
             <Sparkles size={16} style={{ color: GOLD }} />
           </div>
