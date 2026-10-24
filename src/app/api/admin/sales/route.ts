@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dueDate } from '@/lib/sales/playbook'
 import {
-  accountPatch, contactFields, db, getSettings, jsonError, logActivity, requireAdmin, startSequence,
+  accountPatch, allRows, contactFields, db, getSettings, jsonError, logActivity, requireAdmin, startSequence,
 } from '@/lib/sales/server'
 
 export const dynamic = 'force-dynamic'
@@ -22,12 +22,12 @@ export async function GET() {
   if ('denied' in gate) return gate.denied
 
   const [accounts, contacts, tasks, settings] = await Promise.all([
-    db.from('sales_accounts')
+    allRows((f, t) => db.from('sales_accounts')
       .select('id, name, country_iso3, sector, source, stage, priority, seats_estimate, value_usd, next_step, next_step_due, lost_reason, nurture_until, org_id, stage_history, stage_changed_at, last_touch_at, created_at, updated_at')
-      .eq('pipeline', 'sales').order('updated_at', { ascending: false }).limit(3000),
-    db.from('sales_contacts').select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at').limit(10000),
-    db.from('sales_tasks').select('id, account_id, contact_id, kind, title, template, due_on, sequence')
-      .is('done_at', null).order('due_on', { ascending: true }).limit(5000),
+      .eq('pipeline', 'sales').order('updated_at', { ascending: false }).order('id').range(f, t)),
+    allRows((f, t) => db.from('sales_contacts').select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at').order('id').range(f, t)),
+    allRows((f, t) => db.from('sales_tasks').select('id, account_id, contact_id, kind, title, template, due_on, sequence')
+      .is('done_at', null).order('due_on', { ascending: true }).order('id').range(f, t)),
     getSettings(),
   ])
   if (accounts.error || contacts.error || tasks.error) {

@@ -417,3 +417,20 @@ export async function linkTeams(onlyAccountId?: string): Promise<string[]> {
   }
   return linked
 }
+
+/** Whose voice drafts are written in: an owner ('founder') or a staff member. */
+export async function voiceFor(email: string): Promise<'founder' | 'staff'> {
+  const { data } = await db.from('admin_staff').select('email').eq('email', email.toLowerCase()).maybeSingle()
+  return data ? 'staff' : 'founder'
+}
+
+/** Every row of a query, 1000 at a time (the API caps one response at 1000). */
+export async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ data: T[]; error: unknown }> {
+  const out: T[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await page(from, from + 999)
+    if (error) return { data: out, error }
+    out.push(...(data ?? []))
+    if (!data || data.length < 1000) return { data: out, error: null }
+  }
+}

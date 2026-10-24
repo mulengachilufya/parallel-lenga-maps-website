@@ -17,7 +17,7 @@ import { CalendarCheck, Check, Copy, ExternalLink, Loader2, MessageSquareReply, 
 import { api, ago, country } from '@/lib/sales/client'
 import {
   LI_CLOSE_REASONS, LI_CONNECT_LIMIT, LI_PITCH_AFTER_DAYS, LI_STEP, firstName, liActionable, liActivityUrl,
-  liFindUrl, liMessage, liStep, type LiAction, type LiStep, type LinkedInRow,
+  liFindUrl, liMessage, liStep, type LiAction, type LiVoice, type LiStep, type LinkedInRow,
 } from '@/lib/sales/linkedin'
 import { LinkedInIcon, inputCls } from './ui'
 
@@ -43,11 +43,12 @@ function viewOf(step: LiStep, due: string | null): View {
 
 export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
   const [people, setPeople] = useState<Person[] | null>(null)
+  const [voice, setVoice] = useState<LiVoice>('founder')
   const [view, setView] = useState<View>('todo')
   const [err, setErr] = useState('')
 
   const load = useCallback(async () => {
-    try { const d = await api<{ people: Person[] }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setErr('') }
+    try { const d = await api<{ people: Person[]; voice?: LiVoice }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setVoice(d.voice ?? 'founder'); setErr('') }
     catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the LinkedIn list') }
   }, [pipeline])
   useEffect(() => { void load() }, [load])
@@ -98,13 +99,13 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
           {view === 'todo' ? 'Nothing to do on LinkedIn right now. Waiting on people to accept or reply.' : 'Nobody here.'}
         </p>
       )}
-      {shown.map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} onSaved={updated} />)}
+      {shown.map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} />)}
     </div>
   )
 }
 
-function PersonCard({ p, step, due, onSaved }: {
-  p: Person; step: LiStep; due: string | null; onSaved: (id: string, li: LinkedInRow, url: string | null) => void
+function PersonCard({ p, step, due, voice, onSaved }: {
+  p: Person; step: LiStep; due: string | null; voice: LiVoice; onSaved: (id: string, li: LinkedInRow, url: string | null) => void
 }) {
   const partner = p.account.pipeline === 'partner'
   // Partners get an ask to work together in place of the pricing message.
@@ -122,8 +123,8 @@ function PersonCard({ p, step, due, onSaved }: {
 
   // The message for this step, rebuilt whenever the step or the hook changes.
   useEffect(() => {
-    if (kind) setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, edited, partner }))
-  }, [kind, first, p.account.name, p.li?.hook, edited, partner])
+    if (kind) setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, edited, partner, voice }))
+  }, [kind, first, p.account.name, p.li?.hook, edited, partner, voice])
 
   async function patch(body: Record<string, unknown>, label: string) {
     setBusy(label); setErr('')
@@ -143,7 +144,7 @@ function PersonCard({ p, step, due, onSaved }: {
   // Saves the edit only if it differs from what the template gives.
   function saveText() {
     if (!kind) return
-    const plain = liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner })
+    const plain = liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner, voice })
     const stored = text.trim() === plain.trim() ? null : text
     if ((stored ?? null) !== (edited ?? null)) void patch({ message: { kind, text: stored } }, 'save')
   }
@@ -221,7 +222,7 @@ function PersonCard({ p, step, due, onSaved }: {
               {kind === 'thank' && 'Short and warm. No pitch yet.'}
               {kind === 'pitch' && (notYet ? `Ready, but wait until ${LI_PITCH_AFTER_DAYS} days after the thank-you.` : partner ? 'A partner: no pricing, an ask to explore working together.' : 'Free to start, the price, and the ask for a 10 minute call.')}
             </span>
-            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
+            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner, voice })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
           </div>
         </div>
       )}

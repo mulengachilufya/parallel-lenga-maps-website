@@ -7,7 +7,7 @@
  * Admin only. Listing never sends anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { db, jsonError, requireAdmin } from '@/lib/sales/server'
+import { db, jsonError, requireAdmin, voiceFor } from '@/lib/sales/server'
 import { DRAFTS_PER_DAY } from '@/lib/sales/playbook'
 
 export const dynamic = 'force-dynamic'
@@ -18,14 +18,18 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') || 'draft'
   const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
+  // Each person sees the drafts written in their own voice.
+  const voice = await voiceFor(gate.email)
   let q = db.from('sales_drafts')
     .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts(id, name, title, email, linkedin_url, opted_out_at)')
-    .eq('account.pipeline', pipeline).order('created_at', { ascending: true }).limit(500)
+    .eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
   if (status !== 'all') q = q.eq('status', status)
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
   const [drafts, counts, today] = await Promise.all([
     q,
-    db.from('sales_drafts').select('status, account:sales_accounts!inner(pipeline)').eq('account.pipeline', pipeline),
+    Promise.all((['draft', 'sent', 'discarded'] as const).map((st) => db.from('sales_drafts')
+      .select('id, account:sales_accounts!inner(pipeline)', { count: 'exact', head: true })
+      .eq('account.pipeline', pipeline).eq('voice', voice).eq('status', st))),
     db.from('sales_activities').select('id', { count: 'exact', head: true })
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
   ])
@@ -33,7 +37,7 @@ export async function GET(req: NextRequest) {
     console.error('[admin/sales/drafts] list failed', drafts.error)
     return jsonError('list_failed', 500, 'Could not load the drafts. Has migration 049 been applied?')
   }
-  const tally = { draft: 0, sent: 0, discarded: 0 }
-  for (const r of counts.data ?? []) tally[r.status as keyof typeof tally]++
+  // Counted in the database: there can be thousands of drafts.
+  const tally = { draft: counts[0].count ?? 0, sent: counts[1].count ?? 0, discarded: counts[2].count ?? 0 }
   return NextResponse.json({ drafts: drafts.data ?? [], counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY })
 }
