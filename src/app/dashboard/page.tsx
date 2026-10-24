@@ -101,8 +101,8 @@ const SECTIONS: Record<string, {
   },
   'roads': {
     title: '🛣️ Roads & Infrastructure',
-    subtitle: 'Natural Earth 1:10m · GeoPackage per country',
-    component: () => <RoadsList />,
+    subtitle: 'Paved / unpaved road surface (FRST 2025) with district summary · Natural Earth main roads below',
+    component: () => <><CatalogList slug="roads" hideWhenEmpty /><div className="mt-8"><RoadsList /></div></>,
   },
   'lulc': {
     title: '🌿 Land Use / Land Cover',
