@@ -144,6 +144,11 @@ const SECTIONS: Record<string, {
     subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
     component: () => <CatalogList slug="solar-wind" />,
   },
+  'power-plants': {
+    title: '🏭 Existing Power Plants',
+    subtitle: 'OpenStreetMap via Overture Maps · energy source, capacity, operator · GeoPackage per country',
+    component: () => <CatalogList slug="power-plants" />,
+  },
   'rivers-hydro': {
     title: '🌊 HydroRIVERS',
     subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
@@ -171,6 +176,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'soil-nutrients':   'soil-nutrients',
   'mining-geology':   'mining-geology',
   'solar-wind':       'solar-wind',
+  'power-plants':     'power-plants',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────
@@ -844,7 +850,7 @@ function DashboardContent() {
               {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
             </h1>
             <p className="hidden sm:block text-white/80 text-sm mt-1">
-              54 African countries · 18 datasets · harmonised to EPSG:4326
+              54 African countries · 19 datasets · harmonised to EPSG:4326
             </p>
           </div>
         </div>
