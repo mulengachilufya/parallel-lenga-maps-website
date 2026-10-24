@@ -10,6 +10,7 @@ import {
 import Footer from '@/components/Footer'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import type { Dataset, DatasetSource } from '@/lib/supabase'
+import { IndustryChips, inIndustry } from '@/lib/industries'
 
 // Display order only — every dataset is included with any paid plan now.
 const ORDERED_DATASETS = sortDatasetsByTier(DATASETS)
@@ -193,6 +194,8 @@ function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean })
 const LIVE_DATASETS = LIVE_DATASET_ROUTES
 
 export default function DatasetsPage() {
+  const [industry, setIndustry] = useState('all')
+  const shown = inIndustry(ORDERED_DATASETS, industry)
   return (
     <>
       {/* Hero — same satellite/orbit visual as the landing page so the
@@ -263,8 +266,15 @@ export default function DatasetsPage() {
             </p>
           </motion.div>
 
+          <div className="mb-8">
+            <IndustryChips value={industry} onChange={setIndustry} />
+            {industry !== 'all' && (
+              <p className="mt-2 text-xs text-gray-500">{shown.length} datasets useful for this industry</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {ORDERED_DATASETS.map((dataset, i) => {
+            {shown.map((dataset, i) => {
               const isLive = dataset.id in LIVE_DATASETS
 
               return (

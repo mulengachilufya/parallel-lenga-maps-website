@@ -8,12 +8,15 @@
  * which ones are theirs.
  */
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Download, Lock, MessageSquarePlus } from 'lucide-react'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
+import { IndustryChips, inIndustry } from '@/lib/industries'
 
 export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<string> }) {
-  const live = sortDatasetsByTier(DATASETS).filter((d) => d.id in LIVE_DATASET_ROUTES)
+  const [industry, setIndustry] = useState('all')
+  const live = inIndustry(sortDatasetsByTier(DATASETS), industry).filter((d) => d.id in LIVE_DATASET_ROUTES)
   // One entry per page (two catalogue rows can point at the same page).
   const seen = new Set<string>()
   const items = live.filter((d) => {
@@ -34,6 +37,7 @@ export default function DataRail({ isFree, mine }: { isFree: boolean; mine: Set<
         </p>
         <h2 className="mt-1 text-xl font-extrabold leading-tight">Download &amp; view datasets</h2>
         <p className="mt-1 text-sm text-white/80">All 54 African countries. Pick a dataset, then a country.</p>
+        <div className="mt-3"><IndustryChips value={industry} onChange={setIndustry} dark /></div>
       </div>
       <ul className="grid grid-cols-2 gap-1 p-2 lg:grid-cols-1">
         {items.map(({ d, href, owned }) => (
