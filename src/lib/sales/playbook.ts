@@ -210,6 +210,13 @@ All the best with your projects,
 {my_name}`,
   },
   {
+    // Left empty on purpose: quote requests ask for all kinds of things
+    // (datasets, a plan, a custom area), so the reply is written fresh.
+    id: 'custom', channel: 'email', label: 'Blank email (write your own)', when: 'Replying to a quote request, or anything else',
+    subject: '',
+    body: '',
+  },
+  {
     id: 'meeting', channel: 'email', label: 'Book the call', when: 'After they reply',
     subject: 'Quick call about {company}',
     body: `Hi {first_name},

@@ -98,8 +98,8 @@ export async function POST(req: NextRequest) {
         subject: 'Quote request from the website', body: notes, created_by: 'website',
       })
       await service.from('sales_tasks').insert({
-        account_id: acct.id, contact_id: c?.id ?? null, kind: 'email', template: 'meeting',
-        title: 'Reply to the quote request and book a call', due_on: now.slice(0, 10),
+        account_id: acct.id, contact_id: c?.id ?? null, kind: 'email', template: 'custom',
+        title: 'Reply to the quote request', due_on: now.slice(0, 10),
       })
     }
   } catch (e) { console.error('[quotes] pipeline copy failed:', e) }
