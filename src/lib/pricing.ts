@@ -194,6 +194,7 @@ export const ALL_DATASETS: DatasetSlug[] = [
   'admin-boundaries', 'aquifer', 'drought-index', 'rainfall', 'protected-areas',
   'watersheds', 'population', 'rivers', 'roads',
   'temperature', 'hydrorivers', 'lulc', 'lakes', 'soil', 'wetlands',
+  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind',
 ]
 
 export const DATASET_COUNT = ALL_DATASETS.length
@@ -234,7 +235,8 @@ export const FREE_TEAM_SEATS    = 2
 /** Datasets a free account may pick: the ones that have files today. */
 export const FREE_PICKABLE: DatasetSlug[] = [
   'admin-boundaries', 'rivers', 'lakes', 'watersheds', 'roads', 'population',
-  'protected-areas', 'lulc', 'aquifer', 'rainfall', 'temperature', 'drought-index',
+  'protected-areas', 'soil', 'lulc', 'aquifer', 'rainfall', 'temperature', 'drought-index',
+  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind',
 ]
 
 export interface FreeOffer {

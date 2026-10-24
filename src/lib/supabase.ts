@@ -87,6 +87,12 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   15: '/dashboard?section=rainfall',
   16: '/dashboard?section=temperature',
   17: '/dashboard?section=lakes',
+  11: '/dashboard?section=soil',
+  18: '/dashboard?section=crop-production',
+  19: '/dashboard?section=tree-cover-loss',
+  20: '/dashboard?section=soil-nutrients',
+  21: '/dashboard?section=mining-geology',
+  22: '/dashboard?section=solar-wind',
 }
 
 export type DatasetSource = {
