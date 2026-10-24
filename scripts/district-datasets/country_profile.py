@@ -46,6 +46,20 @@ def maps(g, panels):
         ax.figure.axes[-1].tick_params(labelsize=7)
     fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=150); plt.close(fig); b.seek(0)
     return Image(b, width=172 * mm, height=138 * mm)
+def builtup(iso):
+    p = f'out/Built_Up_GHSL/{iso}_Built_Up_Districts_GHSL.gpkg'
+    if not os.path.exists(p): return None
+    r = sqlite3.connect(p).execute('select sum(built_km2_2000), sum(built_km2_2020) from built_up_districts').fetchone()
+    return r if r[0] is not None else None
+def suitable(iso, area):
+    p = f'out/Crop_Suitability_GAEZv5/{iso}_Crop_Suitability_Districts_GAEZv5.gpkg'
+    if not os.path.exists(p): return None
+    L = pd.read_sql("select shapeID, crop, pct_area_medium_or_better p from suitability_by_crop where input_level='low input, rain-fed'", sqlite3.connect(p))
+    L = L.merge(area, on='shapeID')
+    L['a'] = L.p / 100 * L.area_ha
+    t = L.groupby('crop').agg(a=('a', 'sum')).reset_index()
+    t['pct'] = 100 * t.a / area.area_ha.sum()
+    return t.sort_values('pct', ascending=False).head(8)
 def one(iso):
     name = COUNTRIES[iso]; O = 'out'
     d = read(f'bnd/{iso}.gpkg', geom=True)[['shapeID', 'shapeName', 'adm1_name', 'geometry']]
@@ -83,6 +97,7 @@ def one(iso):
              ['Wind speed at 100 m (area-weighted)', f'{fmt(wmean("wind_ms_mean"), 1)} m/s', 'Global Wind Atlas 4.0'],
              ['Area within 10 km of a mapped power line', f'{fmt(wmean("grid_10km_pct"), 1)} %', 'USGS 2018 ref.'],
              ['Tree cover 2000 / lost 2001–2025', f'{fmt(g["tc2000_ha"].sum(min_count=1) if "tc2000_ha" in g else None)} / {fmt(g["loss_total_ha"].sum(min_count=1) if "loss_total_ha" in g else None)} ha', 'Hansen GFC v1.13'],
+             ['Built-up area 2000 → 2020', (lambda b: f'{fmt(b[0])} → {fmt(b[1])} km²' if b else '–')(builtup(iso)), 'JRC GHSL R2023A'],
              ['Mapped roads: paved / unpaved', f'{fmt(g["paved_km"].sum(min_count=1) if "paved_km" in g else None)} / {fmt(g["unpaved_km"].sum(min_count=1) if "unpaved_km" in g else None)} km', 'FRST (OSM)']]
     story += [Spacer(1, 3 * mm), tbl(rows, [80 * mm, 55 * mm, 40 * mm])]
     story += [Paragraph('District maps', H2),
@@ -97,6 +112,11 @@ def one(iso):
         cl = cl[cl['prod'] > 0].head(10)
         story.append(Paragraph('Top crops by production (modelled, 2020)', P))
         story.append(tbl([['Crop', 'Production (t)', 'Physical area (ha)']] + [[r.crop_name, fmt(r.prod), fmt(r.area)] for r in cl.itertuples()], [70 * mm, 50 * mm, 50 * mm]))
+    if 'area_ha' in g:
+        su = suitable(iso, g[['shapeID', 'area_ha']].dropna())
+        if su is not None and len(su):
+            story += [Spacer(1, 3 * mm), Paragraph('Most suitable crops for low-input rain-fed farming (share of country area rated medium or better, GAEZ v5)', P),
+                      tbl([['Crop', 'Area suitable']] + [[r.crop, f'{fmt(r.pct, 1)} %'] for r in su.itertuples()], [70 * mm, 40 * mm])]
     if soil is not None:
         story += [Spacer(1, 3 * mm), Paragraph(f'Topsoil (0–20 cm): area-weighted pH {fmt(wmean("ph_mean"), 1)}, organic carbon {fmt(wmean("soc_0_20_mean"), 1)} g/kg '
                                                '(iSDAsoil, modelled; sample before site decisions).', P)]
@@ -129,7 +149,7 @@ def one(iso):
         'Boundaries: geoBoundaries gbOpen. Population: WorldPop Global2 R2025A 2026 (CC BY 4.0, modelled). Rainfall: CHIRPS v3.0, CHC UCSB '
         '(public domain). Solar: Global Solar Atlas 2.0, Solargis/ESMAP (CC BY 4.0). Wind: Global Wind Atlas 4.0, DTU/ESMAP (CC BY 4.0). '
         'Power lines: USGS Africa mineral industries & infrastructure (2018 reference). Tree cover: Hansen et al., UMD GFC v1.13 (CC BY 4.0). '
-        'Crops: IFPRI MapSPAM 2020 v2r2 (CC BY 4.0, modelled). Soils: iSDAsoil (CC BY 4.0, modelled). Roads: FRST, Zhou et al. 2026 (CC BY 4.0) '
+        'Crops: IFPRI MapSPAM 2020 v2r2 (CC BY 4.0, modelled); suitability: FAO/IIASA GAEZ v5 (CC BY 4.0 IGO). Built-up: EC JRC GHSL R2023A (CC BY 4.0). Soils: iSDAsoil (CC BY 4.0, modelled). Roads: FRST, Zhou et al. 2026 (CC BY 4.0) '
         'on OpenStreetMap (ODbL). Power plants: OpenStreetMap via Overture Maps 2026-10-21 (ODbL). Screening information, not a substitute '
         'for site surveys or official statistics.', SM)]
     def foot(c, doc):

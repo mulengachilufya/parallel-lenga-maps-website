@@ -15,7 +15,10 @@ Everything below is live on lengamaps.com, stored in R2 bucket `gis-data-lenga-m
 | Existing Power Plants (`power-plants`) | catalog_files | `power_plants/` | 54 | `power_plants.py` |
 | Population 2026, WorldPop (`population`) | catalog_files | `population/` | 108 | `worldpop_build.py` |
 | Rainfall 1981-2025, CHIRPS v3 (`rainfall`) | catalog_files | `rainfall_chirps3/` | 102 (51 countries) | `chirps_build.py` |
-| Road surface, paved/unpaved (`roads`) | catalog_files | `road_surface/` | 50 when complete | `road_surface.py` |
+| Road surface, paved/unpaved (`roads`) | catalog_files | `road_surface/` | 49 (all FRST countries) | `road_surface.py` |
+| Crop Suitability, GAEZ v5 (`crop-suitability`) | catalog_files | `crop_suitability/` | 162 | `gaez_build.py fetch` + `build` |
+| Built-up Area Growth, GHSL (`built-up`) | catalog_files | `built_up/` | 108 | `ghsl_build.py` |
+| Country Data Profiles, PDF (`country-profiles`) | catalog_files | `reports/` | 54 | `country_profile.py` (run after all the above) |
 | Soil Classification, WRB (`soil`) | soil_layers | `soil_classification/` | 54 | `soil_wrb.py` |
 | Temperature, CHELSA 1981-2010 (`temperature`) | rainfall_climate_layers | `temperature/` | 54 | `chelsa_temp.py` |
 
@@ -23,6 +26,12 @@ Scripts: `scripts/district-datasets/` (README lists the order). Per-folder manif
 
 The site reads catalog_files through `/api/catalog/[slug]` and `src/components/CatalogList.tsx`; dataset text lives in
 `src/lib/catalog.ts` (facts shown above the files) and `src/lib/supabase.ts` (catalogue cards).
+
+## Catalogue navigation
+
+- Industry filter: `src/lib/industries.tsx` maps catalogue ids to industries (catalogue page and dashboard rail).
+- Product types: the catalogue page switches between GIS data and Ready-made reports (PDF). Reports are
+  free-pickable but not in `ALL_DATASETS`, so they do not count as GIS datasets.
 
 ## Making a new dataset live
 
@@ -54,7 +63,7 @@ The site reads catalog_files through `/api/catalog/[slug]` and `src/components/C
 
 ## Next datasets worth building
 
-Ranked by expected demand: building growth by district (Google Open Buildings 2.5D Temporal, 2016-2023), FAO GAEZ v5
-crop suitability (2025, current and future climate), global field boundaries 2024-2025 (Fields of The World,
+Ranked by expected demand: building counts and heights (Google Open Buildings 2.5D Temporal, 2016-2023), GAEZ v5
+future-climate suitability (not yet in the public bucket), more report types (district, sector), global field boundaries 2024-2025 (Fields of The World,
 check licence), canopy height v2 (Meta/WRI, 2026) for carbon projects, Global Energy Monitor power trackers
 (capacity and status per plant; download needs their form).
