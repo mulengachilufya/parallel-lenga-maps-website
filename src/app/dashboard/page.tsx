@@ -144,6 +144,11 @@ const SECTIONS: Record<string, {
     subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
     component: () => <CatalogList slug="solar-wind" />,
   },
+  'crop-suitability': {
+    title: '🌱 Crop Suitability by District',
+    subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input · GeoTIFF + GeoPackage',
+    component: () => <CatalogList slug="crop-suitability" />,
+  },
   'country-profiles': {
     title: '📄 Country Data Profiles (PDF)',
     subtitle: 'Ready-made reports, no GIS software needed · one PDF per country',
@@ -183,6 +188,7 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'solar-wind':       'solar-wind',
   'power-plants':     'power-plants',
   'country-profiles': 'country-profiles',
+  'crop-suitability': 'crop-suitability',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────
@@ -856,7 +862,7 @@ function DashboardContent() {
               {userName ? `Welcome back, ${userName.split(' ')[0]}.` : 'Welcome back.'}
             </h1>
             <p className="hidden sm:block text-white/80 text-sm mt-1">
-              54 African countries · 19 datasets · harmonised to EPSG:4326
+              54 African countries · 20 datasets · harmonised to EPSG:4326
             </p>
           </div>
         </div>

@@ -94,6 +94,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   21: '/dashboard?section=mining-geology',
   22: '/dashboard?section=solar-wind',
   23: '/dashboard?section=power-plants',
+  24: '/dashboard?section=crop-suitability',
 }
 
 export type DatasetSource = {
@@ -469,5 +470,21 @@ export const DATASETS: Dataset[] = [
     licence: 'ODbL (OSM)',
     last_update: 'Overture 2026-10-21 (OSM, continuous)',
     size_label: '~0.1–0.4 MB / country',
+  },
+  {
+    id: 24,
+    name: 'Crop Suitability by District',
+    category: 'Agriculture',
+    description: 'Where 29 crops grow well: maize, cassava, millets, beans, coffee, tea, cocoa, cashew and more, for low- and high-input rain-fed farming, per district and at 1 km.',
+    source: 'FAO / IIASA GAEZ v5 (2025)',
+    format: 'GeoTIFF + GeoPackage',
+    resolution: '30 arc-sec (~1 km) + district',
+    icon: '🌱',
+    tier: 'pro',
+    color: '#15803D',
+    epsg: 'EPSG:4326',
+    licence: 'CC BY 4.0 IGO (FAO)',
+    last_update: 'GAEZ v5 · 2025',
+    size_label: '~0.1–30 MB / country',
   },
 ]
