@@ -29,6 +29,7 @@ More sets, all run from the same work folder after step 1 (each writes `out/<Set
 | `road_surface.py [ISO ...]` | Road_Surface | FRST paved/unpaved roads (figshare 29424107, RAR5: needs bsdtar from libarchive-tools); lengths recomputed geodesically |
 | `country_profile.py [ISO ...]` | Country_Profiles | Ready-made PDF report per country from the district datasets above (needs reportlab, matplotlib) |
 | `gaez_build.py fetch` then `gaez_build.py build` | Crop_Suitability_GAEZv5 | FAO/IIASA GAEZ v5 suitability, 29 crops, low/high input rain-fed (public GCS bucket fao-gismgr-gaez-v5-data) |
+| `ghsl_build.py [ISO ...]` | Built_Up_GHSL | JRC GHSL GHS-BUILT-S R2023A built-up surface 1975-2025 (tifs in ghsl/) |
 
 `raster_clip.py` is the shared clip: cells whose centre is outside the geoBoundaries outline become NoData, and
 it raises if a read came back as fill. `qa_new.py` checks coverage, embedded about/columns tables, column

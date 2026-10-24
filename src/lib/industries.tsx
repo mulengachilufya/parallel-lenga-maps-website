@@ -5,12 +5,12 @@ export interface Industry { key: string; label: string; ids: number[] }
 
 export const INDUSTRIES: Industry[] = [
   { key: 'agriculture', label: 'Agriculture & food', ids: [24, 18, 20, 11, 15, 16, 5, 4, 6, 3, 8] },
-  { key: 'energy',      label: 'Energy',             ids: [22, 23, 21, 15, 3, 9, 8, 12] },
+  { key: 'energy',      label: 'Energy',             ids: [25, 22, 23, 21, 15, 3, 9, 8, 12] },
   { key: 'mining',      label: 'Mining & geology',   ids: [21, 9, 23, 12, 3, 6, 1] },
   { key: 'water',       label: 'Water & climate',    ids: [15, 16, 5, 3, 13, 14, 17, 6] },
   { key: 'environment', label: 'Environment & carbon', ids: [19, 12, 4, 11, 20, 17, 14, 16] },
-  { key: 'infrastructure', label: 'Infrastructure & transport', ids: [9, 23, 21, 8, 1, 22] },
-  { key: 'planning',    label: 'Planning, health & NGOs', ids: [8, 1, 9, 15, 5, 18, 24, 12] },
+  { key: 'infrastructure', label: 'Infrastructure & transport', ids: [25, 9, 23, 21, 8, 1, 22] },
+  { key: 'planning',    label: 'Planning, health & NGOs', ids: [25, 8, 1, 9, 15, 5, 18, 24, 12] },
 ]
 
 /** Datasets in an industry; 'all' (or an unknown key) keeps everything. */
