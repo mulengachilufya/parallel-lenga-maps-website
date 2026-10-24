@@ -29,6 +29,7 @@ import { useAdminAccess } from '@/components/admin/AdminAccess'
 import { TRACKS, partnerStageLabel, track, type PartnerTrack, type Partnership } from '@/lib/sales/partnerships'
 
 interface Account {
+  quote_request_id?: string | null
   id: string; name: string; country_iso3: string | null; sector: string | null; website: string | null
   linkedin_url: string | null; size: string | null; source: string; stage: Stage; priority: number
   seats_estimate: number | null; value_usd: number | null; discovery: Record<string, string>
@@ -42,7 +43,10 @@ interface Team {
   pending_invites: number; project_count: number; last_project_at: string | null
   plan: 'paid' | 'free'; free_datasets: string[] | null
 }
-interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings; partnership: Partnership | null }
+// What the organisation asked for on the website quote form.
+interface Quote { org_name: string; contact_name: string | null; email: string; sector: string | null; region: string | null; seats: number | null; datasets_interest: string | null; notes: string | null; created_at: string }
+
+interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings; partnership: Partnership | null; quote: Quote | null }
 
 const DISCOVERY: { key: string; label: string; hint: string }[] = [
   { key: 'project', label: 'The project', hint: 'What are they working on right now, and where?' },
@@ -183,7 +187,7 @@ function AccountPage() {
 
           {/* Actions */}
           <section className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <Action icon={Mail} label="Email" onClick={() => setDialog({ kind: 'compose', init: { channel: 'email', templateId: suggest(a.stage, 'email'), contactId: primary?.id ?? '' } })} />
+            <Action icon={Mail} label="Email" onClick={() => setDialog({ kind: 'compose', init: { channel: 'email', templateId: suggest(a.stage, 'email', !!a.quote_request_id), contactId: primary?.id ?? '' } })} />
             <Action icon={LinkedInIcon} label="LinkedIn" onClick={() => setDialog({ kind: 'compose', init: { channel: 'linkedin', templateId: suggest(a.stage, 'linkedin'), contactId: primary?.id ?? '' } })} />
             <Action icon={Phone} label="Call" onClick={() => setDialog({ kind: 'compose', init: { channel: 'call', templateId: 'call', contactId: primary?.id ?? '' } })} />
             <Action icon={MessageSquareReply} label="They replied" onClick={() => setDialog({ kind: 'log', what: 'reply' })} />
@@ -273,6 +277,8 @@ function AccountPage() {
             </dl>
           </Box>
 
+          {d.quote && <QuoteBox q={d.quote} />}
+
           {/* Team */}
           <TeamBox account={a} team={d.team} onPaid={() => setDialog({ kind: 'team', action: 'paid' })}
                    onInvite={() => setDialog({ kind: 'compose', init: { channel: 'email', templateId: 'free_team', contactId: primary?.id ?? '' } })}
@@ -298,7 +304,28 @@ function AccountPage() {
   )
 }
 
-function suggest(stage: Stage, channel: 'email' | 'linkedin'): string {
+function QuoteBox({ q }: { q: Quote }) {
+  const rows: [string, string | null][] = [
+    ['What they need', q.notes], ['Datasets', q.datasets_interest], ['Seats', q.seats ? String(q.seats) : null],
+    ['Where', q.region], ['Sector', q.sector], ['From', [q.contact_name, q.email].filter(Boolean).join(', ')],
+  ]
+  return (
+    <Box title={`Quote request, ${new Date(q.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+      <dl className="space-y-2 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{k}</dt>
+            <dd className={`whitespace-pre-wrap ${v ? 'text-gray-800' : 'text-gray-400 italic'}`}>{v || 'Not given'}</dd>
+          </div>
+        ))}
+      </dl>
+    </Box>
+  )
+}
+
+function suggest(stage: Stage, channel: 'email' | 'linkedin', fromQuote = false): string {
+  // A quote request gets a blank reply: they asked for something specific.
+  if (fromQuote && channel === 'email' && (stage === 'replied' || stage === 'target')) return 'custom'
   if (channel === 'linkedin') return stage === 'target' ? 'li_connect' : 'li_message'
   return ({ target: 'intro', contacted: 'follow_up', replied: 'meeting', meeting: 'free_team', free: 'free_checkin', proposal: 'proposal', won: 'onboarding', nurture: 'nurture' } as Record<string, string>)[stage] ?? 'intro'
 }
