@@ -24,6 +24,7 @@ More sets, all run from the same work folder after step 1 (each writes `out/<Set
 | `wind_build.py` | Wind_Potential | Global Wind Atlas 4.0 country GeoTIFFs, 100 m wind speed and power density |
 | `worldpop_build.py [ISO ...]` | Population_WorldPop | WorldPop Global2 R2025A constrained 2026, 100 m raster + district totals |
 | `energy_screening.py [ISO ...]` | Energy_Screening | District solar & wind screening from the solar, wind, WorldPop and USGS outputs (run those first) |
+| `power_plants.py` | Power_Plants | Existing power plants from OpenStreetMap via Overture Maps base/infrastructure (needs `plants/africa_power.parquet` extracted with DuckDB) |
 
 `raster_clip.py` is the shared clip: cells whose centre is outside the geoBoundaries outline become NoData, and
 it raises if a read came back as fill. `qa_new.py` checks coverage, embedded about/columns tables, column

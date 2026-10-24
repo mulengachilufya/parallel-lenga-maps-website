@@ -188,13 +188,13 @@ export type DatasetSlug =
   | 'temperature' | 'hydrorivers' | 'lulc' | 'lakes' | 'soil' | 'wetlands'
   // Added 2026-10 (src/lib/catalog.ts). Each joins ALL_DATASETS and
   // FREE_PICKABLE once its files are in R2.
-  | 'crop-production' | 'tree-cover-loss' | 'soil-nutrients' | 'mining-geology' | 'solar-wind'
+  | 'crop-production' | 'tree-cover-loss' | 'soil-nutrients' | 'mining-geology' | 'solar-wind' | 'power-plants'
 
 export const ALL_DATASETS: DatasetSlug[] = [
   'admin-boundaries', 'aquifer', 'drought-index', 'rainfall', 'protected-areas',
   'watersheds', 'population', 'rivers', 'roads',
   'temperature', 'hydrorivers', 'lulc', 'lakes', 'soil', 'wetlands',
-  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind',
+  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind', 'power-plants',
 ]
 
 export const DATASET_COUNT = ALL_DATASETS.length
@@ -211,7 +211,7 @@ export const DATASET_ADDED: Record<DatasetSlug, string> = {
   temperature: '2026-01-01', hydrorivers: '2026-01-01', lulc: '2026-01-01',
   lakes: '2026-01-01', soil: '2026-01-01', wetlands: '2026-01-01',
   'crop-production': '2026-10-24', 'tree-cover-loss': '2026-10-24', 'soil-nutrients': '2026-10-24',
-  'mining-geology': '2026-10-24', 'solar-wind': '2026-10-24',
+  'mining-geology': '2026-10-24', 'solar-wind': '2026-10-24', 'power-plants': '2026-10-24',
 }
 
 /** Is this dataset covered by a licence whose updates run until `until`?
@@ -236,7 +236,7 @@ export const FREE_TEAM_SEATS    = 2
 export const FREE_PICKABLE: DatasetSlug[] = [
   'admin-boundaries', 'rivers', 'lakes', 'watersheds', 'roads', 'population',
   'protected-areas', 'soil', 'lulc', 'aquifer', 'rainfall', 'temperature', 'drought-index',
-  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind',
+  'crop-production', 'tree-cover-loss', 'soil-nutrients', 'mining-geology', 'solar-wind', 'power-plants',
 ]
 
 export interface FreeOffer {

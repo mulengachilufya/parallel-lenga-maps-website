@@ -93,6 +93,7 @@ export const LIVE_DATASET_ROUTES: Record<number, string> = {
   20: '/dashboard?section=soil-nutrients',
   21: '/dashboard?section=mining-geology',
   22: '/dashboard?section=solar-wind',
+  23: '/dashboard?section=power-plants',
 }
 
 export type DatasetSource = {
@@ -452,5 +453,21 @@ export const DATASETS: Dataset[] = [
     licence: 'CC BY 4.0',
     last_update: 'Solar Atlas 2026 · Wind Atlas 4.0 (2025)',
     size_label: '~1–150 MB / country',
+  },
+  {
+    id: 23,
+    name: 'Existing Power Plants',
+    category: 'Energy',
+    description: 'Solar farms, hydro, gas, coal and other power plants already built, with energy source, capacity, operator and start date where mapped.',
+    source: 'OpenStreetMap via Overture Maps',
+    format: 'GeoPackage',
+    resolution: 'Points (plant centroids)',
+    icon: '🏭',
+    tier: 'pro',
+    color: '#0E7490',
+    epsg: 'EPSG:4326',
+    licence: 'ODbL (OSM)',
+    last_update: 'Overture 2026-10-21 (OSM, continuous)',
+    size_label: '~0.1–0.4 MB / country',
   },
 ]

@@ -68,6 +68,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: 'Solargis / World Bank ESMAP · DTU · CC BY 4.0',
     accent: '#B45309',
   },
+  'power-plants': {
+    title: 'Existing power plants',
+    facts: [
+      { label: 'Source', value: 'OpenStreetMap via Overture Maps (release 2026-10-21)' },
+      { label: 'Attributes', value: 'Energy source, method, capacity (MW), operator, start date' },
+      { label: 'Format', value: 'GeoPackage per country' },
+    ],
+    note: 'Solar farms, hydro, gas, oil, coal, geothermal and biomass plants mapped in OpenStreetMap, with a summary by energy source. Community-mapped and updated continuously, so coverage varies by country. Capacity totals add up the tagged values only; they are not official installed capacity.',
+    credit: '© OpenStreetMap contributors · ODbL',
+    accent: '#0E7490',
+  },
   'population': {
     title: 'Population 2026 by district (WorldPop, 100 m)',
     facts: [
