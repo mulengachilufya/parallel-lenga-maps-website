@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
     const layerType  = params.get('layerType')
     const includeUrl = params.get('includeUrl') !== 'false'
 
-    let query = supabase.from('rainfall_climate_layers').select('*')
+    // Retired rows (e.g. temperature_worldclim_retired) stay in the table for rollback only.
+    let query = supabase.from('rainfall_climate_layers').select('*').not('layer_type', 'like', '%_retired')
     if (country)   query = query.ilike('country', `%${country}%`)
     if (layerType) query = query.eq('layer_type', layerType)
     query = query

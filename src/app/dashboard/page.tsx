@@ -71,7 +71,7 @@ const SECTIONS: Record<string, {
   },
   'temperature': {
     title: '🌡️ Temperature Data',
-    subtitle: 'WorldClim v2.1 · GeoTIFF (ZIP) · 2.5 arc-min (~5 km)',
+    subtitle: 'CHELSA v2.1 · 1981–2010 annual + monthly · GeoTIFF · ~1 km',
     component: () => <RainfallClimateList layerType="temperature" />,
   },
   'drought-index': {
@@ -427,7 +427,7 @@ function MainPanel({ step, title, text, cta, href, delay = 0, children }: {
 const BUNDLE_DATASETS = new Set<string>([
   'admin-boundaries', 'aquifer', 'population', 'protected-areas',
   'rivers', 'roads', 'watersheds', 'lakes',
-  'rainfall', 'temperature', 'drought-index',
+  'rainfall', 'drought-index',
 ])
 
 function ContinentalBundle({ datasetSlug, userState, allowed }: { datasetSlug: string; userState: UserState; allowed: boolean }) {
