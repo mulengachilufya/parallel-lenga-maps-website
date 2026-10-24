@@ -23,6 +23,7 @@ More sets, all run from the same work folder after step 1 (each writes `out/<Set
 | `solar_build.py` | Solar_Potential | Global Solar Atlas v2, April 2026 release (GHI 250 m, PVOUT 1 km); needs `solar/raw/GHI.tif` and `PVOUT.tif` unzipped from the World GeoTIFF downloads |
 | `wind_build.py` | Wind_Potential | Global Wind Atlas 4.0 country GeoTIFFs, 100 m wind speed and power density |
 | `worldpop_build.py [ISO ...]` | Population_WorldPop | WorldPop Global2 R2025A constrained 2026, 100 m raster + district totals |
+| `energy_screening.py [ISO ...]` | Energy_Screening | District solar & wind screening from the solar, wind, WorldPop and USGS outputs (run those first) |
 
 `raster_clip.py` is the shared clip: cells whose centre is outside the geoBoundaries outline become NoData, and
 it raises if a read came back as fill. `qa_new.py` checks coverage, embedded about/columns tables, column
