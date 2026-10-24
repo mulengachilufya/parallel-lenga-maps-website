@@ -57,6 +57,11 @@ export const DATASET_META: Record<DatasetSlug, DatasetMeta> = {
   'lakes':            { name: 'Lakes',                             epsg: 'EPSG:4326', formats: 'Shapefile · GeoJSON',       raster: false },
   'soil':             { name: 'Soil Classification (WRB)',         epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
   'wetlands':         { name: 'Wetlands & Floodplains',            epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
+  'crop-production':  { name: 'Crop Production by District',       epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'tree-cover-loss':  { name: 'Tree Cover Loss by District',       epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'soil-nutrients':   { name: 'Soil Nutrients & pH by District',   epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'mining-geology':   { name: 'Mines, Minerals & Geology',         epsg: 'EPSG:4326', formats: 'GeoPackage',                raster: false },
+  'solar-wind':       { name: 'Solar & Wind Resource',             epsg: 'EPSG:4326', formats: 'GeoTIFF',                   raster: true  },
 }
 
 export function datasetMeta(slug: string): DatasetMeta | null {

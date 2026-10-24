@@ -35,6 +35,7 @@ import PopulationList       from '@/components/PopulationList'
 import ProtectedAreasList   from '@/components/ProtectedAreasList'
 import RoadsList            from '@/components/RoadsList'
 import SoilList             from '@/components/SoilList'
+import CatalogList          from '@/components/CatalogList'
 
 // ─── Plan style tokens ────────────────────────────────────────
 const PLAN_STYLE: Record<string, {
@@ -96,7 +97,7 @@ const SECTIONS: Record<string, {
   'population': {
     title: '🏘️ Population & Settlements',
     subtitle: 'HDX COD-PS (UN OCHA) · Shapefile (ZIP) · ADM1/ADM2',
-    component: () => <PopulationList />,
+    component: () => <><PopulationList /><div className="mt-8"><CatalogList slug="population" hideWhenEmpty /></div></>,
   },
   'roads': {
     title: '🛣️ Roads & Infrastructure',
@@ -117,6 +118,31 @@ const SECTIONS: Record<string, {
     title: '🌾 Soil Classification',
     subtitle: 'ISRIC SoilGrids v2.0 · GeoTIFF (250m) per country',
     component: () => <SoilList />,
+  },
+  'crop-production': {
+    title: '🌽 Crop Production by District',
+    subtitle: 'MapSPAM SPAM 2020 v2r2 · 46 crops · GeoPackage per country',
+    component: () => <CatalogList slug="crop-production" />,
+  },
+  'tree-cover-loss': {
+    title: '🌳 Tree Cover Loss by District',
+    subtitle: 'UMD / Google Global Forest Change v1.13 · 2001–2025 · GeoPackage per country',
+    component: () => <CatalogList slug="tree-cover-loss" />,
+  },
+  'soil-nutrients': {
+    title: '🧪 Soil Nutrients & pH by District',
+    subtitle: 'iSDAsoil · topsoil 0–20 cm · GeoPackage per country',
+    component: () => <CatalogList slug="soil-nutrients" />,
+  },
+  'mining-geology': {
+    title: '⛏️ Mines, Minerals & Geology',
+    subtitle: 'USGS · mineral industries & infrastructure, surface geology · GeoPackage per country',
+    component: () => <CatalogList slug="mining-geology" />,
+  },
+  'solar-wind': {
+    title: '☀️ Solar & Wind Resource',
+    subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
+    component: () => <CatalogList slug="solar-wind" />,
   },
   'rivers-hydro': {
     title: '🌊 HydroRIVERS',
@@ -140,6 +166,11 @@ const ROUTE_TO_SECTION: Record<string, string> = {
   'rainfall':         'rainfall',
   'temperature':      'temperature',
   'lakes':            'lakes',
+  'crop-production':  'crop-production',
+  'tree-cover-loss':  'tree-cover-loss',
+  'soil-nutrients':   'soil-nutrients',
+  'mining-geology':   'mining-geology',
+  'solar-wind':       'solar-wind',
 }
 
 // ─── Pricing-style plan card ──────────────────────────────────
