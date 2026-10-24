@@ -7,7 +7,8 @@ from multiprocessing import Pool
 warnings.filterwarnings('ignore')
 sys.path.insert(0, 'tools')
 from countries import COUNTRIES
-from report_lib import H2, P, B, SM, fmt, txt, clean, table, choropleth, bar_chart, line_chart, build
+import report_lib
+from report_lib import _save, H2, P, B, SM, fmt, txt, clean, table, choropleth, bar_chart, line_chart, build
 O = 'out'; R = 'out/Dataset_Reports'
 os.makedirs(R, exist_ok=True)
 def about_of(gpkg):
@@ -195,7 +196,7 @@ def power_plants(iso):
         gpd.GeoDataFrame(geometry=grp.geometry.representative_point().values, crs=grp.crs).plot(ax=ax, color=pal.get(k, '#64748B'), markersize=sz, alpha=0.85, label=f'{k} ({len(grp)})', edgecolor='white', linewidth=0.3)
     ax.legend(fontsize=7, loc='center left', bbox_to_anchor=(1.0, 0.5), frameon=False, title='Source (plants)', title_fontsize=7.5)
     from report_lib import _scalebar; _scalebar(ax, d)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=170); plt.close(fig); b.seek(0)
+    b = _save(fig, 170)
     top = p.dropna(subset=['capacity_mw']).sort_values('capacity_mw', ascending=False).head(15)
     find = [f'OpenStreetMap records {len(p)} power plants in the country, {int(p.capacity_mw.notna().sum())} of them with a tagged capacity.',
             f'By count, the most common source is {txt(s.iloc[0].energy_source)} ({int(s.iloc[0].plants)} plants).',
@@ -224,7 +225,7 @@ def _mineral_map(iso, f, layers):
     ax.legend(fontsize=7, loc='center left', bbox_to_anchor=(1.0, 0.5), frameon=False)
     x0, y0, x1, y1 = d.total_bounds; ax.set_xlim(x0, x1); ax.set_ylim(y0, y1)
     _scalebar(ax, d)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=170); plt.close(fig); b.seek(0)
+    b = _save(fig, 170)
     return Image(b, width=172 * mm, height=120 * mm)
 
 def mining_geology(iso):
@@ -295,8 +296,16 @@ def temperature(iso):
 BUILDERS = {'population': population, 'rainfall': rainfall, 'tree-cover-loss': tree_cover_loss, 'crop-production': crop_production,
             'soil-nutrients': soil_nutrients, 'crop-suitability': crop_suitability, 'built-up': built_up, 'roads': roads,
             'solar-wind': solar_wind, 'power-plants': power_plants, 'mining-geology': mining_geology, 'soil': soil_classes, 'temperature': temperature}
+CREDITS = {'population': 'WorldPop R2025A, University of Southampton (CC BY 4.0)', 'rainfall': 'CHIRPS v3.0, Climate Hazards Center, UC Santa Barbara (public domain)',
+           'temperature': 'CHELSA v2.1 climatologies, Karger et al., WSL (CC BY 4.0)', 'tree-cover-loss': 'Hansen, UMD, Google, Global Forest Change v1.13 (CC BY 4.0)',
+           'crop-production': 'IFPRI MapSPAM 2020 v2r2 (CC BY 4.0)', 'crop-suitability': 'FAO and IIASA GAEZ v5 (CC BY 4.0 IGO)',
+           'soil-nutrients': 'iSDAsoil, Hengl et al. 2021 (CC BY 4.0)', 'soil': 'ISRIC SoilGrids 2.0 (CC BY 4.0)',
+           'built-up': 'European Commission JRC, GHSL R2023A (CC BY 4.0)', 'roads': 'FRST 2026 (CC BY 4.0), OpenStreetMap contributors (ODbL)',
+           'solar-wind': 'Global Solar Atlas (Solargis, World Bank ESMAP), Global Wind Atlas 4.0 (DTU), WorldPop (CC BY 4.0); USGS grid lines (public domain)',
+           'power-plants': 'OpenStreetMap contributors via Overture Maps (ODbL)', 'mining-geology': 'U.S. Geological Survey (public domain)'}
 def run(job):
     slug, iso = job
+    report_lib.CTX['credit'] = CREDITS[slug] + '; boundaries geoBoundaries'
     try:
         r = BUILDERS[slug](iso)
         if r is None: return slug, iso, 'no source file'

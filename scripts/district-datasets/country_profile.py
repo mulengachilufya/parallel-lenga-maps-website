@@ -12,7 +12,8 @@ from multiprocessing import Pool
 warnings.filterwarnings('ignore')
 sys.path.insert(0, 'tools')
 from countries import COUNTRIES
-from report_lib import map_grid, clean
+import report_lib
+from report_lib import map_grid, clean, brand_page, _save, ATTRIB
 from reportlab.platypus import Paragraph as _RLP
 def Paragraph(t, style, *a, **k): return _RLP(clean(t) if isinstance(t, str) else t, style, *a, **k)
 NAVY = colors.HexColor('#0D2B45'); GOLD = colors.HexColor('#F5B800'); GREY = colors.HexColor('#5F6B76')
@@ -48,7 +49,7 @@ def maps(g, panels):
         g.plot(column=col, ax=ax, cmap=cmap, vmin=lo, vmax=hi, linewidth=0.15, edgecolor='white', legend=True,
                missing_kwds={'color': '#e5e7eb'}, legend_kwds={'shrink': 0.6, 'label': unit})
         ax.figure.axes[-1].tick_params(labelsize=7)
-    fig.tight_layout(); b = io.BytesIO(); fig.savefig(b, format='png', dpi=150); plt.close(fig); b.seek(0)
+    b = _save(fig, 150)
     return Image(b, width=172 * mm, height=138 * mm)
 def builtup(iso):
     p = f'out/Built_Up_GHSL/{iso}_Built_Up_Districts_GHSL.gpkg'
@@ -66,6 +67,7 @@ def suitable(iso, area):
     return t.sort_values('pct', ascending=False).head(8)
 def one(iso):
     name = COUNTRIES[iso]; O = 'out'
+    report_lib.CTX['credit'] = 'WorldPop, CHIRPS v3, Global Solar Atlas, Hansen GFC; boundaries geoBoundaries'
     d = read(f'bnd/{iso}.gpkg', geom=True)[['shapeID', 'shapeName', 'adm1_name', 'geometry']]
     pop = read(f'{O}/Population_WorldPop/{iso}_Population_Districts_2026_WorldPop.gpkg')
     rain = read(f'{O}/Rainfall_CHIRPSv3/{iso}_Rainfall_Districts_CHIRPSv3.gpkg')
@@ -87,7 +89,7 @@ def one(iso):
         return float(np.average(g.loc[m, col], weights=g.loc[m, w])) if m.any() else None
     doc_path = f'{O}/Country_Profiles/{iso}_Country_Data_Profile.pdf'
     story = []
-    story += [Paragraph(f'{name}', H1), Paragraph(f'Country Data Profile · Lenga Maps · {datetime.date.today():%d %B %Y}', SM), Spacer(1, 4 * mm),
+    story += [Paragraph(f'{name}', H1), Paragraph(f'Country Data Profile · Lenga Maps · {datetime.date.today():%d %B %Y}', SM), Paragraph(ATTRIB, SM), Spacer(1, 4 * mm),
               Paragraph(f'A ready-made summary of {name} from the Lenga Maps catalogue: {len(g)} districts, population, rainfall, '
                         'solar and wind potential, forests, farming, soils, roads and power plants. Every figure comes from a GIS '
                         'dataset you can download from lengamaps.com for deeper analysis.', P)]
@@ -156,11 +158,8 @@ def one(iso):
         'Crops: IFPRI MapSPAM 2020 v2r2 (CC BY 4.0, modelled); suitability: FAO/IIASA GAEZ v5 (CC BY 4.0 IGO). Built-up: EC JRC GHSL R2023A (CC BY 4.0). Soils: iSDAsoil (CC BY 4.0, modelled). Roads: FRST, Zhou et al. 2026 (CC BY 4.0) '
         'on OpenStreetMap (ODbL). Power plants: OpenStreetMap via Overture Maps 2026-10-21 (ODbL). Screening information, not a substitute '
         'for site surveys or official statistics.', SM)]
-    def foot(c, doc):
-        c.saveState(); c.setFont('Helvetica', 7); c.setFillColor(GREY)
-        c.drawString(15 * mm, 10 * mm, f'{name} · Country Data Profile · lengamaps.com'); c.drawRightString(195 * mm, 10 * mm, f'Page {doc.page}')
-        c.setFillColor(GOLD); c.rect(0, 287 * mm, 210 * mm, 3 * mm, fill=1, stroke=0); c.restoreState()
-    SimpleDocTemplate(doc_path, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm, bottomMargin=16 * mm,
+    foot = lambda c, doc: brand_page(c, doc, f'{name} · Country Data Profile')
+    SimpleDocTemplate(doc_path, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=36 * mm, bottomMargin=18 * mm,
                       title=f'{name} Country Data Profile', author='Lenga Maps').build(story, onFirstPage=foot, onLaterPages=foot)
     return iso, round(os.path.getsize(doc_path) / 1e6, 2)
 if __name__ == '__main__':
