@@ -79,6 +79,17 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     credit: 'CHC, UC Santa Barbara · public domain',
     accent: '#1F3A8A',
   },
+  'roads': {
+    title: 'Road surface type: paved / unpaved (FRST 2025)',
+    facts: [
+      { label: 'Source', value: 'FRST road surface dataset, 50 African countries (ESSD 2026)' },
+      { label: 'Per road', value: 'paved / unpaved, district, length (km)' },
+      { label: 'District summary', value: 'paved km, unpaved km, paved %, road density' },
+    ],
+    note: 'Roads from OpenStreetMap classified by surface (reported accuracy 77–96% by country). Lengths are recomputed on the ellipsoid; the source lengths are Web Mercator and overstate distance. Not covered by the source: Cabo Verde, Comoros, Mauritius, São Tomé and Príncipe, Seychelles. Large countries are big files (up to ~770 MB).',
+    credit: 'Zhou et al. 2026 (CC BY 4.0) · © OpenStreetMap contributors (ODbL)',
+    accent: '#A16207',
+  },
   'power-plants': {
     title: 'Existing power plants',
     facts: [
