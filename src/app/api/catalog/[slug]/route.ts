@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   let files: CatalogFile[] = data ?? []
   if (files.length && await callerCanDownloadDataset(slug as DatasetSlug)) {
     files = await Promise.all(files.map(async (f) => {
-      try { return { ...f, download_url: await getDownloadUrl(f.r2_key, 3600) } } catch { return f }
+      try { return { ...f, download_url: await getDownloadUrl(f.r2_key, 3600, f.file_name || f.r2_key.split('/').pop()) } } catch { return f }
     }))
   }
   return NextResponse.json({ count: files.length, files })

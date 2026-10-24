@@ -10,7 +10,7 @@ export default function TermsPage() {
 
           <div className="mb-10">
             <h1 className="text-3xl font-bold text-navy mb-2">Terms & Conditions</h1>
-            <p className="text-sm text-gray-500">Last updated: September 2026 · Lenga Maps (a product of Lenga Maps, registered in Zambia)</p>
+            <p className="text-sm text-gray-500">Last updated: October 2026 · Lenga Maps (a product of Lenga Maps, registered in Zambia)</p>
           </div>
 
           <div className="space-y-10 text-gray-700 text-sm leading-relaxed">
@@ -37,12 +37,21 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">5. Acceptable Use</h2>
-              <p>You may use downloaded datasets for personal, academic, commercial, or organisational purposes within the scope of your plan. You may not redistribute, resell, sublicense, or make datasets publicly available to third parties. You may not use the platform for any unlawful purpose.</p>
+              <p>You may use downloaded datasets for personal, academic, commercial, or organisational purposes within the scope of your plan. Except as set out in the next paragraph, you may not redistribute, resell, sublicense, or make datasets publicly available to third parties. You may not use the platform for any unlawful purpose.</p>
+              <p className="mt-3"><strong>Share-alike data.</strong> Some files are built on sources whose licences require that adaptations stay under the same licence: OpenStreetMap (Open Database License, ODbL 1.0) and some district boundaries (ODbL 1.0 or Creative Commons Attribution-ShareAlike). These are the Road Surface, Existing Power Plants and Protected Areas datasets, and the district boundaries of Botswana, Cabo Verde, Eswatini, Ethiopia, Guinea-Bissau, Mauritania, Mauritius, Morocco, São Tomé and Príncipe, Somalia, Togo and Tunisia (each file names its boundary licence in its <code>boundary_licence</code> field and <code>about</code> table). Those files are licensed to you under the same share-alike licence, and nothing in these Terms restricts the rights that licence gives you. You pay for our processing, packaging and service, not for the underlying open data.</p>
             </section>
 
             <section>
               <h2 className="text-base font-bold text-navy mb-3">6. Intellectual Property</h2>
               <p>The Lenga Maps platform, including its processing pipelines, curation logic, UI, and brand, is the intellectual property of Lenga Maps. Underlying datasets are sourced from open-data providers (IGRAC, CHIRPS, CHELSA, HydroSHEDS, ISRIC, ESA, and others) under their respective licences. Attribution requirements of source licences are the responsibility of the customer when publishing derived work.</p>
+              <p className="mt-3">Each file states its sources, licences and citation in its <code>about</code> table (GeoPackage) or metadata (GeoTIFF). Notices some sources require you to carry when you publish work built on their data:</p>
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Crop Production (IFPRI MapSPAM, CC BY 4.0): &ldquo;This data was provided by the International Food Policy Research Institute (IFPRI). IFPRI bears no responsibility for the analyses or interpretations of the data presented here.&rdquo;</li>
+                <li>Solar resource (Global Solar Atlas, CC BY 4.0): credit &ldquo;Global Solar Atlas 2.0, Solargis, World Bank Group (ESMAP)&rdquo; and follow globalsolaratlas.info/support/terms-of-use.</li>
+                <li>OpenStreetMap-based files (ODbL): &ldquo;© OpenStreetMap contributors&rdquo;.</li>
+                <li>Other sources are CC BY 4.0, CC BY 3.0 IGO or public domain (USGS, CHIRPS): credit the source named in the file.</li>
+              </ul>
+              <p className="mt-3">Modelled datasets (crop production and suitability, soils, population, solar and wind) are estimates for screening and planning, not measurements or official statistics, and are provided as is.</p>
             </section>
 
             <section>

@@ -58,6 +58,9 @@ interface DatasetSpec {
   layer_type?:  string
   /** Default attribution shown if the row's `source` is missing. */
   source:       string
+  /** Also list this slug's GIS files from catalog_files (datasets added
+   *  from 2026-10, migration 054). PDF reports are never workspace layers. */
+  catalog?:     string
   /** Convert one DB row to an ApiFile. */
   toFile:       (row: Record<string, unknown>) => ApiFile
 }
@@ -92,6 +95,19 @@ function iso3For(country: string): string {
   // Some tables already store ISO-3; if it's already 3 chars uppercase, pass through.
   if (country.length === 3 && country.toUpperCase() === country) return country
   return country.slice(0, 3).toUpperCase()
+}
+
+/** A catalog_files row (datasets added from 2026-10) as an ApiFile. */
+function catalogFile(source: string) {
+  return (r: Record<string, unknown>): ApiFile => ({
+    country_name: String(r.country),
+    country_iso3: String(r.iso3 ?? '').toUpperCase(),
+    r2_key:       String(r.r2_key),
+    file_size_mb: Number(r.file_size_mb ?? 0),
+    file_format:  String(r.file_format ?? 'GeoPackage'),
+    source,
+    meta:         { label: r.label, file_name: r.file_name },
+  })
 }
 
 // ── Dataset registry ──────────────────────────────────────────────────────
@@ -167,8 +183,9 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'rainfall',
+    catalog:     'rainfall',
     name:        'Rainfall',
-    description: 'CHIRPS v2.0 monthly / annual rainfall rasters per African country.',
+    description: 'CHIRPS v3.0 rainfall 1981 to 2025: a yearly raster and district statistics (normal, anomaly, trend) per country, plus the earlier CHIRPS v2.0 files.',
     category:    'climate',
     table:       'rainfall_climate_layers',
     layer_type:  'rainfall',
@@ -238,8 +255,9 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'population',
+    catalog:     'population',
     name:        'Population & settlements',
-    description: 'HDX COD-PS gridded population + admin geometries per African country.',
+    description: 'WorldPop 2026 population at 100 m with district totals, plus HDX COD-PS census-based population by admin area.',
     category:    'demographics',
     table:       'population_settlements_layers',
     source:      'HDX COD-PS (UN OCHA + national census offices)',
@@ -296,8 +314,9 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'roads',
+    catalog:     'roads',
     name:        'Roads & infrastructure',
-    description: 'Natural Earth 1:10m significant roads (Freeway, Primary, Secondary, Other Paved) per African country.',
+    description: 'Every road classified paved or unpaved, with district summaries (FRST 2025, on OpenStreetMap), plus the Natural Earth 1:10m main roads.',
     category:    'infrastructure',
     table:       'road_layers',
     source:      'Natural Earth 1:10m Roads (Public Domain)',
@@ -360,6 +379,86 @@ export const DATASETS: DatasetSpec[] = [
       },
     }),
   },
+  {
+    id:          'crop-production',
+    name:        'Crop production by district',
+    description: 'Area, production and yield of 46 crops per district (ADM2), modelled for 2020.',
+    category:    'agriculture',
+    table:       'catalog_files',
+    catalog:     'crop-production',
+    source:      'IFPRI MapSPAM SPAM 2020 v2r2',
+    toFile:      catalogFile('IFPRI MapSPAM SPAM 2020 v2r2'),
+  },
+  {
+    id:          'tree-cover-loss',
+    name:        'Tree cover loss by district',
+    description: 'Tree cover in 2000 and loss per year 2001 to 2025 per district, in hectares.',
+    category:    'environment',
+    table:       'catalog_files',
+    catalog:     'tree-cover-loss',
+    source:      'Hansen / UMD Global Forest Change v1.13',
+    toFile:      catalogFile('Hansen / UMD Global Forest Change v1.13'),
+  },
+  {
+    id:          'soil-nutrients',
+    name:        'Soil nutrients and pH by district',
+    description: 'District averages of topsoil N, P, K, pH, organic carbon, eCEC and bulk density (0 to 20 cm).',
+    category:    'agriculture',
+    table:       'catalog_files',
+    catalog:     'soil-nutrients',
+    source:      'iSDAsoil (Hengl et al. 2021)',
+    toFile:      catalogFile('iSDAsoil (Hengl et al. 2021)'),
+  },
+  {
+    id:          'mining-geology',
+    name:        'Mines, minerals and geology',
+    description: 'Mines, deposits and mineral infrastructure, plus surface geology (1:5M), per country.',
+    category:    'geology',
+    table:       'catalog_files',
+    catalog:     'mining-geology',
+    source:      'USGS',
+    toFile:      catalogFile('USGS'),
+  },
+  {
+    id:          'solar-wind',
+    name:        'Solar and wind resource',
+    description: 'Solar irradiation and PV output, wind speed and power density at 100 m, plus a district screening layer.',
+    category:    'energy',
+    table:       'catalog_files',
+    catalog:     'solar-wind',
+    source:      'Global Solar Atlas (Solargis / ESMAP) · Global Wind Atlas 4.0 (DTU)',
+    toFile:      catalogFile('Global Solar Atlas (Solargis / ESMAP) · Global Wind Atlas 4.0 (DTU)'),
+  },
+  {
+    id:          'power-plants',
+    name:        'Existing power plants',
+    description: 'Power plants mapped in OpenStreetMap with energy source, capacity and operator.',
+    category:    'energy',
+    table:       'catalog_files',
+    catalog:     'power-plants',
+    source:      '© OpenStreetMap contributors (ODbL), via Overture Maps',
+    toFile:      catalogFile('© OpenStreetMap contributors (ODbL), via Overture Maps'),
+  },
+  {
+    id:          'crop-suitability',
+    name:        'Crop suitability (GAEZ v5)',
+    description: 'Suitability of 29 crops, district shares and about 1 km rasters, rain-fed at low and high input.',
+    category:    'agriculture',
+    table:       'catalog_files',
+    catalog:     'crop-suitability',
+    source:      'FAO & IIASA GAEZ v5',
+    toFile:      catalogFile('FAO & IIASA GAEZ v5'),
+  },
+  {
+    id:          'built-up',
+    name:        'Built-up area growth',
+    description: 'Built-up surface 1975 to 2025 per district and as a raster.',
+    category:    'demographics',
+    table:       'catalog_files',
+    catalog:     'built-up',
+    source:      'European Commission JRC GHSL R2023A',
+    toFile:      catalogFile('European Commission JRC GHSL R2023A'),
+  },
 ]
 
 export function findDataset(id: string): DatasetSpec | undefined {
@@ -382,6 +481,8 @@ export async function listFilesForDataset(
   country?:    string | null,
 ): Promise<ApiFile[]> {
   const supabase = adminClient()
+  // Datasets that live only in catalog_files.
+  if (spec.table === 'catalog_files') return listCatalogFiles(spec, country)
   let q = supabase.from(spec.table).select('*')
   if (spec.layer_type) q = q.eq('layer_type', spec.layer_type)
 
@@ -411,7 +512,20 @@ export async function listFilesForDataset(
 
   const { data, error } = await q
   if (error) throw new Error(`Failed to list ${spec.id}: ${error.message}`)
-  return (data ?? []).map(spec.toFile)
+  const files = (data ?? []).map(spec.toFile)
+  // Older datasets upgraded in 2026-10 keep their original files and add the new ones.
+  return spec.catalog ? [...await listCatalogFiles(spec, country), ...files] : files
+}
+
+/** GIS files of a dataset in catalog_files (never the PDF reports). */
+async function listCatalogFiles(spec: DatasetSpec, country?: string | null): Promise<ApiFile[]> {
+  let q = adminClient().from('catalog_files').select('*').eq('slug', spec.catalog ?? spec.id).neq('file_format', 'PDF')
+  const c = country?.trim()
+  if (c) q = /^[A-Za-z]{3}$/.test(c) ? q.eq('iso3', c.toUpperCase()) : q.ilike('country', `%${c}%`)
+  const { data, error } = await q.order('country', { ascending: true }).order('label', { ascending: true })
+  if (error) throw new Error(`Failed to list ${spec.id}: ${error.message}`)
+  const toFile = spec.table === 'catalog_files' ? spec.toFile : catalogFile(spec.source)
+  return (data ?? []).map(toFile)
 }
 
 /** Sign every file in a list. Used by the bundle endpoint. */
@@ -500,10 +614,17 @@ export async function summariseDatasets(): Promise<ApiDatasetSummary[]> {
     let count = 0
     try {
       const supabase = adminClient()
-      let q = supabase.from(spec.table).select('id', { count: 'exact', head: true })
-      if (spec.layer_type) q = q.eq('layer_type', spec.layer_type)
-      const { count: c } = await q
-      count = c ?? 0
+      if (spec.table !== 'catalog_files') {
+        let q = supabase.from(spec.table).select('id', { count: 'exact', head: true })
+        if (spec.layer_type) q = q.eq('layer_type', spec.layer_type)
+        const { count: c } = await q
+        count = c ?? 0
+      }
+      if (spec.catalog) {
+        const { count: c } = await supabase.from('catalog_files').select('id', { count: 'exact', head: true })
+          .eq('slug', spec.catalog).neq('file_format', 'PDF')
+        count += c ?? 0
+      }
     } catch {
       // table may not exist yet in some envs; fall back to 0.
     }
