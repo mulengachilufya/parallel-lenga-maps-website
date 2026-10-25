@@ -3,9 +3,16 @@
  * signature?: string, my_name?: string }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getSettings, jsonError, requireFullAdmin, saveSettings, validCountry } from '@/lib/sales/server'
+import { getSettings, jsonError, requireAdmin, requireFullAdmin, saveSettings, validCountry } from '@/lib/sales/server'
 
 export const dynamic = 'force-dynamic'
+
+/** GET: the settings alone, without loading the whole pipeline. */
+export async function GET() {
+  const gate = await requireAdmin()
+  if ('denied' in gate) return gate.denied
+  return NextResponse.json({ settings: await getSettings() })
+}
 
 export async function PUT(req: NextRequest) {
   // The signature and name go on the owners' outgoing email, so only they change them.

@@ -16,7 +16,7 @@ import Link from 'next/link'
 import { CalendarCheck, Check, Copy, ExternalLink, Loader2, MessageSquareReply, RotateCcw, Search, X } from 'lucide-react'
 import { api, ago, country } from '@/lib/sales/client'
 import {
-  LI_CLOSE_REASONS, LI_CONNECT_LIMIT, LI_PITCH_AFTER_DAYS, LI_STEP, firstName, liActionable, liActivityUrl,
+  LI_CLOSE_REASONS, LI_CONNECT_LIMIT, LI_PITCH_AFTER_DAYS, LI_STEP, firstName, liActivityUrl,
   liFindUrl, liMessage, liOrgSearchUrl, liStep, type LiAction, type LiVoice, type LiStep, type LinkedInRow,
 } from '@/lib/sales/linkedin'
 import { LinkedInIcon, OtherChannelNote, inputCls } from './ui'
@@ -28,27 +28,13 @@ interface Person {
   li: LinkedInRow | null
   email: ChannelTouch | null
 }
-type View = 'todo' | 'waiting' | 'find' | 'meeting' | 'closed' | 'all'
-const VIEWS: { id: View; label: string }[] = [
-  { id: 'todo', label: 'To do now' }, { id: 'waiting', label: 'Waiting' }, { id: 'find', label: 'Find them' },
-  { id: 'meeting', label: 'Calls booked' }, { id: 'closed', label: 'Closed' }, { id: 'all', label: 'Everyone' },
-]
-// The track, left to right, for the progress dots.
 // Cards drawn at once; thousands at a time is slow on a phone.
 const PAGE = 40
 const TRACK: LiStep[] = ['connect', 'accept', 'thank', 'comment1', 'comment2', 'pitch', 'reply', 'meeting']
 
-function viewOf(step: LiStep, due: string | null): View {
-  if (step === 'find') return 'find'
-  if (step === 'meeting') return 'meeting'
-  if (step === 'closed') return 'closed'
-  return liActionable(step, due) ? 'todo' : 'waiting'
-}
-
 export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [voice, setVoice] = useState<LiVoice>('founder')
-  const [view, setView] = useState<View>('todo')
   const [owner, setOwner] = useState('')
   const [limit, setLimit] = useState(PAGE)
   const [err, setErr] = useState('')
@@ -59,22 +45,11 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   }, [pipeline])
   useEffect(() => { void load() }, [load])
 
-  const rows = useMemo(() => (people ?? []).map((p) => {
-    const { step, due } = liStep(p.li, p.linkedin_url)
-    return { p, step, due, view: viewOf(step, due) }
-  }), [people])
-  const counts = useMemo(() => {
-    const c: Record<View, number> = { todo: 0, waiting: 0, find: 0, meeting: 0, closed: 0, all: rows.length }
-    for (const r of rows) c[r.view]++
-    return c
-  }, [rows])
-  // Finding someone is work too, so the tab badge counts both.
-  useEffect(() => { if (people) onCount?.(counts.todo + counts.find) }, [people, counts.todo, counts.find, onCount])
-  // Open on the people to find when nothing else is due today.
-  const [opened, setOpened] = useState(false)
-  useEffect(() => {
-    if (people && !opened) { setOpened(true); if (!counts.todo && counts.find) setView('find') }
-  }, [people, opened, counts.todo, counts.find])
+  // LinkedIn drafts: only people not reached yet. Once the connection
+  // request is sent they move to the Sent tab, where the pipeline ends.
+  const rows = useMemo(() => (people ?? []).map((p) => ({ p, ...liStep(p.li, p.linkedin_url) }))
+    .filter((r) => r.step === 'find' || r.step === 'connect'), [people])
+  useEffect(() => { if (people) onCount?.(rows.length) }, [people, rows.length, onCount])
 
   function updated(id: string, li: LinkedInRow, linkedin_url: string | null, name?: string) {
     setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li, linkedin_url, ...(name ? { name } : {}) } : p)) ?? ps)
@@ -83,32 +58,22 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   if (err && !people) return <p className="text-sm text-red-600 py-6">{err}</p>
   if (!people) return <div className="py-16 flex justify-center"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
 
-  const shown = rows.filter((r) => view === 'all' || r.view === view)
-    // Oldest due first, so nobody waits longest.
-    .sort((a, b) => (a.due ?? '').localeCompare(b.due ?? '') || a.p.account.name.localeCompare(b.p.account.name))
+  // People with a profile first (ready to send), then by organisation.
+  const shown = [...rows].sort((a, b) => (a.step === 'connect' ? 0 : 1) - (b.step === 'connect' ? 0 : 1) || a.p.account.name.localeCompare(b.p.account.name))
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
         <h2 className="text-sm font-bold text-gray-900 inline-flex items-center gap-1.5"><LinkedInIcon size={15} className="text-[#0A66C2]" /> LinkedIn track{owner && <span className="font-normal text-gray-500">· run by {owner}</span>}</h2>
         <p className="text-sm text-gray-600 mt-1 max-w-3xl">
-          Runs alongside email for everyone in {pipeline === 'partner' ? 'Partnerships' : 'the sales pipeline'}. Connect, and once they accept: thank them, comment on two of their posts,
-          then {LI_PITCH_AFTER_DAYS} days after the thank-you send {pipeline === 'partner' ? 'an ask to explore working together (no pricing)' : 'the Lenga Maps message with the price and an ask for a 10 minute video call'}.
-          Each message is written for you. Copy it, send it on LinkedIn, then press the button so the next step comes up.
+          {rows.length.toLocaleString()} people to reach. Open their profile (or search LinkedIn for them), send the connection request with the note below,
+          then press the button: they move to Sent.
         </p>
-        <div className="mt-4 flex gap-1.5 flex-wrap">
-          {VIEWS.map((v) => (
-            <button key={v.id} onClick={() => { setView(v.id); setLimit(PAGE) }}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold border ${view === v.id ? 'bg-[#0D2B45] text-white border-[#0D2B45]' : 'bg-white text-gray-600 border-gray-200'}`}>
-              {v.label} · {counts[v.id]}
-            </button>
-          ))}
-        </div>
       </div>
 
       {shown.length === 0 && (
         <p className="text-sm text-gray-400 py-6 text-center">
-          {view === 'todo' ? 'Nothing to do on LinkedIn right now. Waiting on people to accept or reply.' : 'Nobody here.'}
+          Everyone has been reached. They are in Sent.
         </p>
       )}
       {shown.slice(0, limit).map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} />)}
