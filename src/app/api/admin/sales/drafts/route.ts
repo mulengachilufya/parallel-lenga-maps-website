@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     .not('contact.email', 'is', null).eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
   if (status !== 'all') q = q.eq('status', status)
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
-  const [drafts, counts, today, other, owners] = await Promise.all([
+  const [drafts, counts, today, other, owners, noEmail] = await Promise.all([
     q,
     Promise.all((['draft', 'sent', 'discarded'] as const).map((st) => db.from('sales_drafts')
       .select('id, account:sales_accounts!inner(pipeline), contact:sales_contacts!inner(email)', { count: 'exact', head: true })
@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
     touches(pipeline),
     channelOwners(),
+    // Drafts kept for people with no email address yet (they are on the LinkedIn track).
+    db.from('sales_drafts').select('id, account:sales_accounts!inner(pipeline), contact:sales_contacts!inner(email)', { count: 'exact', head: true })
+      .is('contact.email', null).eq('account.pipeline', pipeline).eq('voice', voice).eq('status', 'draft'),
   ])
   if (drafts.error) {
     console.error('[admin/sales/drafts] list failed', drafts.error)
@@ -46,6 +49,6 @@ export async function GET(req: NextRequest) {
   const tally = { draft: counts[0].count ?? 0, sent: counts[1].count ?? 0, discarded: counts[2].count ?? 0 }
   return NextResponse.json({
     drafts: (drafts.data ?? []).map((d) => ({ ...d, linkedin: other[d.account_id]?.linkedin ?? null })),
-    counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY, owners,
+    counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY, owners, no_email: noEmail.count ?? 0,
   })
 }
