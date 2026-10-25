@@ -5,8 +5,9 @@
  *                          updates) and their quote requests (custom data,
  *                          team quotes)
  *   DELETE { kind, id }  → cancel one:
- *       kind 'payment': only while pending, or once rejected. A verified
- *                       payment is a receipt and stays.
+ *       kind 'payment': pending or rejected ones are deleted. A verified
+ *                       one is only hidden from their list (hidden_at,
+ *                       migration 059): it is the receipt, and the plan stays.
  *       kind 'quote':   any time. If we have not worked it yet, its copy in
  *                       the sales pipeline goes too; otherwise the pipeline
  *                       notes that they withdrew it.
@@ -35,7 +36,7 @@ export async function GET() {
   const [p, q] = await Promise.all([
     service.from('manual_payments')
       .select('id, reference, plan, product, account_type, amount_usd, amount_zmw, currency, status, submitted_at, admin_note')
-      .eq('user_id', user.id).order('submitted_at', { ascending: false }).limit(50),
+      .eq('user_id', user.id).is('hidden_at', null).order('submitted_at', { ascending: false }).limit(50),
     service.from('quote_requests')
       .select('id, org_name, seats, datasets_interest, status, created_at')
       .ilike('email', user.email).order('created_at', { ascending: false }).limit(50),
@@ -56,7 +57,9 @@ export async function DELETE(req: NextRequest) {
     const { data: row } = await service.from('manual_payments').select('id, status').eq('id', id).eq('user_id', user.id).maybeSingle()
     if (!row) return gone()
     if (row.status === 'verified') {
-      return NextResponse.json({ error: 'paid', message: 'This payment was already approved, so it stays as your receipt. Email lengamaps@gmail.com if it was a mistake.' }, { status: 409 })
+      const { error } = await service.from('manual_payments').update({ hidden_at: new Date().toISOString() }).eq('id', id).eq('user_id', user.id)
+      if (error) return NextResponse.json({ error: 'remove_failed', message: 'Could not remove. Try again.' }, { status: 500 })
+      return NextResponse.json({ ok: true })
     }
     const { error } = await service.from('manual_payments').delete().eq('id', id).eq('user_id', user.id).neq('status', 'verified')
     if (error) return NextResponse.json({ error: 'cancel_failed', message: 'Could not cancel. Try again.' }, { status: 500 })

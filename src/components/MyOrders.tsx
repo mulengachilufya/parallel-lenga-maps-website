@@ -2,8 +2,9 @@
 
 /**
  * "Your orders" on the dashboard: the user's bank-transfer payments and
- * quote requests, with Cancel on anything not yet paid. Renders nothing
- * when they have none.
+ * quote requests. Anything can be taken off the list: unpaid ones are
+ * cancelled, paid ones are only hidden (the plan and receipt stay).
+ * Renders nothing when they have none.
  */
 
 import { useEffect, useState } from 'react'
@@ -43,8 +44,8 @@ export default function MyOrders() {
       .then((j) => { setPayments(j.payments ?? []); setQuotes(j.quotes ?? []) }).catch(() => {})
   }, [])
 
-  async function cancel(kind: 'payment' | 'quote', id: string | number, what: string) {
-    if (!confirm(`Cancel ${what}? It will be removed for good.`)) return
+  async function cancel(kind: 'payment' | 'quote', id: string | number, what: string, paid = false) {
+    if (!confirm(paid ? `Remove ${what} from your list? Your plan is not affected.` : `Cancel ${what}? It will be removed for good.`)) return
     const key = `${kind}:${id}`
     setBusy(key); setError('')
     try {
@@ -53,7 +54,7 @@ export default function MyOrders() {
         body: JSON.stringify({ kind, id }),
       })
       const j = await res.json().catch(() => ({}))
-      if (!res.ok && res.status !== 404) { setError(j.message ?? 'Could not cancel. Try again.'); return }
+      if (!res.ok && res.status !== 404) { setError(j.message ?? 'Could not remove. Try again.'); return }
       if (kind === 'payment') setPayments((l) => l.filter((p) => p.id !== id))
       else setQuotes((l) => l.filter((q) => q.id !== id))
     } catch {
@@ -66,8 +67,8 @@ export default function MyOrders() {
   const rows = [
     ...payments.map((p) => ({
       key: `payment:${p.id}`, date: p.submitted_at, title: paymentTitle(p), sub: `Ref ${p.reference}${p.status === 'rejected' && p.admin_note ? ` · ${p.admin_note}` : ''}`,
-      status: p.status, onCancel: p.status === 'verified' ? null : () => cancel('payment', p.id, `${paymentTitle(p)} (${p.reference})`),
-      cancelLabel: p.status === 'rejected' ? 'Remove' : 'Cancel',
+      status: p.status, onCancel: () => cancel('payment', p.id, `${paymentTitle(p)} (${p.reference})`, p.status === 'verified'),
+      cancelLabel: p.status === 'pending' ? 'Cancel' : 'Remove',
     })),
     ...quotes.map((q) => ({
       key: `quote:${q.id}`, date: q.created_at, title: `Quote for ${q.org_name}`,
