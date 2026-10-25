@@ -23,6 +23,7 @@ import { CountrySelect, Field, Modal, inputCls } from '@/components/sales/ui'
 import DraftsTab from '@/components/sales/DraftsTab'
 import LinkedInTab from '@/components/sales/LinkedInTab'
 import SentTab, { type SentPayload } from '@/components/sales/SentTab'
+import FindEmailsButton from '@/components/sales/FindEmailsButton'
 import OutcomesTab from '@/components/sales/OutcomesTab'
 import CountriesTab from '@/components/sales/CountriesTab'
 
@@ -74,6 +75,7 @@ function SalesPage() {
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setModal('add')} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-sm font-semibold px-3.5 py-2"><Plus size={15} /> Add prospect</button>
           <button onClick={() => setModal('import')} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white text-sm font-semibold px-3 py-2 text-gray-700"><Upload size={14} /> Import list</button>
+          <FindEmailsButton onFound={loadCounts} />
           {settings && <button onClick={() => setModal('settings')} title="Email signature" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white text-sm px-3 py-2 text-gray-700"><Settings2 size={14} /><span className="hidden sm:inline">Settings</span></button>}
         </div>
       </div>
