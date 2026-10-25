@@ -76,7 +76,7 @@ def draw_classed(ax, g, col, title, cmap, unit, k=5, scheme='quantiles', decimal
     edges = [float(vals.min())] + bins
     cm = plt.get_cmap(cmap, len(bins))
     idx = np.searchsorted(bins, vals, side='left').clip(0, len(bins) - 1)
-    g[~has].plot(ax=ax, color='#e5e7eb', edgecolor='white', linewidth=0.25)
+    if (~has).any(): g[~has].plot(ax=ax, color='#e5e7eb', edgecolor='white', linewidth=0.25)
     g[has].plot(ax=ax, color=[cm(i) for i in idx], edgecolor='white', linewidth=0.25)
     if 'adm1_name' in g and 1 < g['adm1_name'].nunique() < len(g):
         try: g.dissolve('adm1_name').boundary.plot(ax=ax, color='#334155', linewidth=0.6)
