@@ -58,8 +58,10 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   if (err && !people) return <p className="text-sm text-red-600 py-6">{err}</p>
   if (!people) return <div className="py-16 flex justify-center"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
 
-  // People with a profile first (ready to send), then by organisation.
-  const shown = [...rows].sort((a, b) => (a.step === 'connect' ? 0 : 1) - (b.step === 'connect' ? 0 : 1) || a.p.account.name.localeCompare(b.p.account.name))
+  // A named person with their profile first, then a named person to search
+  // for, then organisations where we have no name yet.
+  const rank = (r: { p: Person }) => (firstName(r.p.name) ? (r.p.linkedin_url ? 0 : 1) : 2)
+  const shown = [...rows].sort((a, b) => rank(a) - rank(b) || a.p.account.name.localeCompare(b.p.account.name))
 
   return (
     <div className="space-y-4">
@@ -141,9 +143,14 @@ function PersonCard({ p, step, due, voice, onSaved }: {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <p className="text-base font-bold text-gray-900">{p.name}{partner && <span className="ml-2 align-middle rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5">Partner</span>}</p>
+          {/* The organisation and its key person by name; job titles are left out.
+              With no name yet, the organisation alone. */}
+          <p className="text-base font-bold text-gray-900">
+            <Link href={`/admin/${p.account.pipeline === 'partner' ? 'partners' : 'sales'}/${p.account_id}`} className="hover:underline">{p.account.name}</Link>
+            {partner && <span className="ml-2 align-middle rounded-full bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5">Partner</span>}
+          </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {[p.title, <Link key="o" href={`/admin/${p.account.pipeline === 'partner' ? 'partners' : 'sales'}/${p.account_id}`} className="hover:underline">{p.account.name}</Link>, country(p.account.country_iso3)]
+            {[first ? <span key="n" className="font-semibold text-gray-800">{p.name}</span> : 'Key person not named yet', country(p.account.country_iso3)]
               .filter(Boolean).reduce<React.ReactNode[]>((acc, x, i) => (i ? [...acc, ' · ', x] : [x]), [])}
           </p>
           {profile && (

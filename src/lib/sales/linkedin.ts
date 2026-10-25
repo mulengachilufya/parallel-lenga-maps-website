@@ -139,7 +139,7 @@ export function liMessage(kind: LiMessage, f: { first: string; org: string; hook
 }
 
 // A role in place of a name ("GIS / Remote Sensing Lead") until the person is found.
-const ROLE = /\b(officer|lead|manager|head|director|specialist|analyst|coordinator|team|engineer|unit)\b/i
+const ROLE = /\b(officer|lead|manager|head|director|specialist|analyst|coordinator|team|engineer|unit|lecturer|gis)\b/i
 
 export const firstName = (name: string) => {
   if (ROLE.test(name)) return ''
