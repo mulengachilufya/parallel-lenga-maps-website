@@ -118,19 +118,23 @@ def crop_suitability(iso):
     g = gpd.read_file(f, layer='crop_suitability_districts'); L = pd.read_sql('select * from suitability_by_crop', sqlite3.connect(f))
     g['area'] = gpd.read_file(f'bnd/{iso}.gpkg').set_index('shapeID').loc[g.shapeID].geometry.to_crs(g.estimate_utm_crs()).area.values / 1e4
     L = L.merge(g[['shapeID', 'area']], on='shapeID')
-    t = L.assign(a=L.pct_area_medium_or_better / 100 * L.area).groupby(['crop', 'input_level']).a.sum().unstack() / g['area'].sum() * 100
-    t = t.sort_values('low input, rain-fed', ascending=False)
+    t = L.assign(a=L.pct_area_medium_or_better / 100 * L.area).groupby(['crop', 'input_level']).a.sum(min_count=1).unstack() / g['area'].sum() * 100
+    t = t.sort_values('low input, rain-fed', ascending=False)  # withheld low-input maize (null) sorts last
     best = t.index[0]
     find = [f'Under low input rain fed farming, the crops with the largest share of land rated medium suitability or better are {", ".join(t.index[:5])}.',
             f'{best} reaches medium or better on {fmt(t.iloc[0]["low input, rain-fed"], 1)} percent of the country at low input and {fmt(t.iloc[0]["high input, rain-fed"], 1)} percent at high input.',
             'High input management (improved varieties, fertiliser, mechanisation) raises suitability for most crops; the table shows both levels.']
     code = {r.crop: r.crop_code for r in L[['crop', 'crop_code']].drop_duplicates().itertuples()}
-    mz = 'mze_pct_suitable'
+    # Low-input maize is withheld (FAO layer incomplete), so the maize map shows high input.
+    mz = 'mze_pct_suitable_high'
+    g = g.merge(L[(L.crop_code == 'MZE') & (L.input_level == 'high input, rain-fed')][['shapeID', 'pct_area_medium_or_better']]
+                .rename(columns={'pct_area_medium_or_better': mz}), on='shapeID', how='left')
     secs = [Paragraph('Key findings', H2)] + bullets(find) + [choropleth(g, f'{code[best].lower()}_pct_suitable', f'{best}: share of district rated medium or better, low input', 'Greens', 'percent of district', decimals=0),
-            choropleth(g, mz, 'Maize: share of district rated medium or better, low input', 'YlGn', 'percent of district', decimals=0),
-            Paragraph('Share of national area rated medium or better', H2), table([['Crop', 'Low input %', 'High input %']] + [[c, fmt(r['low input, rain-fed'], 1), fmt(r['high input, rain-fed'], 1)] for c, r in t.iterrows()], [70 * mm, 40 * mm, 40 * mm])]
+            choropleth(g, mz, 'Maize: share of district rated medium or better, high input', 'YlGn', 'percent of district', decimals=0),
+            Paragraph('Share of national area rated medium or better', H2), table([['Crop', 'Low input %', 'High input %']] + [[c, 'withheld' if pd.isna(r['low input, rain-fed']) else fmt(r['low input, rain-fed'], 1), fmt(r['high input, rain-fed'], 1)] for c, r in t.iterrows()], [70 * mm, 40 * mm, 40 * mm])]
     notes = ['Suitability describes climate, soil and terrain potential under the stated management for 2001 to 2020 climate. It is not current land use or a yield forecast.',
-             'Rain fed only. Irrigation, markets, tenure and protected areas are not considered.']
+             'Rain fed only. Irrigation, markets, tenure and protected areas are not considered.',
+             'Low input maize is withheld: the FAO GAEZ v5 layer has no value for about half of the land, which made district shares meaningless. High input maize is complete and is shown.']
     return 'Crop suitability by district, 29 crops', os.path.basename(f), 'It describes agro ecological suitability of 29 crops for every district.', secs, a, notes
 
 def built_up(iso):
@@ -298,7 +302,7 @@ BUILDERS = {'population': population, 'rainfall': rainfall, 'tree-cover-loss': t
             'solar-wind': solar_wind, 'power-plants': power_plants, 'mining-geology': mining_geology, 'soil': soil_classes, 'temperature': temperature}
 CREDITS = {'population': 'WorldPop R2025A, University of Southampton (CC BY 4.0)', 'rainfall': 'CHIRPS v3.0, Climate Hazards Center, UC Santa Barbara (public domain)',
            'temperature': 'CHELSA v2.1 climatologies, Karger et al., WSL (CC BY 4.0)', 'tree-cover-loss': 'Hansen, UMD, Google, Global Forest Change v1.13 (CC BY 4.0)',
-           'crop-production': 'IFPRI MapSPAM 2020 v2r2 (CC BY 4.0)', 'crop-suitability': 'FAO and IIASA GAEZ v5 (CC BY 4.0 IGO)',
+           'crop-production': 'IFPRI MapSPAM 2020 v2r2 (CC BY 4.0)', 'crop-suitability': 'FAO and IIASA GAEZ v5 (CC BY 4.0)',
            'soil-nutrients': 'iSDAsoil, Hengl et al. 2021 (CC BY 4.0)', 'soil': 'ISRIC SoilGrids 2.0 (CC BY 4.0)',
            'built-up': 'European Commission JRC, GHSL R2023A (CC BY 4.0)', 'roads': 'FRST 2026 (CC BY 4.0), OpenStreetMap contributors (ODbL)',
            'solar-wind': 'Global Solar Atlas (Solargis, World Bank ESMAP), Global Wind Atlas 4.0 (DTU), WorldPop (CC BY 4.0); USGS grid lines (public domain)',

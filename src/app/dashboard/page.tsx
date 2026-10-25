@@ -146,7 +146,7 @@ const SECTIONS: Record<string, {
   },
   'crop-suitability': {
     title: '🌱 Crop Suitability by District',
-    subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input · GeoTIFF + GeoPackage',
+    subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input (maize: high only) · GeoTIFF + GeoPackage',
     component: () => <CatalogList slug="crop-suitability" />,
   },
   'built-up': {

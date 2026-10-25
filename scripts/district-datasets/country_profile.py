@@ -60,11 +60,11 @@ def suitable(iso, area):
     p = f'out/Crop_Suitability_GAEZv5/{iso}_Crop_Suitability_Districts_GAEZv5.gpkg'
     if not os.path.exists(p): return None
     L = pd.read_sql("select shapeID, crop, pct_area_medium_or_better p from suitability_by_crop where input_level='low input, rain-fed'", sqlite3.connect(p))
-    L = L.merge(area, on='shapeID')
+    L = L.dropna(subset=['p']).merge(area, on='shapeID')  # low-input maize is withheld (null)
     L['a'] = L.p / 100 * L.area_ha
     t = L.groupby('crop').agg(a=('a', 'sum')).reset_index()
     t['pct'] = 100 * t.a / area.area_ha.sum()
-    return t.sort_values('pct', ascending=False).head(8)
+    return t[t.pct >= 0.05].sort_values('pct', ascending=False).head(8)
 def one(iso):
     name = COUNTRIES[iso]; O = 'out'
     report_lib.CTX['credit'] = 'WorldPop, CHIRPS v3, Global Solar Atlas, Hansen GFC; boundaries geoBoundaries'
@@ -118,14 +118,23 @@ def one(iso):
         cl = cl[cl['prod'] > 0].head(10)
         story.append(Paragraph('Top crops by production (modelled, 2020)', P))
         story.append(tbl([['Crop', 'Production (t)', 'Physical area (ha)']] + [[r.crop_name, fmt(r.prod), fmt(r.area)] for r in cl.itertuples()], [70 * mm, 50 * mm, 50 * mm]))
+    else:
+        story.append(Paragraph('Crop production: not available. MapSPAM 2020 does not cover this country.', P))
     if 'area_ha' in g:
         su = suitable(iso, g[['shapeID', 'area_ha']].dropna())
-        if su is not None and len(su):
+        if su is not None and not len(su):
+            story += [Spacer(1, 3 * mm), Paragraph('No crop reaches medium suitability or better anywhere in the country under low-input rain-fed farming (GAEZ v5). '
+                                                   'Rain-fed farming here depends on irrigation or very local conditions.', P)]
+        elif su is not None:
             story += [Spacer(1, 3 * mm), Paragraph('Most suitable crops for low-input rain-fed farming (share of country area rated medium or better, GAEZ v5)', P),
-                      tbl([['Crop', 'Area suitable']] + [[r.crop, f'{fmt(r.pct, 1)} %'] for r in su.itertuples()], [70 * mm, 40 * mm])]
+                      tbl([['Crop', 'Area suitable']] + [[r.crop, f'{fmt(r.pct, 1)} %'] for r in su.itertuples()], [70 * mm, 40 * mm]),
+                      Paragraph('Maize is not ranked here: the FAO GAEZ v5 low-input maize layer has no value for about half of the land, so it is withheld. '
+                                'High-input maize is in the Crop Suitability dataset.', SM)]
     if soil is not None:
         story += [Spacer(1, 3 * mm), Paragraph(f'Topsoil (0–20 cm): area-weighted pH {fmt(wmean("ph_mean"), 1)}, organic carbon {fmt(wmean("soc_0_20_mean"), 1)} g/kg '
                                                '(iSDAsoil, modelled; sample before site decisions).', P)]
+    else:
+        story += [Spacer(1, 3 * mm), Paragraph('Topsoil nutrients: not available. iSDAsoil does not cover this country.', P)]
     # energy
     story.append(Paragraph('Power plants already built', H2))
     pp = f'{O}/Power_Plants/{iso}_Power_Plants_OSM.gpkg'
@@ -155,7 +164,7 @@ def one(iso):
         'Boundaries: geoBoundaries gbOpen. Population: WorldPop Global2 R2025A 2026 (CC BY 4.0, modelled). Rainfall: CHIRPS v3.0, CHC UCSB '
         '(public domain). Solar: Global Solar Atlas 2.0, Solargis/ESMAP (CC BY 4.0). Wind: Global Wind Atlas 4.0, DTU/ESMAP (CC BY 4.0). '
         'Power lines: USGS Africa mineral industries & infrastructure (2018 reference). Tree cover: Hansen et al., UMD GFC v1.13 (CC BY 4.0). '
-        'Crops: IFPRI MapSPAM 2020 v2r2 (CC BY 4.0, modelled); suitability: FAO/IIASA GAEZ v5 (CC BY 4.0 IGO). Built-up: EC JRC GHSL R2023A (CC BY 4.0). Soils: iSDAsoil (CC BY 4.0, modelled). Roads: FRST, Zhou et al. 2026 (CC BY 4.0) '
+        'Crops: IFPRI MapSPAM 2020 v2r2 (CC BY 4.0, modelled); suitability: FAO/IIASA GAEZ v5 (CC BY 4.0). Built-up: EC JRC GHSL R2023A (CC BY 4.0). Soils: iSDAsoil (CC BY 4.0, modelled). Roads: FRST, Zhou et al. 2026 (CC BY 4.0) '
         'on OpenStreetMap (ODbL). Power plants: OpenStreetMap via Overture Maps 2026-10-21 (ODbL). Screening information, not a substitute '
         'for site surveys or official statistics.', SM)]
     foot = lambda c, doc: brand_page(c, doc, f'{name} · Country Data Profile')

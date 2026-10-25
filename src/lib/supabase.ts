@@ -476,7 +476,7 @@ export const DATASETS: Dataset[] = [
     id: 24,
     name: 'Crop Suitability by District',
     category: 'Agriculture',
-    description: 'Where 29 crops grow well: maize, cassava, millets, beans, coffee, tea, cocoa, cashew and more, for low- and high-input rain-fed farming, per district and at 1 km.',
+    description: 'Where 29 crops grow well: cassava, sorghum, millets, beans, coffee, tea, cocoa, cashew and more, for low- and high-input rain-fed farming (maize at high input only), per district and at 1 km.',
     source: 'FAO / IIASA GAEZ v5 (2025)',
     format: 'GeoTIFF + GeoPackage',
     resolution: '30 arc-sec (~1 km) + district',

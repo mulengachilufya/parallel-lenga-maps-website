@@ -442,7 +442,7 @@ export const DATASETS: DatasetSpec[] = [
   {
     id:          'crop-suitability',
     name:        'Crop suitability (GAEZ v5)',
-    description: 'Suitability of 29 crops, district shares and about 1 km rasters, rain-fed at low and high input.',
+    description: 'Suitability of 29 crops, district shares and about 1 km rasters, rain-fed at low and high input (maize at high input only: the FAO low-input maize layer is incomplete).',
     category:    'agriculture',
     table:       'catalog_files',
     catalog:     'crop-suitability',

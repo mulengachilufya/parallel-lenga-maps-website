@@ -106,7 +106,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     facts: [
       { label: 'Source', value: 'FAO / IIASA GAEZ v5 (2025), climate 2001–2020' },
       { label: 'Crops', value: 'Maize, cassava, sorghum, millets, rice, beans, soy, coffee, tea, cocoa, cashew, sugarcane and more' },
-      { label: 'Management', value: 'Rain-fed, low input and high input' },
+      { label: 'Management', value: 'Rain-fed, low input and high input (maize: high input only)' },
     ],
     note: 'Per country: a district GeoPackage (share of each district rated medium or better for every crop, plus its best crops) and two 29-band GeoTIFFs at about 1 km (index 0–100). Suitability describes climate, soil and terrain under the stated management, not what is grown today: pair it with Crop Production by District. Low-input maize is withheld because the FAO source layer has no value for about half of the land; high-input maize is included.',
     credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0',
