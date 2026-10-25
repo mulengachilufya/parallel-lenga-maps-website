@@ -7,7 +7,8 @@
  * Admin only. Listing never sends anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { db, jsonError, requireAdmin, voiceFor } from '@/lib/sales/server'
+import { db, jsonError, requireAdmin } from '@/lib/sales/server'
+import { CHANNEL_VOICE, channelOwners, touches } from '@/lib/sales/channels'
 import { DRAFTS_PER_DAY } from '@/lib/sales/playbook'
 
 export const dynamic = 'force-dynamic'
@@ -18,20 +19,23 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') || 'draft'
   const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
-  // Each person sees the drafts written in their own voice.
-  const voice = await voiceFor(gate.email)
+  // Email is the founder's channel: everyone sees the drafts in the founder's
+  // voice, and each card says what LinkedIn has already done with that organisation.
+  const voice = CHANNEL_VOICE.email
   let q = db.from('sales_drafts')
     .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts(id, name, title, email, linkedin_url, opted_out_at)')
     .eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
   if (status !== 'all') q = q.eq('status', status)
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
-  const [drafts, counts, today] = await Promise.all([
+  const [drafts, counts, today, other, owners] = await Promise.all([
     q,
     Promise.all((['draft', 'sent', 'discarded'] as const).map((st) => db.from('sales_drafts')
       .select('id, account:sales_accounts!inner(pipeline)', { count: 'exact', head: true })
       .eq('account.pipeline', pipeline).eq('voice', voice).eq('status', st))),
     db.from('sales_activities').select('id', { count: 'exact', head: true })
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
+    touches(pipeline),
+    channelOwners(),
   ])
   if (drafts.error) {
     console.error('[admin/sales/drafts] list failed', drafts.error)
@@ -39,5 +43,8 @@ export async function GET(req: NextRequest) {
   }
   // Counted in the database: there can be thousands of drafts.
   const tally = { draft: counts[0].count ?? 0, sent: counts[1].count ?? 0, discarded: counts[2].count ?? 0 }
-  return NextResponse.json({ drafts: drafts.data ?? [], counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY })
+  return NextResponse.json({
+    drafts: (drafts.data ?? []).map((d) => ({ ...d, linkedin: other[d.account_id]?.linkedin ?? null })),
+    counts: tally, sent_today: today.count ?? 0, per_day: DRAFTS_PER_DAY, owners,
+  })
 }

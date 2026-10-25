@@ -19,12 +19,14 @@ import {
   LI_CLOSE_REASONS, LI_CONNECT_LIMIT, LI_PITCH_AFTER_DAYS, LI_STEP, firstName, liActionable, liActivityUrl,
   liFindUrl, liMessage, liStep, type LiAction, type LiVoice, type LiStep, type LinkedInRow,
 } from '@/lib/sales/linkedin'
-import { LinkedInIcon, inputCls } from './ui'
+import { LinkedInIcon, OtherChannelNote, inputCls } from './ui'
+import type { ChannelTouch } from '@/lib/sales/channels'
 
 interface Person {
   id: string; account_id: string; name: string; title: string | null; linkedin_url: string | null
   account: { id: string; name: string; country_iso3: string | null; sector: string | null; stage: string; pipeline?: 'sales' | 'partner' }
   li: LinkedInRow | null
+  email: ChannelTouch | null
 }
 type View = 'todo' | 'waiting' | 'find' | 'meeting' | 'closed' | 'all'
 const VIEWS: { id: View; label: string }[] = [
@@ -32,6 +34,8 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'meeting', label: 'Calls booked' }, { id: 'closed', label: 'Closed' }, { id: 'all', label: 'Everyone' },
 ]
 // The track, left to right, for the progress dots.
+// Cards drawn at once; thousands at a time is slow on a phone.
+const PAGE = 40
 const TRACK: LiStep[] = ['connect', 'accept', 'thank', 'comment1', 'comment2', 'pitch', 'reply', 'meeting']
 
 function viewOf(step: LiStep, due: string | null): View {
@@ -45,10 +49,12 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   const [people, setPeople] = useState<Person[] | null>(null)
   const [voice, setVoice] = useState<LiVoice>('founder')
   const [view, setView] = useState<View>('todo')
+  const [owner, setOwner] = useState('')
+  const [limit, setLimit] = useState(PAGE)
   const [err, setErr] = useState('')
 
   const load = useCallback(async () => {
-    try { const d = await api<{ people: Person[]; voice?: LiVoice }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setVoice(d.voice ?? 'founder'); setErr('') }
+    try { const d = await api<{ people: Person[]; voice?: LiVoice; owners?: { linkedin: string } }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setVoice(d.voice ?? 'founder'); setOwner(d.owners?.linkedin ?? ''); setErr('') }
     catch (e) { setErr(e instanceof Error ? e.message : 'Could not load the LinkedIn list') }
   }, [pipeline])
   useEffect(() => { void load() }, [load])
@@ -78,7 +84,7 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
-        <h2 className="text-sm font-bold text-gray-900 inline-flex items-center gap-1.5"><LinkedInIcon size={15} className="text-[#0A66C2]" /> LinkedIn track</h2>
+        <h2 className="text-sm font-bold text-gray-900 inline-flex items-center gap-1.5"><LinkedInIcon size={15} className="text-[#0A66C2]" /> LinkedIn track{owner && <span className="font-normal text-gray-500">· run by {owner}</span>}</h2>
         <p className="text-sm text-gray-600 mt-1 max-w-3xl">
           Runs alongside email for everyone in {pipeline === 'partner' ? 'Partnerships' : 'the sales pipeline'}. Connect, and once they accept: thank them, comment on two of their posts,
           then {LI_PITCH_AFTER_DAYS} days after the thank-you send {pipeline === 'partner' ? 'an ask to explore working together (no pricing)' : 'the Lenga Maps message with the price and an ask for a 10 minute video call'}.
@@ -86,7 +92,7 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
         </p>
         <div className="mt-4 flex gap-1.5 flex-wrap">
           {VIEWS.map((v) => (
-            <button key={v.id} onClick={() => setView(v.id)}
+            <button key={v.id} onClick={() => { setView(v.id); setLimit(PAGE) }}
                     className={`rounded-full px-3 py-1 text-xs font-semibold border ${view === v.id ? 'bg-[#0D2B45] text-white border-[#0D2B45]' : 'bg-white text-gray-600 border-gray-200'}`}>
               {v.label} · {counts[v.id]}
             </button>
@@ -99,7 +105,12 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
           {view === 'todo' ? 'Nothing to do on LinkedIn right now. Waiting on people to accept or reply.' : 'Nobody here.'}
         </p>
       )}
-      {shown.map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} />)}
+      {shown.slice(0, limit).map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} />)}
+      {shown.length > limit && (
+        <button onClick={() => setLimit((n) => n + PAGE)} className="w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700">
+          Show more · {shown.length - limit} left
+        </button>
+      )}
     </div>
   )
 }
@@ -188,6 +199,8 @@ function PersonCard({ p, step, due, voice, onSaved }: {
         </div>
       )}
 
+      <OtherChannelNote channel="email" touch={p.email} />
+
       {/* What we noticed about them; it goes into the messages. */}
       {step !== 'closed' && step !== 'meeting' && (
         <label className="mt-3 block">
@@ -200,9 +213,10 @@ function PersonCard({ p, step, due, voice, onSaved }: {
 
       {step === 'find' && (
         <div className="mt-3 space-y-2">
-          <a href={liFindUrl(p.name, p.account.name)} target="_blank" rel="noreferrer"
+          {/* A real name searches for that person; a role placeholder searches the organisation's GIS people. */}
+          <a href={first ? liFindUrl(p.name, p.account.name) : liFindUrl('GIS', p.account.name)} target="_blank" rel="noreferrer"
              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A66C2] text-white text-sm font-semibold px-3 py-2">
-            <Search size={14} /> Search LinkedIn for {first}
+            <Search size={14} /> {first ? `Search LinkedIn for ${p.name.replace(/^(dr|prof)\.?\s+/i, '')}` : `Find GIS people at ${p.account.name}`}
           </a>
           <div className="flex gap-2 max-w-xl">
             <input className={inputCls} placeholder="Paste their profile link (linkedin.com/in/...)" value={url} onChange={(e) => setUrl(e.target.value)} />
