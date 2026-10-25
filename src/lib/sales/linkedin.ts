@@ -152,6 +152,14 @@ export const firstName = (name: string) => {
 export const liFindUrl = (name: string, org: string) =>
   `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${name.replace(/^(dr|prof)\.?\s+/i, '')} ${org}`)}`
 
+/**
+ * A LinkedIn search for the organisation by its exact name, for when we have
+ * no named decision maker yet: filter the results to People and pick who to
+ * message (a CEO, MD or director decides faster than a specialist).
+ */
+export const liOrgSearchUrl = (org: string) =>
+  `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(`"${org}"`)}`
+
 /** Their recent posts, for the two comments. */
 export const liActivityUrl = (profile: string) => `${profile.replace(/[?#].*$/, '').replace(/\/+$/, '')}/recent-activity/all/`
 

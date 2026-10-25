@@ -17,7 +17,7 @@ import { CalendarCheck, Check, Copy, ExternalLink, Loader2, MessageSquareReply, 
 import { api, ago, country } from '@/lib/sales/client'
 import {
   LI_CLOSE_REASONS, LI_CONNECT_LIMIT, LI_PITCH_AFTER_DAYS, LI_STEP, firstName, liActionable, liActivityUrl,
-  liFindUrl, liMessage, liStep, type LiAction, type LiVoice, type LiStep, type LinkedInRow,
+  liFindUrl, liMessage, liOrgSearchUrl, liStep, type LiAction, type LiVoice, type LiStep, type LinkedInRow,
 } from '@/lib/sales/linkedin'
 import { LinkedInIcon, OtherChannelNote, inputCls } from './ui'
 import type { ChannelTouch } from '@/lib/sales/channels'
@@ -70,8 +70,8 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   }, [rows])
   useEffect(() => { if (people) onCount?.(counts.todo) }, [people, counts.todo, onCount])
 
-  function updated(id: string, li: LinkedInRow, linkedin_url: string | null) {
-    setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li, linkedin_url } : p)) ?? ps)
+  function updated(id: string, li: LinkedInRow, linkedin_url: string | null, name?: string) {
+    setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li, linkedin_url, ...(name ? { name } : {}) } : p)) ?? ps)
   }
 
   if (err && !people) return <p className="text-sm text-red-600 py-6">{err}</p>
@@ -116,7 +116,7 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
 }
 
 function PersonCard({ p, step, due, voice, onSaved }: {
-  p: Person; step: LiStep; due: string | null; voice: LiVoice; onSaved: (id: string, li: LinkedInRow, url: string | null) => void
+  p: Person; step: LiStep; due: string | null; voice: LiVoice; onSaved: (id: string, li: LinkedInRow, url: string | null, name?: string) => void
 }) {
   const partner = p.account.pipeline === 'partner'
   // Partners get an ask to work together in place of the pricing message.
@@ -124,6 +124,7 @@ function PersonCard({ p, step, due, voice, onSaved }: {
   const first = firstName(p.name)
   const [hook, setHook] = useState(p.li?.hook ?? '')
   const [url, setUrl] = useState('')
+  const [who, setWho] = useState('')
   const kind = meta.message
   const edited = kind ? p.li?.messages?.[kind] ?? null : null
   const [text, setText] = useState('')
@@ -140,8 +141,8 @@ function PersonCard({ p, step, due, voice, onSaved }: {
   async function patch(body: Record<string, unknown>, label: string) {
     setBusy(label); setErr('')
     try {
-      const d = await api<{ li: LinkedInRow; linkedin_url: string | null }>(`/api/admin/sales/linkedin/${p.id}`, { method: 'PATCH', body })
-      onSaved(p.id, d.li, d.linkedin_url)
+      const d = await api<{ li: LinkedInRow; linkedin_url: string | null; name?: string }>(`/api/admin/sales/linkedin/${p.id}`, { method: 'PATCH', body })
+      onSaved(p.id, d.li, d.linkedin_url, d.name)
       return true
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save'); return false }
     finally { setBusy('') }
@@ -213,14 +214,22 @@ function PersonCard({ p, step, due, voice, onSaved }: {
 
       {step === 'find' && (
         <div className="mt-3 space-y-2">
-          {/* A real name searches for that person; a role placeholder searches the organisation's GIS people. */}
-          <a href={first ? liFindUrl(p.name, p.account.name) : liFindUrl('GIS', p.account.name)} target="_blank" rel="noreferrer"
+          {/* A real name searches for that person; with no name yet, search the organisation itself and pick its decision maker. */}
+          <a href={first ? liFindUrl(p.name, p.account.name) : liOrgSearchUrl(p.account.name)} target="_blank" rel="noreferrer"
              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A66C2] text-white text-sm font-semibold px-3 py-2">
-            <Search size={14} /> {first ? `Search LinkedIn for ${p.name.replace(/^(dr|prof)\.?\s+/i, '')}` : `Find GIS people at ${p.account.name}`}
+            <Search size={14} /> {first ? `Search LinkedIn for ${p.name.replace(/^(dr|prof)\.?\s+/i, '')}` : `Search LinkedIn for ${p.account.name}`}
           </a>
+          {!first && <p className="text-[11px] text-gray-500">Filter the results to People, then pick the CEO, MD or director: they decide fastest.</p>}
+          {!first && (
+            <input className={`${inputCls} max-w-xl`} placeholder="Their name and role, e.g. Jane Banda, Managing Director" value={who} onChange={(e) => setWho(e.target.value)} />
+          )}
           <div className="flex gap-2 max-w-xl">
             <input className={inputCls} placeholder="Paste their profile link (linkedin.com/in/...)" value={url} onChange={(e) => setUrl(e.target.value)} />
-            <button disabled={!!busy || !url.trim()} onClick={() => void patch({ linkedin_url: url }, 'url').then((ok) => ok && setUrl(''))}
+            <button disabled={!!busy || !url.trim() || (!first && !who.trim())} onClick={() => {
+              // "Jane Banda, Managing Director" -> name and title
+              const [n, ...t] = who.split(',')
+              void patch({ linkedin_url: url, ...(first ? {} : { name: n.trim(), title: t.join(',').trim() || null }) }, 'url').then((ok) => { if (ok) { setUrl(''); setWho('') } })
+            }}
                     className="shrink-0 rounded-lg border border-gray-200 text-sm px-3 py-2 text-gray-700 disabled:opacity-40">Save</button>
           </div>
         </div>
