@@ -23,12 +23,15 @@ import { CountrySelect, Field, Modal, inputCls } from '@/components/sales/ui'
 import DraftsTab from '@/components/sales/DraftsTab'
 import LinkedInTab from '@/components/sales/LinkedInTab'
 import SentTab, { type SentPayload } from '@/components/sales/SentTab'
+import OutcomesTab from '@/components/sales/OutcomesTab'
+import CountriesTab from '@/components/sales/CountriesTab'
 
 // The pipeline is outreach only: drafts to send on each channel, then Sent.
 // What happens after a reply is handled by hand (calls are booked on Calendly).
-type Tab = 'email' | 'linkedin' | 'sent'
+type Tab = 'email' | 'linkedin' | 'sent' | 'outcomes' | 'countries'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'email', label: 'Email drafts' }, { id: 'linkedin', label: 'LinkedIn drafts' }, { id: 'sent', label: 'Sent' },
+  { id: 'outcomes', label: 'Outcomes' }, { id: 'countries', label: 'Countries' },
 ]
 
 
@@ -42,12 +45,12 @@ function SalesPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [tab, setTab] = useState<Tab>(TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') as Tab : 'email')
   const [modal, setModal] = useState<null | 'add' | 'import' | 'settings'>(null)
-  const [counts, setCounts] = useState<Record<Tab, number | null>>({ email: null, linkedin: null, sent: null })
+  const [counts, setCounts] = useState<Record<Tab, number | null>>({ email: null, linkedin: null, sent: null, outcomes: null, countries: null })
 
   // Counts only (cheap): the lists load inside their own tab.
   const loadCounts = useCallback(() => {
     api<SentPayload>('/api/admin/sales/sent?pipeline=sales')
-      .then((d) => setCounts({ email: d.counts.email_drafts, linkedin: d.counts.linkedin_drafts, sent: d.email.length + d.linkedin.length }))
+      .then((d) => setCounts((c) => ({ ...c, email: d.counts.email_drafts, linkedin: d.counts.linkedin_drafts, sent: d.email.length + d.linkedin.length })))
       .catch(() => {})
   }, [])
   useEffect(() => { loadCounts() }, [loadCounts])
@@ -88,6 +91,8 @@ function SalesPage() {
         {tab === 'email' && <DraftsTab onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
         {tab === 'linkedin' && <LinkedInTab onCount={(n) => setCounts((c) => ({ ...c, linkedin: n }))} />}
         {tab === 'sent' && <SentTab />}
+        {tab === 'outcomes' && <OutcomesTab />}
+        {tab === 'countries' && <CountriesTab />}
       </div>
 
       {modal === 'add' && <AddProspect focus={focus} onClose={() => setModal(null)} onDone={(id) => { setModal(null); router.push(`/admin/sales/${id}`) }} />}
