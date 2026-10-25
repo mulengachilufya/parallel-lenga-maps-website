@@ -69,7 +69,7 @@ def build(which):
           [(f'loss_{y}_ha', 'ha', f'Tree cover loss in {y}, within 2000 tree cover >=30%') for y in years] + \
           [('loss_total_ha', 'ha', 'Tree cover loss 2001-2025'), ('loss_since_2021_ha', 'ha', 'Tree cover loss 2021-2025, after the EUDR cut-off of 31 Dec 2020'),
            ('pct_loss_since_2000', '%', 'loss_total_ha / tc2000_ha x 100'), ('boundary_licence', '', 'Licence of the district boundary')]
-        title, layer, folder, suffix = 'Forest Cover and Tree Cover Loss by District (Hansen GFC v1.13, 2001-2025)', 'forest_loss', 'Forest_Loss', 'Forest_Loss'
+        title, layer, folder, suffix = 'Forest Cover and Tree Cover Loss (Hansen GFC v1.13, 2001-2025)', 'forest_loss', 'Forest_Loss', 'Forest_Loss'
         about = {'title': title,
           'source': 'Hansen/UMD/Google/USGS/NASA Global Forest Change 2000-2025 v1.13 (30 m)',
           'citation': 'Hansen, M. C. et al. 2013. High-Resolution Global Maps of 21st-Century Forest Cover Change. Science 342: 850-53. Data: https://glad.earthengine.app/view/global-forest-change',
@@ -81,7 +81,7 @@ def build(which):
     elif which == 'crops':
         S, LONG = crops_tables(D)
         cols = BASE_COLS + CROP_COLS + [('boundary_licence', '', 'Licence of the district boundary')]
-        title, layer, folder, suffix = 'Crop Production by District (MapSPAM SPAM 2020 v2.2)', 'crops', 'Crop_Production', 'Crop_Production'
+        title, layer, folder, suffix = 'Crop Production (MapSPAM SPAM 2020 v2.2)', 'crops', 'Crop_Production', 'Crop_Production'
         about = {'title': title,
           'source': 'IFPRI MapSPAM, Global Spatially-Disaggregated Crop Production Statistics for 2020, version 2.2 (SPAM2020V2r2, April 2026), 5 arc-minute grid, all technologies (irrigated + rainfed)',
           'citation': 'International Food Policy Research Institute (IFPRI), 2025, "Global Spatially-Disaggregated Crop Production Statistics Data for 2020 Version 2.0.0", https://doi.org/10.7910/DVN/SWPENT, Harvard Dataverse (release V2r2).',

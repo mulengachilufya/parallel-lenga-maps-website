@@ -111,7 +111,7 @@ def soil_nutrients(iso):
             choropleth(g, 'soc_0_20_mean', 'Mean topsoil organic carbon by district', 'YlOrBr', 'g/kg', decimals=1),
             Paragraph('Most acidic districts', H2), top_table(s, ('shapeName', 'District'), [('ph_mean', 'pH', 1), ('soc_0_20_mean', 'Org. carbon g/kg', 1), ('n_total_mean', 'N g/kg', 2), ('p_ext_mean', 'P mg/kg', 1), ('k_ext_mean', 'K mg/kg', 0)], n=12)]
     notes = ['Values are modelled predictions at 30 m averaged per district. Soils vary strongly within a district; sample fields before fertiliser or liming decisions.']
-    return 'Soil nutrients and pH by district', os.path.basename(f), 'It describes modelled topsoil properties averaged for every district.', secs, a, notes
+    return 'Soil nutrients and pH', os.path.basename(f), 'It describes modelled topsoil properties averaged for every district.', secs, a, notes
 
 def crop_suitability(iso):
     f = f'{O}/Crop_Suitability_GAEZv5/{iso}_Crop_Suitability_Districts_GAEZv5.gpkg'; a = about_of(f)
@@ -209,7 +209,7 @@ def power_plants(iso):
             Paragraph('Plants by energy source', H2), table([['Source', 'Plants', 'With capacity', 'Tagged MW']] + [[txt(r.energy_source), fmt(r.plants), fmt(r.with_capacity), fmt(r.capacity_mw_known, 1)] for r in s.itertuples()], [60 * mm, 30 * mm, 35 * mm, 35 * mm]),
             Paragraph('Largest mapped plants', H2), table([['Plant', 'Source', 'MW', 'Operator', 'Start']] + [[txt(r.name, 'Unnamed', 34), txt(r.energy_source, n=14), fmt(r.capacity_mw, 1), txt(r.operator, n=26), txt(r.start_date, '', 10)] for r in top.itertuples()], [55 * mm, 25 * mm, 18 * mm, 55 * mm, 20 * mm])]
     notes = ['Community mapped data that changes continuously. Coverage and attributes vary; confirm plant status and capacity with the utility or regulator.']
-    return 'Existing power plants', os.path.basename(f), 'It describes power plants mapped in OpenStreetMap with their source, capacity and operator.', secs, a, notes
+    return 'Power plants', os.path.basename(f), 'It describes power plants mapped in OpenStreetMap with their source, capacity and operator.', secs, a, notes
 
 def _mineral_map(iso, f, layers):
     import matplotlib.pyplot as plt, io
