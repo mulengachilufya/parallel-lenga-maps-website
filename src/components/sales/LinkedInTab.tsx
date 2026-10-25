@@ -6,8 +6,8 @@
  * two of their posts, then three days after the thank-you send the message
  * about Lenga Maps with the price and an ask for a 10 minute video call.
  *
- * Nothing is sent from here. Each step shows the message ready to copy and
- * a button to open their profile; pressing "I sent it" moves them on and
+ * Nothing is sent from here. Every card shows the message ready to copy and
+ * a button to open (or find) their profile; pressing "I sent it" moves them on and
  * writes it on the account's timeline.
  */
 
@@ -93,7 +93,9 @@ function PersonCard({ p, step, due, voice, onSaved }: {
 }) {
   const partner = p.account.pipeline === 'partner'
   // Partners get an ask to work together in place of the pricing message.
-  const meta = partner && step === 'pitch' ? { ...LI_STEP.pitch, label: 'Suggest working together' } : LI_STEP[step]
+  // No profile yet: the same card as with one, with the full message from the start, plus finding them.
+  const finding = step === 'find'
+  const meta = partner && step === 'pitch' ? { ...LI_STEP.pitch, label: 'Suggest working together' } : LI_STEP[finding ? 'connect' : step]
   const first = firstName(p.name)
   const [hook, setHook] = useState(p.li?.hook ?? '')
   const [url, setUrl] = useState('')
@@ -137,7 +139,7 @@ function PersonCard({ p, step, due, voice, onSaved }: {
   const profile = p.linkedin_url
   const done = (action: LiAction, extra: Record<string, unknown> = {}) => patch({ action, ...extra }, action)
   const notYet = due && Date.parse(due) > Date.now()
-  const at = TRACK.indexOf(step)
+  const at = TRACK.indexOf(finding ? 'connect' : step)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
@@ -190,7 +192,22 @@ function PersonCard({ p, step, due, voice, onSaved }: {
         </label>
       )}
 
-      {step === 'find' && (
+      {kind && (
+        <div className="mt-3">
+          <textarea className={`${inputCls} leading-relaxed`} rows={Math.min(16, Math.max(kind === 'connect' ? 6 : 3, text.split('\n').length + (kind === 'pitch' ? 3 : 1)))}
+                    value={text} onChange={(e) => setText(e.target.value)} onBlur={saveText} aria-label="Message" />
+          <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-gray-400">
+            <span>
+              {kind === 'connect' && <>Add it as a note on the request. <span className={text.length > LI_CONNECT_LIMIT ? 'text-red-600 font-semibold' : ''}>{text.length}/{LI_CONNECT_LIMIT}</span></>}
+              {kind === 'thank' && 'Short and warm. No pitch yet.'}
+              {kind === 'pitch' && (notYet ? `Ready, but wait until ${LI_PITCH_AFTER_DAYS} days after the thank-you.` : partner ? 'A partner: no pricing, an ask to explore working together.' : 'Free to start, the price, and the ask for a 10 minute call.')}
+            </span>
+            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner, voice })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
+          </div>
+        </div>
+      )}
+
+      {finding && (
         <div className="mt-3 space-y-2">
           {/* A real name searches for that person; with no name yet, search the organisation itself and pick its decision maker. */}
           <a href={first ? liFindUrl(p.name, p.account.name) : liOrgSearchUrl(p.account.name)} target="_blank" rel="noreferrer"
@@ -201,30 +218,7 @@ function PersonCard({ p, step, due, voice, onSaved }: {
           {!first && (
             <input className={`${inputCls} max-w-xl`} placeholder="Their name and role, e.g. Jane Banda, Managing Director" value={who} onChange={(e) => setWho(e.target.value)} />
           )}
-          <div className="flex gap-2 max-w-xl">
-            <input className={inputCls} placeholder="Paste their profile link (linkedin.com/in/...)" value={url} onChange={(e) => setUrl(e.target.value)} />
-            <button disabled={!!busy || !url.trim() || (!first && !who.trim())} onClick={() => {
-              // "Jane Banda, Managing Director" -> name and title
-              const [n, ...t] = who.split(',')
-              void patch({ linkedin_url: url, ...(first ? {} : { name: n.trim(), title: t.join(',').trim() || null }) }, 'url').then((ok) => { if (ok) { setUrl(''); setWho('') } })
-            }}
-                    className="shrink-0 rounded-lg border border-gray-200 text-sm px-3 py-2 text-gray-700 disabled:opacity-40">Save</button>
-          </div>
-        </div>
-      )}
-
-      {kind && (
-        <div className="mt-3">
-          <textarea className={`${inputCls} leading-relaxed`} rows={Math.min(16, Math.max(3, text.split('\n').length + (kind === 'pitch' ? 3 : 1)))}
-                    value={text} onChange={(e) => setText(e.target.value)} onBlur={saveText} aria-label="Message" />
-          <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-gray-400">
-            <span>
-              {kind === 'connect' && <>Add it as a note on the request. <span className={text.length > LI_CONNECT_LIMIT ? 'text-red-600 font-semibold' : ''}>{text.length}/{LI_CONNECT_LIMIT}</span></>}
-              {kind === 'thank' && 'Short and warm. No pitch yet.'}
-              {kind === 'pitch' && (notYet ? `Ready, but wait until ${LI_PITCH_AFTER_DAYS} days after the thank-you.` : partner ? 'A partner: no pricing, an ask to explore working together.' : 'Free to start, the price, and the ask for a 10 minute call.')}
-            </span>
-            {edited && <button onClick={() => { setText(liMessage(kind, { first, org: p.account.name, hook: p.li?.hook ?? null, partner, voice })); void patch({ message: { kind, text: null } }, 'save') }} className="hover:text-gray-700">Back to the standard text</button>}
-          </div>
+          <input className={`${inputCls} max-w-xl`} placeholder="Paste their profile link (linkedin.com/in/...)" value={url} onChange={(e) => setUrl(e.target.value)} />
         </div>
       )}
 
@@ -250,8 +244,15 @@ function PersonCard({ p, step, due, voice, onSaved }: {
           </a>
         )}
         {meta.action && (
-          <button disabled={!!busy || (kind === 'connect' && text.length > LI_CONNECT_LIMIT)}
-                  onClick={() => void done(meta.action!, kind ? { text } : {})}
+          <button disabled={!!busy || (kind === 'connect' && text.length > LI_CONNECT_LIMIT) || (finding && (!url.trim() || (!first && !who.trim())))}
+                  onClick={() => void (async () => {
+                    if (finding) {
+                      // "Jane Banda, Managing Director" -> name and title
+                      const [n, ...t] = who.split(',')
+                      if (!(await patch({ linkedin_url: url, ...(first ? {} : { name: n.trim(), title: t.join(',').trim() || null }) }, meta.action!))) return
+                    }
+                    await done(meta.action!, kind ? { text } : {})
+                  })()}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#0D2B45] text-white text-sm font-semibold px-4 py-2 disabled:opacity-40">
             {busy === meta.action ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {meta.button}
           </button>
@@ -271,7 +272,7 @@ function PersonCard({ p, step, due, voice, onSaved }: {
             </button>
           </>
         )}
-        {step !== 'closed' && step !== 'find' && (
+        {step !== 'closed' && !finding && (
           closing ? (
             <span className="inline-flex items-center gap-1 flex-wrap">
               {LI_CLOSE_REASONS.map((r) => (
