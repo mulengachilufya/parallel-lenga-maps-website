@@ -1,0 +1,48 @@
+name: Fix catalogue (Oct 2026)
+
+# One-off: withholds low-input maize from Crop Suitability (the FAO layer is
+# incomplete), withholds seven empty island files, rebuilds the country
+# profiles and crop suitability reports, and uploads the corrected files over
+# the same keys. See scripts/district-datasets/fix_oct2026.py.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build everything but upload and delete nothing'
+        type: boolean
+        default: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin
+          pip install -q boto3 geopandas rasterio matplotlib reportlab mapclassify pyogrio
+      - name: Fix
+        working-directory: scripts/district-datasets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          if [ "$DRY" = "true" ]; then python fix_oct2026.py --dry-run; else python fix_oct2026.py; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rebuilt-pdfs
+          path: |
+            scripts/district-datasets/out/Country_Profiles/*.pdf
+            scripts/district-datasets/out/Dataset_Reports/*.pdf
