@@ -50,6 +50,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
     await db.from('sales_contacts').update({ linkedin_url: url }).eq('id', contactId)
     contact.linkedin_url = url
   }
+  // The decision maker found on LinkedIn, replacing a role placeholder.
+  const name = str(body.name, 120)
+  if (name) {
+    const title = str(body.title, 160)
+    await db.from('sales_contacts').update({ name, ...(title ? { title } : {}) }).eq('id', contactId)
+    contact.name = name
+  }
   if ('hook' in body) patch.hook = str(body.hook, 300)
   if (body.message && typeof body.message === 'object') {
     const m = body.message as { kind?: unknown; text?: unknown }
@@ -96,5 +103,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
       }
     }
   }
-  return NextResponse.json({ ok: true, li: row, linkedin_url: contact.linkedin_url })
+  return NextResponse.json({ ok: true, li: row, linkedin_url: contact.linkedin_url, name: contact.name })
 }
