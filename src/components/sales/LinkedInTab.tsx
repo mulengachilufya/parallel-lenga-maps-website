@@ -30,7 +30,7 @@ interface Person {
 }
 type View = 'todo' | 'waiting' | 'find' | 'meeting' | 'closed' | 'all'
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'todo', label: 'To do now' }, { id: 'waiting', label: 'Waiting' }, { id: 'find', label: 'No profile yet' },
+  { id: 'todo', label: 'To do now' }, { id: 'waiting', label: 'Waiting' }, { id: 'find', label: 'Find them' },
   { id: 'meeting', label: 'Calls booked' }, { id: 'closed', label: 'Closed' }, { id: 'all', label: 'Everyone' },
 ]
 // The track, left to right, for the progress dots.
@@ -68,7 +68,13 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
     for (const r of rows) c[r.view]++
     return c
   }, [rows])
-  useEffect(() => { if (people) onCount?.(counts.todo) }, [people, counts.todo, onCount])
+  // Finding someone is work too, so the tab badge counts both.
+  useEffect(() => { if (people) onCount?.(counts.todo + counts.find) }, [people, counts.todo, counts.find, onCount])
+  // Open on the people to find when nothing else is due today.
+  const [opened, setOpened] = useState(false)
+  useEffect(() => {
+    if (people && !opened) { setOpened(true); if (!counts.todo && counts.find) setView('find') }
+  }, [people, opened, counts.todo, counts.find])
 
   function updated(id: string, li: LinkedInRow, linkedin_url: string | null, name?: string) {
     setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li, linkedin_url, ...(name ? { name } : {}) } : p)) ?? ps)

@@ -27,7 +27,7 @@ export interface Draft {
   linkedin?: ChannelTouch | null
 }
 type View = 'draft' | 'sent' | 'discarded'
-interface Payload { drafts: Draft[]; counts: Record<View, number>; sent_today: number; per_day: number }
+interface Payload { drafts: Draft[]; counts: Record<View, number>; sent_today: number; per_day: number; no_email?: number }
 
 export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
   const [view, setView] = useState<View>('draft')
@@ -63,10 +63,10 @@ export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (
             <p className="text-sm text-gray-600 mt-1">
               {pipeline === 'partner'
                 ? 'Each one proposes working together, written for that partner. Read it, change anything you like, then press Send. It goes from your address with an opt-out link, lands on their timeline, and the partnership moves to Intro made.'
-                : 'Each one is written for that person. Read it, change anything you like, then press Send. It goes from your address with an opt-out link, lands on their timeline, and a call follow-up is planned for you. LinkedIn runs alongside it in the LinkedIn tab.'}
+                : 'Each one is written for that person. Read it, change anything you like, then press Send. It goes from your address with an opt-out link, lands on their timeline, and the follow-up email is planned for you. LinkedIn runs alongside it in the LinkedIn tab.'}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              South Africa: POPIA allows one unsolicited email, so after this the follow-ups are LinkedIn and a call, never another email unless they reply.
+              South Africa: POPIA allows one unsolicited email, so after this the follow-ups are on LinkedIn, never another email unless they reply.
             </p>
           </div>
           <div className={`rounded-xl px-3 py-2 text-sm ${atLimit ? 'bg-amber-50 text-amber-800' : 'bg-gray-50 text-gray-700'}`}>
@@ -74,6 +74,11 @@ export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (
             <span className="block text-xs text-gray-500">Spread them out so they don&apos;t land in spam</span>
           </div>
         </div>
+        {!!data.no_email && (
+          <p className="mt-3 rounded-lg bg-[#E8F1F8] px-3 py-2 text-xs text-[#0D2B45]">
+            {data.no_email.toLocaleString()} more drafts are kept for people with no email address yet. They are on the LinkedIn track; each one appears here as soon as an address is added.
+          </p>
+        )}
         <div className="mt-4 flex gap-1.5 flex-wrap">
           {(['draft', 'sent', 'discarded'] as View[]).map((v) => (
             <button key={v} onClick={() => setView(v)}

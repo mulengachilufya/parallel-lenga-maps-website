@@ -329,11 +329,11 @@ export function fill(text: string, f: MergeFields): string {
 // ── The outreach sequence ───────────────────────────────────────────────────
 
 // LinkedIn runs as its own track in the LinkedIn tab (src/lib/sales/linkedin.ts),
-// so the email sequence no longer carries LinkedIn steps.
+// so the email sequence no longer carries LinkedIn steps. Nobody is lined up for
+// a call before they reply: a call is booked from their reply, not scheduled.
 export const SEQUENCE: { day: number; kind: 'email' | 'linkedin' | 'call'; template: string; title: string }[] = [
   { day: 0,  kind: 'email',    template: 'intro',      title: 'Send the first email' },
   { day: 5,  kind: 'email',    template: 'follow_up',  title: 'Send the follow-up email' },
-  { day: 14, kind: 'call',     template: 'call',       title: 'Call them' },
   { day: 21, kind: 'email',    template: 'breakup',    title: 'Send the last email' },
 ]
 
