@@ -13,11 +13,14 @@ import { Loader2 } from 'lucide-react'
 import DraftsTab from '@/components/sales/DraftsTab'
 import LinkedInTab from '@/components/sales/LinkedInTab'
 import SentTab, { type SentPayload } from '@/components/sales/SentTab'
+import OutcomesTab from '@/components/sales/OutcomesTab'
+import CountriesTab from '@/components/sales/CountriesTab'
 import { api } from '@/lib/sales/client'
 
-type Tab = 'email' | 'linkedin' | 'sent'
+type Tab = 'email' | 'linkedin' | 'sent' | 'outcomes' | 'countries'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'email', label: 'Email drafts' }, { id: 'linkedin', label: 'LinkedIn drafts' }, { id: 'sent', label: 'Sent' },
+  { id: 'outcomes', label: 'Outcomes' }, { id: 'countries', label: 'Countries' },
 ]
 
 export default function Wrapper() {
@@ -27,11 +30,11 @@ export default function Wrapper() {
 function PartnersPage() {
   const params = useSearchParams()
   const [tab, setTab] = useState<Tab>(TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') as Tab : 'email')
-  const [counts, setCounts] = useState<Record<Tab, number | null>>({ email: null, linkedin: null, sent: null })
+  const [counts, setCounts] = useState<Record<Tab, number | null>>({ email: null, linkedin: null, sent: null, outcomes: null, countries: null })
 
   const loadCounts = useCallback(() => {
     api<SentPayload>('/api/admin/sales/sent?pipeline=partner')
-      .then((d) => setCounts({ email: d.counts.email_drafts, linkedin: d.counts.linkedin_drafts, sent: d.email.length + d.linkedin.length }))
+      .then((d) => setCounts((c) => ({ ...c, email: d.counts.email_drafts, linkedin: d.counts.linkedin_drafts, sent: d.email.length + d.linkedin.length })))
       .catch(() => {})
   }, [])
   useEffect(() => { loadCounts() }, [loadCounts])
@@ -63,6 +66,8 @@ function PartnersPage() {
         {tab === 'email' && <DraftsTab pipeline="partner" onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
         {tab === 'linkedin' && <LinkedInTab pipeline="partner" onCount={(n) => setCounts((c) => ({ ...c, linkedin: n }))} />}
         {tab === 'sent' && <SentTab pipeline="partner" />}
+        {tab === 'outcomes' && <OutcomesTab pipeline="partner" />}
+        {tab === 'countries' && <CountriesTab pipeline="partner" />}
       </div>
     </div>
   )
