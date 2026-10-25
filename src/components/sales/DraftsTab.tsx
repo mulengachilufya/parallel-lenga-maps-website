@@ -14,7 +14,8 @@ import Link from 'next/link'
 import { AlertTriangle, Check, ChevronDown, ChevronRight, ExternalLink, Loader2, Mail, RotateCcw, Send, Trash2 } from 'lucide-react'
 import { sectorLabel } from '@/lib/sales/playbook'
 import { api, ago, country } from '@/lib/sales/client'
-import { LinkedInIcon, inputCls } from './ui'
+import { LinkedInIcon, OtherChannelNote, inputCls } from './ui'
+import type { ChannelTouch } from '@/lib/sales/channels'
 
 export interface Draft {
   id: string; account_id: string; contact_id: string | null; subject: string; body: string
@@ -22,6 +23,8 @@ export interface Draft {
   status: 'draft' | 'sent' | 'discarded'; sent_at: string | null; created_at: string
   account: { id: string; name: string; country_iso3: string | null; sector: string | null; website: string | null } | null
   contact: { id: string; name: string; title: string | null; email: string | null; linkedin_url: string | null; opted_out_at: string | null } | null
+  /** What the LinkedIn track has already done with this organisation. */
+  linkedin?: ChannelTouch | null
 }
 type View = 'draft' | 'sent' | 'discarded'
 interface Payload { drafts: Draft[]; counts: Record<View, number>; sent_today: number; per_day: number }
@@ -172,6 +175,8 @@ function DraftCard({ d, base, onDone, onRestored }: {
         </div>
         {d.status === 'sent' && <span className="inline-flex items-center gap-1 rounded-full bg-green-50 text-green-800 text-xs font-semibold px-2.5 py-1"><Check size={13} /> Sent {ago(d.sent_at)}</span>}
       </div>
+
+      {d.status === 'draft' && <OtherChannelNote channel="linkedin" touch={d.linkedin} />}
 
       {(d.research || d.sources?.length > 0) && (
         <div className="mt-3 rounded-xl bg-[#F7F4EC] px-3 py-2">

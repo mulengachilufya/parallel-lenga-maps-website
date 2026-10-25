@@ -7,7 +7,8 @@
  * Admin only. Listing never sends anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { allRows, db, jsonError, requireAdmin, voiceFor } from '@/lib/sales/server'
+import { allRows, db, jsonError, requireAdmin } from '@/lib/sales/server'
+import { CHANNEL_VOICE, channelOwners, touches } from '@/lib/sales/channels'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,13 +17,14 @@ export async function GET(req: NextRequest) {
   if ('denied' in gate) return gate.denied
   const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
-  const [contacts, rows, voice] = await Promise.all([
+  const [contacts, rows, other, owners] = await Promise.all([
     allRows((f, t) => db.from('sales_contacts')
       .select('id, account_id, name, title, email, linkedin_url, is_primary, opted_out_at, account:sales_accounts!inner(id, name, country_iso3, sector, stage, pipeline)')
       .is('opted_out_at', null).neq('account.stage', 'lost').eq('account.pipeline', pipeline)
       .order('created_at', { ascending: true }).range(f, t)),
     allRows((f, t) => db.from('sales_linkedin').select('*').range(f, t)),
-    voiceFor(gate.email),
+    touches(pipeline),
+    channelOwners(),
   ])
   if (contacts.error || rows.error) {
     console.error('[admin/sales/linkedin] list failed', contacts.error ?? rows.error)
@@ -30,7 +32,9 @@ export async function GET(req: NextRequest) {
   }
   const byContact = new Map((rows.data ?? []).map((r) => [r.contact_id as string, r]))
   return NextResponse.json({
-    people: (contacts.data ?? []).map((c) => ({ ...c, li: byContact.get(c.id) ?? null })),
-    voice,
+    // LinkedIn is Wiza's channel: messages in her voice whoever is looking,
+    // and each person carries what email has already done with their organisation.
+    people: (contacts.data ?? []).map((c) => ({ ...c, li: byContact.get(c.id) ?? null, email: other[c.account_id]?.email ?? null })),
+    voice: CHANNEL_VOICE.linkedin, owners,
   })
 }
