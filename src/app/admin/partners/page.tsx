@@ -64,7 +64,7 @@ function PartnersPage() {
 
       <div className="mt-5">
         {tab === 'email' && <DraftsTab pipeline="partner" onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
-        {tab === 'linkedin' && <LinkedInTab pipeline="partner" onCount={(n) => setCounts((c) => ({ ...c, linkedin: n }))} />}
+        {tab === 'linkedin' && <LinkedInTab pipeline="partner" onCount={(n) => { setCounts((c) => ({ ...c, linkedin: n })); loadCounts() }} />}
         {tab === 'sent' && <SentTab pipeline="partner" />}
         {tab === 'outcomes' && <OutcomesTab pipeline="partner" />}
         {tab === 'countries' && <CountriesTab pipeline="partner" />}
