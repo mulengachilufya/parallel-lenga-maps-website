@@ -99,10 +99,10 @@ export default function CatalogList({ slug, hideWhenEmpty = false }: { slug: Dat
                 className={`w-full flex items-center justify-between gap-2 text-left text-xs py-2 px-3 rounded-lg transition-colors ${
                   !hasAccess ? 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                   : downloading === f.id ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-50 text-navy hover:bg-gray-100'}`}>
+                  : 'bg-[#0D2B45] text-white hover:bg-[#163d5f]'}`}>
                 <span className="min-w-0">
                   <span className="block font-semibold truncate">{f.label}</span>
-                  <span className="block text-[11px] text-gray-400">{showReports ? 'Download GIS file · ' : ''}{f.file_format} · {f.file_size_mb} MB</span>
+                  <span className={`block text-[11px] ${hasAccess && downloading !== f.id ? 'text-white/70' : 'opacity-70'}`}>Download GIS file · {f.file_format} · {f.file_size_mb} MB</span>
                 </span>
                 <span className="shrink-0">{!hasAccess ? '🔒' : downloading === f.id ? '✓' : <Download size={13} />}</span>
               </button>

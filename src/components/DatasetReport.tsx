@@ -43,15 +43,11 @@ export function useDatasetReports(slug: DatasetSlug) {
   return reports
 }
 
-/** "Download PDF version" line shown directly under a country's GIS file. */
+/** The PDF summary: a quiet second option under a country's GIS file, which stays the main download. */
 export function ReportButton({ slug, report }: { slug: DatasetSlug; report?: CatalogFile }) {
   const { openGate, checkAccess, consumeDownload, notifyUnavailable } = useDownloadGate()
   const [busy, setBusy] = useState(false)
-  if (!report) return (
-    <div className="w-full flex items-center gap-2 text-[11px] py-1.5 px-3 rounded-lg bg-gray-50/60 text-gray-400">
-      <FileText size={12} /> PDF version coming soon
-    </div>
-  )
+  if (!report) return null
   const hasAccess = checkAccess(slug)
   async function open() {
     if (!report) return
@@ -64,15 +60,8 @@ export function ReportButton({ slug, report }: { slug: DatasetSlug; report?: Cat
   }
   return (
     <button onClick={open} disabled={busy}
-      className={`w-full flex items-center justify-between gap-2 text-left text-xs py-2 px-3 rounded-lg transition-colors ${
-        !hasAccess ? 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-        : busy ? 'bg-green-100 text-green-700'
-        : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`}>
-      <span className="min-w-0">
-        <span className="block font-semibold">Download PDF version</span>
-        <span className="block text-[11px] text-gray-500">Includes insights and notes · PDF · {report.file_size_mb} MB</span>
-      </span>
-      <span className="shrink-0">{!hasAccess ? '🔒' : busy ? '✓' : <FileText size={13} />}</span>
+      className="self-start inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800 hover:underline px-1">
+      {!hasAccess ? '🔒' : busy ? '✓' : <FileText size={11} />} Or a PDF summary · {report.file_size_mb} MB
     </button>
   )
 }
