@@ -123,7 +123,7 @@ def one(iso):
     if 'area_ha' in g:
         su = suitable(iso, g[['shapeID', 'area_ha']].dropna())
         if su is not None and not len(su):
-            story += [Spacer(1, 3 * mm), Paragraph('No crop reaches medium suitability or better anywhere in the country under low-input rain-fed farming (GAEZ v5). '
+            story += [Spacer(1, 3 * mm), Paragraph('No crop reaches medium suitability or better on even 0.05 percent of the country under low-input rain-fed farming (GAEZ v5). '
                                                    'Rain-fed farming here depends on irrigation or very local conditions.', P)]
         elif su is not None:
             story += [Spacer(1, 3 * mm), Paragraph('Most suitable crops for low-input rain-fed farming (share of country area rated medium or better, GAEZ v5)', P),
