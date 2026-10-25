@@ -1,98 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { DATASET_PHOTO, photoFor } from '@/lib/dataset-previews'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
-  ArrowRight, Download, Clock, ExternalLink, ChevronDown,
+  ArrowRight, Download, Clock,
 } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
-import type { Dataset, DatasetSource } from '@/lib/supabase'
+import type { Dataset } from '@/lib/supabase'
 import { IndustryChips, inIndustry } from '@/lib/industries'
 
 // Display order only — every dataset is included with any paid plan now.
 const ORDERED_DATASETS = sortDatasetsByTier(DATASETS)
-
-/**
- * Compact "show details" panel that replaces the old per-card tip box and
- * multi-row Data Sources panel. Default state is a single line; users who
- * want the back-story click to expand. Keeps the grid scannable — GIS pros
- * decide on technical badges, not paragraphs.
- */
-const DATASET_TIPS: Record<number, string> = {
-  1:  'Base maps, census planning, and jurisdiction analysis.',
-  3:  'Filter by Strahler order. River and stream networks for drainage, flood and hydrological analysis.',
-  4:  'Clipped to country boundaries from ESA WorldCover 2021 (10 m). 10 classes from tree cover to built-up.',
-  5:  'Long-term drought severity. Negative = drought, positive = wet. Pairs with rainfall.',
-  6:  'Cross-border aquifer extents for transboundary groundwater management, recharge studies and borehole planning.',
-  8:  'Subnational counts at ADM1/ADM2 from each country\'s latest official census.',
-  9:  'Accessibility analysis, logistics planning, infrastructure gap assessment.',
-  10: 'Biodiversity conservation, flood modelling, environmental compliance.',
-  11: 'Precision agriculture, land suitability, erosion risk. Multi-layer soil properties.',
-  12: 'Conservation planning, wildlife corridor mapping, environmental compliance.',
-  13: 'Filter by Strahler order. ≥4 = named, navigable rivers, with discharge and length attributes.',
-  14: 'Level 6 drainage basins (2,000–10,000 km²) for catchment delineation, runoff and flood-risk modelling.',
-  15: 'Annual rainfall totals for agricultural planning, water catchments, climate baselines.',
-  16: 'Monthly mean temperature climatology for habitat modelling and crop suitability.',
-  17: 'Natural lakes and major reservoirs from HydroLAKES — water-resource, fisheries and flood-extent analysis.',
-}
-
-function CompactSources({
-  sources, color,
-}: { sources: DatasetSource[]; color: string }) {
-  const [open, setOpen] = useState(false)
-  const institutions = sources.map((s) => s.institution.split(' · ')[0]).join(', ')
-
-  return (
-    <div className="mt-3 border border-gray-100 rounded-lg overflow-hidden text-[11px]">
-      <button
-        type="button"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o) }}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
-      >
-        <span className="font-semibold uppercase tracking-wider" style={{ color }}>
-          Sources
-        </span>
-        <span className="text-gray-500 truncate flex-1 text-left">{institutions}</span>
-        <ChevronDown
-          size={12}
-          className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {open && (
-        <div className="divide-y divide-gray-50">
-          {sources.map((src, idx) => (
-            <div key={idx} className="px-3 py-2 bg-white">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-semibold text-navy text-[11px] leading-tight">
-                    {src.institution}
-                  </p>
-                  <p className="text-gray-500 text-[10.5px] mt-0.5 leading-snug">
-                    {src.contribution}
-                  </p>
-                </div>
-                <a
-                  href={src.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center gap-1 text-[10px] text-gray-400 hover:text-primary transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink size={10} />
-                  Source
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function Badge({ label, color }: { label: string; color?: string }) {
   return (
@@ -109,20 +30,9 @@ function Badge({ label, color }: { label: string; color?: string }) {
 }
 
 function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean }) {
-  const tip = DATASET_TIPS[dataset.id]
-  const photo = photoFor(dataset.id)
   return (
     <>
-      {photo ? (
-        <div className="h-44 w-full relative overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.src} alt={dataset.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          <span className="absolute bottom-2.5 right-2 text-[10px] text-white/90 drop-shadow">Photo: {photo.credit}, {photo.licence}</span>
-          <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ backgroundColor: dataset.color }} />
-        </div>
-      ) : (
-        <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
-      )}
+      <div className="h-1.5 w-full" style={{ backgroundColor: dataset.color }} />
       <div className="p-5">
         {/* Top row: icon + name + tier pill */}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -154,8 +64,8 @@ function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean })
           </div>
         </div>
 
-        {/* Description — 2 lines max */}
-        <p className="text-[12.5px] text-gray-600 leading-snug mb-3 line-clamp-2">
+        {/* One sentence: what it is. */}
+        <p className="text-[12.5px] text-gray-600 leading-snug mb-3 line-clamp-1">
           {dataset.description}
         </p>
 
@@ -168,19 +78,6 @@ function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean })
           {dataset.last_update && <Badge label={dataset.last_update} />}
           {dataset.size_label && <Badge label={dataset.size_label} />}
         </div>
-
-        {/* Tip — single line, expand link if truncated */}
-        {tip && (
-          <p className="text-[11.5px] text-gray-500 leading-snug border-l-2 pl-2 mb-2"
-             style={{ borderColor: `${dataset.color}40` }}>
-            <span className="font-semibold text-navy">Tip · </span>{tip}
-          </p>
-        )}
-
-        {/* Compact sources panel — only for multi-source datasets */}
-        {dataset.sources && dataset.sources.length > 0 && (
-          <CompactSources sources={dataset.sources} color={dataset.color} />
-        )}
 
         {/* CTA */}
         <div className="mt-4">
@@ -383,18 +280,6 @@ export default function DatasetsPage() {
             </div>
           </motion.div>
         </div>
-      </section>
-
-      {/* Credits for the card photographs (CC BY asks for a link to each). */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        <details className="text-xs text-gray-500">
-          <summary className="cursor-pointer font-semibold text-gray-600">Photo credits</summary>
-          <ul className="mt-2 grid sm:grid-cols-2 gap-x-6 gap-y-1">
-            {Object.entries(DATASET_PHOTO).map(([id, p]) => (
-              <li key={id}><a href={p.href} target="_blank" rel="noreferrer" className="hover:underline">{p.credit}</a>, {p.licence}</li>
-            ))}
-          </ul>
-        </details>
       </section>
 
       <Footer />
