@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { previewFor } from '@/lib/dataset-previews'
+import { DATASET_PHOTO, photoFor } from '@/lib/dataset-previews'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -110,13 +110,14 @@ function Badge({ label, color }: { label: string; color?: string }) {
 
 function DatasetCard({ dataset, isLive }: { dataset: Dataset; isLive: boolean }) {
   const tip = DATASET_TIPS[dataset.id]
-  const preview = previewFor(dataset.id)
+  const photo = photoFor(dataset.id)
   return (
     <>
-      {preview ? (
-        <div className="h-32 w-full relative overflow-hidden">
+      {photo ? (
+        <div className="h-44 w-full relative overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt={`Map preview: ${dataset.name}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <img src={photo.src} alt={dataset.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <span className="absolute bottom-2.5 right-2 text-[10px] text-white/90 drop-shadow">Photo: {photo.credit}, {photo.licence}</span>
           <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ backgroundColor: dataset.color }} />
         </div>
       ) : (
@@ -382,6 +383,18 @@ export default function DatasetsPage() {
             </div>
           </motion.div>
         </div>
+      </section>
+
+      {/* Credits for the card photographs (CC BY asks for a link to each). */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <details className="text-xs text-gray-500">
+          <summary className="cursor-pointer font-semibold text-gray-600">Photo credits</summary>
+          <ul className="mt-2 grid sm:grid-cols-2 gap-x-6 gap-y-1">
+            {Object.entries(DATASET_PHOTO).map(([id, p]) => (
+              <li key={id}><a href={p.href} target="_blank" rel="noreferrer" className="hover:underline">{p.credit}</a>, {p.licence}</li>
+            ))}
+          </ul>
+        </details>
       </section>
 
       <Footer />
