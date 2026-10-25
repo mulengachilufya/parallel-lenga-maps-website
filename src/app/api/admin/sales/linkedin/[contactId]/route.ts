@@ -3,6 +3,7 @@
  * LinkedIn track, or edit what we have on them. Body, any of:
  *   { linkedin_url }              their profile (saved on the contact)
  *   { hook }                      what we noticed about them, used in the messages
+ *   { left: true }                they no longer work there: back to finding the decision maker
  *   { message: { kind, text } }   an edited connect / thank / pitch message
  *   { action, text?, reason? }    a step done: requested | connected | thanked |
  *                                 comment1 | comment2 | pitched | replied |
@@ -49,6 +50,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
     if (body.linkedin_url && !url) return jsonError('validation', 400, 'Paste the address of their profile, the one with linkedin.com/in/ in it.')
     await db.from('sales_contacts').update({ linkedin_url: url }).eq('id', contactId)
     contact.linkedin_url = url
+  }
+  // They have moved on: back to a placeholder, so the card searches the organisation for whoever decides now.
+  if (body.left === true) {
+    const { data: c } = await db.from('sales_contacts').select('notes').eq('id', contactId).maybeSingle()
+    const note = `${contact.name} no longer works here (seen on LinkedIn ${now.slice(0, 10)}).`
+    await db.from('sales_contacts').update({ name: 'Managing Director', title: null, linkedin_url: null, notes: [c?.notes, note].filter(Boolean).join('\n') }).eq('id', contactId)
+    contact.name = 'Managing Director'
+    contact.linkedin_url = null
+    if (existing?.messages) patch.messages = {}
   }
   // The decision maker found on LinkedIn, replacing a role placeholder.
   const name = str(body.name, 120)

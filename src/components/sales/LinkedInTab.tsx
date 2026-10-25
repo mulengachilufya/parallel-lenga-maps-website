@@ -272,6 +272,10 @@ function PersonCard({ p, step, due, voice, onSaved }: {
             </button>
           </>
         )}
+        {first && (finding || step === 'connect') && (
+          <button disabled={!!busy} onClick={() => { if (confirm(`${p.name} no longer works at ${p.account.name}? The card will then search ${p.account.name} for whoever decides now.`)) void patch({ left: true }, 'left') }}
+                  className="text-xs text-gray-500 hover:text-gray-800 px-1">Not at {p.account.name} any more</button>
+        )}
         {step !== 'closed' && !finding && (
           closing ? (
             <span className="inline-flex items-center gap-1 flex-wrap">
