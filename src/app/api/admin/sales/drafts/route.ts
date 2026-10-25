@@ -23,15 +23,16 @@ export async function GET(req: NextRequest) {
   // voice, and each card says what LinkedIn has already done with that organisation.
   const voice = CHANNEL_VOICE.email
   let q = db.from('sales_drafts')
-    .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts(id, name, title, email, linkedin_url, opted_out_at)')
-    .eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
+    .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts!inner(id, name, title, email, linkedin_url, opted_out_at)')
+    // Only people we can actually email; the rest are on the LinkedIn track alone.
+    .not('contact.email', 'is', null).eq('account.pipeline', pipeline).eq('voice', voice).order('created_at', { ascending: true }).limit(500)
   if (status !== 'all') q = q.eq('status', status)
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
   const [drafts, counts, today, other, owners] = await Promise.all([
     q,
     Promise.all((['draft', 'sent', 'discarded'] as const).map((st) => db.from('sales_drafts')
-      .select('id, account:sales_accounts!inner(pipeline)', { count: 'exact', head: true })
-      .eq('account.pipeline', pipeline).eq('voice', voice).eq('status', st))),
+      .select('id, account:sales_accounts!inner(pipeline), contact:sales_contacts!inner(email)', { count: 'exact', head: true })
+      .not('contact.email', 'is', null).eq('account.pipeline', pipeline).eq('voice', voice).eq('status', st))),
     db.from('sales_activities').select('id', { count: 'exact', head: true })
       .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString()),
     touches(pipeline),
