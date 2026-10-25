@@ -30,7 +30,8 @@ type View = 'draft' | 'sent' | 'discarded'
 interface Payload { drafts: Draft[]; counts: Record<View, number>; sent_today: number; per_day: number; no_email?: number }
 
 export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
-  const [view, setView] = useState<View>('draft')
+  // Sent emails are listed in the Sent tab; this tab is the drafts still to send.
+  const view: View = 'draft'
   const [data, setData] = useState<Payload | null>(null)
   const [err, setErr] = useState('')
 
@@ -79,14 +80,6 @@ export default function DraftsTab({ onCount, pipeline = 'sales' }: { onCount?: (
             {data.no_email.toLocaleString()} more drafts are kept for people with no email address yet. They are on the LinkedIn track; each one appears here as soon as an address is added.
           </p>
         )}
-        <div className="mt-4 flex gap-1.5 flex-wrap">
-          {(['draft', 'sent', 'discarded'] as View[]).map((v) => (
-            <button key={v} onClick={() => setView(v)}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold border ${view === v ? 'bg-[#0D2B45] text-white border-[#0D2B45]' : 'bg-white text-gray-600 border-gray-200'}`}>
-              {v === 'draft' ? 'Waiting' : v === 'sent' ? 'Sent' : 'Set aside'} · {data.counts[v]}
-            </button>
-          ))}
-        </div>
       </div>
 
       {data.drafts.length === 0 && (
