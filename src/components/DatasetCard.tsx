@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { previewFor } from '@/lib/dataset-previews'
+import { photoFor } from '@/lib/dataset-previews'
 import {
   Map, Waves, Trees, Flame, Droplets, Users, Route, CloudRain,
   Mountain, Sprout, Bird, Thermometer, Anchor,
@@ -60,7 +60,8 @@ const DATASET_ICON: Record<number, LucideIcon> = {
 export default function DatasetCard({ dataset, index, href }: DatasetCardProps) {
   const Icon = DATASET_ICON[dataset.id] ?? Map
   const accent = dataset.color // richer per-dataset accent (set in DATASETS)
-  const preview = previewFor(dataset.id)
+  const photo = photoFor(dataset.id)
+  const preview = photo?.src
 
   const card = (
     <motion.div
@@ -74,12 +75,13 @@ export default function DatasetCard({ dataset, index, href }: DatasetCardProps) 
         {/* Front */}
         <div className="flip-card-front rounded-2xl bg-white border border-gray-100 shadow-md hover:shadow-lg p-6 flex flex-col justify-between overflow-hidden">
           <div>
-            {/* A real map of the data, when we have one. */}
-            {preview && (
+            {/* A photograph of what the data is about, with its credit. */}
+            {photo && (
               <div className="-mx-6 -mt-6 mb-4 h-28 relative overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt={`Map preview: ${dataset.name}`} loading="lazy" className="w-full h-full object-cover" />
+                <img src={photo.src} alt={dataset.name} loading="lazy" className="w-full h-full object-cover" />
                 <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 40%, ${accent}55 100%)` }} />
+                <span className="absolute bottom-1 right-2 text-[9px] text-white/85 drop-shadow">Photo: {photo.credit}, {photo.licence}</span>
               </div>
             )}
             {/* Icon tile — lineart Lucide, not emoji. Background uses a
