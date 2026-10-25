@@ -14,7 +14,7 @@ export interface CatalogFacts {
 
 export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
   'crop-production': {
-    title: 'Crop area, production & yield by district',
+    title: 'Crop area, production & yield',
     facts: [
       { label: 'Source', value: 'MapSPAM SPAM 2020 v2r2' },
       { label: 'Crops', value: '46 crops in 15 groups' },
@@ -25,7 +25,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#4D7C0F',
   },
   'tree-cover-loss': {
-    title: 'Tree cover loss by district, 2001–2025',
+    title: 'Tree cover loss, 2001–2025',
     facts: [
       { label: 'Source', value: 'Hansen / UMD Global Forest Change v1.13' },
       { label: 'Years', value: '2001–2025, per year' },
@@ -36,7 +36,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#166534',
   },
   'soil-nutrients': {
-    title: 'Soil nutrients & pH by district (0–20 cm)',
+    title: 'Soil nutrients & pH (0–20 cm)',
     facts: [
       { label: 'Source', value: 'iSDAsoil, 30 m modelled' },
       { label: 'Properties', value: 'N, P, K, pH, organic carbon, eCEC, bulk density' },
@@ -47,7 +47,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#92400E',
   },
   'mining-geology': {
-    title: 'Mines, minerals & geology',
+    title: 'Mines & geology',
     facts: [
       { label: 'Mining', value: 'USGS mineral industries of Africa (2018 reference)' },
       { label: 'Geology', value: 'USGS geologic map of Africa, 1:5M' },
@@ -58,7 +58,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#7C2D12',
   },
   'solar-wind': {
-    title: 'Solar & wind resource',
+    title: 'Solar & wind',
     facts: [
       { label: 'Solar', value: 'Global Solar Atlas, April 2026 (GHI 250 m, PV output 1 km)' },
       { label: 'Wind', value: 'Global Wind Atlas 4.0 (speed & power density at 100 m)' },
@@ -69,7 +69,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#B45309',
   },
   'rainfall': {
-    title: 'Rainfall 1981–2025 by district (CHIRPS v3.0)',
+    title: 'Rainfall 1981–2025 (CHIRPS v3.0)',
     facts: [
       { label: 'Source', value: 'CHIRPS v3.0, Climate Hazards Center (2025)' },
       { label: 'Years', value: '1981–2025, one band per year' },
@@ -80,7 +80,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#1F3A8A',
   },
   'roads': {
-    title: 'Road surface type: paved / unpaved (FRST 2025)',
+    title: 'Paved & unpaved roads (FRST 2025)',
     facts: [
       { label: 'Source', value: 'FRST road surface dataset, 50 African countries (ESSD 2026)' },
       { label: 'Per road', value: 'paved / unpaved, district, length (km)' },
@@ -91,7 +91,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#A16207',
   },
   'power-plants': {
-    title: 'Existing power plants',
+    title: 'Power plants',
     facts: [
       { label: 'Source', value: 'OpenStreetMap via Overture Maps (release 2026-10-21)' },
       { label: 'Attributes', value: 'Energy source, method, capacity (MW), operator, start date' },
@@ -102,18 +102,18 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#0E7490',
   },
   'crop-suitability': {
-    title: 'Crop suitability: 29 crops by district (GAEZ v5)',
+    title: 'Crop suitability: 29 crops (GAEZ v5)',
     facts: [
       { label: 'Source', value: 'FAO / IIASA GAEZ v5 (2025), climate 2001–2020' },
       { label: 'Crops', value: 'Maize, cassava, sorghum, millets, rice, beans, soy, coffee, tea, cocoa, cashew, sugarcane and more' },
       { label: 'Management', value: 'Rain-fed, low input and high input (maize: high input only)' },
     ],
-    note: 'Per country: a district GeoPackage (share of each district rated medium or better for every crop, plus its best crops) and two 29-band GeoTIFFs at about 1 km (index 0–100). Suitability describes climate, soil and terrain under the stated management, not what is grown today: pair it with Crop Production by District. Low-input maize is withheld because the FAO source layer has no value for about half of the land; high-input maize is included.',
+    note: 'Per country: a district GeoPackage (share of each district rated medium or better for every crop, plus its best crops) and two 29-band GeoTIFFs at about 1 km (index 0–100). Suitability describes climate, soil and terrain under the stated management, not what is grown today: pair it with Crop Production. Low-input maize is withheld because the FAO source layer has no value for about half of the land; high-input maize is included.',
     credit: 'FAO & IIASA GAEZ v5 · CC BY 4.0',
     accent: '#15803D',
   },
   'built-up': {
-    title: 'Built-up area growth by district, 1975–2025',
+    title: 'Built-up area, 1975–2025',
     facts: [
       { label: 'Source', value: 'EU JRC Global Human Settlement Layer, GHS-BUILT-S R2023A' },
       { label: 'Years', value: '1975, 1990, 2000, 2010, 2020 observed · 2025 projected' },
@@ -135,7 +135,7 @@ export const CATALOG: Partial<Record<DatasetSlug, CatalogFacts>> = {
     accent: '#7C3AED',
   },
   'population': {
-    title: 'Population 2026 by district (WorldPop, 100 m)',
+    title: 'Population 2026 (WorldPop, 100 m)',
     facts: [
       { label: 'Source', value: 'WorldPop Global2 R2025A' },
       { label: 'Year', value: '2026 estimate' },

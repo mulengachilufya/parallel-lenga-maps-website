@@ -378,7 +378,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 18,
-    name: 'Crop Production by District',
+    name: 'Crop Production',
     category: 'Agriculture',
     description: 'Production, area and yield of 46 crops per district.',
     source: 'IFPRI MapSPAM (SPAM 2020 v2r2)',
@@ -394,7 +394,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 19,
-    name: 'Tree Cover Loss by District',
+    name: 'Tree Cover Loss',
     category: 'Environment & Climate',
     description: 'Tree cover in 2000 and yearly loss to 2025, per district.',
     source: 'UMD / Google Global Forest Change v1.13',
@@ -410,7 +410,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 20,
-    name: 'Soil Nutrients & pH by District',
+    name: 'Soil Nutrients & pH',
     category: 'Agriculture',
     description: 'Topsoil nutrients, pH and organic carbon per district.',
     source: 'iSDAsoil',
@@ -426,7 +426,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 21,
-    name: 'Mines, Minerals & Geology',
+    name: 'Mines & Geology',
     category: 'Mining & Geology',
     description: 'Mines, mineral sites and surface geology.',
     source: 'U.S. Geological Survey',
@@ -442,7 +442,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 22,
-    name: 'Solar & Wind Resource',
+    name: 'Solar & Wind',
     category: 'Energy',
     description: 'Solar and wind potential, with a district screening table.',
     source: 'Global Solar Atlas · Global Wind Atlas 4.0',
@@ -458,7 +458,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 23,
-    name: 'Existing Power Plants',
+    name: 'Power Plants',
     category: 'Energy',
     description: 'Power plants already built, by type and capacity.',
     source: 'OpenStreetMap via Overture Maps',
@@ -474,7 +474,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 24,
-    name: 'Crop Suitability by District',
+    name: 'Crop Suitability',
     category: 'Agriculture',
     description: 'Where 29 crops grow well, per district and at 1 km.',
     source: 'FAO / IIASA GAEZ v5 (2025)',
@@ -490,7 +490,7 @@ export const DATASETS: Dataset[] = [
   },
   {
     id: 25,
-    name: 'Built-up Area Growth by District',
+    name: 'Built-up Area',
     category: 'Socioeconomic',
     description: 'Built-up land per district from 1975 to 2020.',
     source: 'EU JRC GHSL (GHS-BUILT-S R2023A)',

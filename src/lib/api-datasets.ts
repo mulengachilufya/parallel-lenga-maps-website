@@ -381,7 +381,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'crop-production',
-    name:        'Crop production by district',
+    name:        'Crop production',
     description: 'Area, production and yield of 46 crops per district (ADM2), modelled for 2020.',
     category:    'agriculture',
     table:       'catalog_files',
@@ -391,7 +391,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'tree-cover-loss',
-    name:        'Tree cover loss by district',
+    name:        'Tree cover loss',
     description: 'Tree cover in 2000 and loss per year 2001 to 2025 per district, in hectares.',
     category:    'environment',
     table:       'catalog_files',
@@ -401,7 +401,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'soil-nutrients',
-    name:        'Soil nutrients and pH by district',
+    name:        'Soil nutrients and pH',
     description: 'District averages of topsoil N, P, K, pH, organic carbon, eCEC and bulk density (0 to 20 cm).',
     category:    'agriculture',
     table:       'catalog_files',
@@ -411,7 +411,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'mining-geology',
-    name:        'Mines, minerals and geology',
+    name:        'Mines and geology',
     description: 'Mines, deposits and mineral infrastructure, plus surface geology (1:5M), per country.',
     category:    'geology',
     table:       'catalog_files',
@@ -421,7 +421,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'solar-wind',
-    name:        'Solar and wind resource',
+    name:        'Solar and wind',
     description: 'Solar irradiation and PV output, wind speed and power density at 100 m, plus a district screening layer.',
     category:    'energy',
     table:       'catalog_files',
@@ -431,7 +431,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'power-plants',
-    name:        'Existing power plants',
+    name:        'Power plants',
     description: 'Power plants mapped in OpenStreetMap with energy source, capacity and operator.',
     category:    'energy',
     table:       'catalog_files',
@@ -451,7 +451,7 @@ export const DATASETS: DatasetSpec[] = [
   },
   {
     id:          'built-up',
-    name:        'Built-up area growth',
+    name:        'Built-up area',
     description: 'Built-up surface 1975 to 2025 per district and as a raster.',
     category:    'demographics',
     table:       'catalog_files',

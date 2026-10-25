@@ -66,7 +66,7 @@ const SECTIONS: Record<string, {
   },
   'rainfall': {
     title: '🌧️ Rainfall Data',
-    subtitle: 'CHIRPS v3.0 1981–2025 by district + yearly GeoTIFF · CHIRPS v2.0 archive below',
+    subtitle: 'CHIRPS v3.0 1981–2025 + yearly GeoTIFF · CHIRPS v2.0 archive below',
     component: () => <><CatalogList slug="rainfall" hideWhenEmpty /><div className="mt-8"><RainfallClimateList layerType="rainfall" /></div></>,
   },
   'temperature': {
@@ -120,37 +120,37 @@ const SECTIONS: Record<string, {
     component: () => <SoilList />,
   },
   'crop-production': {
-    title: '🌽 Crop Production by District',
+    title: '🌽 Crop Production',
     subtitle: 'MapSPAM SPAM 2020 v2r2 · 46 crops · GeoPackage per country',
     component: () => <CatalogList slug="crop-production" />,
   },
   'tree-cover-loss': {
-    title: '🌳 Tree Cover Loss by District',
+    title: '🌳 Tree Cover Loss',
     subtitle: 'UMD / Google Global Forest Change v1.13 · 2001–2025 · GeoPackage per country',
     component: () => <CatalogList slug="tree-cover-loss" />,
   },
   'soil-nutrients': {
-    title: '🧪 Soil Nutrients & pH by District',
+    title: '🧪 Soil Nutrients & pH',
     subtitle: 'iSDAsoil · topsoil 0–20 cm · GeoPackage per country',
     component: () => <CatalogList slug="soil-nutrients" />,
   },
   'mining-geology': {
-    title: '⛏️ Mines, Minerals & Geology',
+    title: '⛏️ Mines & Geology',
     subtitle: 'USGS · mineral industries & infrastructure, surface geology · GeoPackage per country',
     component: () => <CatalogList slug="mining-geology" />,
   },
   'solar-wind': {
-    title: '☀️ Solar & Wind Resource',
+    title: '☀️ Solar & Wind',
     subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
     component: () => <CatalogList slug="solar-wind" />,
   },
   'crop-suitability': {
-    title: '🌱 Crop Suitability by District',
+    title: '🌱 Crop Suitability',
     subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input (maize: high only) · GeoTIFF + GeoPackage',
     component: () => <CatalogList slug="crop-suitability" />,
   },
   'built-up': {
-    title: '🏙️ Built-up Area Growth by District',
+    title: '🏙️ Built-up Area',
     subtitle: 'EU JRC GHSL · 1975–2020 observed, 2025 projected · GeoTIFF + GeoPackage',
     component: () => <CatalogList slug="built-up" />,
   },
@@ -160,7 +160,7 @@ const SECTIONS: Record<string, {
     component: () => <CatalogList slug="country-profiles" />,
   },
   'power-plants': {
-    title: '🏭 Existing Power Plants',
+    title: '🏭 Power Plants',
     subtitle: 'OpenStreetMap via Overture Maps · energy source, capacity, operator · GeoPackage per country',
     component: () => <CatalogList slug="power-plants" />,
   },
