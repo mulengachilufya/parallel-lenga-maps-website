@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react'
 import DraftsTab from '@/components/sales/DraftsTab'
 import LinkedInTab from '@/components/sales/LinkedInTab'
 import SentTab, { type SentPayload } from '@/components/sales/SentTab'
+import FindEmailsButton from '@/components/sales/FindEmailsButton'
 import OutcomesTab from '@/components/sales/OutcomesTab'
 import CountriesTab from '@/components/sales/CountriesTab'
 import { api } from '@/lib/sales/client'
@@ -52,6 +53,7 @@ function PartnersPage() {
       <p className="text-sm text-gray-500 mt-1">
         Partners we are reaching out to, by email and on LinkedIn. Customers are in <Link href="/admin/sales" className="underline">Sales</Link>.
       </p>
+      <div className="mt-3"><FindEmailsButton pipeline="partner" onFound={loadCounts} /></div>
 
       <nav className="mt-5 flex gap-1 border-b border-gray-200 overflow-x-auto">
         {TABS.map((t) => (
