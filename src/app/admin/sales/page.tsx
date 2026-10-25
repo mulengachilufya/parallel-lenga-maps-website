@@ -89,7 +89,7 @@ function SalesPage() {
 
       <div className="mt-5">
         {tab === 'email' && <DraftsTab onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
-        {tab === 'linkedin' && <LinkedInTab onCount={(n) => setCounts((c) => ({ ...c, linkedin: n }))} />}
+        {tab === 'linkedin' && <LinkedInTab onCount={(n) => { setCounts((c) => ({ ...c, linkedin: n })); loadCounts() }} />}
         {tab === 'sent' && <SentTab />}
         {tab === 'outcomes' && <OutcomesTab />}
         {tab === 'countries' && <CountriesTab />}

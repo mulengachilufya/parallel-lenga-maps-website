@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { allRows, db, jsonError, requireAdmin } from '@/lib/sales/server'
 import { actorName, CHANNEL_VOICE } from '@/lib/sales/channels'
+import { ensureEmailDrafts } from '@/lib/sales/auto-drafts'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,8 @@ export async function GET(req: NextRequest) {
   if ('denied' in gate) return gate.denied
   const pipeline = req.nextUrl.searchParams.get('pipeline') === 'partner' ? 'partner' : 'sales'
 
+  // So the Email drafts count matches its list.
+  await ensureEmailDrafts(pipeline)
   const [emails, linkedin, emailDrafts, people, reached, nameOf] = await Promise.all([
     allRows((f, t) => db.from('sales_activities')
       .select('id, account_id, subject, created_by, created_at, account:sales_accounts!inner(name, country_iso3, pipeline), contact:sales_contacts(name, email)')

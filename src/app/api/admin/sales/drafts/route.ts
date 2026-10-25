@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, jsonError, requireAdmin } from '@/lib/sales/server'
 import { CHANNEL_VOICE, channelOwners, touches } from '@/lib/sales/channels'
+import { ensureEmailDrafts } from '@/lib/sales/auto-drafts'
 import { DRAFTS_PER_DAY } from '@/lib/sales/playbook'
 
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest) {
   // Email is the founder's channel: everyone sees the drafts in the founder's
   // voice, and each card says what LinkedIn has already done with that organisation.
   const voice = CHANNEL_VOICE.email
+  // Everyone with an email address who has not been emailed gets a draft.
+  if (status === 'draft' || status === 'all') await ensureEmailDrafts(pipeline)
   let q = db.from('sales_drafts')
     .select('id, account_id, contact_id, subject, body, research, sources, batch, status, sent_at, created_at, updated_at, account:sales_accounts!inner(id, name, country_iso3, sector, website, stage, pipeline), contact:sales_contacts!inner(id, name, title, email, linkedin_url, opted_out_at)')
     // Only people we can actually email; the rest are on the LinkedIn track alone.
