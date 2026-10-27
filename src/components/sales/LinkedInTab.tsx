@@ -32,12 +32,13 @@ interface Person {
 const PAGE = 40
 const TRACK: LiStep[] = ['connect', 'accept', 'thank', 'comment1', 'comment2', 'pitch', 'reply', 'meeting']
 
-export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?: (n: number) => void; pipeline?: 'sales' | 'partner' }) {
+export default function LinkedInTab({ onCount, onChanged, pipeline = 'sales' }: { onCount?: (n: number) => void; onChanged?: () => void; pipeline?: 'sales' | 'partner' }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [voice, setVoice] = useState<LiVoice>('founder')
   const [owner, setOwner] = useState('')
   const [limit, setLimit] = useState(PAGE)
   const [err, setErr] = useState('')
+  const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
     try { const d = await api<{ people: Person[]; voice?: LiVoice; owners?: { linkedin: string } }>(`/api/admin/sales/linkedin?pipeline=${pipeline}`); setPeople(d.people); setVoice(d.voice ?? 'founder'); setOwner(d.owners?.linkedin ?? ''); setErr('') }
@@ -51,8 +52,17 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
     .filter((r) => r.step === 'find' || r.step === 'connect'), [people])
   useEffect(() => { if (people) onCount?.(rows.length) }, [people, rows.length, onCount])
 
+  // Moves the card at once, before the server has answered (a sent request leaves this tab).
+  const setLi = useCallback((id: string, li: LinkedInRow | null) => {
+    setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li } : p)) ?? ps)
+  }, [])
+  // The server said no: put the card back and say why, where it will be seen.
+  const failed = useCallback((id: string, li: LinkedInRow | null, msg: string) => { setLi(id, li); setNotice(msg) }, [setLi])
+
   function updated(id: string, li: LinkedInRow, linkedin_url: string | null, name?: string) {
+    setNotice('')
     setPeople((ps) => ps?.map((p) => (p.id === id ? { ...p, li, linkedin_url, ...(name ? { name } : {}) } : p)) ?? ps)
+    onChanged?.() // refresh the Sent count once, now that someone moved
   }
 
   if (err && !people) return <p className="text-sm text-red-600 py-6">{err}</p>
@@ -73,12 +83,14 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
         </p>
       </div>
 
+      {notice && <p className="rounded-xl bg-red-50 text-red-700 text-sm px-4 py-3">{notice}</p>}
+
       {shown.length === 0 && (
         <p className="text-sm text-gray-400 py-6 text-center">
           Everyone has been reached. They are in Sent.
         </p>
       )}
-      {shown.slice(0, limit).map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} />)}
+      {shown.slice(0, limit).map((r) => <PersonCard key={r.p.id} p={r.p} step={r.step} due={r.due} voice={voice} onSaved={updated} onOptimistic={setLi} onFailed={failed} />)}
       {shown.length > limit && (
         <button onClick={() => setLimit((n) => n + PAGE)} className="w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700">
           Show more · {shown.length - limit} left
@@ -88,8 +100,14 @@ export default function LinkedInTab({ onCount, pipeline = 'sales' }: { onCount?:
   )
 }
 
-function PersonCard({ p, step, due, voice, onSaved }: {
+const emptyLi = (p: { id: string; account_id: string }): LinkedInRow => ({
+  contact_id: p.id, account_id: p.account_id, hook: null, messages: {}, requested_at: null, connected_at: null, thanked_at: null,
+  comment1_at: null, comment2_at: null, pitched_at: null, replied_at: null, meeting_at: null, closed_at: null, closed_reason: null,
+})
+
+function PersonCard({ p, step, due, voice, onSaved, onOptimistic, onFailed }: {
   p: Person; step: LiStep; due: string | null; voice: LiVoice; onSaved: (id: string, li: LinkedInRow, url: string | null, name?: string) => void
+  onOptimistic: (id: string, li: LinkedInRow | null) => void; onFailed: (id: string, li: LinkedInRow | null, msg: string) => void
 }) {
   const partner = p.account.pipeline === 'partner'
   // Partners get an ask to work together in place of the pricing message.
@@ -115,12 +133,20 @@ function PersonCard({ p, step, due, voice, onSaved }: {
 
   async function patch(body: Record<string, unknown>, label: string) {
     setBusy(label); setErr('')
+    // Pressing "I sent the request" takes the card out of this tab straight away; it comes back if the save fails.
+    const before = p.li
+    const optimistic = body.action === 'requested'
+    if (optimistic) onOptimistic(p.id, { ...(before ?? emptyLi(p)), requested_at: new Date().toISOString() })
     try {
       const d = await api<{ li: LinkedInRow; linkedin_url: string | null; name?: string }>(`/api/admin/sales/linkedin/${p.id}`, { method: 'PATCH', body })
       onSaved(p.id, d.li, d.linkedin_url, d.name)
       return true
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save'); return false }
-    finally { setBusy('') }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not save'
+      if (optimistic) onFailed(p.id, before, `${p.account.name}: ${msg}`)
+      else setErr(msg)
+      return false
+    } finally { setBusy('') }
   }
 
   async function copy() {

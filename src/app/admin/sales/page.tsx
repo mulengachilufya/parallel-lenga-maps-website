@@ -55,6 +55,11 @@ function SalesPage() {
       .catch(() => {})
   }, [])
   useEffect(() => { loadCounts() }, [loadCounts])
+  // Stable and idempotent: a tab reports its count from an effect, so a new function or a new
+  // state object on every render would re-run that effect forever and re-fetch the counts each time.
+  const setCount = useCallback((t: Tab, n: number) => setCounts((c) => (c[t] === n ? c : { ...c, [t]: n })), [])
+  const onEmailCount = useCallback((n: number) => setCount('email', n), [setCount])
+  const onLinkedInCount = useCallback((n: number) => setCount('linkedin', n), [setCount])
   useEffect(() => { api<{ settings: Settings }>('/api/admin/sales/settings').then((d) => setSettings(d.settings)).catch(() => {}) }, [])
 
   function go(t: Tab) {
@@ -90,8 +95,8 @@ function SalesPage() {
       </nav>
 
       <div className="mt-5">
-        {tab === 'email' && <DraftsTab onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
-        {tab === 'linkedin' && <LinkedInTab onCount={(n) => { setCounts((c) => ({ ...c, linkedin: n })); loadCounts() }} />}
+        {tab === 'email' && <DraftsTab onCount={onEmailCount} onChanged={loadCounts} />}
+        {tab === 'linkedin' && <LinkedInTab onCount={onLinkedInCount} onChanged={loadCounts} />}
         {tab === 'sent' && <SentTab />}
         {tab === 'outcomes' && <OutcomesTab />}
         {tab === 'countries' && <CountriesTab />}

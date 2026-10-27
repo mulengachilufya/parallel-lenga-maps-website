@@ -39,6 +39,10 @@ function PartnersPage() {
       .catch(() => {})
   }, [])
   useEffect(() => { loadCounts() }, [loadCounts])
+  // Stable and idempotent, so a tab's count effect does not loop (see the sales page).
+  const setCount = useCallback((t: Tab, n: number) => setCounts((c) => (c[t] === n ? c : { ...c, [t]: n })), [])
+  const onEmailCount = useCallback((n: number) => setCount('email', n), [setCount])
+  const onLinkedInCount = useCallback((n: number) => setCount('linkedin', n), [setCount])
 
   function go(t: Tab) {
     setTab(t)
@@ -65,8 +69,8 @@ function PartnersPage() {
       </nav>
 
       <div className="mt-5">
-        {tab === 'email' && <DraftsTab pipeline="partner" onCount={(n) => { setCounts((c) => ({ ...c, email: n })); loadCounts() }} />}
-        {tab === 'linkedin' && <LinkedInTab pipeline="partner" onCount={(n) => { setCounts((c) => ({ ...c, linkedin: n })); loadCounts() }} />}
+        {tab === 'email' && <DraftsTab pipeline="partner" onCount={onEmailCount} onChanged={loadCounts} />}
+        {tab === 'linkedin' && <LinkedInTab pipeline="partner" onCount={onLinkedInCount} onChanged={loadCounts} />}
         {tab === 'sent' && <SentTab pipeline="partner" />}
         {tab === 'outcomes' && <OutcomesTab pipeline="partner" />}
         {tab === 'countries' && <CountriesTab pipeline="partner" />}

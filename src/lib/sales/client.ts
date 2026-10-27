@@ -40,11 +40,20 @@ export const country = (iso3: string | null | undefined) =>
 export { AFRICAN_COUNTRIES }
 
 export async function api<T = Record<string, unknown>>(url: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await fetch(url, {
-    method: init?.method ?? 'GET', cache: 'no-store',
-    headers: init?.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
-  })
+  // A request that hangs would leave a button spinning forever; give up after 30 seconds.
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), 30_000)
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: init?.method ?? 'GET', cache: 'no-store', signal: ctl.signal,
+      headers: init?.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw new Error('That took too long. Check your connection and try again.')
+    throw e
+  } finally { clearTimeout(timer) }
   const j = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error(j.message || j.error || `Request failed (${res.status})`), { status: res.status })
   return j as T

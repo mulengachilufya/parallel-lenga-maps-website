@@ -12,7 +12,7 @@
  * (first message → Contacted, a reply → Replied, a call booked → Meeting).
  * Nothing is sent from here: the founder sends every message on LinkedIn.
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { db, isUuid, jsonError, loadAccount, logActivity, requireAdmin, str, touched } from '@/lib/sales/server'
 import { LI_ACTION_FIELD, LI_CLOSE_REASONS, LI_ORDER, cleanProfileUrl, type LiAction, type LiMessage } from '@/lib/sales/linkedin'
 
@@ -86,22 +86,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
     return jsonError('save_failed', 500, 'Could not save. Has migration 050 been applied?')
   }
 
+  // The save is what the founder waits for. The timeline entry and the account's stage follow
+  // after the reply is sent, so a slow write there can never leave the button spinning.
   if (logged) {
-    const account = await loadAccount(contact.account_id)
-    if (account) {
-      const inbound = logged === 'connected' || logged === 'replied'
-      const reason = logged === 'closed' ? ` Reason: ${row.closed_reason}.` : ''
-      await logActivity({
-        account_id: account.id, contact_id: contact.id, kind: logged === 'replied' ? 'reply' : logged === 'meeting' ? 'meeting' : 'linkedin',
-        direction: inbound ? 'in' : logged === 'closed' ? null : 'out',
-        subject: `${TIMELINE[logged]}${inbound ? ` (${contact.name})` : ''}`,
-        body: `${str(body.text, 5000) ?? ''}${reason}`.trim() || null,
-        meta: { channel: 'linkedin', step: logged }, created_by: gate.email,
-      })
-      if (logged !== 'closed' && logged !== 'connected') {
-        await touched(account, logged === 'replied' ? 'reply' : logged === 'meeting' ? 'meeting' : 'linkedin', inbound ? 'in' : 'out', gate.email)
-      }
-    }
+    const step = logged
+    const text = str(body.text, 5000)
+    after(async () => {
+      try {
+        const account = await loadAccount(contact.account_id)
+        if (account) {
+          const inbound = step === 'connected' || step === 'replied'
+          const reason = step === 'closed' ? ` Reason: ${row.closed_reason}.` : ''
+          await logActivity({
+            account_id: account.id, contact_id: contact.id, kind: step === 'replied' ? 'reply' : step === 'meeting' ? 'meeting' : 'linkedin',
+            direction: inbound ? 'in' : step === 'closed' ? null : 'out',
+            subject: `${TIMELINE[step]}${inbound ? ` (${contact.name})` : ''}`,
+            body: `${text ?? ''}${reason}`.trim() || null,
+            meta: { channel: 'linkedin', step: step }, created_by: gate.email,
+          })
+          if (step !== 'closed' && step !== 'connected') {
+            await touched(account, step === 'replied' ? 'reply' : step === 'meeting' ? 'meeting' : 'linkedin', inbound ? 'in' : 'out', gate.email)
+          }
+        }
+      } catch (e) { console.error('[admin/sales/linkedin] timeline failed', e) }
+    })
   }
   return NextResponse.json({ ok: true, li: row, linkedin_url: contact.linkedin_url, name: contact.name })
 }
