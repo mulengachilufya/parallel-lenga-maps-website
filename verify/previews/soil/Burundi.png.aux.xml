@@ -1,0 +1,19 @@
+<PAMDataset>
+  <SRS dataAxisToSRSAxisMapping="2,1">GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]</SRS>
+  <GeoTransform>  2.9039549887087773e+01,  2.2630204712509494e-03,  0.0000000000000000e+00, -2.3112356510362408e+00,  0.0000000000000000e+00, -2.2630204712509494e-03</GeoTransform>
+  <Metadata>
+    <MDI key="AREA_OR_POINT">Area</MDI>
+    <MDI key="CITATION">Poggio, L. et al. 2021. SoilGrids 2.0: producing soil information for the globe with quantified spatial uncertainty. SOIL 7: 217-240. https://doi.org/10.5194/soil-7-217-2021</MDI>
+    <MDI key="CLASSES">{"0": "Acrisols", "1": "Albeluvisols", "2": "Alisols", "3": "Andosols", "4": "Arenosols", "5": "Calcisols", "6": "Cambisols", "7": "Chernozems", "8": "Cryosols", "9": "Durisols", "10": "Ferralsols", "11": "Fluvisols", "12": "Gleysols", "13": "Gypsisols", "14": "Histosols", "15": "Kastanozems", "16": "Leptosols", "17": "Lixisols", "18": "Luvisols", "19": "Nitisols", "20": "Phaeozems", "21": "Planosols", "22": "Plinthosols", "23": "Podzols", "24": "Regosols", "25": "Solonchaks", "26": "Solonetz", "27": "Stagnosols", "28": "Umbrisols", "29": "Vertisols"}</MDI>
+    <MDI key="CLASS_AREA_KM2">{"Ferralsols": 20219.5, "Cambisols": 2815.0, "Acrisols": 1330.1, "Andosols": 333.9, "Histosols": 150.7, "Gleysols": 105.5, "Nitisols": 26.0, "Planosols": 25.9, "Phaeozems": 21.8, "Solonchaks": 5.3, "Vertisols": 4.7, "Plinthosols": 3.6, "Podzols": 1.9, "Arenosols": 1.7, "Lixisols": 0.9, "Umbrisols": 0.5, "Leptosols": 0.1}</MDI>
+    <MDI key="LICENCE">CC BY 4.0 (ISRIC SoilGrids). Distributed by Lenga Maps with attribution.</MDI>
+    <MDI key="METHOD">Clipped to the geoBoundaries country outline; cells whose centre lies outside the country are NoData (255). Values unchanged from source.</MDI>
+    <MDI key="PROCESSED">2026-10-22</MDI>
+    <MDI key="PRODUCER">Lenga Maps (lengamaps.com)</MDI>
+    <MDI key="SOURCE">ISRIC SoilGrids 2.0, WRB most probable Reference Soil Group, 250 m (files.isric.org/soilgrids/latest/data/wrb/MostProbable.vrt)</MDI>
+    <MDI key="TITLE">Soil classification (WRB Reference Soil Groups), Burundi</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <NoDataValue>0.00000000000000E+00</NoDataValue>
+  </PAMRasterBand>
+</PAMDataset>

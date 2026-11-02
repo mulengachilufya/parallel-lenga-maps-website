@@ -11,14 +11,17 @@
 | aquifer | 33 | 18 | 0 | 15 |
 | climate:drought_index | 54 | 48 | 5 | 1 |
 | climate:rainfall | 55 | 48 | 6 | 1 |
-| climate:temperature | 55 | 48 | 6 | 1 |
+| climate:temperature | 54 | 53 | 1 | 0 |
+| climate:temperature_worldclim_retired | 55 | 48 | 6 | 1 |
 | hydrology:lakes | 50 | 50 | 0 | 0 |
 | hydrology:rivers | 51 | 46 | 5 | 0 |
+| hydrology:rivers_main | 51 | 49 | 0 | 2 |
 | hydrology:watersheds | 52 | 44 | 7 | 1 |
-| lulc | 34 | 8 | 12 | 14 |
+| lulc | 52 | 48 | 1 | 3 |
 | population | 33 | 32 | 1 | 0 |
 | protected-areas | 50 | 47 | 0 | 3 |
 | roads | 51 | 23 | 28 | 0 |
+| soil | 54 | 53 | 1 | 0 |
 
 ## Problems
 
@@ -42,6 +45,8 @@
 | hydrology:rivers | Uganda | CHECK | only 83% inside the country | 0.828 | 1.0 |
 | hydrology:watersheds | Comoros | CHECK | covers only 91% of the country | 0.966 | 0.914 |
 | hydrology:watersheds | Egypt | CHECK | covers only 94% of the country | 0.997 | 0.935 |
+| hydrology:rivers_main | Burundi | FAIL | only 49% inside the country | 0.488 | 0.486 |
+| hydrology:rivers_main | Gambia | FAIL | only 56% inside the country | 0.558 | 0.714 |
 | aquifer | Benin | FAIL | only 39% inside the country | 0.39 | 0.11 |
 | aquifer | Cameroon | FAIL | only 30% inside the country | 0.302 | 0.004 |
 | aquifer | Chad | FAIL | only 46% inside the country | 0.457 | 0.855 |
@@ -58,51 +63,30 @@
 | aquifer | Zambia | FAIL | only 43% inside the country | 0.429 | 0.065 |
 | aquifer | Zimbabwe | FAIL | only 57% inside the country | 0.57 | 0.018 |
 | lulc | Benin | FAIL | data covers only 68% of the country |  | 0.684 |
-| lulc | Ghana | CHECK | data covers only 84% of the country |  | 0.844 |
-| lulc | Guinea | CHECK | data covers only 85% of the country |  | 0.851 |
-| lulc | Malawi | CHECK | data covers only 74% of the country |  | 0.743 |
-| lulc | Namibia | FAIL | data covers only 25% of the country |  | 0.251 |
-| lulc | Tunisia | CHECK | data covers only 71% of the country |  | 0.707 |
-| lulc | Burkina Faso | FAIL | data covers only 55% of the country |  | 0.553 |
-| lulc | Uganda | CHECK | data covers only 85% of the country |  | 0.846 |
-| lulc | Zimbabwe | CHECK | data covers only 86% of the country |  | 0.858 |
-| lulc | Tanzania | CHECK | data covers only 81% of the country |  | 0.805 |
 | lulc | Seychelles | FAIL | data covers only 42% of the country |  | 0.417 |
-| lulc | Gabon | FAIL | data covers only 16% of the country |  | 0.156 |
-| lulc | Cabo Verde | CHECK | data covers only 75% of the country |  | 0.747 |
-| lulc | Burundi | FAIL | data covers only 27% of the country |  | 0.265 |
 | lulc | Lesotho | CHECK | data covers only 78% of the country |  | 0.785 |
-| lulc | Eswatini | CHECK | data covers only 81% of the country |  | 0.813 |
-| lulc | Sierra Leone | FAIL | data covers only 30% of the country |  | 0.297 |
-| lulc | Liberia | FAIL | data covers only 65% of the country |  | 0.647 |
-| lulc | Senegal | FAIL | data covers only 31% of the country |  | 0.309 |
-| lulc | Eritrea | FAIL | data covers only 61% of the country |  | 0.609 |
-| lulc | Cameroon | FAIL | data covers only 28% of the country |  | 0.281 |
-| lulc | Mauritania | FAIL | data covers only 9% of the country |  | 0.09 |
 | lulc | Djibouti | FAIL | data covers only 34% of the country |  | 0.338 |
-| lulc | Guinea-Bissau | FAIL | data covers only 53% of the country |  | 0.527 |
-| lulc | Ivory Coast | CHECK | data covers only 82% of the country |  | 0.824 |
-| lulc | Congo | CHECK | data covers only 75% of the country |  | 0.745 |
 | climate:drought_index | Bir Tawil | CHECK | no country outline to compare with |  | 0.763 |
 | climate:rainfall | Bir Tawil | CHECK | no country outline to compare with |  | 0.763 |
-| climate:temperature | Bir Tawil | CHECK | no country outline to compare with |  | 0.752 |
 | climate:drought_index | Comoros | CHECK | data covers only 88% of the country |  | 0.88 |
 | climate:rainfall | Comoros | CHECK | data covers only 88% of the country |  | 0.88 |
+| climate:temperature_worldclim_retired | Bir Tawil | CHECK | no country outline to compare with |  | 0.752 |
 | climate:rainfall | Cabo Verde | CHECK | data covers only 87% of the country |  | 0.868 |
-| climate:temperature | Cabo Verde | CHECK | data covers only 89% of the country |  | 0.894 |
 | climate:drought_index | Somaliland | FAIL | data covers only 26% of the country |  | 0.263 |
 | climate:rainfall | Somaliland | FAIL | data covers only 26% of the country |  | 0.263 |
-| climate:temperature | Somaliland | FAIL | data covers only 26% of the country |  | 0.264 |
 | climate:drought_index | W Sahara | CHECK | no country outline to compare with |  | 0.151 |
 | climate:rainfall | W Sahara | CHECK | no country outline to compare with |  | 0.151 |
-| climate:temperature | W Sahara | CHECK | no country outline to compare with |  | 0.151 |
 | climate:drought_index | Somalia | CHECK | data covers only 74% of the country |  | 0.735 |
 | climate:rainfall | Somalia | CHECK | data covers only 74% of the country |  | 0.735 |
-| climate:temperature | Tanzania | CHECK | values -1.35..27.76 outside 0..12000 |  | 0.995 |
-| climate:temperature | Somalia | CHECK | data covers only 74% of the country |  | 0.736 |
 | climate:drought_index | Morocco | CHECK | data covers only 88% of the country |  | 0.875 |
 | climate:rainfall | Morocco | CHECK | data covers only 88% of the country |  | 0.875 |
-| climate:temperature | Morocco | CHECK | data covers only 87% of the country |  | 0.874 |
+| climate:temperature_worldclim_retired | Cabo Verde | CHECK | data covers only 89% of the country |  | 0.894 |
+| climate:temperature_worldclim_retired | Somaliland | FAIL | data covers only 26% of the country |  | 0.264 |
+| climate:temperature_worldclim_retired | W Sahara | CHECK | no country outline to compare with |  | 0.151 |
+| climate:temperature_worldclim_retired | Tanzania | CHECK | values -1.35..27.76 outside 0..12000 |  | 0.995 |
+| climate:temperature_worldclim_retired | Somalia | CHECK | data covers only 74% of the country |  | 0.736 |
+| climate:temperature_worldclim_retired | Morocco | CHECK | data covers only 87% of the country |  | 0.874 |
+| climate:temperature | Seychelles | CHECK | data covers only 76% of the country |  | 0.757 |
 | population | Seychelles | CHECK | covers only 87% of the country | 0.937 | 0.873 |
 | roads | Algeria | CHECK | reaches only 31% of the country | 0.999 | 0.312 |
 | roads | Angola | CHECK | reaches only 27% of the country | 1.0 | 0.267 |
@@ -132,6 +116,7 @@
 | roads | Sudan | CHECK | reaches only 33% of the country | 0.994 | 0.327 |
 | roads | Tanzania | CHECK | reaches only 48% of the country | 0.993 | 0.479 |
 | roads | Zambia | CHECK | reaches only 28% of the country | 0.997 | 0.278 |
+| soil | Seychelles | CHECK | data covers only 73% of the country |  | 0.726 |
 | protected-areas | Mauritania | FAIL | only 50% inside the country | 0.499 | 0.005 |
 | protected-areas | Seychelles | FAIL | only 12% inside the country | 0.12 | 0.006 |
 | protected-areas | Somalia | FAIL | only 0% inside the country | 0.0 | 0.0 |

@@ -315,6 +315,8 @@ hydrology:rivers,Tunisia,PASS,,3478,line,0.982,1.0,,17790,,,,,,,,datasets/tun/ri
 hydrology:rivers,Uganda,CHECK,only 83% inside the country,5819,line,0.828,1.0,,26404,,,,,,,,datasets/uga/rivers/UGA_Rivers.gpkg
 hydrology:rivers,Zambia,PASS,,17516,line,0.989,1.0,,82467,,,,,,,,datasets/zmb/rivers/ZMB_Rivers.gpkg
 hydrology:rivers,Zimbabwe,PASS,,9219,line,0.992,1.0,,43012,,,,,,,,datasets/zwe/rivers/ZWE_Rivers.gpkg
+hydrology:rivers_main,Algeria,PASS,,11364,line,0.995,0.613,,57252,,,,,,,,datasets/dza/rivers/DZA_Rivers_Main.gpkg
+hydrology:rivers_main,Angola,PASS,,8582,line,0.99,0.648,,32892,,,,,,,,datasets/ago/rivers/AGO_Rivers_Main.gpkg
 hydrology:watersheds,Zambia,PASS,,1263,polygon,0.994,0.995,751914,,,,,,,,,datasets/zmb/watersheds/ZMB_Watersheds_L8.gpkg
 hydrology:watersheds,Angola,PASS,,1803,polygon,0.999,0.968,1243714,,,,,,,,,datasets/ago/watersheds/AGO_Watersheds_L8.gpkg
 hydrology:watersheds,Benin,PASS,,196,polygon,0.983,0.988,115933,,,,,,,,,datasets/ben/watersheds/BEN_Watersheds_L8.gpkg
@@ -333,6 +335,55 @@ hydrology:watersheds,Egypt,CHECK,covers only 94% of the country,1289,polygon,0.9
 hydrology:watersheds,Equatorial Guinea,PASS,,43,polygon,0.993,0.975,26527,,,,,,,,,datasets/gnq/watersheds/GNQ_Watersheds_L8.gpkg
 hydrology:watersheds,Eritrea,PASS,,178,polygon,0.972,0.987,122237,,,,,,,,,datasets/eri/watersheds/ERI_Watersheds_L8.gpkg
 hydrology:watersheds,Eswatini,PASS,,34,polygon,0.985,0.971,17112,,,,,,,,,datasets/swz/watersheds/SWZ_Watersheds_L8.gpkg
+hydrology:rivers_main,Benin,PASS,,877,line,0.919,0.628,,3234,,,,,,,,datasets/ben/rivers/BEN_Rivers_Main.gpkg
+hydrology:rivers_main,Botswana,PASS,,3796,line,0.963,0.621,,16456,,,,,,,,datasets/bwa/rivers/BWA_Rivers_Main.gpkg
+hydrology:rivers_main,Burkina Faso,PASS,,1797,line,0.956,0.634,,6531,,,,,,,,datasets/bfa/rivers/BFA_Rivers_Main.gpkg
+hydrology:rivers_main,Burundi,FAIL,only 49% inside the country,150,line,0.488,0.486,,560,,,,,,,,datasets/bdi/rivers/BDI_Rivers_Main.gpkg
+hydrology:rivers_main,Cameroon,PASS,,5009,line,0.978,0.735,,15422,,,,,,,,datasets/cmr/rivers/CMR_Rivers_Main.gpkg
+hydrology:rivers_main,Central African Republic,PASS,,4848,line,0.966,0.703,,17749,,,,,,,,datasets/caf/rivers/CAF_Rivers_Main.gpkg
+hydrology:rivers_main,Chad,PASS,,7435,line,0.986,0.672,,35906,,,,,,,,datasets/tcd/rivers/TCD_Rivers_Main.gpkg
+hydrology:rivers_main,Democratic Republic of the Congo,PASS,,21185,line,0.973,0.716,,69254,,,,,,,,datasets/cod/rivers/COD_Rivers_Main.gpkg
+hydrology:rivers_main,Eritrea,PASS,,548,line,0.953,0.485,,2193,,,,,,,,datasets/eri/rivers/ERI_Rivers_Main.gpkg
+hydrology:rivers_main,Gambia,FAIL,only 56% inside the country,90,line,0.558,0.714,,411,,,,,,,,datasets/gmb/rivers/GMB_Rivers_Main.gpkg
+hydrology:rivers_main,Kenya,PASS,,3453,line,0.991,0.626,,15351,,,,,,,,datasets/ken/rivers/KEN_Rivers_Main.gpkg
+hydrology:rivers_main,Comoros,PASS,,30,line,0.99,1.0,,52,,,,,,,,datasets/com/rivers/COM_Rivers_Main.gpkg
+hydrology:rivers_main,Djibouti,PASS,,71,line,1.0,0.4,,319,,,,,,,,datasets/dji/rivers/DJI_Rivers_Main.gpkg
+hydrology:rivers_main,Eswatini,PASS,,134,line,0.982,0.72,,647,,,,,,,,datasets/swz/rivers/SWZ_Rivers_Main.gpkg
+hydrology:rivers_main,Ghana,PASS,,1882,line,0.987,0.688,,6921,,,,,,,,datasets/gha/rivers/GHA_Rivers_Main.gpkg
+hydrology:rivers_main,Lesotho,PASS,,204,line,0.872,0.578,,902,,,,,,,,datasets/lso/rivers/LSO_Rivers_Main.gpkg
+hydrology:rivers_main,Congo,PASS,,3389,line,0.955,0.781,,11696,,,,,,,,datasets/cog/rivers/COG_Rivers_Main.gpkg
+hydrology:rivers_main,Egypt,PASS,,3875,line,0.994,0.472,,17502,,,,,,,,datasets/egy/rivers/EGY_Rivers_Main.gpkg
+hydrology:rivers_main,Ethiopia,PASS,,6996,line,0.977,0.615,,27321,,,,,,,,datasets/eth/rivers/ETH_Rivers_Main.gpkg
+hydrology:rivers_main,Guinea,PASS,,2940,line,0.973,0.799,,8723,,,,,,,,datasets/gin/rivers/GIN_Rivers_Main.gpkg
+hydrology:rivers_main,Liberia,PASS,,2323,line,0.952,0.944,,4720,,,,,,,,datasets/lbr/rivers/LBR_Rivers_Main.gpkg
+hydrology:rivers_main,Cote d'Ivoire,PASS,,2927,line,1.0,0.728,,9903,,,,,,,,datasets/civ/rivers/CIV_Rivers_Main.gpkg
+hydrology:rivers_main,Equatorial Guinea,PASS,,395,line,0.967,0.833,,875,,,,,,,,datasets/gnq/rivers/GNQ_Rivers_Main.gpkg
+hydrology:rivers_main,Gabon,PASS,,3550,line,0.972,0.838,,10173,,,,,,,,datasets/gab/rivers/GAB_Rivers_Main.gpkg
+hydrology:rivers_main,Guinea-Bissau,PASS,,345,line,0.985,0.708,,978,,,,,,,,datasets/gnb/rivers/GNB_Rivers_Main.gpkg
+hydrology:rivers_main,Libya,PASS,,7802,line,1.0,0.602,,40230,,,,,,,,datasets/lby/rivers/LBY_Rivers_Main.gpkg
+hydrology:rivers_main,Madagascar,PASS,,6658,line,0.993,0.757,,19784,,,,,,,,datasets/mdg/rivers/MDG_Rivers_Main.gpkg
+hydrology:rivers_main,Malawi,PASS,,732,line,0.618,0.579,,3048,,,,,,,,datasets/mwi/rivers/MWI_Rivers_Main.gpkg
+hydrology:rivers_main,Mali,PASS,,6861,line,0.986,0.594,,29744,,,,,,,,datasets/mli/rivers/MLI_Rivers_Main.gpkg
+hydrology:rivers_main,Mauritania,PASS,,4777,line,0.991,0.564,,21212,,,,,,,,datasets/mrt/rivers/MRT_Rivers_Main.gpkg
+hydrology:rivers_main,Morocco,PASS,,3288,line,0.999,0.496,,13658,,,,,,,,datasets/mar/rivers/MAR_Rivers_Main.gpkg
+hydrology:rivers_main,Mozambique,PASS,,5328,line,0.977,0.653,,21255,,,,,,,,datasets/moz/rivers/MOZ_Rivers_Main.gpkg
+hydrology:rivers_main,Namibia,PASS,,4617,line,0.976,0.582,,19430,,,,,,,,datasets/nam/rivers/NAM_Rivers_Main.gpkg
+hydrology:rivers_main,Niger,PASS,,6907,line,0.994,0.672,,32630,,,,,,,,datasets/ner/rivers/NER_Rivers_Main.gpkg
+hydrology:rivers_main,Nigeria,PASS,,8466,line,0.994,0.742,,28534,,,,,,,,datasets/nga/rivers/NGA_Rivers_Main.gpkg
+hydrology:rivers_main,Rwanda,PASS,,177,line,0.614,0.5,,705,,,,,,,,datasets/rwa/rivers/RWA_Rivers_Main.gpkg
+hydrology:rivers_main,Sao Tome and Principe,PASS,,10,line,0.984,1.0,,36,,,,,,,,datasets/stp/rivers/STP_Rivers_Main.gpkg
+hydrology:rivers_main,Senegal,PASS,,1235,line,0.956,0.619,,5010,,,,,,,,datasets/sen/rivers/SEN_Rivers_Main.gpkg
+hydrology:rivers_main,Sierra Leone,PASS,,1919,line,0.975,0.958,,3818,,,,,,,,datasets/sle/rivers/SLE_Rivers_Main.gpkg
+hydrology:rivers_main,Somalia,PASS,,2581,line,0.986,0.47,,13502,,,,,,,,datasets/som/rivers/SOM_Rivers_Main.gpkg
+hydrology:rivers_main,South Africa,PASS,,8097,line,0.977,0.598,,32098,,,,,,,,datasets/zaf/rivers/ZAF_Rivers_Main.gpkg
+hydrology:rivers_main,South Sudan,PASS,,4207,line,0.984,0.711,,19708,,,,,,,,datasets/ssd/rivers/SSD_Rivers_Main.gpkg
+hydrology:rivers_main,Sudan,PASS,,10752,line,0.99,0.614,,47915,,,,,,,,datasets/sdn/rivers/SDN_Rivers_Main.gpkg
+hydrology:rivers_main,Tanzania,PASS,,6066,line,0.869,0.639,,24149,,,,,,,,datasets/tza/rivers/TZA_Rivers_Main.gpkg
+hydrology:rivers_main,Togo,PASS,,421,line,0.93,0.597,,1652,,,,,,,,datasets/tgo/rivers/TGO_Rivers_Main.gpkg
+hydrology:rivers_main,Tunisia,PASS,,705,line,0.983,0.526,,3267,,,,,,,,datasets/tun/rivers/TUN_Rivers_Main.gpkg
+hydrology:rivers_main,Uganda,PASS,,1635,line,0.735,0.601,,6240,,,,,,,,datasets/uga/rivers/UGA_Rivers_Main.gpkg
+hydrology:rivers_main,Zambia,PASS,,5188,line,0.969,0.647,,20495,,,,,,,,datasets/zmb/rivers/ZMB_Rivers_Main.gpkg
+hydrology:rivers_main,Zimbabwe,PASS,,2574,line,0.978,0.634,,9809,,,,,,,,datasets/zwe/rivers/ZWE_Rivers_Main.gpkg
 aquifer,Algeria,PASS,,2,polygon,0.677,0.374,1276443,,,,,,,,,aquifer/Algeria/Algeria_aquifer.gpkg
 aquifer,Angola,PASS,,3,polygon,0.635,0.145,293038,,,,,,,,,aquifer/Angola/Angola_aquifer.gpkg
 aquifer,Benin,FAIL,only 39% inside the country,1,polygon,0.39,0.11,32615,,,,,,,,,aquifer/Benin/Benin_aquifer.gpkg
@@ -366,90 +417,98 @@ aquifer,Tunisia,FAIL,only 53% inside the country,2,polygon,0.532,0.17,49740,,,,,
 aquifer,Uganda,FAIL,only 38% inside the country,2,polygon,0.378,0.089,49462,,,,,,,,,aquifer/Uganda/Uganda_aquifer.gpkg
 aquifer,Zambia,FAIL,only 43% inside the country,4,polygon,0.429,0.065,114620,,,,,,,,,aquifer/Zambia/Zambia_aquifer.gpkg
 aquifer,Zimbabwe,FAIL,only 57% inside the country,1,polygon,0.57,0.018,12284,,,,,,,,,aquifer/Zimbabwe/Zimbabwe_aquifer.gpkg
-lulc,Angola,PASS,,,,,,,,0.968,10.0,95.0,21.58,9,148711x163307,web COG,lulc/Angola/Angola_LULC.tif
 lulc,Benin,FAIL,data covers only 68% of the country,,,,,,,0.684,10.0,90.0,27.32,8,36934x40793,web COG,lulc/Benin/Benin_LULC.tif
-lulc,Botswana,PASS,,,,,,,,0.996,10.0,90.0,24.08,8,112465x109323,web COG,lulc/Botswana/Botswana_LULC.tif
-lulc,Ghana,CHECK,data covers only 84% of the country,,,,,,,0.844,10.0,90.0,26.33,8,50257x61957,web COG,lulc/Ghana/Ghana_LULC.tif
-lulc,Guinea,CHECK,data covers only 85% of the country,,,,,,,0.851,10.0,95.0,19.86,9,88015x44082,web COG,lulc/Guinea/Guinea_LULC.tif
-lulc,Kenya,PASS,,,,,,,,0.93,10.0,95.0,26.54,9,95938x96366,web COG,lulc/Kenya/Kenya_LULC.tif
-lulc,Madagascar,PASS,,,,,,,,0.91,10.0,95.0,25.66,9,87376x144678,web COG,lulc/Madagascar/Madagascar_LULC.tif
-lulc,Malawi,CHECK,data covers only 74% of the country,,,,,,,0.743,10.0,90.0,28.18,8,38895x67427,web COG,lulc/Malawi/Malawi_LULC.tif
-lulc,Namibia,FAIL,data covers only 25% of the country,,,,,,,0.251,10.0,90.0,22.09,8,87119x79332,web COG,lulc/Namibia/Namibia_LULC.tif
-lulc,Tunisia,CHECK,data covers only 71% of the country,,,,,,,0.707,10.0,90.0,44.43,8,48318x52144,web COG,lulc/Tunisia/Tunisia_LULC.tif
-lulc,Burkina Faso,FAIL,data covers only 55% of the country,,,,,,,0.553,10.0,90.0,31.83,8,87131x36000,web COG,lulc/Burkina_Faso/Burkina_Faso_LULC.tif
-lulc,Uganda,CHECK,data covers only 85% of the country,,,,,,,0.846,10.0,90.0,28.02,9,63661x50638,web COG,lulc/Uganda/Uganda_LULC.tif
-lulc,Zimbabwe,CHECK,data covers only 86% of the country,,,,,,,0.858,10.0,90.0,23.13,8,93884x64624,web COG,lulc/Zimbabwe/Zimbabwe_LULC.tif
-lulc,Tanzania,CHECK,data covers only 81% of the country,,,,,,,0.805,10.0,95.0,25.31,10,127082x96172,web COG,lulc/Tanzania/Tanzania_LULC.tif
 lulc,Zambia,PASS,,,,,,,,0.994,10.0,90.0,23.04,8,140335x117672,web COG,lulc/Zambia/Zambia_LULC.tif
-lulc,Sao Tome and Principe,PASS,,,,,,,,0.964,10.0,95.0,12.06,9,12013x20109,web COG,lulc/Sao_Tome_and_Principe/Sao_Tome_and_Principe_LULC.tif
 lulc,Seychelles,FAIL,data covers only 42% of the country,,,,,,,0.417,10.0,80.0,14.6,6,31397x24939,web COG,lulc/Seychelles/Seychelles_LULC.tif
-lulc,Gabon,FAIL,data covers only 16% of the country,,,,,,,0.156,10.0,95.0,11.97,8,32416x27872,web COG,lulc/Gabon/Gabon_LULC.tif
-lulc,Cabo Verde,CHECK,data covers only 75% of the country,,,,,,,0.747,10.0,90.0,43.42,8,32328x28713,web COG,lulc/Cabo_Verde/Cabo_Verde_LULC.tif
-lulc,Equatorial Guinea,PASS,,,,,,,,0.974,10.0,95.0,11.35,8,34975x34174,web COG,lulc/Equatorial_Guinea/Equatorial_Guinea_LULC.tif
-lulc,Burundi,FAIL,data covers only 27% of the country,,,,,,,0.265,10.0,90.0,26.09,8,22067x8365,web COG,lulc/Burundi/Burundi_LULC.tif
 lulc,Lesotho,CHECK,data covers only 78% of the country,,,,,,,0.785,10.0,90.0,31.6,8,29207x25058,web COG,lulc/Lesotho/Lesotho_LULC.tif
-lulc,Eswatini,CHECK,data covers only 81% of the country,,,,,,,0.813,10.0,90.0,21.78,8,16017x15170,web COG,lulc/Eswatini/Eswatini_LULC.tif
-lulc,Sierra Leone,FAIL,data covers only 30% of the country,,,,,,,0.297,10.0,95.0,15.16,9,32515x11954,web COG,lulc/Sierra_Leone/Sierra_Leone_LULC.tif
-lulc,Liberia,FAIL,data covers only 65% of the country,,,,,,,0.647,10.0,95.0,11.71,9,44280x30786,web COG,lulc/Liberia/Liberia_LULC.tif
-lulc,Senegal,FAIL,data covers only 31% of the country,,,,,,,0.309,10.0,95.0,31.25,9,55249x20298,web COG,lulc/Senegal/Senegal_LULC.tif
-lulc,Eritrea,FAIL,data covers only 61% of the country,,,,,,,0.609,10.0,95.0,44.04,9,49214x36060,web COG,lulc/Eritrea/Eritrea_LULC.tif
-lulc,Cameroon,FAIL,data covers only 28% of the country,,,,,,,0.281,10.0,95.0,16.08,9,41941x54709,web COG,lulc/Cameroon/Cameroon_LULC.tif
-lulc,Mauritania,FAIL,data covers only 9% of the country,,,,,,,0.09,10.0,90.0,43.35,8,54510x36000,web COG,lulc/Mauritania/Mauritania_LULC.tif
-lulc,Togo,PASS,,,,,,,,0.979,10.0,95.0,25.45,9,23385x60417,web COG,lulc/Togo/Togo_LULC.tif
 lulc,Djibouti,FAIL,data covers only 34% of the country,,,,,,,0.338,10.0,95.0,58.61,9,16316x8497,web COG,lulc/Djibouti/Djibouti_LULC.tif
-lulc,Guinea-Bissau,FAIL,data covers only 53% of the country,,,,,,,0.527,10.0,95.0,22.41,9,36816x8155,web COG,lulc/Guinea-Bissau/Guinea-Bissau_LULC.tif
-lulc,Ivory Coast,CHECK,data covers only 82% of the country,,,,,,,0.824,10.0,90.0,17.18,8,73352x56719,web COG,lulc/Ivory_Coast/Ivory_Coast_LULC.tif
-lulc,Congo,CHECK,data covers only 75% of the country,,,,,,,0.745,10.0,90.0,14.72,8,85406x80501,web COG,lulc/Congo/Congo_LULC.tif
+lulc,Cabo Verde,PASS,,,,,,,,0.978,10.0,90.0,42.24,8,32323x28819,web COG,lulc/Cabo_Verde/Cabo_Verde_LULC.tif
+lulc,Comoros,PASS,,,,,,,,0.99,10.0,95.0,14.6,9,15743x12683,web COG,lulc/Comoros/Comoros_LULC.tif
+lulc,Eswatini,PASS,,,,,,,,0.999,10.0,90.0,21.95,8,16130x19185,web COG,lulc/Eswatini/Eswatini_LULC.tif
+lulc,Burundi,PASS,,,,,,,,0.998,10.0,90.0,27.53,8,21738x25901,web COG,lulc/Burundi/Burundi_LULC.tif
+lulc,Ghana,PASS,,,,,,,,0.998,10.0,95.0,24.87,9,53366x77239,web COG,lulc/Ghana/Ghana_LULC.tif
+lulc,Malawi,PASS,,,,,,,,0.997,10.0,90.0,28.91,8,38979x93134,web COG,lulc/Malawi/Malawi_LULC.tif
+lulc,Eritrea,PASS,,,,,,,,0.994,10.0,95.0,44.86,9,80445x67978,web COG,lulc/Eritrea/Eritrea_LULC.tif
+lulc,Cameroon,PASS,,,,,,,,0.998,10.0,95.0,17.33,9,92239x137077,web COG,lulc/Cameroon/Cameroon_LULC.tif
+lulc,Burkina Faso,PASS,,,,,,,,0.998,10.0,90.0,30.89,8,95092x68178,web COG,lulc/Burkina_Faso/Burkina_Faso_LULC.tif
+lulc,Botswana,PASS,,,,,,,,0.996,10.0,90.0,24.04,8,112501x109502,web COG,lulc/Botswana/Botswana_LULC.tif
+lulc,Equatorial Guinea,PASS,,,,,,,,0.994,10.0,95.0,11.57,8,68916x63076,web COG,lulc/Equatorial_Guinea/Equatorial_Guinea_LULC.tif
+lulc,Central Africa Republic,PASS,,,,,,,,0.997,10.0,90.0,14.41,8,156378x105374,web COG,lulc/Central_Africa_Republic/Central_Africa_Republic_LULC.tif
+lulc,Gabon,PASS,,,,,,,,0.998,10.0,95.0,12.59,9,69620x75268,web COG,lulc/Gabon/Gabon_LULC.tif
+lulc,Egypt,PASS,,,,,,,,0.997,10.0,90.0,59.07,8,146258x116120,web COG,lulc/Egypt/Egypt_LULC.tif
+lulc,Chad,PASS,,,,,,,,0.998,10.0,90.0,45.52,8,126318x192677,web COG,lulc/Chad/Chad_LULC.tif
+lulc,Liberia,PASS,,,,,,,,0.998,10.0,95.0,11.5,9,49582x50382,web COG,lulc/Liberia/Liberia_LULC.tif
+lulc,Gambia,PASS,,,,,,,,0.985,10.0,95.0,35.29,9,36278x9358,web COG,lulc/Gambia/Gambia_LULC.tif
+lulc,Sao Tome and Principe,PASS,,,,,,,,0.995,10.0,95.0,12.12,9,12020x20497,web COG,lulc/Sao_Tome_and_Principe/Sao_Tome_and_Principe_LULC.tif
+lulc,Mozambique,PASS,,,,,,,,0.996,10.0,95.0,21.37,9,127492x196732,web COG,lulc/Mozambique/Mozambique_LULC.tif
+lulc,Democratic Republic of Congo,PASS,,,,,,,,0.997,10.0,95.0,16.05,9,228917x226212,web COG,lulc/Democratic_Republic_of_Congo/Democratic_Republic_of_Congo_LULC.tif
+lulc,Libya,PASS,,,,,,,,0.999,10.0,90.0,59.43,8,190437x164221,web COG,lulc/Libya/Libya_LULC.tif
+lulc,Somalia,PASS,,,,,,,,0.996,10.0,95.0,31.73,9,125025x163801,web COG,lulc/Somalia/Somalia_LULC.tif
+lulc,Algeria,PASS,,,,,,,,0.998,10.0,90.0,57.47,8,247995x217460,web COG,lulc/Algeria/Algeria_LULC.tif
+lulc,Mauritania,PASS,,,,,,,,0.998,10.0,90.0,55.18,8,147220x151722,web COG,lulc/Mauritania/Mauritania_LULC.tif
+lulc,Madagascar,PASS,,,,,,,,0.997,10.0,95.0,25.48,9,87193x163862,web COG,lulc/Madagascar/Madagascar_LULC.tif
+lulc,Angola,PASS,,,,,,,,0.998,10.0,95.0,23.17,9,151523x163811,web COG,lulc/Angola/Angola_LULC.tif
+lulc,Senegal,PASS,,,,,,,,0.997,10.0,95.0,29.05,9,74195x52632,web COG,lulc/Senegal/Senegal_LULC.tif
+lulc,Sierra Leone,PASS,,,,,,,,0.997,10.0,95.0,18.82,9,36461x36910,web COG,lulc/Sierra_Leone/Sierra_Leone_LULC.tif
+lulc,Congo,PASS,,,,,,,,0.997,10.0,95.0,16.11,9,90215x105047,web COG,lulc/Congo/Congo_LULC.tif
+lulc,Guinea,PASS,,,,,,,,0.996,10.0,95.0,19.72,9,92746x65820,web COG,lulc/Guinea/Guinea_LULC.tif
+lulc,Zimbabwe,PASS,,,,,,,,0.999,10.0,90.0,22.89,8,93955x81767,web COG,lulc/Zimbabwe/Zimbabwe_LULC.tif
+lulc,Guinea-Bissau,PASS,,,,,,,,0.993,10.0,95.0,27.78,9,36990x21534,web COG,lulc/Guinea-Bissau/Guinea-Bissau_LULC.tif
+lulc,Morocco,PASS,,,,,,,,0.996,10.0,90.0,50.64,8,193277x181832,web COG,lulc/Morocco/Morocco_LULC.tif
+lulc,Ethiopia,PASS,,,,,,,,0.998,10.0,90.0,28.05,8,179484x137348,web COG,lulc/Ethiopia/Ethiopia_LULC.tif
+lulc,Tanzania,PASS,,,,,,,,0.996,10.0,95.0,23.9,9,130049x129105,web COG,lulc/Tanzania/Tanzania_LULC.tif
+lulc,South Sudan,PASS,,,,,,,,0.997,10.0,90.0,29.9,8,141614x105073,web COG,lulc/South_Sudan/South_Sudan_LULC.tif
+lulc,Ivory Coast,PASS,,,,,,,,0.998,10.0,95.0,16.52,9,73349x76589,web COG,lulc/Ivory_Coast/Ivory_Coast_LULC.tif
+lulc,Namibia,PASS,,,,,,,,0.998,10.0,90.0,33.6,8,162763x143926,web COG,lulc/Namibia/Namibia_LULC.tif
+lulc,Togo,PASS,,,,,,,,0.998,10.0,95.0,25.49,9,23358x60325,web COG,lulc/Togo/Togo_LULC.tif
+lulc,Niger,PASS,,,,,,,,0.998,10.0,90.0,51.66,8,189960x141902,web COG,lulc/Niger/Niger_LULC.tif
+lulc,Tunisia,PASS,,,,,,,,0.998,10.0,90.0,48.88,8,48935x87744,web COG,lulc/Tunisia/Tunisia_LULC.tif
+lulc,Kenya,PASS,,,,,,,,0.998,10.0,95.0,26.38,9,95933x121595,web COG,lulc/Kenya/Kenya_LULC.tif
+lulc,Sudan,PASS,,,,,,,,0.999,10.0,90.0,48.26,8,201224x174019,web COG,lulc/Sudan/Sudan_LULC.tif
+lulc,Uganda,PASS,,,,,,,,0.996,10.0,90.0,27.46,9,65122x68597,web COG,lulc/Uganda/Uganda_LULC.tif
+lulc,Mali,PASS,,,,,,,,0.997,10.0,90.0,47.01,8,197807x178298,web COG,lulc/Mali/Mali_LULC.tif
+lulc,Nigeria,PASS,,,,,,,,0.998,10.0,95.0,29.64,9,143824x115386,web COG,lulc/Nigeria/Nigeria_LULC.tif
+lulc,South Africa,PASS,,,,,,,,0.998,10.0,95.0,30.44,9,197917x152510,web COG,lulc/South_Africa/South_Africa_LULC.tif
 climate:drought_index,Bir Tawil,CHECK,no country outline to compare with,,,,,,,0.763,-1.29,1.34,-0.23,,19x6,,datasets/RainfallClimate/drought_index/Bir Tawil/Bir-Tawil_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Bir Tawil,CHECK,no country outline to compare with,,,,,,,0.763,6.94,14.86,10.18,,19x6,,datasets/RainfallClimate/rainfall/Bir Tawil/Bir-Tawil_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Bir Tawil,CHECK,no country outline to compare with,,,,,,,0.752,25.6,26.72,26.26,,23x7,,datasets/RainfallClimate/temperature/Bir Tawil/Bir-Tawil_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Comoros,CHECK,data covers only 88% of the country,,,,,,,0.88,-1.07,1.44,-0.29,,27x21,,datasets/RainfallClimate/drought_index/Comoros/Comoros_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Comoros,CHECK,data covers only 88% of the country,,,,,,,0.88,1735.0,3877.99,2389.9,,27x21,,datasets/RainfallClimate/rainfall/Comoros/Comoros_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Sao Tome and Principe,PASS,,,,,,,,0.909,-1.04,0.09,-0.21,,21x34,,datasets/RainfallClimate/drought_index/Sao Tome and Principe/Sao-Tome-and-Principe_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Sao Tome and Principe,PASS,,,,,,,,0.91,1154.56,2486.19,1889.96,,21x34,,datasets/RainfallClimate/rainfall/Sao Tome and Principe/Sao-Tome-and-Principe_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Comoros,PASS,,,,,,,,0.915,14.72,26.05,22.92,,32x26,,datasets/RainfallClimate/temperature/Comoros/Comoros_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,eSwatini,PASS,,,,,,,,0.984,1.62,2.81,2.34,,28x33,,datasets/RainfallClimate/drought_index/eSwatini/eSwatini_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,eSwatini,PASS,,,,,,,,0.984,522.38,1929.28,1041.34,,28x33,,datasets/RainfallClimate/rainfall/eSwatini/eSwatini_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Gambia,PASS,,,,,,,,0.951,-1.15,0.84,-0.09,,61x16,,datasets/RainfallClimate/drought_index/Gambia/Gambia_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Gambia,PASS,,,,,,,,0.951,566.48,1421.2,903.6,,61x16,,datasets/RainfallClimate/rainfall/Gambia/Gambia_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Sao Tome and Principe,PASS,,,,,,,,0.922,17.74,25.29,22.67,,25x41,,datasets/RainfallClimate/temperature/Sao Tome and Principe/Sao-Tome-and-Principe_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,eSwatini,PASS,,,,,,,,0.985,15.38,22.65,20.39,,33x39,,datasets/RainfallClimate/temperature/eSwatini/eSwatini_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Djibouti,PASS,,,,,,,,0.975,-0.29,1.56,0.6,,35x37,,datasets/RainfallClimate/drought_index/Djibouti/Djibouti_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Djibouti,PASS,,,,,,,,0.975,44.17,312.59,180.42,,35x37,,datasets/RainfallClimate/rainfall/Djibouti/Djibouti_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Gambia,PASS,,,,,,,,0.933,26.01,27.99,27.2,,73x19,,datasets/RainfallClimate/temperature/Gambia/Gambia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Bir Tawil,CHECK,no country outline to compare with,,,,,,,0.752,25.6,26.72,26.26,,23x7,,datasets/RainfallClimate/temperature/Bir Tawil/Bir-Tawil_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Comoros,PASS,,,,,,,,0.915,14.72,26.05,22.92,,32x26,,datasets/RainfallClimate/temperature/Comoros/Comoros_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Sao Tome and Principe,PASS,,,,,,,,0.922,17.74,25.29,22.67,,25x41,,datasets/RainfallClimate/temperature/Sao Tome and Principe/Sao-Tome-and-Principe_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,eSwatini,PASS,,,,,,,,0.985,15.38,22.65,20.39,,33x39,,datasets/RainfallClimate/temperature/eSwatini/eSwatini_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Gambia,PASS,,,,,,,,0.933,26.01,27.99,27.2,,73x19,,datasets/RainfallClimate/temperature/Gambia/Gambia_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Rwanda,PASS,,,,,,,,0.966,-1.03,1.09,-0.09,,41x36,,datasets/RainfallClimate/drought_index/Rwanda/Rwanda_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Rwanda,PASS,,,,,,,,0.966,795.91,1874.41,1150.64,,41x36,,datasets/RainfallClimate/rainfall/Rwanda/Rwanda_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Burundi,PASS,,,,,,,,0.972,-0.67,3.0,0.96,,38x44,,datasets/RainfallClimate/drought_index/Burundi/Burundi_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Burundi,PASS,,,,,,,,0.972,852.36,1973.81,1355.46,,38x44,,datasets/RainfallClimate/rainfall/Burundi/Burundi_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Djibouti,PASS,,,,,,,,0.981,21.53,31.17,28.14,,42x43,,datasets/RainfallClimate/temperature/Djibouti/Djibouti_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Lesotho,PASS,,,,,,,,0.984,-0.17,1.24,0.6,,49x43,,datasets/RainfallClimate/drought_index/Lesotho/Lesotho_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Lesotho,PASS,,,,,,,,0.984,550.38,1286.81,799.43,,49x43,,datasets/RainfallClimate/rainfall/Lesotho/Lesotho_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Rwanda,PASS,,,,,,,,0.965,8.34,22.25,18.85,,50x43,,datasets/RainfallClimate/temperature/Rwanda/Rwanda_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Guinea Bissau,PASS,,,,,,,,0.97,-0.57,1.21,0.44,,62x36,,datasets/RainfallClimate/drought_index/Guinea Bissau/Guinea-Bissau_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Guinea Bissau,PASS,,,,,,,,0.97,1199.49,3057.45,1917.47,,62x36,,datasets/RainfallClimate/rainfall/Guinea Bissau/Guinea-Bissau_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Burundi,PASS,,,,,,,,0.981,14.63,25.0,19.26,,46x53,,datasets/RainfallClimate/temperature/Burundi/Burundi_Temperature_Monthly-Means_1970-2000.zip
 climate:rainfall,Cabo Verde,CHECK,data covers only 87% of the country,,,,,,,0.868,84.79,180.41,138.77,,55x48,,datasets/RainfallClimate/rainfall/Cabo Verde/Cabo-Verde_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Lesotho,PASS,,,,,,,,0.985,5.08,15.78,11.63,,59x51,,datasets/RainfallClimate/temperature/Lesotho/Lesotho_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Guinea Bissau,PASS,,,,,,,,0.962,25.72,28.13,26.65,,75x43,,datasets/RainfallClimate/temperature/Guinea Bissau/Guinea-Bissau_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Cabo Verde,CHECK,data covers only 89% of the country,,,,,,,0.894,13.69,24.76,22.08,,66x58,,datasets/RainfallClimate/temperature/Cabo Verde/Cabo-Verde_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Sierra Leone,PASS,,,,,,,,0.985,-0.09,2.74,1.37,,62x62,,datasets/RainfallClimate/drought_index/Sierra Leone/Sierra-Leone_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Sierra Leone,PASS,,,,,,,,0.985,1501.22,3902.48,2483.12,,62x62,,datasets/RainfallClimate/rainfall/Sierra Leone/Sierra-Leone_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Togo,PASS,,,,,,,,0.983,0.03,1.99,0.93,,40x101,,datasets/RainfallClimate/drought_index/Togo/Togo_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Togo,PASS,,,,,,,,0.983,742.82,2358.37,1320.87,,40x101,,datasets/RainfallClimate/rainfall/Togo/Togo_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Sierra Leone,PASS,,,,,,,,0.987,20.38,28.15,26.1,,74x74,,datasets/RainfallClimate/temperature/Sierra Leone/Sierra-Leone_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Togo,PASS,,,,,,,,0.981,22.17,28.89,26.8,,47x122,,datasets/RainfallClimate/temperature/Togo/Togo_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Liberia,PASS,,,,,,,,0.987,-2.6,1.83,-0.3,,83x86,,datasets/RainfallClimate/drought_index/Liberia/Liberia_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Liberia,PASS,,,,,,,,0.987,1642.81,3756.02,2328.2,,83x86,,datasets/RainfallClimate/rainfall/Liberia/Liberia_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Benin,PASS,,,,,,,,0.988,-1.17,2.07,0.27,,62x124,,datasets/RainfallClimate/drought_index/Benin/Benin_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Benin,PASS,,,,,,,,0.988,804.35,1637.68,1186.09,,62x124,,datasets/RainfallClimate/rainfall/Benin/Benin_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Somaliland,FAIL,data covers only 26% of the country,,,,,,,0.263,-0.88,3.0,1.52,,127x71,,datasets/RainfallClimate/drought_index/Somaliland/Somaliland_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Somaliland,FAIL,data covers only 26% of the country,,,,,,,0.263,11.61,738.86,245.54,,127x71,,datasets/RainfallClimate/rainfall/Somaliland/Somaliland_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Liberia,PASS,,,,,,,,0.99,21.77,27.01,25.5,,99x102,,datasets/RainfallClimate/temperature/Liberia/Liberia_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Malawi,PASS,,,,,,,,0.979,-0.81,1.29,0.27,,66x156,,datasets/RainfallClimate/drought_index/Malawi/Malawi_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Malawi,PASS,,,,,,,,0.979,585.7,2172.3,1156.02,,66x156,,datasets/RainfallClimate/rainfall/Malawi/Malawi_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Senegal,PASS,,,,,,,,0.988,-1.37,1.98,0.29,,124x88,,datasets/RainfallClimate/drought_index/Senegal/Senegal_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Senegal,PASS,,,,,,,,0.988,177.77,1834.36,703.02,,124x88,,datasets/RainfallClimate/rainfall/Senegal/Senegal_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Benin,PASS,,,,,,,,0.989,25.62,29.11,27.16,,75x149,,datasets/RainfallClimate/temperature/Benin/Benin_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Ghana,PASS,,,,,,,,0.994,-1.24,2.69,0.88,,90x130,,datasets/RainfallClimate/drought_index/Ghana/Ghana_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Ghana,PASS,,,,,,,,0.994,846.67,2533.61,1249.46,,90x130,,datasets/RainfallClimate/rainfall/Ghana/Ghana_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Tunisia,PASS,,,,,,,,0.989,-1.42,0.72,-0.39,,83x143,,datasets/RainfallClimate/drought_index/Tunisia/Tunisia_DroughtIndex_SPI-12_2014-2023.zip
@@ -458,48 +517,32 @@ climate:drought_index,Eq Guinea,PASS,,,,,,,,0.973,-1.94,-0.36,-1.25,,115x106,,da
 climate:rainfall,Eq Guinea,PASS,,,,,,,,0.973,1572.83,2777.36,1952.3,,115x106,,datasets/RainfallClimate/rainfall/Eq Guinea/Eq-Guinea_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Uganda,PASS,,,,,,,,0.988,-2.73,1.18,-0.49,,111x115,,datasets/RainfallClimate/drought_index/Uganda/Uganda_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Uganda,PASS,,,,,,,,0.988,611.89,2522.58,1195.64,,111x115,,datasets/RainfallClimate/rainfall/Uganda/Uganda_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Somaliland,FAIL,data covers only 26% of the country,,,,,,,0.264,14.86,30.2,24.34,,152x85,,datasets/RainfallClimate/temperature/Somaliland/Somaliland_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Gabon,PASS,,,,,,,,0.991,-1.93,3.0,-0.16,,117x126,,datasets/RainfallClimate/drought_index/Gabon/Gabon_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Gabon,PASS,,,,,,,,0.991,1350.45,3014.0,1863.95,,117x126,,datasets/RainfallClimate/rainfall/Gabon/Gabon_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Malawi,PASS,,,,,,,,0.982,13.12,25.89,21.24,,79x187,,datasets/RainfallClimate/temperature/Malawi/Malawi_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Eritrea,PASS,,,,,,,,0.98,-1.12,3.0,0.33,,135x114,,datasets/RainfallClimate/drought_index/Eritrea/Eritrea_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Eritrea,PASS,,,,,,,,0.98,60.65,967.03,414.67,,135x114,,datasets/RainfallClimate/rainfall/Eritrea/Eritrea_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Senegal,PASS,,,,,,,,0.992,24.29,30.64,27.83,,148x106,,datasets/RainfallClimate/temperature/Senegal/Senegal_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Cote dIvoire,PASS,,,,,,,,0.992,-3.0,3.0,0.18,,123x129,,datasets/RainfallClimate/drought_index/Cote dIvoire/Cote-dIvoire_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Cote dIvoire,PASS,,,,,,,,0.992,934.73,2527.84,1340.24,,123x129,,datasets/RainfallClimate/rainfall/Cote dIvoire/Cote-dIvoire_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Guinea,PASS,,,,,,,,0.987,-2.59,2.53,-0.06,,149x111,,datasets/RainfallClimate/drought_index/Guinea/Guinea_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Guinea,PASS,,,,,,,,0.987,1043.94,4100.64,1708.22,,149x111,,datasets/RainfallClimate/rainfall/Guinea/Guinea_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Ghana,PASS,,,,,,,,0.994,22.02,28.65,27.06,,108x155,,datasets/RainfallClimate/temperature/Ghana/Ghana_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Tunisia,PASS,,,,,,,,0.989,13.8,23.65,19.93,,99x172,,datasets/RainfallClimate/temperature/Tunisia/Tunisia_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Eq Guinea,PASS,,,,,,,,0.984,14.78,25.98,23.52,,139x127,,datasets/RainfallClimate/temperature/Eq Guinea/Eq-Guinea_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Uganda,PASS,,,,,,,,0.99,4.79,26.31,22.5,,132x138,,datasets/RainfallClimate/temperature/Uganda/Uganda_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Burkina Faso,PASS,,,,,,,,0.992,-2.49,1.53,-0.61,,159x115,,datasets/RainfallClimate/drought_index/Burkina Faso/Burkina-Faso_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Burkina Faso,PASS,,,,,,,,0.992,359.76,1267.76,845.98,,159x115,,datasets/RainfallClimate/rainfall/Burkina Faso/Burkina-Faso_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Gabon,PASS,,,,,,,,0.992,21.78,26.63,24.5,,140x151,,datasets/RainfallClimate/temperature/Gabon/Gabon_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Zimbabwe,PASS,,,,,,,,0.995,-1.84,1.4,-0.31,,157x136,,datasets/RainfallClimate/drought_index/Zimbabwe/Zimbabwe_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Zimbabwe,PASS,,,,,,,,0.995,174.83,2273.27,550.31,,157x136,,datasets/RainfallClimate/rainfall/Zimbabwe/Zimbabwe_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Eritrea,PASS,,,,,,,,0.981,15.6,31.08,25.72,,161x137,,datasets/RainfallClimate/temperature/Eritrea/Eritrea_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Cote dIvoire,PASS,,,,,,,,0.994,21.98,27.6,26.14,,147x154,,datasets/RainfallClimate/temperature/Cote dIvoire/Cote-dIvoire_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,W Sahara,CHECK,no country outline to compare with,,,,,,,0.151,-0.94,1.68,0.01,,170x139,,datasets/RainfallClimate/drought_index/W Sahara/W-Sahara_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,W Sahara,CHECK,no country outline to compare with,,,,,,,0.151,18.23,98.89,49.25,,170x139,,datasets/RainfallClimate/rainfall/W Sahara/W-Sahara_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Guinea,PASS,,,,,,,,0.99,20.82,29.88,25.67,,179x133,,datasets/RainfallClimate/temperature/Guinea/Guinea_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Burkina Faso,PASS,,,,,,,,0.994,25.98,29.53,28.05,,191x137,,datasets/RainfallClimate/temperature/Burkina Faso/Burkina-Faso_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Congo,PASS,,,,,,,,0.99,-1.45,3.0,1.07,,151x176,,datasets/RainfallClimate/drought_index/Congo/Congo_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Congo,PASS,,,,,,,,0.99,1160.17,2462.58,1667.62,,151x176,,datasets/RainfallClimate/rainfall/Congo/Congo_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Zimbabwe,PASS,,,,,,,,0.996,13.54,25.74,20.63,,189x164,,datasets/RainfallClimate/temperature/Zimbabwe/Zimbabwe_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Kenya,PASS,,,,,,,,0.987,-0.98,3.0,1.11,,161x195,,datasets/RainfallClimate/drought_index/Kenya/Kenya_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Kenya,PASS,,,,,,,,0.987,28.31,2807.83,718.91,,161x195,,datasets/RainfallClimate/rainfall/Kenya/Kenya_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,W Sahara,CHECK,no country outline to compare with,,,,,,,0.151,20.62,27.58,23.98,,203x166,,datasets/RainfallClimate/temperature/W Sahara/W-Sahara_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Botswana,PASS,,,,,,,,0.995,-1.87,-0.27,-1.2,,189x183,,datasets/RainfallClimate/drought_index/Botswana/Botswana_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Botswana,PASS,,,,,,,,0.995,139.47,505.98,306.34,,189x183,,datasets/RainfallClimate/rainfall/Botswana/Botswana_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Cameroon,PASS,,,,,,,,0.992,-1.73,3.0,0.71,,155x229,,datasets/RainfallClimate/drought_index/Cameroon/Cameroon_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Cameroon,PASS,,,,,,,,0.992,340.94,3287.16,1617.36,,155x229,,datasets/RainfallClimate/rainfall/Cameroon/Cameroon_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Congo,PASS,,,,,,,,0.993,21.89,26.43,24.57,,182x210,,datasets/RainfallClimate/temperature/Congo/Congo_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Madagascar,PASS,,,,,,,,0.994,-1.71,1.93,0.32,,147x274,,datasets/RainfallClimate/drought_index/Madagascar/Madagascar_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Madagascar,PASS,,,,,,,,0.994,266.19,4552.17,1423.03,,147x274,,datasets/RainfallClimate/rainfall/Madagascar/Madagascar_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,S Sudan,PASS,,,,,,,,0.988,-2.75,3.0,-0.05,,237x176,,datasets/RainfallClimate/drought_index/S Sudan/S-Sudan_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,S Sudan,PASS,,,,,,,,0.988,393.77,1691.39,986.96,,237x176,,datasets/RainfallClimate/rainfall/S Sudan/S-Sudan_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Kenya,PASS,,,,,,,,0.988,3.66,29.94,24.3,,193x234,,datasets/RainfallClimate/temperature/Kenya/Kenya_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Central African Rep,PASS,,,,,,,,0.995,-1.48,3.0,1.24,,262x177,,datasets/RainfallClimate/drought_index/Central African Rep/Central-African-Rep_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Central African Rep,PASS,,,,,,,,0.995,707.34,1869.39,1414.61,,262x177,,datasets/RainfallClimate/rainfall/Central African Rep/Central-African-Rep_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Nigeria,PASS,,,,,,,,0.995,-2.37,2.88,0.42,,241x193,,datasets/RainfallClimate/drought_index/Nigeria/Nigeria_DroughtIndex_SPI-12_2014-2023.zip
@@ -510,60 +553,140 @@ climate:drought_index,Egypt,PASS,,,,,,,,0.996,-2.55,3.0,0.06,,245x195,,datasets/
 climate:rainfall,Egypt,PASS,,,,,,,,0.996,0.0,766.58,29.52,,245x195,,datasets/RainfallClimate/rainfall/Egypt/Egypt_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Tanzania,PASS,,,,,,,,0.994,-1.1,3.0,0.46,,223x216,,datasets/RainfallClimate/drought_index/Tanzania/Tanzania_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Tanzania,PASS,,,,,,,,0.994,383.83,2865.33,1258.37,,223x216,,datasets/RainfallClimate/rainfall/Tanzania/Tanzania_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Botswana,PASS,,,,,,,,0.997,18.2,24.84,22.14,,226x220,,datasets/RainfallClimate/temperature/Botswana/Botswana_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Cameroon,PASS,,,,,,,,0.993,10.48,28.56,24.34,,185x275,,datasets/RainfallClimate/temperature/Cameroon/Cameroon_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature,Eq Guinea,PASS,,,,,,,,0.983,11.45,26.05,23.32,,695x630,web COG,datasets/gnq/temperature/GNQ_Temperature_CHELSA_1981-2010.tif
 climate:drought_index,Somalia,CHECK,data covers only 74% of the country,,,,,,,0.735,-0.86,3.0,2.15,,210x274,,datasets/RainfallClimate/drought_index/Somalia/Somalia_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Somalia,CHECK,data covers only 74% of the country,,,,,,,0.735,7.48,808.14,372.45,,210x274,,datasets/RainfallClimate/rainfall/Somalia/Somalia_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Madagascar,PASS,,,,,,,,0.994,12.17,28.0,22.9,,176x329,,datasets/RainfallClimate/temperature/Madagascar/Madagascar_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,S Sudan,PASS,,,,,,,,0.987,14.43,28.59,26.87,,285x211,,datasets/RainfallClimate/temperature/S Sudan/S-Sudan_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Mauritania,PASS,,,,,,,,0.996,-2.48,2.88,0.32,,246x252,,datasets/RainfallClimate/drought_index/Mauritania/Mauritania_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Mauritania,PASS,,,,,,,,0.996,17.65,2097.4,102.95,,246x252,,datasets/RainfallClimate/rainfall/Mauritania/Mauritania_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Namibia,PASS,,,,,,,,0.996,-1.86,3.0,-0.93,,272x241,,datasets/RainfallClimate/drought_index/Namibia/Namibia_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Namibia,PASS,,,,,,,,0.996,18.52,484.2,194.57,,272x241,,datasets/RainfallClimate/rainfall/Namibia/Namibia_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Central African Rep,PASS,,,,,,,,0.996,21.72,27.35,24.81,,314x212,,datasets/RainfallClimate/temperature/Central African Rep/Central-African-Rep_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Nigeria,PASS,,,,,,,,0.996,18.9,29.1,26.63,,289x232,,datasets/RainfallClimate/temperature/Nigeria/Nigeria_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Zambia,PASS,,,,,,,,0.996,15.23,27.01,21.21,,282x238,,datasets/RainfallClimate/temperature/Zambia/Zambia_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Chad,PASS,,,,,,,,0.993,-2.52,3.0,-0.02,,212x320,,datasets/RainfallClimate/drought_index/Chad/Chad_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Chad,PASS,,,,,,,,0.993,1.09,1593.02,391.36,,212x320,,datasets/RainfallClimate/rainfall/Chad/Chad_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Angola,PASS,,,,,,,,0.976,-2.4,3.0,0.23,,249x274,,datasets/RainfallClimate/drought_index/Angola/Angola_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Angola,PASS,,,,,,,,0.976,26.77,1630.21,923.64,,249x274,,datasets/RainfallClimate/rainfall/Angola/Angola_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Egypt,PASS,,,,,,,,0.997,14.36,27.0,22.26,,294x233,,datasets/RainfallClimate/temperature/Egypt/Egypt_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Ethiopia,PASS,,,,,,,,0.995,-2.43,3.0,1.13,,301x230,,datasets/RainfallClimate/drought_index/Ethiopia/Ethiopia_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Ethiopia,PASS,,,,,,,,0.995,156.06,2552.38,891.73,,301x230,,datasets/RainfallClimate/rainfall/Ethiopia/Ethiopia_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Tanzania,CHECK,values -1.35..27.76 outside 0..12000,,,,,,,0.995,-1.35,27.76,22.34,,268x259,,datasets/RainfallClimate/temperature/Tanzania/Tanzania_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Mozambique,PASS,,,,,,,,0.994,-1.15,2.92,0.39,,213x329,,datasets/RainfallClimate/drought_index/Mozambique/Mozambique_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Mozambique,PASS,,,,,,,,0.994,41.51,2204.41,1023.76,,213x329,,datasets/RainfallClimate/rainfall/Mozambique/Mozambique_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Niger,PASS,,,,,,,,0.997,-2.6,3.0,-0.5,,317x238,,datasets/RainfallClimate/drought_index/Niger/Niger_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Niger,PASS,,,,,,,,0.997,1.9,985.98,175.56,,317x238,,datasets/RainfallClimate/rainfall/Niger/Niger_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Somalia,CHECK,data covers only 74% of the country,,,,,,,0.736,18.39,30.6,27.04,,252x329,,datasets/RainfallClimate/temperature/Somalia/Somalia_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Libya,PASS,,,,,,,,0.998,-2.2,3.0,-0.31,,319x275,,datasets/RainfallClimate/drought_index/Libya/Libya_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Libya,PASS,,,,,,,,0.998,0.27,699.19,49.68,,319x275,,datasets/RainfallClimate/rainfall/Libya/Libya_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Mauritania,PASS,,,,,,,,0.996,20.79,30.93,27.72,,295x302,,datasets/RainfallClimate/temperature/Mauritania/Mauritania_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Sudan,PASS,,,,,,,,0.987,-3.0,3.0,-0.22,,337x272,,datasets/RainfallClimate/drought_index/Sudan/Sudan_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Sudan,PASS,,,,,,,,0.987,0.94,1671.95,266.81,,337x272,,datasets/RainfallClimate/rainfall/Sudan/Sudan_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Morocco,CHECK,data covers only 88% of the country,,,,,,,0.875,-2.3,2.54,-0.74,,321x291,,datasets/RainfallClimate/drought_index/Morocco/Morocco_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Morocco,CHECK,data covers only 88% of the country,,,,,,,0.875,2.11,990.1,187.7,,321x291,,datasets/RainfallClimate/rainfall/Morocco/Morocco_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Namibia,PASS,,,,,,,,0.997,13.15,24.51,20.36,,326x290,,datasets/RainfallClimate/temperature/Namibia/Namibia_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Angola,PASS,,,,,,,,0.973,15.59,26.62,21.6,,298x328,,datasets/RainfallClimate/temperature/Angola/Angola_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Chad,PASS,,,,,,,,0.993,12.49,30.1,26.96,,254x385,,datasets/RainfallClimate/temperature/Chad/Chad_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Mali,PASS,,,,,,,,0.996,-3.0,2.58,-0.36,,331x298,,datasets/RainfallClimate/drought_index/Mali/Mali_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Mali,PASS,,,,,,,,0.996,18.59,1543.08,347.37,,331x298,,datasets/RainfallClimate/rainfall/Mali/Mali_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Ethiopia,PASS,,,,,,,,0.995,5.94,30.96,22.67,,361x277,,datasets/RainfallClimate/temperature/Ethiopia/Ethiopia_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Mozambique,PASS,,,,,,,,0.994,13.74,27.0,23.92,,256x394,,datasets/RainfallClimate/temperature/Mozambique/Mozambique_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Niger,PASS,,,,,,,,0.997,21.12,30.04,27.24,,381x285,,datasets/RainfallClimate/temperature/Niger/Niger_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Libya,PASS,,,,,,,,0.998,15.44,25.48,21.78,,382x330,,datasets/RainfallClimate/temperature/Libya/Libya_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Sudan,PASS,,,,,,,,0.987,14.8,30.05,26.71,,404x326,,datasets/RainfallClimate/temperature/Sudan/Sudan_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Morocco,CHECK,data covers only 87% of the country,,,,,,,0.874,3.11,25.44,18.66,,385x349,,datasets/RainfallClimate/temperature/Morocco/Morocco_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,Mali,PASS,,,,,,,,0.997,24.84,30.74,28.4,,397x357,,datasets/RainfallClimate/temperature/Mali/Mali_Temperature_Monthly-Means_1970-2000.zip
 climate:drought_index,Dem Rep Congo,PASS,,,,,,,,0.997,-3.0,3.0,0.25,,382x378,,datasets/RainfallClimate/drought_index/Dem Rep Congo/Dem-Rep-Congo_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Dem Rep Congo,PASS,,,,,,,,0.997,691.82,2456.06,1543.42,,382x378,,datasets/RainfallClimate/rainfall/Dem Rep Congo/Dem-Rep-Congo_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,Algeria,PASS,,,,,,,,0.998,-3.0,1.95,-0.75,,414x363,,datasets/RainfallClimate/drought_index/Algeria/Algeria_DroughtIndex_SPI-12_2014-2023.zip
 climate:rainfall,Algeria,PASS,,,,,,,,0.998,8.81,939.95,81.33,,414x363,,datasets/RainfallClimate/rainfall/Algeria/Algeria_Rainfall_Annual-Total_1981-2023.zip
 climate:drought_index,South Africa,PASS,,,,,,,,0.996,-2.12,3.0,0.32,,431x358,,datasets/RainfallClimate/drought_index/South Africa/South-Africa_DroughtIndex_SPI-12_2014-2023.zip
-climate:temperature,Dem Rep Congo,PASS,,,,,,,,0.997,5.41,26.94,23.72,,458x454,,datasets/RainfallClimate/temperature/Dem Rep Congo/Dem-Rep-Congo_Temperature_Monthly-Means_1970-2000.zip
 climate:rainfall,South Africa,PASS,,,,,,,,0.996,29.81,2062.29,492.24,,431x498,,datasets/RainfallClimate/rainfall/South Africa/South-Africa_Rainfall_Annual-Total_1981-2023.zip
-climate:temperature,Algeria,PASS,,,,,,,,0.998,8.79,28.96,23.15,,497x436,,datasets/RainfallClimate/temperature/Algeria/Algeria_Temperature_Monthly-Means_1970-2000.zip
-climate:temperature,South Africa,PASS,,,,,,,,0.996,5.58,24.9,17.53,,517x597,,datasets/RainfallClimate/temperature/South Africa/South-Africa_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Djibouti,PASS,,,,,,,,0.981,21.53,31.17,28.14,,42x43,,datasets/RainfallClimate/temperature/Djibouti/Djibouti_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Rwanda,PASS,,,,,,,,0.965,8.34,22.25,18.85,,50x43,,datasets/RainfallClimate/temperature/Rwanda/Rwanda_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Burundi,PASS,,,,,,,,0.981,14.63,25.0,19.26,,46x53,,datasets/RainfallClimate/temperature/Burundi/Burundi_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Lesotho,PASS,,,,,,,,0.985,5.08,15.78,11.63,,59x51,,datasets/RainfallClimate/temperature/Lesotho/Lesotho_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Guinea Bissau,PASS,,,,,,,,0.962,25.72,28.13,26.65,,75x43,,datasets/RainfallClimate/temperature/Guinea Bissau/Guinea-Bissau_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Cabo Verde,CHECK,data covers only 89% of the country,,,,,,,0.894,13.69,24.76,22.08,,66x58,,datasets/RainfallClimate/temperature/Cabo Verde/Cabo-Verde_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Sierra Leone,PASS,,,,,,,,0.987,20.38,28.15,26.1,,74x74,,datasets/RainfallClimate/temperature/Sierra Leone/Sierra-Leone_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Togo,PASS,,,,,,,,0.981,22.17,28.89,26.8,,47x122,,datasets/RainfallClimate/temperature/Togo/Togo_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Liberia,PASS,,,,,,,,0.99,21.77,27.01,25.5,,99x102,,datasets/RainfallClimate/temperature/Liberia/Liberia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Benin,PASS,,,,,,,,0.989,25.62,29.11,27.16,,75x149,,datasets/RainfallClimate/temperature/Benin/Benin_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Somaliland,FAIL,data covers only 26% of the country,,,,,,,0.264,14.86,30.2,24.34,,152x85,,datasets/RainfallClimate/temperature/Somaliland/Somaliland_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Malawi,PASS,,,,,,,,0.982,13.12,25.89,21.24,,79x187,,datasets/RainfallClimate/temperature/Malawi/Malawi_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Senegal,PASS,,,,,,,,0.992,24.29,30.64,27.83,,148x106,,datasets/RainfallClimate/temperature/Senegal/Senegal_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Ghana,PASS,,,,,,,,0.994,22.02,28.65,27.06,,108x155,,datasets/RainfallClimate/temperature/Ghana/Ghana_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Tunisia,PASS,,,,,,,,0.989,13.8,23.65,19.93,,99x172,,datasets/RainfallClimate/temperature/Tunisia/Tunisia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Eq Guinea,PASS,,,,,,,,0.984,14.78,25.98,23.52,,139x127,,datasets/RainfallClimate/temperature/Eq Guinea/Eq-Guinea_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Uganda,PASS,,,,,,,,0.99,4.79,26.31,22.5,,132x138,,datasets/RainfallClimate/temperature/Uganda/Uganda_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Gabon,PASS,,,,,,,,0.992,21.78,26.63,24.5,,140x151,,datasets/RainfallClimate/temperature/Gabon/Gabon_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Eritrea,PASS,,,,,,,,0.981,15.6,31.08,25.72,,161x137,,datasets/RainfallClimate/temperature/Eritrea/Eritrea_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Cote dIvoire,PASS,,,,,,,,0.994,21.98,27.6,26.14,,147x154,,datasets/RainfallClimate/temperature/Cote dIvoire/Cote-dIvoire_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Guinea,PASS,,,,,,,,0.99,20.82,29.88,25.67,,179x133,,datasets/RainfallClimate/temperature/Guinea/Guinea_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Burkina Faso,PASS,,,,,,,,0.994,25.98,29.53,28.05,,191x137,,datasets/RainfallClimate/temperature/Burkina Faso/Burkina-Faso_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Zimbabwe,PASS,,,,,,,,0.996,13.54,25.74,20.63,,189x164,,datasets/RainfallClimate/temperature/Zimbabwe/Zimbabwe_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,W Sahara,CHECK,no country outline to compare with,,,,,,,0.151,20.62,27.58,23.98,,203x166,,datasets/RainfallClimate/temperature/W Sahara/W-Sahara_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Congo,PASS,,,,,,,,0.993,21.89,26.43,24.57,,182x210,,datasets/RainfallClimate/temperature/Congo/Congo_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Kenya,PASS,,,,,,,,0.988,3.66,29.94,24.3,,193x234,,datasets/RainfallClimate/temperature/Kenya/Kenya_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Botswana,PASS,,,,,,,,0.997,18.2,24.84,22.14,,226x220,,datasets/RainfallClimate/temperature/Botswana/Botswana_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Cameroon,PASS,,,,,,,,0.993,10.48,28.56,24.34,,185x275,,datasets/RainfallClimate/temperature/Cameroon/Cameroon_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Madagascar,PASS,,,,,,,,0.994,12.17,28.0,22.9,,176x329,,datasets/RainfallClimate/temperature/Madagascar/Madagascar_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,S Sudan,PASS,,,,,,,,0.987,14.43,28.59,26.87,,285x211,,datasets/RainfallClimate/temperature/S Sudan/S-Sudan_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Central African Rep,PASS,,,,,,,,0.996,21.72,27.35,24.81,,314x212,,datasets/RainfallClimate/temperature/Central African Rep/Central-African-Rep_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Nigeria,PASS,,,,,,,,0.996,18.9,29.1,26.63,,289x232,,datasets/RainfallClimate/temperature/Nigeria/Nigeria_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Zambia,PASS,,,,,,,,0.996,15.23,27.01,21.21,,282x238,,datasets/RainfallClimate/temperature/Zambia/Zambia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Egypt,PASS,,,,,,,,0.997,14.36,27.0,22.26,,294x233,,datasets/RainfallClimate/temperature/Egypt/Egypt_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Tanzania,CHECK,values -1.35..27.76 outside 0..12000,,,,,,,0.995,-1.35,27.76,22.34,,268x259,,datasets/RainfallClimate/temperature/Tanzania/Tanzania_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Somalia,CHECK,data covers only 74% of the country,,,,,,,0.736,18.39,30.6,27.04,,252x329,,datasets/RainfallClimate/temperature/Somalia/Somalia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Mauritania,PASS,,,,,,,,0.996,20.79,30.93,27.72,,295x302,,datasets/RainfallClimate/temperature/Mauritania/Mauritania_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Namibia,PASS,,,,,,,,0.997,13.15,24.51,20.36,,326x290,,datasets/RainfallClimate/temperature/Namibia/Namibia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Angola,PASS,,,,,,,,0.973,15.59,26.62,21.6,,298x328,,datasets/RainfallClimate/temperature/Angola/Angola_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature,Kenya,PASS,,,,,,,,0.998,1.75,32.35,25.13,,959x1211,web COG,datasets/ken/temperature/KEN_Temperature_CHELSA_1981-2010.tif
+climate:temperature_worldclim_retired,Chad,PASS,,,,,,,,0.993,12.49,30.1,26.96,,254x385,,datasets/RainfallClimate/temperature/Chad/Chad_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Ethiopia,PASS,,,,,,,,0.995,5.94,30.96,22.67,,361x277,,datasets/RainfallClimate/temperature/Ethiopia/Ethiopia_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Mozambique,PASS,,,,,,,,0.994,13.74,27.0,23.92,,256x394,,datasets/RainfallClimate/temperature/Mozambique/Mozambique_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Niger,PASS,,,,,,,,0.997,21.12,30.04,27.24,,381x285,,datasets/RainfallClimate/temperature/Niger/Niger_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Libya,PASS,,,,,,,,0.998,15.44,25.48,21.78,,382x330,,datasets/RainfallClimate/temperature/Libya/Libya_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Sudan,PASS,,,,,,,,0.987,14.8,30.05,26.71,,404x326,,datasets/RainfallClimate/temperature/Sudan/Sudan_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Morocco,CHECK,data covers only 87% of the country,,,,,,,0.874,3.11,25.44,18.66,,385x349,,datasets/RainfallClimate/temperature/Morocco/Morocco_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Mali,PASS,,,,,,,,0.997,24.84,30.74,28.4,,397x357,,datasets/RainfallClimate/temperature/Mali/Mali_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Dem Rep Congo,PASS,,,,,,,,0.997,5.41,26.94,23.72,,458x454,,datasets/RainfallClimate/temperature/Dem Rep Congo/Dem-Rep-Congo_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,Algeria,PASS,,,,,,,,0.998,8.79,28.96,23.15,,497x436,,datasets/RainfallClimate/temperature/Algeria/Algeria_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature_worldclim_retired,South Africa,PASS,,,,,,,,0.996,5.58,24.9,17.53,,517x597,,datasets/RainfallClimate/temperature/South Africa/South-Africa_Temperature_Monthly-Means_1970-2000.zip
+climate:temperature,Angola,PASS,,,,,,,,0.971,12.45,26.65,21.97,,1492x1642,web COG,datasets/ago/temperature/AGO_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Burundi,PASS,,,,,,,,0.984,12.25,25.55,19.91,,222x259,web COG,datasets/bdi/temperature/BDI_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Benin,PASS,,,,,,,,0.988,24.75,29.65,27.38,,369x742,web COG,datasets/ben/temperature/BEN_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Burkina Faso,PASS,,,,,,,,0.999,25.15,30.35,28.46,,951x682,web COG,datasets/bfa/temperature/BFA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Botswana,PASS,,,,,,,,0.999,17.75,23.95,21.96,,1123x1095,web COG,datasets/bwa/temperature/BWA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Central African Rep,PASS,,,,,,,,0.994,21.25,27.75,25.55,,1566x1056,web COG,datasets/caf/temperature/CAF_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Cote dIvoire,PASS,,,,,,,,0.993,19.85,27.95,26.2,,731x766,web COG,datasets/civ/temperature/CIV_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Cameroon,PASS,,,,,,,,0.997,6.15,29.15,24.25,,924x1371,web COG,datasets/cmr/temperature/CMR_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Dem Rep Congo,PASS,,,,,,,,0.999,3.16,26.85,23.78,,2292x2261,web COG,datasets/cod/temperature/COD_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Congo,PASS,,,,,,,,0.987,21.45,26.35,24.45,,893x1048,web COG,datasets/cog/temperature/COG_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Comoros,PASS,,,,,,,,0.971,13.45,26.05,23.16,,157x127,web COG,datasets/com/temperature/COM_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Cabo Verde,PASS,,,,,,,,0.974,21.45,23.85,22.92,,324x288,web COG,datasets/cpv/temperature/CPV_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Djibouti,PASS,,,,,,,,0.964,21.05,32.35,28.14,,197x216,web COG,datasets/dji/temperature/DJI_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Algeria,PASS,,,,,,,,0.991,8.45,28.45,23.24,,2491x2187,web COG,datasets/dza/temperature/DZA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Egypt,PASS,,,,,,,,0.993,10.95,28.15,22.51,,1466x1161,web COG,datasets/egy/temperature/EGY_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Eritrea,PASS,,,,,,,,0.992,12.95,32.85,26.6,,806x678,web COG,datasets/eri/temperature/ERI_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Ethiopia,PASS,,,,,,,,0.999,4.44,34.75,23.12,,1795x1373,web COG,datasets/eth/temperature/ETH_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Gabon,PASS,,,,,,,,0.989,20.95,26.15,24.24,,698x756,web COG,datasets/gab/temperature/GAB_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Ghana,PASS,,,,,,,,0.997,22.55,29.05,27.16,,535x772,web COG,datasets/gha/temperature/GHA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Guinea,PASS,,,,,,,,0.993,18.35,28.95,25.82,,893x658,web COG,datasets/gin/temperature/GIN_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Gambia,PASS,,,,,,,,0.979,25.05,29.65,27.78,,363x94,web COG,datasets/gmb/temperature/GMB_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Guinea Bissau,PASS,,,,,,,,0.993,25.45,28.65,27.48,,370x215,web COG,datasets/gnb/temperature/GNB_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Liberia,PASS,,,,,,,,0.997,19.85,25.95,24.95,,496x504,web COG,datasets/lbr/temperature/LBR_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Libya,PASS,,,,,,,,0.999,15.15,25.15,22.01,,1904x1642,web COG,datasets/lby/temperature/LBY_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Lesotho,PASS,,,,,,,,0.996,3.85,15.75,10.7,,294x253,web COG,datasets/lso/temperature/LSO_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Morocco,PASS,,,,,,,,0.998,2.21,27.55,19.9,,1933x1818,web COG,datasets/mar/temperature/MAR_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Madagascar,PASS,,,,,,,,0.998,8.65,27.45,22.36,,877x1639,web COG,datasets/mdg/temperature/MDG_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Mali,PASS,,,,,,,,0.999,24.8,30.85,28.43,,1978x1783,web COG,datasets/mli/temperature/MLI_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Mozambique,PASS,,,,,,,,0.997,10.65,27.05,23.73,,1275x1967,web COG,datasets/moz/temperature/MOZ_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Mauritania,PASS,,,,,,,,0.999,20.25,31.35,27.29,,1472x1517,web COG,datasets/mrt/temperature/MRT_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Mauritius,PASS,,,,,,,,0.972,19.85,25.95,22.8,,830x1223,web COG,datasets/mus/temperature/MUS_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Malawi,PASS,,,,,,,,0.99,8.25,26.25,21.33,,390x932,web COG,datasets/mwi/temperature/MWI_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Namibia,PASS,,,,,,,,0.999,15.08,27.12,21.22,,1625x1441,web COG,datasets/nam/temperature/NAM_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Niger,PASS,,,,,,,,0.998,19.43,30.45,27.07,,1900x1419,web COG,datasets/ner/temperature/NER_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Nigeria,PASS,,,,,,,,0.999,14.15,29.55,26.9,,1438x1154,web COG,datasets/nga/temperature/NGA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Rwanda,PASS,,,,,,,,0.988,4.25,24.45,19.04,,245x215,web COG,datasets/rwa/temperature/RWA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Sudan,PASS,,,,,,,,0.999,13.02,30.65,26.81,,2012x1740,web COG,datasets/sdn/temperature/SDN_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Senegal,PASS,,,,,,,,0.998,23.85,31.05,28.62,,742x526,web COG,datasets/sen/temperature/SEN_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Sierra Leone,PASS,,,,,,,,0.997,18.05,27.45,25.62,,365x369,web COG,datasets/sle/temperature/SLE_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Somalia,PASS,,,,,,,,0.998,15.15,29.95,26.36,,1251x1638,web COG,datasets/som/temperature/SOM_Temperature_CHELSA_1981-2010.tif
+climate:temperature,S Sudan,PASS,,,,,,,,0.999,11.25,31.15,27.33,,1416x1051,web COG,datasets/ssd/temperature/SSD_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Sao Tome and Principe,PASS,,,,,,,,0.976,18.55,26.15,24.45,,120x205,web COG,datasets/stp/temperature/STP_Temperature_CHELSA_1981-2010.tif
+climate:temperature,eSwatini,PASS,,,,,,,,0.997,12.45,22.85,19.49,,161x192,web COG,datasets/swz/temperature/SWZ_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Seychelles,CHECK,data covers only 76% of the country,,,,,,,0.757,23.05,26.45,25.69,,1211x779,web COG,datasets/syc/temperature/SYC_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Chad,PASS,,,,,,,,0.991,10.35,29.55,26.67,,1263x1920,web COG,datasets/tcd/temperature/TCD_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Togo,PASS,,,,,,,,0.992,22.15,29.25,26.71,,234x603,web COG,datasets/tgo/temperature/TGO_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Tunisia,PASS,,,,,,,,0.994,12.45,23.05,19.95,,489x877,web COG,datasets/tun/temperature/TUN_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Tanzania,PASS,,,,,,,,0.989,-6.35,28.55,22.42,,1303x1294,web COG,datasets/tza/temperature/TZA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Uganda,PASS,,,,,,,,0.995,0.15,26.95,22.69,,655x684,web COG,datasets/uga/temperature/UGA_Temperature_CHELSA_1981-2010.tif
+climate:temperature,South Africa,PASS,,,,,,,,0.999,4.16,24.75,17.66,,1979x1525,web COG,datasets/zaf/temperature/ZAF_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Zambia,PASS,,,,,,,,0.997,13.75,26.05,21.85,,1406x1177,web COG,datasets/zmb/temperature/ZMB_Temperature_CHELSA_1981-2010.tif
+climate:temperature,Zimbabwe,PASS,,,,,,,,0.999,9.85,26.45,21.34,,940x818,web COG,datasets/zwe/temperature/ZWE_Temperature_CHELSA_1981-2010.tif
 population,Angola,PASS,,161,polygon,0.999,0.972,1247682,,,,,,,,,datasets/PopulationSettlements/AGO/Angola_Population_ADM2_2024.zip
 population,Benin,PASS,,77,polygon,0.988,0.989,115600,,,,,,,,,datasets/PopulationSettlements/BEN/Benin_Population_ADM2_2024.zip
 population,Burundi,PASS,,119,polygon,0.984,0.986,25099,,,,,,,,,datasets/PopulationSettlements/BDI/Burundi_Population_ADM2_2022.zip
@@ -648,6 +771,60 @@ roads,Tunisia,PASS,,118,line,0.991,0.636,,4818,,,,,,,,datasets/tun/roads/TUN_Roa
 roads,Uganda,PASS,,171,line,0.995,0.679,,6135,,,,,,,,datasets/uga/roads/UGA_Roads.gpkg
 roads,Zambia,CHECK,reaches only 28% of the country,63,line,0.997,0.278,,6711,,,,,,,,datasets/zmb/roads/ZMB_Roads.gpkg
 roads,Zimbabwe,PASS,,177,line,0.996,0.509,,7355,,,,,,,,datasets/zwe/roads/ZWE_Roads.gpkg
+soil,Angola,PASS,,,,,,,,0.967,0.0,29.0,7.97,,5968x6567,web COG,datasets/ago/soil_classification/AGO_Soil_Classification_WRB.tif
+soil,Burundi,PASS,,,,,,,,0.98,0.0,29.0,9.0,,888x1037,web COG,datasets/bdi/soil_classification/BDI_Soil_Classification_WRB.tif
+soil,Benin,PASS,,,,,,,,0.985,0.0,29.0,12.96,,1477x2968,web COG,datasets/ben/soil_classification/BEN_Soil_Classification_WRB.tif
+soil,Burkina Faso,PASS,,,,,,,,0.994,0.0,29.0,11.05,,3804x2727,web COG,datasets/bfa/soil_classification/BFA_Soil_Classification_WRB.tif
+soil,Botswana,PASS,,,,,,,,0.997,0.0,29.0,6.62,,4493x4381,web COG,datasets/bwa/soil_classification/BWA_Soil_Classification_WRB.tif
+soil,Central African Rep,PASS,,,,,,,,0.992,0.0,29.0,8.14,,6264x4222,web COG,datasets/caf/soil_classification/CAF_Soil_Classification_WRB.tif
+soil,Cote dIvoire,PASS,,,,,,,,0.988,0.0,29.0,4.38,,2924x3065,web COG,datasets/civ/soil_classification/CIV_Soil_Classification_WRB.tif
+soil,Cameroon,PASS,,,,,,,,0.99,0.0,29.0,7.6,,3695x5484,web COG,datasets/cmr/soil_classification/CMR_Soil_Classification_WRB.tif
+soil,Dem Rep Congo,PASS,,,,,,,,0.989,0.0,29.0,8.47,,9168x9044,web COG,datasets/cod/soil_classification/COD_Soil_Classification_WRB.tif
+soil,Congo,PASS,,,,,,,,0.979,0.0,23.0,8.75,,3574x4191,web COG,datasets/cog/soil_classification/COG_Soil_Classification_WRB.tif
+soil,Comoros,PASS,,,,,,,,0.98,0.0,17.0,8.42,,630x508,web COG,datasets/com/soil_classification/COM_Soil_Classification_WRB.tif
+soil,Cabo Verde,PASS,,,,,,,,0.971,0.0,29.0,17.09,,1298x1153,web COG,datasets/cpv/soil_classification/CPV_Soil_Classification_WRB.tif
+soil,Djibouti,PASS,,,,,,,,0.956,4.0,29.0,15.55,,789x863,web COG,datasets/dji/soil_classification/DJI_Soil_Classification_WRB.tif
+soil,Algeria,PASS,,,,,,,,0.988,0.0,29.0,11.87,,9965x8748,web COG,datasets/dza/soil_classification/DZA_Soil_Classification_WRB.tif
+soil,Egypt,PASS,,,,,,,,0.989,4.0,29.0,10.72,,5863x4642,web COG,datasets/egy/soil_classification/EGY_Soil_Classification_WRB.tif
+soil,Eritrea,PASS,,,,,,,,0.99,4.0,29.0,15.18,,3225x2712,web COG,datasets/eri/soil_classification/ERI_Soil_Classification_WRB.tif
+soil,Ethiopia,PASS,,,,,,,,0.994,0.0,29.0,16.85,,7179x5494,web COG,datasets/eth/soil_classification/ETH_Soil_Classification_WRB.tif
+soil,Gabon,PASS,,,,,,,,0.982,0.0,23.0,8.66,,2793x3025,web COG,datasets/gab/soil_classification/GAB_Soil_Classification_WRB.tif
+soil,Ghana,PASS,,,,,,,,0.971,0.0,29.0,9.6,,2142x3089,web COG,datasets/gha/soil_classification/GHA_Soil_Classification_WRB.tif
+soil,Guinea,PASS,,,,,,,,0.988,0.0,29.0,8.58,,3574x2632,web COG,datasets/gin/soil_classification/GIN_Soil_Classification_WRB.tif
+soil,Gambia,PASS,,,,,,,,0.981,0.0,29.0,6.49,,1451x374,web COG,datasets/gmb/soil_classification/GMB_Soil_Classification_WRB.tif
+soil,Guinea Bissau,PASS,,,,,,,,0.932,0.0,29.0,10.03,,1480x861,web COG,datasets/gnb/soil_classification/GNB_Soil_Classification_WRB.tif
+soil,Eq Guinea,PASS,,,,,,,,0.981,0.0,14.0,9.29,,2779x2519,web COG,datasets/gnq/soil_classification/GNQ_Soil_Classification_WRB.tif
+soil,Kenya,PASS,,,,,,,,0.977,0.0,29.0,16.16,,3838x4844,web COG,datasets/ken/soil_classification/KEN_Soil_Classification_WRB.tif
+soil,Liberia,PASS,,,,,,,,0.996,0.0,12.0,1.78,,1983x2015,web COG,datasets/lbr/soil_classification/LBR_Soil_Classification_WRB.tif
+soil,Libya,PASS,,,,,,,,0.998,4.0,29.0,9.76,,7617x6569,web COG,datasets/lby/soil_classification/LBY_Soil_Classification_WRB.tif
+soil,Lesotho,PASS,,,,,,,,0.997,0.0,29.0,9.29,,1174x1011,web COG,datasets/lso/soil_classification/LSO_Soil_Classification_WRB.tif
+soil,Morocco,PASS,,,,,,,,0.994,2.0,29.0,15.21,,7731x7273,web COG,datasets/mar/soil_classification/MAR_Soil_Classification_WRB.tif
+soil,Madagascar,PASS,,,,,,,,0.992,0.0,29.0,10.29,,3508x6554,web COG,datasets/mdg/soil_classification/MDG_Soil_Classification_WRB.tif
+soil,Mali,PASS,,,,,,,,0.995,0.0,29.0,7.63,,7912x7132,web COG,datasets/mli/soil_classification/MLI_Soil_Classification_WRB.tif
+soil,Mozambique,PASS,,,,,,,,0.98,0.0,29.0,13.27,,5102x7869,web COG,datasets/moz/soil_classification/MOZ_Soil_Classification_WRB.tif
+soil,Mauritania,PASS,,,,,,,,0.998,4.0,29.0,7.33,,5889x6069,web COG,datasets/mrt/soil_classification/MRT_Soil_Classification_WRB.tif
+soil,Mauritius,PASS,,,,,,,,0.966,0.0,17.0,9.26,,3320x4890,web COG,datasets/mus/soil_classification/MUS_Soil_Classification_WRB.tif
+soil,Malawi,PASS,,,,,,,,0.975,0.0,29.0,15.84,,1558x3726,web COG,datasets/mwi/soil_classification/MWI_Soil_Classification_WRB.tif
+soil,Namibia,PASS,,,,,,,,0.989,4.0,29.0,10.3,,6500x5765,web COG,datasets/nam/soil_classification/NAM_Soil_Classification_WRB.tif
+soil,Niger,PASS,,,,,,,,0.995,0.0,29.0,6.67,,7602x5676,web COG,datasets/ner/soil_classification/NER_Soil_Classification_WRB.tif
+soil,Nigeria,PASS,,,,,,,,0.989,0.0,29.0,5.96,,5753x4615,web COG,datasets/nga/soil_classification/NGA_Soil_Classification_WRB.tif
+soil,Rwanda,PASS,,,,,,,,0.995,0.0,29.0,4.59,,978x861,web COG,datasets/rwa/soil_classification/RWA_Soil_Classification_WRB.tif
+soil,Sudan,PASS,,,,,,,,0.995,0.0,29.0,13.16,,8049x6961,web COG,datasets/sdn/soil_classification/SDN_Soil_Classification_WRB.tif
+soil,Senegal,PASS,,,,,,,,0.981,0.0,29.0,7.57,,2968x2105,web COG,datasets/sen/soil_classification/SEN_Soil_Classification_WRB.tif
+soil,Sierra Leone,PASS,,,,,,,,0.993,0.0,29.0,1.0,,1458x1476,web COG,datasets/sle/soil_classification/SLE_Soil_Classification_WRB.tif
+soil,Somalia,PASS,,,,,,,,0.998,0.0,29.0,14.44,,5004x6552,web COG,datasets/som/soil_classification/SOM_Soil_Classification_WRB.tif
+soil,S Sudan,PASS,,,,,,,,0.995,0.0,29.0,19.76,,5665x4203,web COG,datasets/ssd/soil_classification/SSD_Soil_Classification_WRB.tif
+soil,Sao Tome and Principe,PASS,,,,,,,,0.985,0.0,14.0,8.46,,481x820,web COG,datasets/stp/soil_classification/STP_Soil_Classification_WRB.tif
+soil,eSwatini,PASS,,,,,,,,0.997,0.0,29.0,9.28,,645x767,web COG,datasets/swz/soil_classification/SWZ_Soil_Classification_WRB.tif
+soil,Seychelles,CHECK,data covers only 73% of the country,,,,,,,0.726,0.0,12.0,7.91,,4844x3116,web COG,datasets/syc/soil_classification/SYC_Soil_Classification_WRB.tif
+soil,Chad,PASS,,,,,,,,0.989,0.0,29.0,12.57,,5053x7679,web COG,datasets/tcd/soil_classification/TCD_Soil_Classification_WRB.tif
+soil,Togo,PASS,,,,,,,,0.991,0.0,29.0,11.07,,938x2413,web COG,datasets/tgo/soil_classification/TGO_Soil_Classification_WRB.tif
+soil,Tunisia,PASS,,,,,,,,0.992,0.0,29.0,11.67,,1957x3510,web COG,datasets/tun/soil_classification/TUN_Soil_Classification_WRB.tif
+soil,Tanzania,PASS,,,,,,,,0.984,0.0,29.0,10.8,,5210x5174,web COG,datasets/tza/soil_classification/TZA_Soil_Classification_WRB.tif
+soil,Uganda,PASS,,,,,,,,0.974,0.0,29.0,6.74,,2620x2737,web COG,datasets/uga/soil_classification/UGA_Soil_Classification_WRB.tif
+soil,South Africa,PASS,,,,,,,,0.993,0.0,29.0,10.7,,7917x6100,web COG,datasets/zaf/soil_classification/ZAF_Soil_Classification_WRB.tif
+soil,Zambia,PASS,,,,,,,,0.979,0.0,29.0,11.53,,5622x4707,web COG,datasets/zmb/soil_classification/ZMB_Soil_Classification_WRB.tif
+soil,Zimbabwe,PASS,,,,,,,,0.988,0.0,29.0,13.72,,3758x3271,web COG,datasets/zwe/soil_classification/ZWE_Soil_Classification_WRB.tif
 protected-areas,Burundi,PASS,,9,polygon,1.0,0.047,1176,,,,,,,,,datasets/bdi/protected_areas/BDI_ProtectedAreas.zip
 protected-areas,Burkina Faso,PASS,,36,polygon,1.0,0.054,14734,,,,,,,,,datasets/bfa/protected_areas/BFA_ProtectedAreas.zip
 protected-areas,Central African Republic,PASS,,53,polygon,1.0,0.324,201015,,,,,,,,,datasets/caf/protected_areas/CAF_ProtectedAreas.zip
