@@ -205,7 +205,7 @@ function Fix({ settings, reload, via }: { settings: Overview['settings']; reload
           {b('send_password_reset', 'Email them a password reset')}
         </div>
         <div className="btns">
-          <select value={plan} onChange={(e) => setPlan(e.target.value)}><option value="licence">Individual licence ($300, 6 months of updates)</option><option value="individual">Individual, for a time</option><option value="team">Team, for a time</option></select>
+          <select value={plan} onChange={(e) => setPlan(e.target.value)}><option value="licence">Individual licence ($5, 6 months of updates)</option><option value="individual">Individual, for a time</option><option value="team">Team, for a time</option></select>
           {plan !== 'licence' && <select value={months} onChange={(e) => setMonths(e.target.value)}>
             <option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option><option value="0">Permanent</option>
           </select>}

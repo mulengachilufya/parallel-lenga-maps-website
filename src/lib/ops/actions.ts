@@ -85,7 +85,7 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       const u = await findUser(email)
       if (!u) return done({ ok: false, message: `No account found for ${email}. Ask them to sign up first.` })
       // Individual licence: the catalogue for good plus UPDATE_MONTHS of
-      // new datasets (same as an approved $300 payment).
+      // new datasets (same as an approved $5 payment).
       if (input.plan === 'licence') {
         const cur = u.profile?.updates_until as string | null | undefined
         const until = accessExpiry(cur ?? null, UPDATE_MONTHS)
