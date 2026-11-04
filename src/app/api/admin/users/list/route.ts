@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   // complexity yet - re-run when the table tops 5k.
   const { data: profiles, error: profErr } = await service
     .from('profiles')
-    .select('id, full_name, first_name, last_name, country, sector, plan, plan_status, created_at')
+    .select('id, full_name, first_name, last_name, country, sector, plan, plan_status, plan_expires_at, created_at')
     .order('created_at', { ascending: false })
     .limit(2000)
   if (profErr) {
@@ -59,13 +59,15 @@ export async function GET(req: NextRequest) {
     (authList?.users ?? []).map((u) => [u.id, u.email ?? '']),
   )
 
-  // Decorate. No expiry, no trial in the once-off model - effective_status
-  // is just plan_status, kept as its own field so the UI code that reads
-  // effective_status doesn't need to change.
+  // Decorate. A pass has an end date (plan_expires_at). The daily job flips
+  // plan_status to 'free' once it passes, but until it runs the account has
+  // already lost access (getUserState refuses expired plans), so the list
+  // shows 'free' the moment the date passes. No end date = access for good.
   const rows = (profiles ?? []).map((p) => {
     const email = emailById.get(p.id) ?? ''
+    const lapsed = !!p.plan_expires_at && new Date(p.plan_expires_at).getTime() <= Date.now()
     const effective_status: 'active' | 'pending' | 'free' =
-      (p.plan_status ?? 'free') as 'active' | 'pending' | 'free'
+      lapsed ? 'free' : (p.plan_status ?? 'free') as 'active' | 'pending' | 'free'
 
     return {
       id:               p.id,

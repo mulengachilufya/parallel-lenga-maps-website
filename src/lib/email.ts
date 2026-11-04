@@ -18,7 +18,7 @@
 // Copy style: no em dashes anywhere in customer-facing text. They read as
 // an AI giveaway. Use commas, periods, colons and semicolons instead.
 
-import { INDIVIDUAL_PRODUCTS, PLANS, TEAM_MIN_SEATS, TEAM_TERMS, UPDATE_MONTHS, type IndividualProduct, type TierSlug } from './pricing'
+import { INDIVIDUAL_PRODUCTS, PLANS, TEAM_MIN_SEATS, TEAM_TERMS, isTeamTerm, type IndividualProduct, type TierSlug } from './pricing'
 import { BANK_DETAILS } from './bank-details'
 import { logEvent } from './ops/log'
 
@@ -208,15 +208,15 @@ export function welcomeEmail(to: string, fullName?: string | null): EmailMessage
       harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
     </p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#333;">
-      Need everything? The Individual licence is <strong>${price}</strong>: every dataset, every country, yours for good,
-      with ${UPDATE_MONTHS} months of new datasets. Working with a colleague? Start a free team for 2 people from the Team page;
-      paid teams start at $${TEAM_TERMS.month.base} a month for ${TEAM_MIN_SEATS} seats.
+      Need everything? An Individual pass is <strong>${price}</strong>: every dataset, every country, unlimited downloads
+      while it runs. Working with a colleague? Start a free team for 2 people from the Team page; for ${TEAM_MIN_SEATS} seats or more,
+      tell us what your team needs and we will send a quote.
     </p>`
   const text = `Hi ${name},
 
 Your Lenga Maps account is live, and it comes with 3 free datasets. Open your dashboard, choose the 3 you need most, and download them for all 54 African countries, harmonised to EPSG:4326 and ready for QGIS. They are yours to keep.
 
-Need everything? The Individual licence is ${price}: every dataset, every country, yours for good, with ${UPDATE_MONTHS} months of new datasets. Working with a colleague? Start a free team for 2 people from the Team page; paid teams start at $${TEAM_TERMS.month.base} a month for ${TEAM_MIN_SEATS} seats.
+Need everything? An Individual pass is ${price}: every dataset, every country, unlimited downloads while it runs. Working with a colleague? Start a free team for 2 people from the Team page; for ${TEAM_MIN_SEATS} seats or more, tell us what your team needs and we will send a quote.
 
 Choose your free datasets: ${cta}
 See pricing: ${cta2}
@@ -391,6 +391,13 @@ export interface QuoteRequestFields {
   seats:             number | null
   datasets_interest: string | null
   notes:             string | null
+  // Added by the team quote builder (all optional for older callers).
+  whatsapp?:         string | null
+  onsite_support?:   boolean
+  custom_data?:      boolean
+  api_access?:       boolean
+  term?:             string | null
+  wants_call?:       boolean
 }
 
 /** Internal notification to the founder when a quote request lands. */
@@ -404,6 +411,10 @@ export function quoteRequestAdminEmail(q: QuoteRequestFields): EmailMessage {
     ['Country / region',       q.region ?? ''],
     ['Seats requested',        q.seats != null ? String(q.seats) : ''],
     ['Datasets of interest',   q.datasets_interest ?? ''],
+    ['Extras wanted',          [q.onsite_support && 'On-site support', q.custom_data && 'Custom data', q.api_access && 'API access'].filter(Boolean).join(', ')],
+    ['Preferred term',         q.term && isTeamTerm(q.term) ? TEAM_TERMS[q.term].label : ''],
+    ['WhatsApp',               q.whatsapp ?? ''],
+    ['Wants a call',           q.wants_call ? 'YES, they asked for a call' : ''],
     ['Notes',                  q.notes ?? ''],
   ].filter(([, v]) => v)
   const bodyHtml = `
@@ -636,10 +647,10 @@ export function bankTransferDetailsEmail(opts: {
 }): EmailMessage {
   const fname = (opts.firstName || '').trim() || 'there'
   const plan  = PLANS[opts.plan]
-  const item  = INDIVIDUAL_PRODUCTS[opts.product ?? 'licence']
+  const item  = INDIVIDUAL_PRODUCTS[opts.product ?? 'pass_1m']
   const b     = BANK_DETAILS
   const base  = (opts.appUrl || APP_URL).replace(/\/$/, '')
-  const cta   = `${base}/dashboard/payment?plan=${opts.plan}${opts.product === 'updates' ? '&product=updates' : ''}`
+  const cta   = `${base}/dashboard/payment?plan=${opts.plan}${opts.product && opts.product !== 'pass_1m' ? `&product=${opts.product}` : ''}`
   const rows: [string, string][] = [
     ['Amount',            `$${item.price} USD (${item.label.split(':')[0]})`],
     ['Account name',      b.accountName],
@@ -714,7 +725,7 @@ export function bankTransferExpectedAdminEmail(p: {
   requestedAt:     string
 }): EmailMessage {
   const plan   = PLANS[p.plan]
-  const amount = `$${p.plan === 'individual' ? INDIVIDUAL_PRODUCTS[p.product ?? 'licence'].price : plan.price} USD`
+  const amount = p.plan === 'individual' ? `$${INDIVIDUAL_PRODUCTS[p.product ?? 'pass_1m'].price} USD` : 'a quoted amount'
   const cta    = `${APP_URL}/admin/payments`
   const rows: [string, string][] = [
     ['Expect',         `${amount} (${plan.name})`],

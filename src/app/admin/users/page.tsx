@@ -281,7 +281,7 @@ export default function AdminUsersPage() {
 
         <p className="text-xs text-gray-400 mt-4">
           Joins <code>profiles</code> with <code>auth.users</code> via the service role. Paid plans
-          last 3 months (<code>plan_expires_at</code>); accounts with no expiry date are grandfathered and permanent. To change someone&apos;s plan, edit
+          last as long as the pass or term that was bought (<code>plan_expires_at</code>); accounts with no expiry date are grandfathered and permanent. To change someone&apos;s plan, edit
           the profile row in Supabase SQL Editor or process a fresh payment via{' '}
           <Link href="/admin/payments" className="text-primary font-semibold">/admin/payments</Link>.
         </p>

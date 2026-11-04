@@ -3,13 +3,14 @@
 /**
  * /dashboard/payment
  *
- * Self-serve pay-now flow for the Individual plan - the fast path for
- * someone who needs the data urgently and doesn't want to wait on a reply
- * first. BankTransferPanel auto-emails bank details immediately, takes
+ * Self-serve pay-now flow for the Individual PASS: pick 1, 6 or 12 months,
+ * then pay. BankTransferPanel auto-emails bank details immediately, takes
  * proof of payment, and drops the submission into the admin queue
- * (/admin/payments) as 'pending'. Approving it there grants access
- * the licence (or extends its updates) - see /api/admin/payments/verify.
- * ?product=updates sells the updates renewal instead of the licence.
+ * (/admin/payments) as 'pending'. Approving it there grants the pass -
+ * see /api/admin/payments/verify. ?product=pass_6m (etc.) preselects a pass.
+ *
+ * An instant on-site payment option will sit next to the manual one here
+ * later; both end by granting access the same way.
  *
  * This is a PARALLEL path, not a replacement for /contact-us. Some buyers
  * would rather talk first; this page is for the ones who'd rather just
@@ -24,7 +25,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { INDIVIDUAL_PRODUCTS, UPDATE_MONTHS, type TierSlug } from '@/lib/pricing'
+import { DEFAULT_PASS, PASSES, PASS_ORDER, isPassProduct, type PassProduct, type TierSlug } from '@/lib/pricing'
 import BankTransferPanel from '@/components/BankTransferPanel'
 import { track } from '@/lib/analytics'
 
@@ -32,7 +33,8 @@ function PaymentInner() {
   const router = useRouter()
   const params = useSearchParams()
   const planParam = params.get('plan') as TierSlug | null
-  const product = params.get('product') === 'updates' ? 'updates' : 'licence'
+  const productParam = params.get('product')
+  const [product, setProduct] = useState<PassProduct>(isPassProduct(productParam) ? productParam : DEFAULT_PASS)
 
   const [loading, setLoading] = useState(true)
   const [email,   setEmail]   = useState('')
@@ -77,7 +79,7 @@ function PaymentInner() {
     )
   }
 
-  const price = INDIVIDUAL_PRODUCTS[product].price
+  const price = PASSES[product].price
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -94,12 +96,25 @@ function PaymentInner() {
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-3xl p-7 sm:p-10 shadow-sm border border-gray-100">
-          <p className="text-center text-sm font-semibold text-navy mb-6">
-            {product === 'updates'
-              ? `${UPDATE_MONTHS} more months of new datasets for your Individual licence`
-              : `Individual licence: every dataset, yours for good, with ${UPDATE_MONTHS} months of new datasets`}
+          <p className="text-center text-sm font-semibold text-navy mb-4">
+            Individual pass: every dataset, unlimited downloads
           </p>
+          <div className="grid grid-cols-3 gap-2 mb-6" role="radiogroup" aria-label="Choose how long your pass lasts">
+            {PASS_ORDER.map((id) => (
+              <button
+                key={id} type="button" role="radio" aria-checked={product === id}
+                onClick={() => setProduct(id)}
+                className={`rounded-xl border px-2 py-3 text-center transition-colors ${
+                  product === id ? 'border-primary bg-primary/5 text-navy' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+              >
+                <span className="block text-sm font-semibold">{PASSES[id].label}</span>
+                <span className="block text-lg font-bold">${PASSES[id].price}</span>
+                {PASSES[id].note && <span className="block text-[11px] text-green-600 font-semibold">{PASSES[id].note}</span>}
+              </button>
+            ))}
+          </div>
           <BankTransferPanel
+            key={product}
             plan="individual"
             product={product}
             amountLabel={`$${price} USD`}

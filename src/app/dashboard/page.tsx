@@ -17,7 +17,7 @@ import WorkspaceBox from '@/components/WorkspaceBox'
 import type { Access } from '@/lib/entitlements'
 import type { WsProjectSummary } from '@/lib/workspace/types'
 import {
-  FREE_DATASET_LIMIT, PLANS, UPDATE_MONTHS, UPDATES_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
+  FREE_DATASET_LIMIT, PLANS, PASS_MONTH_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
@@ -962,8 +962,8 @@ function DashboardContent() {
               datasets={updatesUntil
                 ? ['Every dataset you have, for good', `New datasets until ${fmtDate(updatesUntil)}`, 'Unlimited downloads']
                 : ['Every dataset, all 54 countries', 'Unlimited downloads']}
-              cta={expiresAt ? 'Renew' : updatesUntil ? `Add ${UPDATE_MONTHS} months of updates · $${UPDATES_PRICE}` : '✓ Active, permanent'}
-              href={expiresAt ? planCtaHref(userState as TierSlug) : updatesUntil ? '/dashboard/payment?plan=individual&product=updates' : undefined}
+              cta={expiresAt ? 'Extend your pass' : updatesUntil ? `Get a pass · from $${PASS_MONTH_PRICE}` : '✓ Active, permanent'}
+              href={expiresAt ? planCtaHref(userState as TierSlug) : updatesUntil ? '/dashboard/payment?plan=individual' : undefined}
             />
           {(userState === 'team' || access?.team) && (
             <ActionCard delay={0.15} href="/team" icon={<Users size={22} />} title="Your team"

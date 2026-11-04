@@ -5,7 +5,7 @@
 // (/api/ops/action) and mirrored by scripts/ops-cli.mjs for the GitHub
 // emergency workflows.
 
-import { accessExpiry, ACCESS_MONTHS, UPDATE_MONTHS } from '@/lib/pricing'
+import { accessExpiry, ACCESS_MONTHS } from '@/lib/pricing'
 import { sendEmail, type EmailChannel } from '@/lib/email'
 import { runLifecycle } from '@/lib/jobs/lifecycle'
 import { audit, opsDb, recordCron } from './log'
@@ -84,15 +84,8 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
     case 'grant_access': {
       const u = await findUser(email)
       if (!u) return done({ ok: false, message: `No account found for ${email}. Ask them to sign up first.` })
-      // Individual licence: the catalogue for good plus UPDATE_MONTHS of
-      // new datasets (same as an approved $5 payment).
-      if (input.plan === 'licence') {
-        const cur = u.profile?.updates_until as string | null | undefined
-        const until = accessExpiry(cur ?? null, UPDATE_MONTHS)
-        const { error } = await db.from('profiles').update({ plan: 'individual', plan_status: 'active', plan_expires_at: null, updates_until: until, expiry_reminder_sent_at: null }).eq('id', u.id)
-        if (error) return done({ ok: false, message: `Could not update: ${error.message}` })
-        return done({ ok: true, message: `${email} now has the Individual licence, with new datasets until ${new Date(until).toDateString()}.` })
-      }
+      // An Individual pass is a time-limited 'individual' plan: pick the
+      // months below (same result as an approved pass payment).
       const plan = input.plan === 'team' ? 'team' : 'individual'
       const months = Number(input.months)
       const permanent = months === 0

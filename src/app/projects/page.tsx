@@ -14,11 +14,12 @@
  *       free-floating with gold rule + uppercase tracked label, no boxes).
  *     → Feature cards
  *     → GIS facts text
- *     → Quote form
+ *     → Quote builder
  *
- * Pricing: from TEAM_MIN_SEATS seats, paid monthly, per 3 months or per
- * year (TEAM_TERMS), plus a price per extra seat. No checkout, ever — every
- * CTA routes to the quote form.
+ * Pricing: there is no public team price. Teams use the quote builder
+ * (src/components/TeamQuoteBuilder.tsx): seats, on-site support, custom
+ * data, API, their details and a message. No checkout, ever - every CTA
+ * routes to the builder.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -26,13 +27,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Users, Globe2, Layers, History, KeyRound, FileCheck2,
-  Crosshair, CheckCircle2, Loader2, ArrowRight, MapPin, Droplets,
+  Crosshair, CheckCircle2, ArrowRight, MapPin, Droplets,
   Mountain, Building2, FlaskConical, ShieldCheck, Sparkles,
   Phone, Mail, MessageCircle, Zap, ChevronDown,
 } from 'lucide-react'
-import { QUOTE_SECTORS, TEAM_TIER_TITLE } from '@/lib/teams'
-import { BANK_FEES_NOTE, FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, TEAM_TERM_ORDER, teamPrice, type TeamTerm } from '@/lib/pricing'
-import SeatStepper from '@/components/SeatStepper'
+import { TEAM_TIER_TITLE } from '@/lib/teams'
+import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS } from '@/lib/pricing'
+import TeamQuoteBuilder from '@/components/TeamQuoteBuilder'
 
 const NAVY = '#0D2B45'
 const GOLD = '#F5B800'
@@ -192,13 +193,13 @@ export default function ProjectsPage() {
               className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-bold transition-transform hover:-translate-y-0.5"
               style={{ background: GOLD, color: '#1a1200' }}
             >
-              See team pricing <ChevronDown size={16} />
+              What is included <ChevronDown size={16} />
             </button>
             <button
               onClick={() => jumpToForm(null)}
               className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-7 py-3.5 text-sm font-semibold text-white hover:border-[#F5B800]/80 hover:bg-white/5 transition-colors"
             >
-              Get a quote <ArrowRight size={16} />
+              Tell us what you need <ArrowRight size={16} />
             </button>
             {isTeamMember && (
               <Link
@@ -210,28 +211,38 @@ export default function ProjectsPage() {
             )}
           </div>
           <p className="mt-5 text-sm text-white/60">
-            Quote-based. No checkout, no card. We provision your team within 1 business day.
+            No price list. Tell us what you need and we send a quote. We provision your team within 1 business day.
           </p>
         </div>
         {/* Scroll cue: the hero fills the screen, so show there is more below. */}
         <button
           onClick={() => pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           className="lm-scroll-cue absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/80 hover:text-white"
-          aria-label="Scroll to pricing and details"
+          aria-label="Scroll to what is included"
         >
-          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase">Pricing and details</span>
+          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase">What is included</span>
           <ChevronDown size={22} />
         </button>
       </section>
 
       {/* ── Pricing (WHITE) — main /pricing font + glowing dataset banner ─ */}
       <div ref={pricingRef} style={{ scrollMarginTop: 80 }}>
-        <PricingSection onQuote={jumpToForm} />
+        <PricingSection />
       </div>
 
-      {/* ── Quote form — primary CTA, sits directly below pricing ──── */}
-      <div ref={formRef}>
-        <QuoteForm presetSeats={presetSeats} />
+      {/* ── Quote builder — primary CTA, replaces the old price cards ── */}
+      <div ref={formRef} style={{ scrollMarginTop: 80 }}>
+        <section className="bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20">
+            <span className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4 block" style={{ color: '#854F0B' }}>
+              Get started
+            </span>
+            <h2 className="font-display text-4xl sm:text-5xl font-bold mb-8" style={{ color: NAVY }}>
+              Tell us what your team needs.
+            </h2>
+            <TeamQuoteBuilder presetSeats={presetSeats} tone="light" />
+          </div>
+        </section>
       </div>
 
       {/* ── Urgent contact — secondary path for businesses in a rush ─ */}
@@ -304,26 +315,7 @@ export default function ProjectsPage() {
 // is impossible to miss. Three term cards: monthly, 3 months (cream) and
 // 1 year (navy, featured).
 
-interface CardPalette {
-  bg: string; border: string; nameColor: string; priceColor: string
-  text: string; muted: string; dotColor: string; dividerColor: string
-  btnBg: string; btnColor: string; ledgerBg: string; ledgerText: string
-}
-
-const PALETTE_CREAM: CardPalette = {
-  bg: '#FAEEDA', border: '#EF9F27', nameColor: '#854F0B', priceColor: '#633806',
-  text: '#1a1a1a', muted: '#5a4a2a', dotColor: '#854F0B', dividerColor: '#854F0B',
-  btnBg: '#854F0B', btnColor: '#ffffff',
-  ledgerBg: 'rgba(255,255,255,0.65)', ledgerText: '#5a4a2a',
-}
-const PALETTE_NAVY: CardPalette = {
-  bg: NAVY, border: GOLD, nameColor: GOLD, priceColor: '#ffffff',
-  text: '#ffffff', muted: 'rgba(255,255,255,0.75)', dotColor: GOLD, dividerColor: GOLD,
-  btnBg: GOLD, btnColor: '#1a1200',
-  ledgerBg: 'rgba(255,255,255,0.08)', ledgerText: 'rgba(255,255,255,0.85)',
-}
-
-function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }) {
+function PricingSection() {
   return (
     <section style={{ background: '#FAFAF7' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -338,14 +330,14 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
             className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4"
             style={{ color: '#854F0B' }}
           >
-            Team pricing
+            For teams
           </span>
           <h2 className="font-display" style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.08, color: NAVY, margin: '0 0 1rem' }}>
-            Pay monthly, quarterly or yearly.
+            Priced to what your team needs.
           </h2>
           <p style={{ fontSize: '17px', color: '#444', margin: 0, maxWidth: '580px', lineHeight: 1.5 }}>
-            From {TEAM_MIN_SEATS} seats: every dataset, all 54 African countries, and a shared project workspace.
-            Add seats at any time.
+            Every dataset, all 54 African countries, and a shared project workspace.
+            Tell us how many people, and whether you want on-site support, custom data or API access, and we send a quote.
           </p>
         </div>
 
@@ -382,13 +374,6 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
           </div>
         </div>
 
-        {/* ── Package cards ─────────────────────────────────────────── */}
-        <div className="mt-10 grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-          {TEAM_TERM_ORDER.map((t) => (
-            <TermCard key={t} term={t} palette={t === 'year' ? PALETTE_NAVY : PALETTE_CREAM} onQuote={onQuote} featured={t === 'year'} />
-          ))}
-        </div>
-
         <div className="mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-6 py-5">
           <div>
             <p className="font-bold text-gray-900">Try it free with your team</p>
@@ -403,71 +388,11 @@ function PricingSection({ onQuote }: { onQuote: (seats: number | null) => void }
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-7">
-          Paid by bank transfer. We provision your team within 1 business day. {BANK_FEES_NOTE}
+          Once you accept a quote we provision your team within 1 business day.
           {' '}Sector packs (carbon and MRV, mining and more) are quoted separately.
         </p>
       </div>
     </section>
-  )
-}
-
-function TermCard({ term, palette, onQuote, featured = false }: {
-  term: TeamTerm; palette: CardPalette; onQuote: (seats: number | null) => void; featured?: boolean
-}) {
-  const t = TEAM_TERMS[term]
-  const [seats, setSeats] = useState(TEAM_MIN_SEATS)
-  const price = teamPrice(seats, term)
-  // What the same seats would cost paying month by month: the discount, in dollars.
-  const saved = teamPrice(seats, 'month') * t.months - price
-  return (
-    <div
-      className={`lm-card${featured ? ' lm-featured' : ''}`}
-      style={{ background: palette.bg, border: `1px solid ${palette.border}`, color: palette.text, width: '100%' }}
-    >
-      <div className="lm-name" style={{ color: palette.nameColor }}>
-        {t.label}{t.saving && <span style={{ marginLeft: 10, fontSize: 12, letterSpacing: 0 }}>{t.saving}</span>}
-      </div>
-
-      <div className="lm-price-row">
-        <span className="lm-price" style={{ color: palette.priceColor }}>${price.toLocaleString()}</span>
-        <span className="lm-period" style={{ color: palette.muted }}>{t.per}</span>
-      </div>
-      <p className="lm-seats" style={{ color: palette.text }}>
-        for {seats} seats{saved > 0 && <span style={{ color: palette.nameColor }}> · you save ${saved.toLocaleString()}</span>}
-      </p>
-
-      <div className="mt-4"><SeatStepper seats={seats} onChange={setSeats} dark={featured} /></div>
-      <p className="lm-period mt-2.5" style={{ color: palette.muted, margin: '10px 0 0' }}>
-        {TEAM_MIN_SEATS} seats included. +${t.extraSeat.toLocaleString()} per extra seat.
-      </p>
-
-      <div className="lm-divider" style={{ background: palette.dividerColor, marginTop: '1rem' }} />
-
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, flex: 1 }}>
-        {[
-          'Every dataset, all 54 countries, always up to date',
-          'Project workspace: live web map of every layer',
-          'Discussion pinned to places, full history with restore',
-          'Owner-managed seats, API access',
-          'Commercial use licence',
-        ].map((row) => (
-          <li key={row} className="lm-feat-row" style={{ color: palette.text }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: palette.dotColor, flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
-            {row}
-          </li>
-        ))}
-      </ul>
-
-      <div className="lm-cta">
-        <button
-          onClick={() => onQuote(seats)}
-          className="lm-cta-btn"
-          style={{ background: palette.btnBg, color: palette.btnColor }}
-        >
-          Get a quote for {seats} seats
-        </button>
-      </div>
-    </div>
   )
 }
 
@@ -673,139 +598,6 @@ function UrgentContact() {
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Quote form ────────────────────────────────────────────────────────────
-
-function QuoteForm({ presetSeats }: { presetSeats: number | null }) {
-  const [seats, setSeats] = useState<string>('')
-  const [sending, setSending] = useState(false)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (presetSeats != null) setSeats(String(presetSeats))
-  }, [presetSeats])
-
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError('')
-    const fd = new FormData(e.currentTarget)
-    const payload = Object.fromEntries(fd.entries())
-    setSending(true)
-    try {
-      const res = await fetch('/api/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.message ?? 'Something went wrong. Email lengamaps@gmail.com.'); return }
-      setDone(true)
-    } catch {
-      setError('Network error. Try again, or email lengamaps@gmail.com.')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  if (done) {
-    return (
-      <section className="bg-white">
-        <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-          <CheckCircle2 size={44} className="mx-auto" style={{ color: '#854F0B' }} />
-          <h2 className="mt-5 text-2xl font-extrabold" style={{ color: NAVY }}>Request received</h2>
-          <p className="mt-3 text-gray-600 text-sm leading-relaxed">
-            Thanks. We&apos;ll be in touch within 1 business day with your quote and
-            the steps to get your team provisioned. A confirmation is on its way to
-            your inbox.
-          </p>
-        </div>
-      </section>
-    )
-  }
-
-  const field = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#854F0B]'
-  const label = 'block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5'
-
-  return (
-    <section className="bg-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20">
-        <span
-          className="font-display text-[0.95rem] font-bold tracking-[0.14em] uppercase mb-4 block"
-          style={{ color: '#854F0B' }}
-        >
-          Get started
-        </span>
-        <h2 className="font-display text-4xl sm:text-5xl font-bold" style={{ color: NAVY }}>
-          Reach out to get started.
-        </h2>
-        <p className="mt-3 text-sm text-gray-600 leading-relaxed max-w-xl">
-          No payment is taken on the site for team plans. We reply with a quote within
-          1 business day, then provision your workspace once you confirm.
-        </p>
-
-        <form onSubmit={submit} className="mt-9 grid sm:grid-cols-2 gap-5">
-          {/* Honeypot — humans never see or fill this. */}
-          <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
-
-          <div className="sm:col-span-2">
-            <label className={label} htmlFor="org_name">Organisation / project name *</label>
-            <input id="org_name" name="org_name" required maxLength={200} className={field} placeholder="e.g. Zambezi Basin Water Programme" />
-          </div>
-          <div>
-            <label className={label} htmlFor="contact_name">Contact name</label>
-            <input id="contact_name" name="contact_name" maxLength={200} className={field} placeholder="Your name" />
-          </div>
-          <div>
-            <label className={label} htmlFor="email">Work email *</label>
-            <input id="email" name="email" type="email" required maxLength={200} className={field} placeholder="you@organisation.org" />
-          </div>
-          <div>
-            <label className={label} htmlFor="sector">Sector</label>
-            <select id="sector" name="sector" className={field} defaultValue="">
-              <option value="" disabled>Select a sector</option>
-              {QUOTE_SECTORS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={label} htmlFor="region">Country / region of operation</label>
-            <input id="region" name="region" maxLength={200} className={field} placeholder="e.g. Zambia and Malawi" />
-          </div>
-          <div>
-            <label className={label} htmlFor="seats">GIS people / seats needed</label>
-            <input id="seats" name="seats" type="number" min={1} max={10000} value={seats} onChange={(e) => setSeats(e.target.value)} className={field} placeholder="e.g. 5" />
-          </div>
-          <div>
-            <label className={label} htmlFor="datasets_interest">Datasets of interest</label>
-            <input id="datasets_interest" name="datasets_interest" maxLength={1000} className={field} placeholder="e.g. rainfall, aquifers, LULC" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={label} htmlFor="notes">Anything else?</label>
-            <textarea id="notes" name="notes" rows={4} maxLength={2000} className={field} placeholder="Project timelines, custom data needs, procurement requirements…" />
-          </div>
-
-          {error && (
-            <p className="sm:col-span-2 text-sm text-red-600">{error}</p>
-          )}
-
-          <div className="sm:col-span-2">
-            <button
-              type="submit" disabled={sending}
-              className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-bold disabled:opacity-60 transition-transform hover:-translate-y-0.5"
-              style={{ background: GOLD, color: '#1a1200' }}
-            >
-              {sending ? <Loader2 size={16} className="animate-spin" /> : null}
-              {sending ? 'Sending…' : 'Request a quote'}
-            </button>
-            <p className="mt-3 text-xs text-gray-500">
-              We&apos;ll be in touch within 1 business day.
-            </p>
-          </div>
-        </form>
       </div>
     </section>
   )

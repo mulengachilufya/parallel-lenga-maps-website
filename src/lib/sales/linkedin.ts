@@ -10,7 +10,7 @@
 // person is on is worked out from which are set. Nothing is ever sent from
 // the site: the founder copies the message and sends it on LinkedIn.
 
-import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS, TEAM_TERMS, teamPrice } from '@/lib/pricing'
+import { FREE_DATASET_LIMIT, FREE_TEAM_SEATS, TEAM_MIN_SEATS } from '@/lib/pricing'
 
 /** The most seats the Team plan sells without a custom quote. */
 export const LI_MAX_SEATS = 12
@@ -77,9 +77,6 @@ export function liActionable(step: LiStep, due: string | null, now = Date.now())
 // ── Messages ────────────────────────────────────────────────────────────────
 // In the founder's voice: warm, short, no dashes. {first} {org} {hook}.
 
-const money = (n: number) => `$${n.toLocaleString('en-US')}`
-const month = TEAM_TERMS.month
-
 export const LI_TEMPLATES: Record<LiMessage, string> = {
   // LinkedIn allows about 300 characters on a connection note.
   connect: `Hi {first}, I came across {hook} and would love to connect. I'm the founder of Lenga Maps, a GIS environmental data platform covering all 54 African countries.`,
@@ -92,7 +89,7 @@ I wanted to share a bit about what I'm building. Lenga Maps is one of Africa's b
 
 It's completely free to start: ${FREE_DATASET_LIMIT} free datasets and a free team workspace with ${FREE_TEAM_SEATS} seats at www.lengamaps.com.
 
-For bigger teams, the Team plan is ${money(month.base)} a month with ${TEAM_MIN_SEATS} seats included, and each extra seat is ${money(month.extraSeat)} a month. You can secure up to ${LI_MAX_SEATS} seats (${money(teamPrice(LI_MAX_SEATS, 'month'))} a month for a team of ${LI_MAX_SEATS}), and it's 10% less if you take 3 months or 20% less for a year. Just reply here, or request it at www.lengamaps.com/projects, and I'll set it up for you.
+For bigger teams (${TEAM_MIN_SEATS} seats or more), we quote to what you need: the number of people, and on-site support, custom data or API access if you want them. Just reply here, or tell us what you need at www.lengamaps.com/projects, and I'll set it up for you.
 
 Would you be open to a quick 10 minute video call? I'd show you how it works and answer any questions. Happy to work around your schedule.`,
 }

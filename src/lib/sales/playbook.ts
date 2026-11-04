@@ -267,7 +267,7 @@ Best,
 Thanks for the time your team put into this. Here is what I propose:
 
   Seats: [number] people
-  Price: [amount] USD per [month / 3 months / year] (3 seats: $500 a month, $1,350 for 3 months or $4,800 a year; each extra seat $100 a month, $270 for 3 months or $960 a year)
+  Price: [amount] USD per [month / 3 months / year], built from their request: seats, plus any on-site support, custom data or API access they asked for
   Included: every dataset for all 54 countries, the project workspace with shared maps, discussion and full history, and commercial use.
 
 Payment is by bank transfer; the sender pays all bank charges (OUR). I can send a formal quotation or an invoice, and fill in any vendor forms your procurement team needs. What do they usually ask for?
