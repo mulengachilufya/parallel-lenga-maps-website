@@ -28,7 +28,10 @@ const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 function paymentTitle(p: Payment) {
-  const what = p.product === 'updates' ? 'Data updates' : `${cap(p.plan)} plan`
+  const passLabel: Record<string, string> = { pass_1m: '1 month', pass_6m: '6 months', pass_12m: '12 months' }
+  const what = p.product === 'updates' ? 'Data updates'
+    : p.product && passLabel[p.product] ? `Individual pass, ${passLabel[p.product]}`
+    : `${cap(p.plan)} plan`
   const amount = p.currency === 'ZMW' ? `K${p.amount_zmw}` : p.amount_usd ? `$${p.amount_usd}` : ''
   return [what, amount].filter(Boolean).join(' · ')
 }

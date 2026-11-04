@@ -2,40 +2,67 @@
 // Single source of truth for all pricing and access logic.
 // Every page, component, and API route imports from here.
 //
-// ─── PRICING MODEL (2026-10) ────────────────────────────────────
-// Free stays as it was: 3 datasets you choose, and free teams of 2.
+// ─── PRICING MODEL (2026-11) ────────────────────────────────────
+// Free: 3 datasets you choose (kept for good, unlimited downloads), plus a
+// free workspace for 2 people.
 //
-// Individual: a one-off licence. Pay once, keep every dataset in the
-// catalogue for good, and get every dataset added in the next
-// UPDATE_MONTHS. After that, an updates renewal adds UPDATE_MONTHS more.
-// One person, downloads only, no workspace, no sector packs, no
-// redistribution or resale. profiles.updates_until holds the date; null
-// means no limit (accounts from earlier plans keep what they had).
+// Individual PASS: $5 a month for everything. Every dataset, unlimited
+// downloads, for as long as the pass runs. Sold as time passes (1, 6 or
+// 12 months), never auto-renewing. When a pass ends the account drops back
+// to Free: the 3 free picks stay, new downloads of other datasets stop.
+// Access end date lives in profiles.plan_expires_at (null = no end date).
 //
-// Team: 3 seats or more, paid per month, per 3 months or per year
-// (TEAM_TERMS). Every dataset plus the shared workspace. Sold on a quote
-// and provisioned by an admin; organizations.access_expires_at holds the
-// end of the paid term.
+// Team / business: no public price. Teams ask for a quote (/projects and
+// /pricing): seats, on-site support, custom data, API. An admin provisions
+// the team; organizations.access_expires_at holds the end of the paid term.
 //
-// Sector packs (Carbon/MRV, Mining…) are quoted separately; no plan
-// includes them.
+// Every individual payment can be made two ways (manual proof of payment
+// inside the account, approved by an admin; instant on-site payment is a
+// later addition). Both end in the same place: /api/admin/payments/verify
+// (or the future instant route) grants the pass through accessExpiry().
 //
-// Every payment is a bank transfer approved by an admin
-// (/api/admin/payments/verify). No card checkout, no automatic renewal.
-// Accounts that were active before 2026-09 keep permanent access
-// (plan_expires_at null always means "does not expire").
+// GRANDFATHERING: accounts that bought the old $300 licence (or older
+// plans) have plan_expires_at = null and keep access for good. They are
+// never expired. Legacy 'licence' / 'updates' payments that were submitted
+// before this change are still honoured by the verify route.
 
 export type TierSlug = 'individual' | 'team'
 
-/** Months of new datasets an Individual licence (or a renewal) includes. */
-export const UPDATE_MONTHS = 6
-export const LICENCE_PRICE = 300
-export const UPDATES_PRICE = 99
+// ─── Individual passes ────────────────────────────────────────
 
-export type IndividualProduct = 'licence' | 'updates'
+export type PassProduct = 'pass_1m' | 'pass_6m' | 'pass_12m'
+
+/** Prices in USD. Change a price HERE and every page, email and payment
+ *  route follows. Longer passes are cheaper per month. */
+export const PASSES: Record<PassProduct, { months: number; price: number; label: string; note?: string }> = {
+  pass_1m:  { months: 1,  price: 5,  label: '1 month' },
+  pass_6m:  { months: 6,  price: 25, label: '6 months',  note: 'Save $5' },
+  pass_12m: { months: 12, price: 45, label: '12 months', note: 'Save $15' },
+}
+export const PASS_ORDER: PassProduct[] = ['pass_1m', 'pass_6m', 'pass_12m']
+export const DEFAULT_PASS: PassProduct = 'pass_1m'
+/** The headline price: what one month costs. */
+export const PASS_MONTH_PRICE = PASSES.pass_1m.price
+
+export function isPassProduct(v: unknown): v is PassProduct {
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(PASSES, v)
+}
+
+// Legacy products. NOT for sale any more. They exist so payments submitted
+// under the old once-off model (still waiting for approval) are honoured.
+export type LegacyProduct = 'licence' | 'updates'
+/** Months of new datasets a legacy licence (or renewal) includes. */
+export const UPDATE_MONTHS = 6
+export const LEGACY_LICENCE_PRICE = 300
+export const LEGACY_UPDATES_PRICE = 99
+
+export type IndividualProduct = PassProduct | LegacyProduct
 export const INDIVIDUAL_PRODUCTS: Record<IndividualProduct, { price: number; label: string }> = {
-  licence: { price: LICENCE_PRICE, label: `Individual licence: $${LICENCE_PRICE} once` },
-  updates: { price: UPDATES_PRICE, label: `${UPDATE_MONTHS} more months of updates: $${UPDATES_PRICE}` },
+  pass_1m:  { price: PASSES.pass_1m.price,  label: `Individual pass: ${PASSES.pass_1m.label}` },
+  pass_6m:  { price: PASSES.pass_6m.price,  label: `Individual pass: ${PASSES.pass_6m.label}` },
+  pass_12m: { price: PASSES.pass_12m.price, label: `Individual pass: ${PASSES.pass_12m.label}` },
+  licence:  { price: LEGACY_LICENCE_PRICE,  label: `Individual licence (legacy): $${LEGACY_LICENCE_PRICE} once` },
+  updates:  { price: LEGACY_UPDATES_PRICE,  label: `Updates renewal (legacy): ${UPDATE_MONTHS} months` },
 }
 
 // ─── Team terms ───────────────────────────────────────────────
@@ -43,21 +70,27 @@ export const INDIVIDUAL_PRODUCTS: Record<IndividualProduct, { price: number; lab
 export type TeamTerm = 'month' | 'quarter' | 'year'
 export const TEAM_MIN_SEATS = 3
 
-export const TEAM_TERMS: Record<TeamTerm, { months: number; label: string; per: string; base: number; extraSeat: number; saving?: string }> = {
-  month:   { months: 1,  label: 'Monthly',  per: 'per month',    base: 500,  extraSeat: 100 },
-  quarter: { months: 3,  label: '3 months', per: 'per 3 months', base: 1350, extraSeat: 270, saving: 'Save 10%' },
-  year:    { months: 12, label: '1 year',   per: 'per year',     base: 4800, extraSeat: 960, saving: 'Save 20%' },
+/** Indicative price of ONE seat for ONE month, shown only inside the quote
+ *  builder as an estimate for seats. Support, custom data and API are always
+ *  quoted. Set SHOW_SEAT_ESTIMATE to false to hide every number from teams. */
+export const TEAM_SEAT_PRICE = 5
+export const SHOW_SEAT_ESTIMATE = true
+
+export const TEAM_TERMS: Record<TeamTerm, { months: number; label: string; per: string }> = {
+  month:   { months: 1,  label: 'Monthly',  per: 'per month' },
+  quarter: { months: 3,  label: '3 months', per: 'per 3 months' },
+  year:    { months: 12, label: '1 year',   per: 'per year' },
 }
 export const TEAM_TERM_ORDER: TeamTerm[] = ['month', 'quarter', 'year']
 
 export function isTeamTerm(v: unknown): v is TeamTerm {
-  return typeof v === 'string' && v in TEAM_TERMS
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(TEAM_TERMS, v)
 }
 
-/** USD for a team of `seats` (at least TEAM_MIN_SEATS) for one term. */
+/** USD for `seats` seats (at least TEAM_MIN_SEATS) for one term. An
+ *  estimate for the quote builder and a default for the admin forms. */
 export function teamPrice(seats: number, term: TeamTerm): number {
-  const t = TEAM_TERMS[term]
-  return t.base + Math.max(0, Math.round(seats) - TEAM_MIN_SEATS) * t.extraSeat
+  return Math.max(TEAM_MIN_SEATS, Math.round(seats)) * TEAM_SEAT_PRICE * TEAM_TERMS[term].months
 }
 
 /** Default length of a team's paid period when an admin doesn't pick one. */
@@ -96,32 +129,32 @@ export interface Plan {
 }
 
 // Individual is self-serve: /dashboard/payment -> BankTransferPanel ->
-// "I've paid" -> admin approval. Team is always quoted first (/projects),
-// then provisioned by an admin with the seats and term paid for.
+// "I've paid" -> admin approval. Team is never priced in public: buyers
+// describe what they need (/projects, /pricing), we reply with a quote,
+// then an admin provisions the team.
 
 export const PLANS: Record<TierSlug, Plan> = {
   individual: {
-    slug: 'individual', name: 'Individual', price: LICENCE_PRICE, priceLabel: `$${LICENCE_PRICE} once`,
-    description: `Pay once and keep every dataset. Includes ${UPDATE_MONTHS} months of new datasets.`,
+    slug: 'individual', name: 'Individual', price: PASS_MONTH_PRICE, priceLabel: `$${PASS_MONTH_PRICE} a month`,
+    description: 'Every dataset and unlimited downloads for as long as your pass runs.',
     selfServe: true, contactHref: '/contact-us',
-    ctaLabel: 'Buy licence',
+    ctaLabel: 'Get a pass',
     features: [
-      'Every dataset in the catalogue, yours for good',
-      'All 54 African countries, unlimited downloads',
-      `New datasets for ${UPDATE_MONTHS} months; then $${UPDATES_PRICE} per ${UPDATE_MONTHS} months`,
-      'One person, downloads only',
+      'Every dataset in the catalogue, all 54 countries',
+      'Unlimited downloads while your pass is active',
+      'New datasets as we release them',
+      'Pay for 1, 6 or 12 months, nothing renews on its own',
     ],
   },
   team: {
-    slug: 'team', name: 'Team', price: TEAM_TERMS.month.base, priceLabel: `From $${TEAM_TERMS.month.base} a month`,
-    description: `A shared workspace and every dataset, from ${TEAM_MIN_SEATS} seats.`,
+    slug: 'team', name: 'Team', price: 0, priceLabel: 'Get a quote',
+    description: `A shared workspace and every dataset, from ${TEAM_MIN_SEATS} seats, priced to what you need.`,
     selfServe: false, contactHref: '/projects',
-    ctaLabel: 'Get a quote',
+    ctaLabel: 'Tell us what you need',
     features: [
-      'Every dataset, for every seat, with all updates',
+      'Every dataset, for every seat',
       'Project workspace: live web map, discussion, full history',
-      `${TEAM_MIN_SEATS} seats included; $${TEAM_TERMS.month.extraSeat} a month per extra seat`,
-      'Monthly, 3 months (save 10%) or 1 year (save 20%)',
+      'On-site support, custom data and API access if you need them',
     ],
   },
 }
@@ -140,8 +173,8 @@ export function planCtaHref(slug: TierSlug): string {
   return plan.selfServe ? `/dashboard/payment?plan=${slug}` : plan.contactHref
 }
 
-/** Licence terms shown wherever an Individual licence is sold. */
-export const LICENCE_TERMS = 'One licence per person. Datasets may not be redistributed, resold or republished.'
+/** Terms shown wherever an Individual pass is sold. */
+export const LICENCE_TERMS = 'One pass per person. Datasets may not be redistributed, resold or republished. Files you have downloaded stay with you when a pass ends.'
 /** Bank-fee instruction on every payment screen and invoice. */
 export const BANK_FEES_NOTE = 'Bank charges: OUR. The sender pays all sending and intermediary bank fees.'
 
@@ -164,16 +197,16 @@ export const PLAN_CARD_UI: Record<TierSlug, PlanCardUI> = {
   individual: {
     bg: '#EEEDFE', border: '#AFA9EC', nameColor: '#534AB7', priceColor: '#3C3489',
     dotColor: '#534AB7', btnBg: '#534AB7', dividerColor: '#534AB7',
-    tagline: 'Pay once. Keep every dataset.',
+    tagline: 'Everything, for as long as you need it.',
     count: 'Whole catalogue',
-    datasets: ['Every dataset, yours for good', 'All 54 African countries', `${UPDATE_MONTHS} months of new datasets`, 'One person, downloads only'],
+    datasets: ['Every dataset, all 54 African countries', 'Unlimited downloads while your pass is active', 'New datasets as we release them', 'Your 3 free datasets always stay yours'],
   },
   team: {
     bg: '#0D2B45', border: '#F5B800', nameColor: '#F5B800', priceColor: '#FFFFFF',
     dotColor: '#F5B800', btnBg: '#F5B800', dividerColor: '#F5B800',
     tagline: 'A shared workspace for GIS teams on real projects.',
-    count: `${TEAM_MIN_SEATS} seats included`,
-    datasets: [`$${TEAM_TERMS.month.base} a month, or $${TEAM_TERMS.year.base.toLocaleString()} a year`, `${TEAM_MIN_SEATS} seats, +$${TEAM_TERMS.month.extraSeat}/month per extra seat`, 'Project workspace with live web map', 'Discussion and full project history', 'Every dataset, always up to date'],
+    count: `From ${TEAM_MIN_SEATS} seats`,
+    datasets: ['Tell us what you need, we quote it', 'Project workspace with live web map', 'Discussion and full project history', 'Every dataset, always up to date', 'On-site support, custom data and API on request'],
   },
 }
 

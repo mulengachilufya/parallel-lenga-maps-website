@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, quoteRequestAdminEmail, quoteAckEmail } from '@/lib/email'
 import { clientIp, checkIpRateLimit, rateLimitedResponse } from '@/lib/rate-limit'
+import { isTeamTerm } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,9 +45,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true }) // silently drop bots
   }
 
-  const org_name     = str(body.org_name, 200)
-  const email        = str(body.email, 200)
   const contact_name = str(body.contact_name, 200)
+  // The organisation is optional on the team builder: fall back to the
+  // person's name so every row still has something to call it.
+  const org_name     = str(body.org_name, 200) ?? contact_name
+  const email        = str(body.email, 200)
   const sector       = str(body.sector, 40)
   const region       = str(body.region, 200)
   const datasets_interest = str(body.datasets_interest, 1000)
@@ -55,9 +58,19 @@ export async function POST(req: NextRequest) {
   const seats        = Number.isFinite(seatsRaw) && seatsRaw > 0
     ? Math.min(Math.round(seatsRaw), 10_000) : null
 
+  // Fields added by the quote builder. All optional; the older forms
+  // (/request-data) simply leave them out.
+  const whatsappRaw  = str(body.whatsapp, 30)
+  const whatsapp     = whatsappRaw && /^[+\d][\d\s()-]{5,}$/.test(whatsappRaw) ? whatsappRaw : null
+  const onsite_support = body.onsite_support === true
+  const custom_data    = body.custom_data === true
+  const api_access     = body.api_access === true
+  const wants_call     = body.wants_call === true
+  const term           = isTeamTerm(body.term) ? body.term : null
+
   if (!org_name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json(
-      { error: 'validation', message: 'Organisation name and a valid email are required.' },
+      { error: 'validation', message: 'Your name and a valid email are required.' },
       { status: 400 },
     )
   }
@@ -69,7 +82,10 @@ export async function POST(req: NextRequest) {
     return rateLimitedResponse(rl, "You've sent a few requests already. Please wait a few minutes, or email lengamaps@gmail.com directly.")
   }
 
-  const fields = { org_name, contact_name, email, sector, region, seats, datasets_interest, notes }
+  const fields = {
+    org_name, contact_name, email, sector, region, seats, datasets_interest, notes,
+    whatsapp, onsite_support, custom_data, api_access, term, wants_call,
+  }
 
   const { data: quote, error } = await service.from('quote_requests').insert(fields).select('id').single()
   if (error || !quote) {

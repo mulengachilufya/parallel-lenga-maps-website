@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logEvent } from '@/lib/ops/log'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { SELF_SERVE_PLAN_ORDER, type TierSlug } from '@/lib/pricing'
+import { DEFAULT_PASS, SELF_SERVE_PLAN_ORDER, isPassProduct, type TierSlug } from '@/lib/pricing'
 import { BANK_DETAILS, bankReferenceFor } from '@/lib/bank-details'
 import { sendEmail, bankTransferDetailsEmail, bankTransferExpectedAdminEmail } from '@/lib/email'
 
@@ -41,7 +41,9 @@ export async function POST(req: NextRequest) {
   }
 
   const plan = body.plan as TierSlug
-  const product = body.product === 'updates' ? 'updates' : 'licence'
+  // Only passes are for sale now. Anything else (a stale tab still showing
+  // the old licence) falls back to the 1-month pass.
+  const product = isPassProduct(body.product) ? body.product : DEFAULT_PASS
   if (!SELF_SERVE_PLAN_ORDER.includes(plan)) {
     return NextResponse.json({ error: 'Invalid plan.' }, { status: 400 })
   }

@@ -7,7 +7,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import {
   FREE_DATASET_LIMIT, PLANS, PLAN_ORDER as TIERS, planCtaHref, coveredByUpdates,
-  UPDATE_MONTHS, UPDATES_PRICE, type UserState, type DatasetSlug,
+  PASS_MONTH_PRICE, type UserState, type DatasetSlug,
 } from '@/lib/pricing'
 import { DATASET_META } from '@/lib/teams'
 import type { Access } from '@/lib/entitlements'
@@ -317,7 +317,8 @@ function FreePick({ user, slug }: { user: GateUser | null; slug: DatasetSlug | n
 }
 
 function PaywallModal({ onClose, user, slug }: { onClose: () => void; user: GateUser | null; slug: DatasetSlug | null }) {
-  // An Individual licence whose updates have run out: offer the renewal.
+  // An old licence holder (access for good, new datasets until a date) whose
+  // updates have run out: a pass extends that date, so offer a pass.
   if (user?.access.paid && user.access.updatesUntil) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
@@ -325,12 +326,12 @@ function PaywallModal({ onClose, user, slug }: { onClose: () => void; user: Gate
           <h2 className="text-xl font-bold text-white mb-2">A newer dataset</h2>
           <p className="text-blue-200 text-sm mb-5">
             This dataset was added after your licence&apos;s updates ended on {new Date(user.access.updatesUntil).toLocaleDateString()}.
-            Add {UPDATE_MONTHS} more months of new datasets for ${UPDATES_PRICE}.
+            A pass unlocks it, and every dataset we add while it runs, for ${PASS_MONTH_PRICE} a month. What you already have stays yours.
           </p>
           <div className="flex items-center justify-between gap-3">
-            <Link href="/dashboard/payment?plan=individual&product=updates" onClick={onClose}
+            <Link href="/dashboard/payment?plan=individual" onClick={onClose}
                   className="bg-[#F5B800] text-[#0D2B45] text-sm font-bold px-4 py-2 rounded-lg">
-              Renew updates · ${UPDATES_PRICE}
+              Get a pass · from ${PASS_MONTH_PRICE}
             </Link>
             <button onClick={onClose} className="text-blue-400 hover:text-white text-sm">Not now</button>
           </div>
@@ -346,7 +347,7 @@ function PaywallModal({ onClose, user, slug }: { onClose: () => void; user: Gate
           <div>
             <h2 className="text-xl font-bold text-white mb-1">Get full access</h2>
             <p className="text-blue-300 text-sm">
-              Buy the catalogue once, or get a shared workspace for your team.
+              Get a pass for every dataset, or a shared workspace for your team.
             </p>
           </div>
           <button onClick={onClose} className="text-blue-500 hover:text-white transition-colors ml-4 text-xl leading-none">✕</button>
@@ -372,8 +373,8 @@ function PaywallModal({ onClose, user, slug }: { onClose: () => void; user: Gate
                 <div className="mt-3 pt-3 border-t border-blue-900/40 text-left space-y-1">
                   <p className="text-blue-300 text-xs">Every dataset, all 54 countries</p>
                   {slug === 'individual'
-                    ? <p className="text-blue-300 text-xs">Yours for good, {UPDATE_MONTHS} months of new datasets</p>
-                    : <p className="text-blue-300 text-xs">Shared workspace, from 3 seats</p>}
+                    ? <p className="text-blue-300 text-xs">Unlimited downloads while your pass is active</p>
+                    : <p className="text-blue-300 text-xs">Shared workspace, tell us what you need</p>}
                 </div>
                 <div className="mt-3 bg-[#1E5F8E] group-hover:bg-[#F5B800] group-hover:text-[#0D2B45] text-white text-xs font-semibold py-2 rounded-lg transition-colors">
                   {plan.ctaLabel}

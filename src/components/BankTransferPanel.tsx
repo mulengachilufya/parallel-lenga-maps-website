@@ -51,7 +51,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-export default function BankTransferPanel({ plan, product = 'licence', amountLabel, userEmail, userName = '' }: Props) {
+export default function BankTransferPanel({ plan, product = 'pass_1m', amountLabel, userEmail, userName = '' }: Props) {
   const [phase,     setPhase]     = useState<Phase>('intro')
   const [loading,   setLoading]   = useState(false)
   const [errorMsg,  setErrorMsg]  = useState('')

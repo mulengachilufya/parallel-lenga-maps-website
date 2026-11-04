@@ -44,7 +44,7 @@ interface Team {
   plan: 'paid' | 'free'; free_datasets: string[] | null
 }
 // What the organisation asked for on the website quote form.
-interface Quote { org_name: string; contact_name: string | null; email: string; sector: string | null; region: string | null; seats: number | null; datasets_interest: string | null; notes: string | null; created_at: string }
+interface Quote { org_name: string; contact_name: string | null; email: string; sector: string | null; region: string | null; seats: number | null; datasets_interest: string | null; notes: string | null; created_at: string; whatsapp?: string | null; onsite_support?: boolean; custom_data?: boolean; api_access?: boolean; term?: string | null; wants_call?: boolean }
 
 interface Detail { account: Account; contacts: Contact[]; activities: Activity[]; tasks: Task[]; team: Team | null; settings: Settings; partnership: Partnership | null; quote: Quote | null }
 
@@ -307,6 +307,8 @@ function AccountPage() {
 function QuoteBox({ q }: { q: Quote }) {
   const rows: [string, string | null][] = [
     ['What they need', q.notes], ['Datasets', q.datasets_interest], ['Seats', q.seats ? String(q.seats) : null],
+    ['Extras wanted', [q.onsite_support && 'On-site support', q.custom_data && 'Custom data', q.api_access && 'API access'].filter(Boolean).join(', ') || null],
+    ['Preferred term', q.term ?? null], ['WhatsApp', q.whatsapp ?? null], ['Wants a call', q.wants_call ? 'Yes' : null],
     ['Where', q.region], ['Sector', q.sector], ['From', [q.contact_name, q.email].filter(Boolean).join(', ')],
   ]
   return (

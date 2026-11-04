@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { accessFor, can } from '@/lib/staff'
-import { UPDATE_MONTHS, accessExpiry } from '@/lib/pricing'
+import { PASSES, UPDATE_MONTHS, accessExpiry, isPassProduct } from '@/lib/pricing'
 import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
 
 /**
@@ -12,10 +12,14 @@ import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/ema
  * Admin-only. On 'verify':
  *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
  *   - profiles.plan → plan recorded on the payment row
- *   - Individual licence: plan_status → 'active', plan_expires_at → null
- *     (the catalogue is theirs for good), updates_until → UPDATE_MONTHS on
- *     (from the current updates_until if still running). An 'updates'
- *     payment only extends updates_until.
+ *   - Individual PASS (pass_1m / pass_6m / pass_12m): plan_status → 'active',
+ *     plan_expires_at → the pass length from now, or from the current end
+ *     date if a pass is still running (paying early loses nothing).
+ *     Accounts that hold access for good (old licence, plan_expires_at null)
+ *     are NEVER given an end date by a pass: the pass lengthens the window of
+ *     new datasets (updates_until) instead, so what they already had stays.
+ *   - Legacy 'licence' / 'updates' rows (submitted before the pass model):
+ *     handled exactly as they were, so nobody who already paid loses out.
  *   - Older rows without a product (time-limited plans): 3 months as before.
  *   - fires Web3Forms email to the customer letting them know access is live
  *
@@ -126,10 +130,28 @@ export async function POST(req: NextRequest) {
     const { data: current } = await service
       .from('profiles').select('plan, plan_status, plan_expires_at, updates_until').eq('id', payment.user_id).maybeSingle()
     const permanent = current?.plan_status === 'active' && !current.plan_expires_at
-    const product = payment.product as 'licence' | 'updates' | null
+    const product = payment.product as 'licence' | 'updates' | string | null
     let changes: Record<string, unknown>
     let expiresAt: string | null
-    if (product === 'updates') {
+    if (isPassProduct(product)) {
+      const months = PASSES[product].months
+      if (permanent && current?.plan === 'individual') {
+        // Holds access for good (old licence). Never put an end date on it.
+        // A pass buys more months of new datasets; with no limit already,
+        // there is nothing to extend.
+        expiresAt = null
+        changes = current?.updates_until
+          ? { updates_until: accessExpiry(current.updates_until, months), pending_plan: null }
+          : { pending_plan: null }
+      } else {
+        expiresAt = accessExpiry(current?.plan_expires_at, months)
+        changes = {
+          plan: 'individual', account_type: payment.account_type, plan_status: 'active',
+          plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
+          updates_until: null,
+        }
+      }
+    } else if (product === 'updates') {
       expiresAt = null
       changes = { updates_until: accessExpiry(current?.updates_until, UPDATE_MONTHS), pending_plan: null }
     } else if (product === 'licence') {
