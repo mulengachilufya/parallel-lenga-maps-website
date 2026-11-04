@@ -1,0 +1,1223 @@
+diff --git a/.env.local.example b/.env.local.example
+index 730323d..92b3cfa 100644
+--- a/.env.local.example
++++ b/.env.local.example
+@@ -67,3 +67,29 @@ ADMIN_EMAILS=lengamaps@gmail.com,cmulenga672@gmail.com
+ # Leave blank to disable WhatsApp notifications (email still fires).
+ CALLMEBOT_WHATSAPP_PHONE=260965699359
+ CALLMEBOT_WHATSAPP_APIKEY=
++
++# ── Instant payments through Lenco (card and Airtel/MTN mobile money) ──────
++# Get keys from the Lenco app: Collections (mobile) or Lenco Pay (web).
++# Real values live in Vercel (and your git-ignored .env.local). NEVER paste
++# them here or commit them.
++# For TESTING use the sandbox values below; for LIVE leave the two URL lines
++# out (the defaults are the live ones) and use your live keys.
++LENCO_SECRET_KEY=...
++LENCO_PUBLIC_KEY=...
++# How many kwacha one dollar is (mobile money is always charged in ZMW).
++LENCO_ZMW_PER_USD=...
++# Optional: 'USD' only if Lenco has enabled USD card payments for you.
++# LENCO_CARD_CURRENCY=ZMW
++# Sandbox only:
++# LENCO_API_BASE=https://sandbox.lenco.co/access/v2
++# LENCO_WIDGET_URL=https://pay.sandbox.lenco.co/js/v1/inline.js
++# Webhook URL to set in Lenco Pay settings:
++#   https://YOUR-DOMAIN/api/payments/lenco/webhook
++
++# ── Manual Airtel Money / MTN MoMo (customer sends money, uploads a screenshot)
++# A method with no number set does not appear on the pay page.
++NEXT_PUBLIC_AIRTEL_MONEY_NUMBER=...
++NEXT_PUBLIC_MTN_MOMO_NUMBER=...
++NEXT_PUBLIC_MOBILE_MONEY_ACCOUNT_NAME=...
++# Optional: only used to show roughly how many kwacha a dollar price is.
++# NEXT_PUBLIC_ZMW_PER_USD=...
+diff --git a/src/app/api/account/orders/route.ts b/src/app/api/account/orders/route.ts
+index 0e9c4bb..0822a1b 100644
+--- a/src/app/api/account/orders/route.ts
++++ b/src/app/api/account/orders/route.ts
+@@ -1,9 +1,10 @@
+ /**
+  * /api/account/orders — a signed-in user's own orders.
+  *
+- *   GET                  → their bank-transfer payments (plans, seats,
+- *                          updates) and their quote requests (custom data,
+- *                          team quotes)
++ *   GET                  → their manual payments (bank, Airtel, MTN), their
++ *                          confirmed instant payments (Lenco: card and mobile
++ *                          money, receipts only) and their quote requests
++ *                          (custom data, team quotes)
+  *   DELETE { kind, id }  → cancel one:
+  *       kind 'payment': pending or rejected ones are deleted. A verified
+  *                       one is only hidden from their list (hidden_at,
+@@ -32,16 +33,21 @@ async function me() {
+ 
+ export async function GET() {
+   const user = await me()
+-  if (!user) return NextResponse.json({ payments: [], quotes: [] })
+-  const [p, q] = await Promise.all([
++  if (!user) return NextResponse.json({ payments: [], instant: [], quotes: [] })
++  const [p, q, i] = await Promise.all([
+     service.from('manual_payments')
+       .select('id, reference, plan, product, account_type, amount_usd, amount_zmw, currency, status, submitted_at, admin_note')
+       .eq('user_id', user.id).is('hidden_at', null).order('submitted_at', { ascending: false }).limit(50),
+     service.from('quote_requests')
+       .select('id, org_name, seats, datasets_interest, status, created_at')
+       .ilike('email', user.email).order('created_at', { ascending: false }).limit(50),
++    // Instant payments are receipts: only confirmed ones are listed, and they
++    // are not cancellable (the money has already moved).
++    service.from('lenco_payments')
++      .select('reference, product, amount_usd, channel, completed_at, created_at')
++      .eq('user_id', user.id).eq('status', 'successful').order('created_at', { ascending: false }).limit(50),
+   ])
+-  return NextResponse.json({ payments: p.data ?? [], quotes: q.data ?? [] })
++  return NextResponse.json({ payments: p.data ?? [], instant: i.data ?? [], quotes: q.data ?? [] })
+ }
+ 
+ export async function DELETE(req: NextRequest) {
+diff --git a/src/app/api/admin/payments/verify/route.ts b/src/app/api/admin/payments/verify/route.ts
+index 15acbe8..7ab9970 100644
+--- a/src/app/api/admin/payments/verify/route.ts
++++ b/src/app/api/admin/payments/verify/route.ts
+@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
+ import { createClient } from '@supabase/supabase-js'
+ import { createServerSupabase } from '@/lib/supabase-server'
+ import { accessFor, can } from '@/lib/staff'
+-import { PASSES, UPDATE_MONTHS, accessExpiry, isPassProduct } from '@/lib/pricing'
++import { computeGrant } from '@/lib/payments/grant'
+ import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
+ 
+ /**
+@@ -129,48 +129,9 @@ export async function POST(req: NextRequest) {
+     // profile stops advertising a pending request.
+     const { data: current } = await service
+       .from('profiles').select('plan, plan_status, plan_expires_at, updates_until').eq('id', payment.user_id).maybeSingle()
+-    const permanent = current?.plan_status === 'active' && !current.plan_expires_at
+-    const product = payment.product as 'licence' | 'updates' | string | null
+-    let changes: Record<string, unknown>
+-    let expiresAt: string | null
+-    if (isPassProduct(product)) {
+-      const months = PASSES[product].months
+-      if (permanent && current?.plan === 'individual') {
+-        // Holds access for good (old licence). Never put an end date on it.
+-        // A pass buys more months of new datasets; with no limit already,
+-        // there is nothing to extend.
+-        expiresAt = null
+-        changes = current?.updates_until
+-          ? { updates_until: accessExpiry(current.updates_until, months), pending_plan: null }
+-          : { pending_plan: null }
+-      } else {
+-        expiresAt = accessExpiry(current?.plan_expires_at, months)
+-        changes = {
+-          plan: 'individual', account_type: payment.account_type, plan_status: 'active',
+-          plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
+-          updates_until: null,
+-        }
+-      }
+-    } else if (product === 'updates') {
+-      expiresAt = null
+-      changes = { updates_until: accessExpiry(current?.updates_until, UPDATE_MONTHS), pending_plan: null }
+-    } else if (product === 'licence') {
+-      // Someone with permanent access from an earlier plan already has
+-      // everything with no limit; buying again leaves that alone.
+-      const unlimited = permanent && !current?.updates_until && current?.plan === 'individual'
+-      expiresAt = null
+-      changes = {
+-        plan: 'individual', account_type: payment.account_type, plan_status: 'active',
+-        plan_expires_at: null, expiry_reminder_sent_at: null, pending_plan: null,
+-        updates_until: unlimited ? null : accessExpiry(current?.updates_until, UPDATE_MONTHS),
+-      }
+-    } else {
+-      expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at)
+-      changes = {
+-        plan: payment.plan, account_type: payment.account_type, plan_status: 'active',
+-        plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
+-      }
+-    }
++    // What the payment does to the profile is decided in one shared place
++    // (src/lib/payments/grant.ts), the same one the instant Lenco flow uses.
++    const { changes, expiresAt } = computeGrant(payment, current)
+     const { error: profErr } = await service
+       .from('profiles')
+       .update(changes)
+diff --git a/src/app/api/payments/lenco/init/route.ts b/src/app/api/payments/lenco/init/route.ts
+new file mode 100644
+index 0000000..45fa494
+--- /dev/null
++++ b/src/app/api/payments/lenco/init/route.ts
+@@ -0,0 +1,69 @@
++import { NextRequest, NextResponse } from 'next/server'
++import { createClient } from '@supabase/supabase-js'
++import { createServerSupabase } from '@/lib/supabase-server'
++import { INDIVIDUAL_PRODUCTS, isPassProduct } from '@/lib/pricing'
++import { amountFor, isLencoChannel, lencoConfig, newLencoReference } from '@/lib/lenco'
++
++/**
++ * POST /api/payments/lenco/init   body: { product, channel }
++ *
++ * Step 1 of an instant payment. The browser tells us WHAT it wants (which
++ * pass, card or mobile money). We decide the price, create a pending row, and
++ * hand back what the Lenco widget needs. The amount is never taken from the
++ * browser.
++ */
++const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
++const MAX_PENDING_PER_HOUR = 10
++
++/** The pay page asks this once so it only offers instant payment when Lenco is configured. */
++export async function GET() {
++  return NextResponse.json({ enabled: lencoConfig() !== null })
++}
++
++export async function POST(req: NextRequest) {
++  const supabase = await createServerSupabase()
++  const { data: { user } } = await supabase.auth.getUser()
++  if (!user?.email) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
++
++  const cfg = lencoConfig()
++  if (!cfg) return NextResponse.json({ error: 'Instant payment is not available right now. Please use another method.' }, { status: 503 })
++
++  const body: Record<string, unknown> = await req.json().catch(() => ({}))
++  const rawProduct = body.product
++  const product = isPassProduct(rawProduct) ? rawProduct : null
++  if (!product) return NextResponse.json({ error: 'That option is no longer available. Please reload the page.' }, { status: 400 })
++  const rawChannel = body.channel
++  if (!isLencoChannel(rawChannel)) return NextResponse.json({ error: 'Invalid payment method.' }, { status: 400 })
++  const channel = rawChannel
++
++  const since = new Date(Date.now() - 3600_000).toISOString()
++  const { count } = await service.from('lenco_payments').select('id', { count: 'exact', head: true })
++    .eq('user_id', user.id).eq('status', 'pending').gte('created_at', since)
++  if ((count ?? 0) >= MAX_PENDING_PER_HOUR) {
++    return NextResponse.json({ error: 'Too many attempts. Please wait a little and try again.' }, { status: 429 })
++  }
++
++  const { data: prof } = await service.from('profiles').select('full_name, first_name, last_name').eq('id', user.id).maybeSingle()
++  const fullName = prof?.full_name || [prof?.first_name, prof?.last_name].filter(Boolean).join(' ') || (user.user_metadata?.full_name as string | undefined) || ''
++
++  const amount_usd = INDIVIDUAL_PRODUCTS[product].price
++  const { amount, currency } = amountFor(channel, amount_usd, cfg)
++  const reference = newLencoReference()
++
++  const { error } = await service.from('lenco_payments').insert({
++    reference, user_id: user.id, user_email: user.email, user_name: fullName || null,
++    plan: 'individual', product, amount_usd, amount_charged: amount, currency, channel,
++  })
++  if (error) {
++    console.error('[lenco/init] insert failed:', error)
++    return NextResponse.json({ error: 'Could not start the payment. Please try again.' }, { status: 500 })
++  }
++
++  const [firstName, ...rest] = fullName.trim().split(/\s+/)
++  return NextResponse.json({
++    reference, amount, currency, channel,
++    publicKey: cfg.publicKey, widgetUrl: cfg.widgetUrl,
++    email: user.email, firstName: firstName || '', lastName: rest.join(' '),
++    product,
++  })
++}
+diff --git a/src/app/api/payments/lenco/verify/route.ts b/src/app/api/payments/lenco/verify/route.ts
+new file mode 100644
+index 0000000..01c2d7b
+--- /dev/null
++++ b/src/app/api/payments/lenco/verify/route.ts
+@@ -0,0 +1,34 @@
++import { NextRequest, NextResponse } from 'next/server'
++import { createClient } from '@supabase/supabase-js'
++import { createServerSupabase } from '@/lib/supabase-server'
++import { lencoConfig } from '@/lib/lenco'
++import { finalizeLencoPayment } from '@/lib/lenco-finalize'
++
++/**
++ * POST /api/payments/lenco/verify   body: { reference }
++ *
++ * Called by the pay page right after the Lenco widget says "success" (and
++ * again a few times if the payment is still pending). The browser's word is
++ * not trusted: finalizeLencoPayment asks Lenco directly.
++ */
++const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
++
++export async function POST(req: NextRequest) {
++  const supabase = await createServerSupabase()
++  const { data: { user } } = await supabase.auth.getUser()
++  if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
++
++  const cfg = lencoConfig()
++  if (!cfg) return NextResponse.json({ error: 'Instant payment is not available right now.' }, { status: 503 })
++
++  const body = await req.json().catch(() => ({} as Record<string, unknown>))
++  const reference = typeof body.reference === 'string' ? body.reference.trim() : ''
++  if (!/^[A-Za-z0-9._-]{6,80}$/.test(reference)) return NextResponse.json({ error: 'Invalid reference.' }, { status: 400 })
++
++  // You can only settle your own payment.
++  const { data: row } = await service.from('lenco_payments').select('user_id').eq('reference', reference).maybeSingle()
++  if (!row || row.user_id !== user.id) return NextResponse.json({ error: 'Payment not found.' }, { status: 404 })
++
++  const result = await finalizeLencoPayment(service, cfg, reference)
++  return NextResponse.json(result)
++}
+diff --git a/src/app/api/payments/lenco/webhook/route.ts b/src/app/api/payments/lenco/webhook/route.ts
+new file mode 100644
+index 0000000..7dd5efe
+--- /dev/null
++++ b/src/app/api/payments/lenco/webhook/route.ts
+@@ -0,0 +1,38 @@
++import { NextRequest, NextResponse } from 'next/server'
++import { createClient } from '@supabase/supabase-js'
++import { lencoConfig, verifyWebhookSignature } from '@/lib/lenco'
++import { finalizeLencoPayment } from '@/lib/lenco-finalize'
++
++/**
++ * POST /api/payments/lenco/webhook
++ *
++ * Lenco calls this when a collection succeeds or fails, even if the customer
++ * closed the tab. Set the URL in Lenco dashboard > Lenco Pay > Webhook:
++ *   https://YOUR-DOMAIN/api/payments/lenco/webhook
++ *
++ * Two protections: the signature must be valid (proves it came from Lenco),
++ * and even then we do not believe the body, we ask Lenco's API about the
++ * reference (finalizeLencoPayment). Always answer 200 quickly so Lenco does
++ * not keep retrying for 24 hours.
++ */
++const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
++
++export async function POST(req: NextRequest) {
++  const cfg = lencoConfig()
++  if (!cfg) return NextResponse.json({ ok: false }, { status: 503 })
++
++  const raw = await req.text()
++  if (!verifyWebhookSignature(raw, req.headers.get('x-lenco-signature'), cfg.secretKey)) {
++    return NextResponse.json({ ok: false }, { status: 401 })
++  }
++
++  let event: { event?: string; data?: { reference?: string | null } } = {}
++  try { event = JSON.parse(raw) } catch { return NextResponse.json({ ok: true }) }
++
++  const reference = event.data?.reference
++  const relevant = event.event === 'collection.successful' || event.event === 'collection.failed' || event.event === 'collection.settled'
++  if (relevant && typeof reference === 'string' && /^[A-Za-z0-9._-]{6,80}$/.test(reference)) {
++    await finalizeLencoPayment(service, cfg, reference)
++  }
++  return NextResponse.json({ ok: true })
++}
+diff --git a/src/app/dashboard/payment/page.tsx b/src/app/dashboard/payment/page.tsx
+index 8e98148..0e5069f 100644
+--- a/src/app/dashboard/payment/page.tsx
++++ b/src/app/dashboard/payment/page.tsx
+@@ -23,10 +23,14 @@
+ import { Suspense, useEffect, useState } from 'react'
+ import Link from 'next/link'
+ import { useRouter, useSearchParams } from 'next/navigation'
+-import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react'
++import { Loader2, ArrowLeft, ShieldCheck, Zap, CreditCard, Smartphone, Landmark } from 'lucide-react'
+ import { supabase } from '@/lib/supabase'
+ import { DEFAULT_PASS, PASSES, PASS_ORDER, isPassProduct, type PassProduct, type TierSlug } from '@/lib/pricing'
+ import BankTransferPanel from '@/components/BankTransferPanel'
++import LencoPayPanel from '@/components/LencoPayPanel'
++import MobileMoneyManualPanel from '@/components/MobileMoneyManualPanel'
++import { MOBILE_MONEY_NUMBERS } from '@/lib/mobile-money-numbers'
++import { LENCO_MOBILE_MONEY_COUNTRIES, METHOD_LABEL, mobileMoneyAvailableIn, type PayMethod } from '@/lib/payment-methods'
+ import { track } from '@/lib/analytics'
+ 
+ function PaymentInner() {
+@@ -39,6 +43,9 @@ function PaymentInner() {
+   const [loading, setLoading] = useState(true)
+   const [email,   setEmail]   = useState('')
+   const [name,    setName]    = useState('')
++  const [country, setCountry] = useState<string | null>(null)
++  const [instantOn, setInstantOn] = useState(false)
++  const [method, setMethod] = useState<PayMethod | null>(null)
+ 
+   useEffect(() => {
+     const load = async () => {
+@@ -59,10 +66,17 @@ function PaymentInner() {
+ 
+       const { data: profile } = await supabase
+         .from('profiles')
+-        .select('full_name')
++        .select('full_name, country')
+         .eq('id', session.user.id)
+         .single()
+ 
++      setCountry((profile as { country?: string | null } | null)?.country ?? null)
++      // Is instant payment (Lenco) switched on? If not, the page only offers manual methods.
++      try {
++        const r = await fetch('/api/payments/lenco/init')
++        const j = await r.json()
++        setInstantOn(!!j.enabled)
++      } catch { setInstantOn(false) }
+       setEmail(session.user.email || '')
+       setName(profile?.full_name || session.user.user_metadata?.full_name || '')
+       setLoading(false)
+@@ -81,6 +95,33 @@ function PaymentInner() {
+ 
+   const price = PASSES[product].price
+ 
++  // Which methods can this person use?
++  const available: PayMethod[] = [
++    ...(instantOn ? (['card'] as PayMethod[]) : []),
++    ...(instantOn && mobileMoneyAvailableIn(country) ? (['mobile-money'] as PayMethod[]) : []),
++    'bank',
++    ...(MOBILE_MONEY_NUMBERS.airtel ? (['airtel'] as PayMethod[]) : []),
++    ...(MOBILE_MONEY_NUMBERS.mtn ? (['mtn'] as PayMethod[]) : []),
++  ]
++  const chosen: PayMethod = method && available.includes(method) ? method : available[0]
++  const instantMethods = available.filter((m) => METHOD_LABEL[m].instant)
++  const manualMethods  = available.filter((m) => !METHOD_LABEL[m].instant)
++  const ICON: Record<PayMethod, typeof CreditCard> = { 'card': CreditCard, 'mobile-money': Smartphone, 'bank': Landmark, 'airtel': Smartphone, 'mtn': Smartphone }
++
++  const methodButton = (m: PayMethod) => {
++    const Icon = ICON[m]
++    const on = chosen === m
++    return (
++      <button key={m} type="button" role="radio" aria-checked={on} onClick={() => setMethod(m)}
++        className={`rounded-xl border px-3 py-3 text-left transition-colors ${on ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
++        <span className="flex items-center gap-2 text-sm font-semibold text-navy"><Icon size={15} /> {METHOD_LABEL[m].title}</span>
++        <span className="block text-[11px] text-gray-500 mt-0.5">
++          {m === 'mobile-money' ? `Airtel or MTN (${LENCO_MOBILE_MONEY_COUNTRIES.join(', ')})` : METHOD_LABEL[m].sub}
++        </span>
++      </button>
++    )
++  }
++
+   return (
+     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+       <div className="h-20" />
+@@ -90,7 +131,7 @@ function PaymentInner() {
+           <ArrowLeft size={14} /> Back
+         </Link>
+         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+-          <ShieldCheck size={13} /> Reviewed by a human, usually within a few hours
++          <ShieldCheck size={13} /> {METHOD_LABEL[chosen].instant ? 'Instant, switched on when the payment is confirmed' : 'Reviewed by a human, usually within a few hours'}
+         </span>
+       </div>
+ 
+@@ -113,14 +154,26 @@ function PaymentInner() {
+               </button>
+             ))}
+           </div>
+-          <BankTransferPanel
+-            key={product}
+-            plan="individual"
+-            product={product}
+-            amountLabel={`$${price} USD`}
+-            userEmail={email}
+-            userName={name}
+-          />
++
++          <p className="text-xs font-semibold text-gray-500 mb-2">How would you like to pay?</p>
++          {instantMethods.length > 0 && (
++            <>
++              <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-green-700 mb-1.5"><Zap size={12} /> Pay instantly</p>
++              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4" role="radiogroup" aria-label="Instant payment methods">{instantMethods.map(methodButton)}</div>
++            </>
++          )}
++          <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Pay manually, we check it</p>
++          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6" role="radiogroup" aria-label="Manual payment methods">{manualMethods.map(methodButton)}</div>
++
++          {chosen === 'card' && <LencoPayPanel key={`${product}-card`} product={product} channel="card" amountLabel={`$${price} USD`} />}
++          {chosen === 'mobile-money' && <LencoPayPanel key={`${product}-mm`} product={product} channel="mobile-money" amountLabel={`$${price} USD`} />}
++          {chosen === 'bank' && (
++            <BankTransferPanel key={`${product}-bank`} plan="individual" product={product}
++              amountLabel={`$${price} USD`} userEmail={email} userName={name} />
++          )}
++          {(chosen === 'airtel' || chosen === 'mtn') && (
++            <MobileMoneyManualPanel key={`${product}-${chosen}`} network={chosen} product={product} priceUsd={price} userEmail={email} />
++          )}
+         </div>
+ 
+         <p className="mt-8 text-center text-xs text-gray-400">
+diff --git a/src/components/BankTransferPanel.tsx b/src/components/BankTransferPanel.tsx
+index 935c16e..5f8843f 100644
+--- a/src/components/BankTransferPanel.tsx
++++ b/src/components/BankTransferPanel.tsx
+@@ -32,7 +32,7 @@ interface Props {
+ 
+ type Phase = 'intro' | 'details' | 'submitted'
+ 
+-function CopyRow({ label, value }: { label: string; value: string }) {
++export function CopyRow({ label, value }: { label: string; value: string }) {
+   const [copied, setCopied] = useState(false)
+   return (
+     <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+diff --git a/src/components/LencoPayPanel.tsx b/src/components/LencoPayPanel.tsx
+new file mode 100644
+index 0000000..888bf7d
+--- /dev/null
++++ b/src/components/LencoPayPanel.tsx
+@@ -0,0 +1,160 @@
++'use client'
++
++/**
++ * LencoPayPanel - instant payment by card or mobile money through Lenco.
++ *
++ * Flow (nothing here is trusted by the server, it re-checks with Lenco):
++ *   1. POST /api/payments/lenco/init    -> server picks the price, makes a
++ *                                          pending row, returns widget details
++ *   2. Lenco's popup widget takes the payment (card form, or the phone prompt)
++ *   3. POST /api/payments/lenco/verify  -> server asks Lenco "did it arrive?"
++ *                                          and, only if yes, grants the pass
++ *   4. If Lenco is still confirming, we ask again every few seconds.
++ */
++import { useCallback, useEffect, useRef, useState } from 'react'
++import { useRouter } from 'next/navigation'
++import { CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
++import { LICENCE_TERMS, type PassProduct } from '@/lib/pricing'
++import type { LencoChannel } from '@/lib/lenco'
++
++interface LencoWidgetOptions {
++  key: string; reference: string; email: string; amount: number; currency: string
++  channels: string[]; label?: string
++  customer?: { firstName?: string; lastName?: string }
++  onSuccess: (response: { reference: string }) => void
++  onClose: () => void
++  onConfirmationPending: () => void
++}
++declare global { interface Window { LencoPay?: { getPaid: (o: LencoWidgetOptions) => void } } }
++
++type Phase = 'idle' | 'starting' | 'paying' | 'verifying' | 'success' | 'error'
++interface VerifyResult { state: 'granted' | 'already' | 'pending' | 'failed' | 'unknown' | 'error'; message: string }
++
++function loadWidget(src: string): Promise<void> {
++  return new Promise((resolve, reject) => {
++    if (window.LencoPay) return resolve()
++    const existing = document.querySelector<HTMLScriptElement>('script[data-lenco-widget]')
++    const el = existing ?? document.createElement('script')
++    el.addEventListener('load', () => resolve())
++    el.addEventListener('error', () => reject(new Error('Could not load the payment window.')))
++    if (!existing) { el.src = src; el.async = true; el.dataset.lencoWidget = '1'; document.body.appendChild(el) }
++  })
++}
++
++export default function LencoPayPanel({ product, channel, amountLabel }: {
++  product: PassProduct; channel: LencoChannel; amountLabel: string
++}) {
++  const router = useRouter()
++  const [phase, setPhase] = useState<Phase>('idle')
++  const [message, setMessage] = useState('')
++  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
++  const unmounted = useRef(false)
++  useEffect(() => () => { unmounted.current = true; if (pollTimer.current) clearTimeout(pollTimer.current) }, [])
++
++  const isCard = channel === 'card'
++
++  /** Ask our server (which asks Lenco). Retries while the payment is pending. */
++  const verify = useCallback(async (reference: string, attempt = 0): Promise<void> => {
++    if (unmounted.current) return
++    setPhase('verifying'); setMessage('Confirming your payment…')
++    let result: VerifyResult | null = null
++    try {
++      const res = await fetch('/api/payments/lenco/verify', {
++        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }),
++      })
++      result = await res.json()
++    } catch { /* network blip: treated like pending below */ }
++
++    if (result?.state === 'granted' || result?.state === 'already') {
++      setPhase('success'); setMessage(result.message); return
++    }
++    if (result?.state === 'failed') {
++      setPhase('error'); setMessage(result.message); return
++    }
++    if (attempt < 10) {
++      pollTimer.current = setTimeout(() => void verify(reference, attempt + 1), 4000)
++      return
++    }
++    setPhase('error')
++    setMessage('We have not had confirmation yet. If you paid, your pass will switch on automatically when it is confirmed. Check your dashboard in a few minutes, or contact us with your reference: ' + reference)
++  }, [])
++
++  async function start() {
++    setPhase('starting'); setMessage('')
++    try {
++      const res = await fetch('/api/payments/lenco/init', {
++        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product, channel }),
++      })
++      const j = await res.json()
++      if (!res.ok) { setPhase('error'); setMessage(j.error ?? 'Could not start the payment.'); return }
++
++      await loadWidget(j.widgetUrl)
++      if (!window.LencoPay) throw new Error('Could not load the payment window.')
++
++      setPhase('paying')
++      window.LencoPay.getPaid({
++        key: j.publicKey,
++        reference: j.reference,
++        email: j.email,
++        amount: j.amount,
++        currency: j.currency,
++        channels: [channel],
++        label: 'Lenga Maps pass',
++        customer: { firstName: j.firstName, lastName: j.lastName },
++        onSuccess: () => void verify(j.reference),
++        onClose: () => {
++          // They may have paid and closed straight away: check once.
++          void verify(j.reference, 9)
++          setPhase((p) => (p === 'verifying' || p === 'success' ? p : 'idle'))
++        },
++        onConfirmationPending: () => void verify(j.reference),
++      })
++    } catch (err) {
++      setPhase('error'); setMessage(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
++    }
++  }
++
++  if (phase === 'success') {
++    return (
++      <div className="text-center py-6">
++        <CheckCircle2 size={44} className="mx-auto text-green-500" />
++        <h3 className="mt-3 text-xl font-bold text-navy">You are in</h3>
++        <p className="mt-2 text-sm text-gray-600">{message} Every dataset is unlocked.</p>
++        <button type="button" onClick={() => { router.push('/dashboard'); router.refresh() }}
++          className="mt-5 bg-[#F5B800] text-[#0D2B45] font-bold text-sm px-6 py-3 rounded-xl">
++          Go to my datasets
++        </button>
++      </div>
++    )
++  }
++
++  const busy = phase === 'starting' || phase === 'paying' || phase === 'verifying'
++  return (
++    <div>
++      <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
++        {isCard ? <CreditCard size={20} className="text-primary mt-0.5 shrink-0" /> : <Smartphone size={20} className="text-primary mt-0.5 shrink-0" />}
++        <p className="text-sm text-gray-600 leading-relaxed">
++          {isCard
++            ? 'Pay with a Mastercard or Visa card in a secure popup. Your pass switches on the moment the payment is confirmed.'
++            : 'Pay with Airtel or MTN mobile money. You will get a prompt on your phone to approve with your PIN, and your pass switches on right after.'}
++        </p>
++      </div>
++
++      {message && (
++        <div className={`flex items-start gap-2 text-sm rounded-xl p-3 mb-4 ${phase === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-800'}`}>
++          {phase === 'error' ? <AlertCircle size={16} className="mt-0.5 shrink-0" /> : <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" />}
++          <span>{message}</span>
++        </div>
++      )}
++
++      <button type="button" onClick={start} disabled={busy}
++        className="w-full inline-flex items-center justify-center gap-2 bg-[#F5B800] text-[#0D2B45] font-bold text-sm py-3.5 rounded-xl disabled:opacity-60">
++        {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={15} />}
++        {phase === 'starting' ? 'Starting…' : phase === 'paying' ? 'Complete the payment in the popup…' : phase === 'verifying' ? 'Confirming…' : `Pay ${amountLabel}`}
++      </button>
++      <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
++        Charged in kwacha at today&apos;s rate where needed. {LICENCE_TERMS}
++      </p>
++    </div>
++  )
++}
+diff --git a/src/components/MobileMoneyManualPanel.tsx b/src/components/MobileMoneyManualPanel.tsx
+new file mode 100644
+index 0000000..11aa518
+--- /dev/null
++++ b/src/components/MobileMoneyManualPanel.tsx
+@@ -0,0 +1,130 @@
++'use client'
++
++/**
++ * MobileMoneyManualPanel - pay by Airtel Money or MTN MoMo yourself, then
++ * tell us. No integration: you send the money to our number from your own
++ * phone, then upload a screenshot of the confirmation from inside your
++ * account. A person checks it and switches your pass on (usually within a
++ * few hours). Sits next to the bank transfer option (BankTransferPanel).
++ *
++ *   POST /api/payments/manual  (payment_method = 'airtel' | 'mtn')
++ */
++import { useState } from 'react'
++import { Check, Loader2, AlertCircle, Upload, Smartphone } from 'lucide-react'
++import { CopyRow } from '@/components/BankTransferPanel'
++import { MOBILE_MONEY_NUMBERS } from '@/lib/mobile-money-numbers'
++import { LICENCE_TERMS, type PassProduct } from '@/lib/pricing'
++
++type Network = 'airtel' | 'mtn'
++const NAME: Record<Network, string> = { airtel: 'Airtel Money', mtn: 'MTN MoMo' }
++
++export default function MobileMoneyManualPanel({ network, product, priceUsd, userEmail }: {
++  network: Network; product: PassProduct; priceUsd: number; userEmail: string
++}) {
++  const number = MOBILE_MONEY_NUMBERS[network]
++  const rate = MOBILE_MONEY_NUMBERS.zmwPerUsd
++  const [region, setRegion] = useState<'zambian' | 'international'>('zambian')
++  const [country, setCountry] = useState('')
++  const [phone, setPhone] = useState('')
++  const [txn, setTxn] = useState('')
++  const [file, setFile] = useState<File | null>(null)
++  const [busy, setBusy] = useState(false)
++  const [error, setError] = useState('')
++  const [reference, setReference] = useState('')
++  const [done, setDone] = useState(false)
++
++  async function submit(e: React.FormEvent) {
++    e.preventDefault()
++    setError('')
++    if (!phone.trim()) { setError('Enter the phone number you paid from.'); return }
++    setBusy(true)
++    try {
++      const fd = new FormData()
++      fd.append('plan', 'individual')
++      fd.append('product', product)
++      fd.append('payment_method', network)
++      fd.append('region', region)
++      if (region === 'international') fd.append('country_name', country)
++      fd.append('sender_phone', phone)
++      fd.append('txn_reference', txn)
++      if (file) fd.append('screenshot', file)
++      const res = await fetch('/api/payments/manual', { method: 'POST', body: fd })
++      const j = await res.json().catch(() => ({}))
++      if (!res.ok) { setError(j.error ?? 'Could not send. Please try again.'); return }
++      setReference(j.reference ?? ''); setDone(true)
++    } catch {
++      setError('Network error. Please try again.')
++    } finally { setBusy(false) }
++  }
++
++  if (done) {
++    return (
++      <div className="text-center py-4">
++        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
++          <Check size={32} className="text-green-600" />
++        </div>
++        <h2 className="text-2xl font-black text-navy tracking-tight mb-2">Thanks, we&apos;re on it</h2>
++        <p className="text-gray-500 mb-1">We&apos;ll check your {NAME[network]} payment and switch on your pass, usually within a few hours.</p>
++        {reference && <p className="text-sm text-gray-400">Reference: <span className="font-mono font-bold text-gray-600">{reference}</span></p>}
++        <p className="mt-4 text-xs text-gray-400">We&apos;ll email <span className="font-medium text-gray-600">{userEmail}</span> the moment it&apos;s active.</p>
++      </div>
++    )
++  }
++
++  const field = 'w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-primary'
++  return (
++    <form onSubmit={submit}>
++      <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
++        <Smartphone size={20} className="text-primary mt-0.5 shrink-0" />
++        <p className="text-sm text-gray-600 leading-relaxed">
++          Send <strong>${priceUsd} USD</strong>{rate ? <> (about <strong>K{Math.ceil(priceUsd * rate).toLocaleString()}</strong>)</> : ' in kwacha at today\u2019s rate'} to the {NAME[network]} number below,
++          then upload a screenshot of the confirmation. We check it and switch on your pass.
++        </p>
++      </div>
++
++      <div className="space-y-2 mb-5">
++        <CopyRow label={`${NAME[network]} number`} value={number} />
++        {MOBILE_MONEY_NUMBERS.accountName && <CopyRow label="Account name" value={MOBILE_MONEY_NUMBERS.accountName} />}
++      </div>
++
++      <div className="grid gap-3 sm:grid-cols-2">
++        <label className="block text-xs font-semibold text-gray-500">Where are you sending from?
++          <select value={region} onChange={(e) => setRegion(e.target.value as 'zambian' | 'international')} className={`${field} mt-1`}>
++            <option value="zambian">A Zambian number</option>
++            <option value="international">Another country</option>
++          </select>
++        </label>
++        {region === 'international' && (
++          <label className="block text-xs font-semibold text-gray-500">Country
++            <input value={country} onChange={(e) => setCountry(e.target.value)} maxLength={120} className={`${field} mt-1`} placeholder="e.g. Malawi" />
++          </label>
++        )}
++        <label className="block text-xs font-semibold text-gray-500">Phone you paid from *
++          <input required value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} inputMode="tel" className={`${field} mt-1`} placeholder="0977 ..." />
++        </label>
++        <label className="block text-xs font-semibold text-gray-500">Transaction ID (optional)
++          <input value={txn} onChange={(e) => setTxn(e.target.value)} maxLength={120} className={`${field} mt-1`} placeholder="From the confirmation SMS" />
++        </label>
++      </div>
++
++      <label className="mt-3 flex items-center gap-3 cursor-pointer rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 hover:border-primary">
++        <Upload size={16} className="text-primary shrink-0" />
++        <span className="truncate">{file ? file.name : 'Upload a screenshot of the confirmation (JPG, PNG, WEBP, HEIC, up to 5 MB)'}</span>
++        <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
++      </label>
++
++      {error && (
++        <div className="mt-4 flex items-start gap-2 text-sm bg-red-50 text-red-700 rounded-xl p-3">
++          <AlertCircle size={16} className="mt-0.5 shrink-0" /><span>{error}</span>
++        </div>
++      )}
++
++      <button type="submit" disabled={busy}
++        className="mt-5 w-full inline-flex items-center justify-center gap-2 bg-[#0D2B45] text-white font-bold text-sm py-3.5 rounded-xl disabled:opacity-60">
++        {busy && <Loader2 size={16} className="animate-spin" />}
++        {busy ? 'Sending…' : "I've paid, send for checking"}
++      </button>
++      <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">{LICENCE_TERMS}</p>
++    </form>
++  )
++}
+diff --git a/src/components/MyOrders.tsx b/src/components/MyOrders.tsx
+index c3cf886..ed184f9 100644
+--- a/src/components/MyOrders.tsx
++++ b/src/components/MyOrders.tsx
+@@ -15,6 +15,7 @@ interface Payment {
+   amount_usd: number | null; amount_zmw: number | null; currency: string | null
+   status: 'pending' | 'verified' | 'rejected'; submitted_at: string; admin_note: string | null
+ }
++interface Instant { reference: string; product: string; amount_usd: number; channel: 'card' | 'mobile-money'; completed_at: string | null; created_at: string }
+ interface Quote { id: string; org_name: string; seats: number | null; datasets_interest: string | null; status: string; created_at: string }
+ 
+ const STATUS: Record<string, { label: string; cls: string }> = {
+@@ -38,13 +39,14 @@ function paymentTitle(p: Payment) {
+ 
+ export default function MyOrders() {
+   const [payments, setPayments] = useState<Payment[]>([])
++  const [instant, setInstant] = useState<Instant[]>([])
+   const [quotes, setQuotes] = useState<Quote[]>([])
+   const [busy, setBusy] = useState<string | null>(null)
+   const [error, setError] = useState('')
+ 
+   useEffect(() => {
+-    fetch('/api/account/orders').then((r) => r.ok ? r.json() : { payments: [], quotes: [] })
+-      .then((j) => { setPayments(j.payments ?? []); setQuotes(j.quotes ?? []) }).catch(() => {})
++    fetch('/api/account/orders').then((r) => r.ok ? r.json() : { payments: [], instant: [], quotes: [] })
++      .then((j) => { setPayments(j.payments ?? []); setInstant(j.instant ?? []); setQuotes(j.quotes ?? []) }).catch(() => {})
+   }, [])
+ 
+   async function cancel(kind: 'payment' | 'quote', id: string | number, what: string, paid = false) {
+@@ -65,7 +67,7 @@ export default function MyOrders() {
+     } finally { setBusy(null) }
+   }
+ 
+-  if (!payments.length && !quotes.length) return null
++  if (!payments.length && !instant.length && !quotes.length) return null
+ 
+   const rows = [
+     ...payments.map((p) => ({
+@@ -73,6 +75,12 @@ export default function MyOrders() {
+       status: p.status, onCancel: () => cancel('payment', p.id, `${paymentTitle(p)} (${p.reference})`, p.status === 'verified'),
+       cancelLabel: p.status === 'pending' ? 'Cancel' : 'Remove',
+     })),
++    ...instant.map((i) => ({
++      key: `instant:${i.reference}`, date: i.completed_at ?? i.created_at,
++      title: `Individual pass, ${({ pass_1m: '1 month', pass_6m: '6 months', pass_12m: '12 months' } as Record<string, string>)[i.product] ?? i.product} · $${i.amount_usd}`,
++      sub: `Ref ${i.reference} · ${i.channel === 'card' ? 'Card' : 'Mobile money'}`,
++      status: 'verified', onCancel: undefined as (() => void) | undefined, cancelLabel: '',
++    })),
+     ...quotes.map((q) => ({
+       key: `quote:${q.id}`, date: q.created_at, title: `Quote for ${q.org_name}`,
+       sub: [q.seats && `${q.seats} seats`, q.datasets_interest].filter(Boolean).join(' · '),
+diff --git a/src/lib/lenco-finalize.ts b/src/lib/lenco-finalize.ts
+new file mode 100644
+index 0000000..f22f717
+--- /dev/null
++++ b/src/lib/lenco-finalize.ts
+@@ -0,0 +1,81 @@
++/**
++ * Settle one Lenco payment: ask Lenco what happened, and only if the money
++ * really arrived (right reference, right currency, at least the right
++ * amount) give the person their pass. Safe to call any number of times and
++ * from several places at once (the browser after the widget, the webhook, a
++ * retry): the pass is applied exactly once.
++ */
++import type { SupabaseClient } from '@supabase/supabase-js'
++import { fetchCollection, type LencoConfig } from '@/lib/lenco'
++import { computeGrant } from '@/lib/payments/grant'
++import { sendEmail, paymentVerifiedEmail } from '@/lib/email'
++import { logEvent } from '@/lib/ops/log'
++
++export type FinalizeState = 'granted' | 'already' | 'pending' | 'failed' | 'unknown' | 'error'
++export interface FinalizeResult { state: FinalizeState; message: string; expiresAt?: string | null }
++
++interface LencoRow {
++  id: string; reference: string; user_id: string; user_email: string; user_name: string | null
++  plan: string; product: string; amount_charged: number; currency: string
++  granted_at: string | null; status: string
++}
++
++export async function finalizeLencoPayment(
++  service: SupabaseClient, cfg: LencoConfig, reference: string,
++): Promise<FinalizeResult> {
++  const { data: row } = await service.from('lenco_payments').select('*').eq('reference', reference).maybeSingle<LencoRow>()
++  if (!row) return { state: 'unknown', message: 'We do not know this payment.' }
++  if (row.granted_at) return { state: 'already', message: 'Your pass is already active.' }
++
++  const found = await fetchCollection(reference, cfg)
++  if (!found.ok) {
++    // Not found yet usually means the customer has not finished paying.
++    if (found.notFound) return { state: 'pending', message: 'Waiting for the payment to complete.' }
++    void logEvent('warn', 'payments', 'lenco_lookup_failed', 'Could not ask Lenco about a payment.', { reference, error: found.error })
++    return { state: 'error', message: 'Could not reach the payment provider. We will keep trying, check your dashboard shortly.' }
++  }
++
++  const c = found.data
++  if (c.reference !== reference) {
++    return { state: 'error', message: 'Payment reference did not match.' }
++  }
++  if (c.status === 'failed') {
++    await service.from('lenco_payments').update({ status: 'failed', failure_reason: c.reasonForFailure ?? null, lenco_id: c.id }).eq('id', row.id).is('granted_at', null)
++    return { state: 'failed', message: c.reasonForFailure || 'The payment did not go through.' }
++  }
++  if (c.status !== 'successful') {
++    return { state: 'pending', message: 'Waiting for the payment to be confirmed.' }
++  }
++
++  // Money arrived. Is it what we asked for? Never grant for less.
++  const paid = Number(c.amount)
++  if (c.currency !== row.currency || !Number.isFinite(paid) || paid + 0.005 < Number(row.amount_charged)) {
++    await service.from('lenco_payments').update({ status: 'mismatch', lenco_id: c.id, lenco_reference: c.lencoReference, failure_reason: `Paid ${c.amount} ${c.currency}, expected ${row.amount_charged} ${row.currency}` }).eq('id', row.id).is('granted_at', null)
++    void logEvent('critical', 'payments', 'lenco_amount_mismatch', 'A Lenco payment came in for the wrong amount. No access was given.', { reference, paid: c.amount, currency: c.currency, expected: row.amount_charged, expectedCurrency: row.currency })
++    return { state: 'failed', message: 'The amount paid did not match. Please contact support with your reference.' }
++  }
++
++  // Claim it. Only one caller can flip granted_at from null, so a second
++  // caller gets nothing back and stops here instead of granting twice.
++  const now = new Date().toISOString()
++  const { data: claimed } = await service.from('lenco_payments')
++    .update({ status: 'successful', granted_at: now, completed_at: now, lenco_id: c.id, lenco_reference: c.lencoReference, paid_type: c.type })
++    .eq('id', row.id).is('granted_at', null).select('id').maybeSingle()
++  if (!claimed) return { state: 'already', message: 'Your pass is already active.' }
++
++  const { data: current } = await service.from('profiles')
++    .select('plan, plan_status, plan_expires_at, updates_until').eq('id', row.user_id).maybeSingle()
++  const { changes, expiresAt } = computeGrant({ plan: row.plan, product: row.product, account_type: undefined }, current)
++
++  const { error: profErr } = await service.from('profiles').update(changes).eq('id', row.user_id)
++  if (profErr) {
++    // Release the claim so a retry can apply it, and tell the owner loudly.
++    await service.from('lenco_payments').update({ status: 'paid_unapplied', granted_at: null }).eq('id', row.id)
++    void logEvent('critical', 'payments', 'lenco_grant_failed', 'A customer paid through Lenco but their access could not be applied.', { reference, error: profErr.message })
++    return { state: 'error', message: 'Your payment went through but activation hit a problem. We have been alerted and will fix it, you will not be charged twice.' }
++  }
++
++  void sendEmail(paymentVerifiedEmail(row.user_email, row.user_name, row.plan, expiresAt), 'payments')
++  void logEvent('info', 'payments', 'lenco_paid', 'An instant Lenco payment was confirmed and access granted.', { reference, product: row.product, channel: c.type })
++  return { state: 'granted', message: 'Payment confirmed. Your pass is active.', expiresAt }
++}
+diff --git a/src/lib/lenco.ts b/src/lib/lenco.ts
+new file mode 100644
+index 0000000..666997a
+--- /dev/null
++++ b/src/lib/lenco.ts
+@@ -0,0 +1,113 @@
++/**
++ * Lenco (https://lenco-api.readme.io) - server-side helpers.
++ *
++ * SERVER ONLY. This file reads the secret key. Never import it from a
++ * component that has 'use client' at the top.
++ *
++ * Environment variables (set in Vercel > Settings > Environment Variables,
++ * and in your git-ignored .env.local):
++ *   LENCO_SECRET_KEY      API secret key (sandbox or live)
++ *   LENCO_PUBLIC_KEY      public key (safe for the browser, sent to the widget)
++ *   LENCO_ZMW_PER_USD     how many kwacha one dollar is, e.g. 27.5. Required:
++ *                         mobile money is always charged in ZMW.
++ *   LENCO_CARD_CURRENCY   'ZMW' (default) or 'USD' if Lenco enabled USD cards
++ *   LENCO_API_BASE        default https://api.lenco.co/access/v2
++ *                         sandbox:  https://sandbox.lenco.co/access/v2
++ *   LENCO_WIDGET_URL      default https://pay.lenco.co/js/v1/inline.js
++ *                         sandbox:  https://pay.sandbox.lenco.co/js/v1/inline.js
++ */
++import { createHash, createHmac, timingSafeEqual, randomUUID } from 'crypto'
++
++export type LencoChannel = 'card' | 'mobile-money'
++export type LencoCurrency = 'ZMW' | 'USD'
++
++export interface LencoConfig {
++  secretKey:    string
++  publicKey:    string
++  apiBase:      string
++  widgetUrl:    string
++  zmwPerUsd:    number
++  cardCurrency: LencoCurrency
++}
++
++/** Returns null when Lenco is not (fully) configured, so callers can say so. */
++export function lencoConfig(): LencoConfig | null {
++  const secretKey = process.env.LENCO_SECRET_KEY?.trim()
++  const publicKey = process.env.LENCO_PUBLIC_KEY?.trim()
++  const zmwPerUsd = Number(process.env.LENCO_ZMW_PER_USD)
++  if (!secretKey || !publicKey || !Number.isFinite(zmwPerUsd) || zmwPerUsd <= 0) return null
++  return {
++    secretKey, publicKey, zmwPerUsd,
++    apiBase:      (process.env.LENCO_API_BASE?.trim() || 'https://api.lenco.co/access/v2').replace(/\/+$/, ''),
++    widgetUrl:    process.env.LENCO_WIDGET_URL?.trim() || 'https://pay.lenco.co/js/v1/inline.js',
++    cardCurrency: process.env.LENCO_CARD_CURRENCY?.trim().toUpperCase() === 'USD' ? 'USD' : 'ZMW',
++  }
++}
++
++export function isLencoChannel(v: unknown): v is LencoChannel {
++  return v === 'card' || v === 'mobile-money'
++}
++
++/** What to charge, decided on the server from the USD price. Rounds UP to the
++ *  nearest ngwee/cent so we never under-charge. Mobile money is ZMW only. */
++export function amountFor(channel: LencoChannel, usd: number, cfg: Pick<LencoConfig, 'zmwPerUsd' | 'cardCurrency'>)
++  : { amount: number; currency: LencoCurrency } {
++  const currency: LencoCurrency = channel === 'card' ? cfg.cardCurrency : 'ZMW'
++  const raw = currency === 'USD' ? usd : usd * cfg.zmwPerUsd
++  return { amount: Math.ceil(raw * 100 - 1e-9) / 100, currency }
++}
++
++/** A unique reference. Lenco allows only letters, digits and - . _ */
++export function newLencoReference(): string {
++  return `lm-${randomUUID().replace(/-/g, '').slice(0, 20)}`
++}
++
++export interface LencoCollection {
++  id:               string
++  amount:           string
++  fee:              string | null
++  currency:         string
++  reference:        string | null
++  lencoReference:   string
++  type:             'card' | 'mobile-money' | 'bank-account' | null
++  status:           'pending' | 'successful' | 'failed' | 'pay-offline'
++  reasonForFailure: string | null
++}
++
++export type FetchCollectionResult =
++  | { ok: true;  data: LencoCollection }
++  | { ok: false; notFound: boolean; error: string }
++
++/** Ask Lenco directly what happened to a reference. This is the source of
++ *  truth: we never grant access because the browser (or a webhook body) SAYS
++ *  a payment worked, only because Lenco's own API says so. */
++export async function fetchCollection(reference: string, cfg: LencoConfig): Promise<FetchCollectionResult> {
++  try {
++    const res = await fetch(`${cfg.apiBase}/collections/status/${encodeURIComponent(reference)}`, {
++      headers: { Authorization: `Bearer ${cfg.secretKey}`, Accept: 'application/json' },
++      cache: 'no-store',
++    })
++    if (res.status === 404) return { ok: false, notFound: true, error: 'not found' }
++    const json = await res.json().catch(() => null) as { status?: boolean; message?: string; data?: LencoCollection } | null
++    if (!res.ok || !json?.status || !json.data) {
++      return { ok: false, notFound: false, error: json?.message || `Lenco returned ${res.status}` }
++    }
++    return { ok: true, data: json.data }
++  } catch (err) {
++    return { ok: false, notFound: false, error: err instanceof Error ? err.message : 'network error' }
++  }
++}
++
++/** Webhook check. Lenco signs the body with HMAC SHA512, keyed by the SHA256
++ *  hash of your API secret key, and sends it in X-Lenco-Signature. */
++export function verifyWebhookSignature(rawBody: string, signature: string | null, secretKey: string): boolean {
++  if (!signature) return false
++  const key = createHash('sha256').update(secretKey).digest('hex')
++  const candidates = [rawBody]
++  try { candidates.push(JSON.stringify(JSON.parse(rawBody))) } catch { /* not JSON, only the raw check applies */ }
++  const given = Buffer.from(signature.trim().toLowerCase(), 'utf8')
++  return candidates.some((body) => {
++    const expected = Buffer.from(createHmac('sha512', key).update(body).digest('hex'), 'utf8')
++    return expected.length === given.length && timingSafeEqual(expected, given)
++  })
++}
+diff --git a/src/lib/mobile-money-numbers.ts b/src/lib/mobile-money-numbers.ts
+new file mode 100644
+index 0000000..ce0eda5
+--- /dev/null
++++ b/src/lib/mobile-money-numbers.ts
+@@ -0,0 +1,21 @@
++/**
++ * Where customers send money for the MANUAL Airtel Money / MTN MoMo options.
++ * Read from environment variables so the numbers are never hardcoded and a
++ * method with no number set simply does not appear on the pay page.
++ *
++ * Set in Vercel (Environment Variables) and .env.local:
++ *   NEXT_PUBLIC_AIRTEL_MONEY_NUMBER        e.g. 0977123456
++ *   NEXT_PUBLIC_MTN_MOMO_NUMBER            e.g. 0966123456
++ *   NEXT_PUBLIC_MOBILE_MONEY_ACCOUNT_NAME  the name the number is registered to
++ *   NEXT_PUBLIC_ZMW_PER_USD                optional, only used to show roughly
++ *                                          how many kwacha a dollar price is
++ *
++ * NEXT_PUBLIC_ variables are readable by anyone visiting the site, which is
++ * right here: customers need to see these numbers anyway.
++ */
++export const MOBILE_MONEY_NUMBERS = {
++  airtel:      (process.env.NEXT_PUBLIC_AIRTEL_MONEY_NUMBER ?? '').trim(),
++  mtn:         (process.env.NEXT_PUBLIC_MTN_MOMO_NUMBER ?? '').trim(),
++  accountName: (process.env.NEXT_PUBLIC_MOBILE_MONEY_ACCOUNT_NAME ?? '').trim(),
++  zmwPerUsd:   Number(process.env.NEXT_PUBLIC_ZMW_PER_USD) || 0,
++}
+diff --git a/src/lib/payment-methods.ts b/src/lib/payment-methods.ts
+new file mode 100644
+index 0000000..5e3de4b
+--- /dev/null
++++ b/src/lib/payment-methods.ts
+@@ -0,0 +1,32 @@
++/**
++ * The ways to pay for an Individual pass. Safe to import from the browser:
++ * nothing secret lives here (secrets are read from env in src/lib/lenco.ts).
++ *
++ *   Instant (through Lenco):  card, mobile-money
++ *   Manual (admin verifies):  bank, airtel, mtn
++ */
++export type PayMethod = 'card' | 'mobile-money' | 'bank' | 'airtel' | 'mtn'
++
++export const INSTANT_METHODS: PayMethod[] = ['card', 'mobile-money']
++export const MANUAL_METHODS:  PayMethod[] = ['bank', 'airtel', 'mtn']
++
++/**
++ * Countries where Lenco can collect Airtel / MTN mobile money. This list is
++ * only used to decide whether to SHOW the option to a signed-in person whose
++ * profile country is known; Lenco itself decides what actually works.
++ * Edit it when Lenco opens a new country.
++ */
++export const LENCO_MOBILE_MONEY_COUNTRIES = ['Zambia', 'Malawi'] as const
++
++export function mobileMoneyAvailableIn(country: string | null | undefined): boolean {
++  if (!country) return true // unknown country: show it, Lenco will refuse if unsupported
++  return LENCO_MOBILE_MONEY_COUNTRIES.some((c) => c.toLowerCase() === country.trim().toLowerCase())
++}
++
++export const METHOD_LABEL: Record<PayMethod, { title: string; sub: string; instant: boolean }> = {
++  'card':         { title: 'Card',            sub: 'Mastercard or Visa',            instant: true },
++  'mobile-money': { title: 'Mobile money',    sub: 'Airtel or MTN, paid instantly', instant: true },
++  'bank':         { title: 'Bank transfer',   sub: 'We verify within 24 hours',     instant: false },
++  'airtel':       { title: 'Airtel Money',    sub: 'Send it, upload a screenshot',  instant: false },
++  'mtn':          { title: 'MTN MoMo',        sub: 'Send it, upload a screenshot',  instant: false },
++}
+diff --git a/src/lib/payments/grant.ts b/src/lib/payments/grant.ts
+new file mode 100644
+index 0000000..5a53ffe
+--- /dev/null
++++ b/src/lib/payments/grant.ts
+@@ -0,0 +1,98 @@
++/**
++ * Granting access after a payment is confirmed.
++ *
++ * ONE place decides what a paid product does to a profile, so every way of
++ * paying ends the same way: an admin approving a manual payment
++ * (/api/admin/payments/verify) and Lenco confirming an instant payment
++ * (src/lib/lenco-finalize.ts) both call computeGrant().
++ *
++ * computeGrant is a PURE function (no database, no network): it takes the
++ * current profile and the payment and returns what to write. That makes it
++ * easy to test, see scripts-free checks in the PR notes.
++ */
++import { PASSES, UPDATE_MONTHS, accessExpiry, isPassProduct } from '@/lib/pricing'
++
++export interface CurrentProfile {
++  plan:            string | null
++  plan_status:     string | null
++  plan_expires_at: string | null
++  updates_until:   string | null
++}
++
++export interface GrantInput {
++  plan:         string                 // 'individual' | 'team'
++  product:      string | null          // 'pass_1m' ... or a legacy product
++  account_type: string | null | undefined
++}
++
++export interface GrantResult {
++  /** Columns to write to profiles. */
++  changes:   Record<string, unknown>
++  /** When the access ends, or null for no end date. Used in the email. */
++  expiresAt: string | null
++}
++
++export function computeGrant(
++  payment: GrantInput,
++  current: CurrentProfile | null | undefined,
++  now: Date = new Date(),
++): GrantResult {
++  // Access for good: an active plan with no end date (the old licence and
++  // earlier plans). These accounts are never given an end date.
++  const permanent = current?.plan_status === 'active' && !current.plan_expires_at
++  const product = payment.product
++
++  if (isPassProduct(product)) {
++    const months = PASSES[product].months
++    if (permanent && current?.plan === 'individual') {
++      // Holds access for good. A pass buys more months of new datasets; with
++      // no limit already, there is nothing to extend.
++      return {
++        expiresAt: null,
++        changes: current.updates_until
++          ? { updates_until: accessExpiry(current.updates_until, months, now), pending_plan: null }
++          : { pending_plan: null },
++      }
++    }
++    const expiresAt = accessExpiry(current?.plan_expires_at, months, now)
++    return {
++      expiresAt,
++      changes: {
++        plan: 'individual', account_type: payment.account_type, plan_status: 'active',
++        plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
++        updates_until: null,
++      },
++    }
++  }
++
++  if (product === 'updates') {
++    return {
++      expiresAt: null,
++      changes: { updates_until: accessExpiry(current?.updates_until, UPDATE_MONTHS, now), pending_plan: null },
++    }
++  }
++
++  if (product === 'licence') {
++    // Someone with permanent access from an earlier plan already has
++    // everything with no limit; buying again leaves that alone.
++    const unlimited = permanent && !current?.updates_until && current?.plan === 'individual'
++    return {
++      expiresAt: null,
++      changes: {
++        plan: 'individual', account_type: payment.account_type, plan_status: 'active',
++        plan_expires_at: null, expiry_reminder_sent_at: null, pending_plan: null,
++        updates_until: unlimited ? null : accessExpiry(current?.updates_until, UPDATE_MONTHS, now),
++      },
++    }
++  }
++
++  // Older rows with no product (time-limited plans): 3 months as before.
++  const expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at, undefined, now)
++  return {
++    expiresAt,
++    changes: {
++      plan: payment.plan, account_type: payment.account_type, plan_status: 'active',
++      plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
++    },
++  }
++}
+diff --git a/supabase/migrations/062_lenco_payments.sql b/supabase/migrations/062_lenco_payments.sql
+new file mode 100644
+index 0000000..959b333
+--- /dev/null
++++ b/supabase/migrations/062_lenco_payments.sql
+@@ -0,0 +1,48 @@
++-- 062_lenco_payments.sql
++--
++-- Instant payments through Lenco (card, and Airtel/MTN mobile money).
++-- One row per payment ATTEMPT, created by /api/payments/lenco/init before the
++-- customer sees the Lenco widget, and settled by /api/payments/lenco/verify
++-- or the Lenco webhook once Lenco confirms the money.
++--
++-- Manual payments (bank, Airtel, MTN with a screenshot) stay in
++-- manual_payments exactly as they were.
++--
++-- Safety rules this table supports:
++--   * amount_charged and currency are decided by OUR server, never the browser,
++--     and are compared with what Lenco says was paid before access is given.
++--   * granted_at is set by one atomic update, so a payment is applied once even
++--     if the browser, the webhook and a retry all arrive together.
++--
++-- Only the server (service role) reads or writes this table: RLS is on and
++-- there are deliberately no policies.
++--
++-- RUN ONCE in: Supabase Dashboard -> SQL Editor. Run BEFORE deploying the code.
++
++create table if not exists lenco_payments (
++  id              uuid primary key default gen_random_uuid(),
++  reference       text not null unique,
++  user_id         uuid not null references profiles(id) on delete cascade,
++  user_email      text not null,
++  user_name       text,
++  plan            text not null default 'individual',
++  product         text not null,
++  amount_usd      numeric(10,2) not null,
++  amount_charged  numeric(12,2) not null,
++  currency        text not null,
++  channel         text not null check (channel in ('card', 'mobile-money')),
++  status          text not null default 'pending'
++                  check (status in ('pending', 'successful', 'failed', 'mismatch', 'paid_unapplied')),
++  lenco_id        text,
++  lenco_reference text,
++  paid_type       text,
++  failure_reason  text,
++  created_at      timestamptz not null default now(),
++  completed_at    timestamptz,
++  granted_at      timestamptz
++);
++
++create index if not exists lenco_payments_user_idx   on lenco_payments (user_id, created_at desc);
++create index if not exists lenco_payments_status_idx on lenco_payments (status, created_at desc);
++
++alter table lenco_payments enable row level security;
