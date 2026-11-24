@@ -78,18 +78,12 @@ export async function provisionOrg(db: SupabaseClient, input: ProvisionInput): P
     return { ok: false, status: 500, error: 'member_failed', message: memErr.message }
   }
 
-  // Entitlement: members ride plan='team' and share the org's expiry.
-  await db.from('profiles')
-    .update({ plan: 'team', plan_status: 'active', plan_expires_at: input.expiresAt })
-    .eq('id', profile.id)
-
   return { ok: true, org }
 }
 
 /**
  * A team has paid: start (or extend) its 3 months. Turns a free team into a
- * paid one, keeping its projects and members; every member moves onto the
- * team plan. Used by Admin → Organizations and the sales pipeline.
+ * paid one, keeping its projects and members; members get access through their membership. Used by Admin → Organizations and the sales pipeline.
  */
 export async function upgradeOrg(db: SupabaseClient, orgId: string, opts: {
   seats: number; price?: number | null; expiresAt: string
@@ -100,11 +94,5 @@ export async function upgradeOrg(db: SupabaseClient, orgId: string, opts: {
     ...(opts.price !== null && opts.price !== undefined ? { monthly_price_usd: opts.price } : {}),
   }).eq('id', orgId)
   if (error) return { ok: false, message: error.message }
-  const ids = ((await db.from('organization_members').select('user_id').eq('org_id', orgId)).data ?? []).map((m) => m.user_id)
-  if (ids.length) {
-    await db.from('profiles')
-      .update({ plan: 'team', plan_status: 'active', plan_expires_at: opts.expiresAt, expiry_reminder_sent_at: null })
-      .in('id', ids)
-  }
   return { ok: true }
 }

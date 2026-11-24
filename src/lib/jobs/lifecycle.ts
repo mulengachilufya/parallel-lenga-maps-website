@@ -24,6 +24,10 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, nudgeEmail, accessPeriodEmail } from '@/lib/email'
+import { reconcileLencoPayments } from '@/lib/lenco-finalize'
+import { processAccountDeletions } from './account-deletions'
+import { reconcileWorkspaceUploads } from './workspace-uploads'
+import { deliverPaymentNotifications } from './payment-notifications'
 import { PLANS, type TierSlug } from '@/lib/pricing'
 
 const service = createClient(
@@ -34,6 +38,9 @@ const service = createClient(
 
 /** The daily lifecycle job. Called by Vercel Cron and by Ops → "Run the daily job now". */
 export async function runLifecycle(): Promise<Record<string, unknown>> {
+  const [paymentsSent, deletionsCompleted, uploadsReconciled, lencoSettled] = await Promise.all([
+    deliverPaymentNotifications(service), processAccountDeletions(service), reconcileWorkspaceUploads(service), reconcileLencoPayments(service),
+  ])
   const now = Date.now()
   const threeDaysAgo = new Date(now - 3 * 86_400_000).toISOString()
 
@@ -66,6 +73,10 @@ export async function runLifecycle(): Promise<Record<string, unknown>> {
 
   return {
     ...expiry,
+    payment_notifications_sent: paymentsSent,
+    account_deletions_completed: deletionsCompleted,
+    workspace_uploads_reconciled: uploadsReconciled,
+    lenco_payments_settled: lencoSettled,
     checked_at: new Date(now).toISOString(),
     nudges_sent: nudgesSent,
     nudge_candidates: (dormant ?? []).length,
@@ -102,7 +113,9 @@ async function accessPeriods(now: number) {
     .select('id, email, full_name, plan, plan_expires_at')
     .eq('plan_status', 'active').lte('plan_expires_at', nowIso)
   for (const p of over ?? []) {
-    await service.from('profiles').update({ plan_status: 'free' }).eq('id', p.id)
+    const { data: changed, error } = await service.from('profiles').update({ plan_status: 'free' })
+      .eq('id', p.id).eq('plan_status', 'active').eq('plan_expires_at', p.plan_expires_at).select('id').maybeSingle()
+    if (error || !changed) continue
     lapsed++
     if (p.plan !== 'team' && p.email) {
       await sendEmail(accessPeriodEmail({

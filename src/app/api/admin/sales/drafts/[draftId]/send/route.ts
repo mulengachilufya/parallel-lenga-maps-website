@@ -30,23 +30,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ dra
   const { data: draft } = await db.from('sales_drafts').select('*').eq('id', draftId).maybeSingle()
   if (!draft) return jsonError('not_found', 404, 'That draft no longer exists.')
   if (draft.status !== 'draft') return jsonError('not_draft', 409, draft.status === 'sent' ? 'This one has already been sent.' : 'This draft was set aside. Bring it back first.')
+  if (draft.send_claimed_at) return jsonError('send_claimed', 409, 'This draft has a send attempt. Check the email provider before attempting another send.')
   const account = await loadAccount(draft.account_id)
   if (!account) return jsonError('not_found', 404, 'The organisation for this draft no longer exists.')
 
   const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
   const { count } = await db.from('sales_activities').select('id', { count: 'exact', head: true })
     .eq('kind', 'email').eq('direction', 'out').gte('created_at', midnight.toISOString())
-  if ((count ?? 0) >= DRAFTS_PER_DAY && body.over_limit !== true) {
+  if ((count ?? 0) >= DRAFTS_PER_DAY && body?.over_limit !== true) {
     return jsonError('daily_limit', 429, `You have sent ${count} outreach emails today. Sending more than ${DRAFTS_PER_DAY} a day from a new domain risks landing in spam. Send anyway?`)
   }
 
-  const subject = body.subject ?? draft.subject
-  const text = body.body ?? draft.body
-  const sent = await sendToContact({ account, contactId: draft.contact_id, subject, body: text, by: gate.email, meta: { draft: draft.id, batch: draft.batch } })
-  if (!sent.ok) return sent.res
+  const subject = body?.subject ?? draft.subject
+  const text = body?.body ?? draft.body
+  const claimedAt = new Date().toISOString()
+  const { data: claimed, error: claimError } = await db.from('sales_drafts')
+    .update({ send_claimed_at: claimedAt }).eq('id', draft.id)
+    .eq('status', 'draft').is('send_claimed_at', null).eq('updated_at', draft.updated_at)
+    .select('id').maybeSingle()
+  if (claimError) return jsonError('claim_failed', 500, 'Could not reserve this draft for sending.')
+  if (!claimed) return jsonError('send_claimed', 409, 'The draft changed or another send is in progress. Refresh and check its status.')
+
+  const sent = await sendToContact({
+    account, contactId: draft.contact_id, subject, body: text, by: gate.email,
+    meta: { draft: draft.id, batch: draft.batch }, idempotencyKey: `sales-draft/${draft.id}`,
+  })
+  if (!sent.ok) {
+    if ([400, 404, 409].includes(sent.res.status)) {
+      await db.from('sales_drafts').update({ send_claimed_at: null }).eq('id', draft.id).eq('send_claimed_at', claimedAt)
+      return sent.res
+    }
+    return jsonError('delivery_unconfirmed', 502, 'Delivery could not be confirmed. Check the email provider before sending again.')
+  }
 
   const now = new Date().toISOString()
-  await db.from('sales_drafts').update({ status: 'sent', subject, body: text, sent_at: now, sent_by: gate.email, updated_at: now }).eq('id', draft.id)
+  const { error: saveError } = await db.from('sales_drafts')
+    .update({ status: 'sent', subject, body: text, sent_at: now, sent_by: gate.email, updated_at: now })
+    .eq('id', draft.id).eq('send_claimed_at', claimedAt)
+  if (saveError) return jsonError('delivery_unconfirmed', 502, 'The email was accepted, but its status could not be saved. Check the email provider.')
   // A partner has its own track: no sales follow-ups, the partnership moves to Intro.
   if ((account as { pipeline?: string }).pipeline === 'partner') {
     const { data: p } = await db.from('sales_partnerships').select('stage').eq('account_id', account.id).maybeSingle()

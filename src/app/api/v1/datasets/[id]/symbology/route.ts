@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3'
-import { authenticateApiRequest, failureResponse } from '@/lib/api-auth'
+import { authenticateApiRequest, failureResponse, recordUsage } from '@/lib/api-auth'
 import { findDataset, listSymbology } from '@/lib/api-datasets'
 import { getDownloadUrl } from '@/lib/r2'
 
@@ -57,8 +57,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // Return the first symbology asset that actually exists in R2.
   for (const key of candidates) {
     try {
-      await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
+      const object = await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
       const downloadUrl = await getDownloadUrl(key, 3600)
+      const usage = await recordUsage(auth.caller, object.ContentLength ?? 0)
+      if (!usage.ok) return failureResponse(usage.failure)
       return NextResponse.json({
         dataset_id:          spec.id,
         symbology: {

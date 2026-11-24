@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { listMemberships } from '@/lib/teams'
-import { commit, datasetAllowed, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
+import { createProject, datasetAllowed, jsonError, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import type { ProjectRole } from '@/lib/workspace/types'
 import { findDataset, listFilesForDataset, type ApiFile } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
@@ -85,21 +85,13 @@ export async function POST(req: NextRequest) {
   if (body.template && !template) return jsonError('unknown_template', 400)
   if (template && !country) return jsonError('country_required', 400)
 
-  const { data: project, error } = await service
-    .from('workspace_projects')
-    .insert({
-      org_id: gate.membership.org_id,
-      name,
-      description,
-      map_state: DEFAULT_MAP_STATE,
-      created_by: gate.user.id,
-    })
-    .select('id')
-    .single()
-  if (error || !project) return jsonError('create_failed', 500)
-
-  await commit(project.id, gate, 'create', `Created the project "${name}"`)
-  if (!template || !country) return NextResponse.json({ id: project.id }, { status: 201 })
+  const id = crypto.randomUUID()
+  const project = { name, description, map_state: DEFAULT_MAP_STATE }
+  const summary = `Created the project "${name}"`
+  if (!template || !country) {
+    const failed = await createProject(gate, id, project, [], [], summary)
+    return failed ?? NextResponse.json({ id }, { status: 201 })
+  }
 
   // Resolve each template dataset to this country's file.
   const picked: { spec: NonNullable<ReturnType<typeof findDataset>>; file: ApiFile }[] = []
@@ -114,26 +106,20 @@ export async function POST(req: NextRequest) {
     const pref = (tl.prefer ?? []).map((v) => files.find((f) => fileVariant(f) === v)).find(Boolean)
     picked[order] = { spec, file: pref ?? [...files].sort((a, b) => a.file_size_mb - b.file_size_mb)[0] }
   }))
-  const rows = picked.filter(Boolean).map(({ spec, file }, i) => {
+  const rows = picked.filter(Boolean).map(({ spec, file }) => {
     const variant = fileVariant(file)
     return {
-      project_id:   project.id,
       dataset_slug: spec.id,
       country:      file.country_name,
       r2_key:       file.r2_key,
       file_format:  file.file_format,
       label:        [spec.name, file.country_name, variant.length <= 24 ? variant : ''].filter(Boolean).join(' · ').slice(0, 160),
       style:        defaultStyle(spec.id),
-      sort_order:   i,
-      added_by:     gate.user.id,
-      added_by_name: gate.name,
     }
   })
-  if (rows.length) {
-    const { error: layerErr } = await service.from('workspace_layers').insert(rows)
-    if (!layerErr) {
-      await commit(project.id, gate, 'template', `Started from the "${template.name}" template for ${country.name}: ${rows.length} Lenga datasets`)
-    }
-  }
-  return NextResponse.json({ id: project.id, added: rows.length, skipped: skipped.filter(Boolean) }, { status: 201 })
+  const templateSummary = rows.length
+    ? `Started from the "${template.name}" template for ${country.name}: ${rows.length} Lenga datasets`
+    : null
+  const failed = await createProject(gate, id, project, rows, [], summary, templateSummary)
+  return failed ?? NextResponse.json({ id, added: rows.length, skipped: skipped.filter(Boolean) }, { status: 201 })
 }

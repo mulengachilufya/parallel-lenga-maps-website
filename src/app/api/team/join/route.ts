@@ -9,9 +9,7 @@
  *   * joining a team you are already on is a no-op success (people can be
  *     on many teams, migration 044).
  *
- * On success the caller becomes a member, their profile flips to plan='team'
- * (active until the org's access_expires_at; org status is the kill switch), and the invite
- * is marked accepted.
+ * On success the caller becomes a member and the invite is marked accepted.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { isExpired } from '@/lib/pricing'
@@ -162,12 +160,6 @@ export async function POST(req: NextRequest) {
     service.from('organization_invites')
       .update({ status: 'accepted', accepted_at: new Date().toISOString() })
       .eq('id', invite.id),
-    // Paid teams carry every member on plan 'team'. A free team's members
-    // keep their own free profile; the team's 3 datasets come through the
-    // membership (src/lib/entitlements.ts).
-    org.plan === 'free' ? Promise.resolve() : service.from('profiles')
-      .update({ plan: 'team', plan_status: 'active', plan_expires_at: org.access_expires_at })
-      .eq('id', user.id),
     joinInvitedProject(invite, user.id),
   ])
 

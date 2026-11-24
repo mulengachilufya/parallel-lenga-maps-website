@@ -20,14 +20,15 @@ export async function GET(req: NextRequest) {
   const datasets = await summariseDatasets()
 
   // Count this listing as one API call but no egress.
-  recordUsage(auth.caller.keyId, 0).catch(() => {})
+  const usage = await recordUsage(auth.caller)
+  if (!usage.ok) return failureResponse(usage.failure)
 
   return NextResponse.json({
     datasets,
     quotas: {
-      requests_used:        auth.caller.requestsThisMonth + 1,
+      requests_used:        usage.requests,
       requests_limit:       MAX_REQUESTS_PER_MONTH,
-      egress_bytes_used:    auth.caller.egressBytesThisMonth,
+      egress_bytes_used:    usage.egressBytes,
       egress_bytes_limit:   MAX_EGRESS_BYTES_PER_MONTH,
     },
   })

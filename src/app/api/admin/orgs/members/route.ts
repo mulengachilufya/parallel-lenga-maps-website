@@ -87,11 +87,6 @@ export async function POST(req: NextRequest) {
       member_name: profile.full_name, member_email: profile.email, joined_at: new Date().toISOString(),
     })
     if (error) return bad(error.message.includes('seat limit') ? `${org.name} has no free seats. Add a seat first.` : error.message, 500)
-    if (org.plan !== 'free') {
-      await service.from('profiles')
-        .update({ plan: 'team', plan_status: 'active', plan_expires_at: org.access_expires_at, expiry_reminder_sent_at: null })
-        .eq('id', profile.id)
-    }
     if (project) await service.from('workspace_project_members').upsert({ project_id: project.id, user_id: profile.id, role: projectRole })
     await service.from('organization_invites').update({ status: 'accepted', accepted_at: new Date().toISOString() })
       .eq('org_id', org.id).ilike('email', email).eq('status', 'pending')
@@ -143,11 +138,6 @@ export async function DELETE(req: NextRequest) {
   const ids = (projects ?? []).map((p) => p.id as string)
   if (ids.length) await service.from('workspace_project_members').delete().eq('user_id', body.user_id).in('project_id', ids)
 
-  if (!(await hasActivePaidTeam(service, body.user_id))) {
-    await service.from('profiles')
-      .update({ plan: null, plan_status: 'free', plan_expires_at: null })
-      .eq('id', body.user_id).eq('plan', 'team')
-  }
   await audit(who, 'console', 'team_member_removed', String(row.member_email ?? body.user_id), { org_id: body.org_id })
   return NextResponse.json({ ok: true, message: `${row.member_email ?? 'Member'} removed from the team.` })
 }

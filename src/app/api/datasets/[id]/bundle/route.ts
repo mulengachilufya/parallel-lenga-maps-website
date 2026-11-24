@@ -26,9 +26,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { findDataset, getDatasetBundle, hasSymbology } from '@/lib/api-datasets'
-import { getDownloadUrl } from '@/lib/r2'
+import { callerAccess, signDatasetFile } from '@/lib/dataset-access'
 import type { DatasetSlug } from '@/lib/pricing'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { canDownload } from '@/lib/entitlements'
 import { logDownload } from '@/lib/download-log'
 
 export const dynamic = 'force-dynamic'
@@ -51,8 +51,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // No per-tier gate anymore — any active plan (individual or team) can
   // pull any bundle.
   const slug = id as DatasetSlug
-  const canDownload = await callerCanDownloadDataset(slug).catch(() => false)
-  if (!canDownload) {
+  const access = await callerAccess(user.id)
+  if (!access || !canDownload(access, slug)) {
     return NextResponse.json({ error: 'dataset_not_allowed' }, { status: 403 })
   }
 
@@ -76,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     )
   }
 
-  const download_url = await getDownloadUrl(bundle.r2_key, 3600)
+  const download_url = await signDatasetFile(bundle.r2_key)
   await logDownload(service, {
     userId: user.id, dataset: spec.id, country: 'Africa (all countries)', source: 'bundle',
     bytes: bundle.file_size_mb ? Math.round(bundle.file_size_mb * 1024 * 1024) : null, format: bundle.file_format,

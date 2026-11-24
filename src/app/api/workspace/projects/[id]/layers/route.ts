@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
 import { fileVariant } from '@/lib/workspace/catalog'
 import { objectSize } from '@/lib/r2'
-import { commit, datasetAllowed, jsonError, loadProject, lockedDataset, needRole, projectUploadBytes, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
-import { MAX_UPLOAD_BYTES, PROJECT_QUOTA_BYTES, UPLOAD_PREFIX } from '@/lib/workspace/upload-limits'
+import { mutateProject, datasetAllowed, jsonError, loadProject, lockedDataset, needRole, readJson, requireWorkspace, str } from '@/lib/workspace/server'
+import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from '@/lib/workspace/upload-limits'
 import { defaultStyle, sanitizeStyle, type LayerStyle } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -56,8 +56,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Catalogue files: the key must be a real file of that dataset.
   const bySlug = new Map<string, Awaited<ReturnType<typeof listFilesForDataset>>>()
   for (const it of items) {
-    const spec = findDataset(str(it.dataset_slug, 60))
-    const key = str(it.r2_key, 500)
+    const spec = findDataset(str(it?.dataset_slug, 60))
+    const key = str(it?.r2_key, 500)
     if (!spec || !key) return jsonError('bad_request', 400)
     if (!datasetAllowed(gate, spec.id)) return lockedDataset()
     if (!bySlug.has(spec.id)) bySlug.set(spec.id, await listFilesForDataset(spec).catch(() => []))
@@ -77,15 +77,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Uploads: must sit in this org + project folder in R2, and fit the
   // project's storage allowance at their real stored size.
   const prefix = `${UPLOAD_PREFIX}/${gate.membership.org_id}/${id}/`
-  let adding = 0
   for (const up of uploads) {
-    const path = str(up.path, 400)
+    const path = str(up?.path, 400)
     if (!path.startsWith(prefix) || path.includes('..') || path.slice(prefix.length).includes('/')) return jsonError('bad_upload_path', 400)
     const name = path.slice(prefix.length)
     const size = await objectSize(path)
     if (size === null) return jsonError('upload_missing', 400)
     if (size > MAX_UPLOAD_BYTES) return jsonError('file_too_large', 413)
-    adding += size
     rows.push({
       dataset_slug: 'upload',
       country:      str(up.country, 80),
@@ -96,26 +94,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       file_bytes:   size,
     })
   }
-  if (adding && (await projectUploadBytes(id)) + adding > PROJECT_QUOTA_BYTES) return jsonError('project_full', 413)
-
-  const { data: existing } = await service
-    .from('workspace_layers').select('sort_order').eq('project_id', id)
-    .order('sort_order', { ascending: false })
-  if ((existing?.length ?? 0) + rows.length > MAX_LAYERS) return jsonError('too_many_layers', 400)
-  let top = existing?.[0]?.sort_order ?? -1
-
-  const { data: layers, error } = await service
-    .from('workspace_layers')
-    .insert(rows.map((r) => ({ ...r, project_id: id, sort_order: ++top, added_by: gate.user.id, added_by_name: gate.name })))
-    .select('*')
-  if (error || !layers?.length) return jsonError('add_failed', 500)
-
-  const names = layers.map((l) => `"${l.label}"`)
-  const summary = layers.length === 1
+  const names = rows.map((layer) => `"${layer.label}"`)
+  const summary = rows.length === 1
     ? `Added layer ${names[0]}`
-    : `Added ${layers.length} layers: ${names.slice(0, 4).join(', ')}${layers.length > 4 ? ` and ${layers.length - 4} more` : ''}`
-  const rev = await commit(id, gate, 'layer.add', summary)
-  return NextResponse.json({ layers, layer: layers[0], rev }, { status: 201 })
+    : `Added ${rows.length} layers: ${names.slice(0, 4).join(', ')}${rows.length > 4 ? ` and ${rows.length - 4} more` : ''}`
+  const result = await mutateProject(id, gate, 'layer.add', summary, rows)
+  return result.denied ?? NextResponse.json(result.data, { status: 201 })
 }
 
 export async function PUT(req: NextRequest, { params }: Ctx) {
@@ -127,19 +111,9 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   { const denied = needRole(project, 'editor'); if (denied) return denied }
 
   const body = await readJson(req)
-  const order = Array.isArray(body.order) ? body.order.filter((x): x is string => typeof x === 'string') : []
-
-  const { data: layers } = await service.from('workspace_layers').select('id, sort_order').eq('project_id', id)
-  const known = new Set((layers ?? []).map((l) => l.id))
-  if (order.length !== known.size || !order.every((l) => known.has(l))) return jsonError('order_mismatch', 400)
-
-  // order is top → bottom; the top layer gets the highest sort_order.
-  const n = order.length
-  const updates = order.map((layerId, i) =>
-    service.from('workspace_layers').update({ sort_order: n - 1 - i }).eq('id', layerId).eq('project_id', id))
-  const results = await Promise.all(updates)
-  if (results.some((r) => r.error)) return jsonError('reorder_failed', 500)
-
-  const rev = await commit(id, gate, 'layer.order', 'Reordered layers')
-  return NextResponse.json({ ok: true, rev })
+  if (!Array.isArray(body.order) || body.order.some((item) => typeof item !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(item))) {
+    return jsonError('order_mismatch', 400)
+  }
+  const result = await mutateProject(id, gate, 'layer.order', 'Reordered layers', body.order)
+  return result.denied ?? NextResponse.json({ ok: true, ...result.data })
 }

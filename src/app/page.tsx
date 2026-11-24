@@ -610,7 +610,7 @@ export default function HomePage() {
 function AccountDeletedNotice() {
   const [show, setShow] = useState(false)
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('account') === 'deleted') {
+    if (['deleted', 'deletion-requested'].includes(new URLSearchParams(window.location.search).get('account') ?? '')) {
       setShow(true)
       window.history.replaceState(null, '', window.location.pathname)
     }
@@ -618,7 +618,7 @@ function AccountDeletedNotice() {
   if (!show) return null
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 rounded-xl border border-white/15 bg-[#0D2B45] px-5 py-3 text-sm text-white shadow-2xl flex items-center gap-4">
-      <span>Your account has been deleted. Thank you for trying Lenga Maps.</span>
+      <span>Your account deletion request was received. Thank you for trying Lenga Maps.</span>
       <button onClick={() => setShow(false)} className="text-white/60 hover:text-white" aria-label="Close">×</button>
     </div>
   )

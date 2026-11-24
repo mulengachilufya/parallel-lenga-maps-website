@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateApiRequest, recordUsage, failureResponse } from '@/lib/api-auth'
 import { findDataset, listFilesForDataset } from '@/lib/api-datasets'
-import { getDownloadUrl } from '@/lib/r2'
+import { signDatasetFile } from '@/lib/dataset-access'
 import { logDownload } from '@/lib/download-log'
 
 export const dynamic = 'force-dynamic'
@@ -65,10 +65,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const file = matches[0]
-  const downloadUrl = await getDownloadUrl(file.r2_key, 3600)
+  const downloadUrl = await signDatasetFile(file.r2_key)
   const bytes = Math.round(file.file_size_mb * 1024 * 1024)
 
-  recordUsage(auth.caller.keyId, bytes).catch(() => {})
+  const usage = await recordUsage(auth.caller, bytes)
+  if (!usage.ok) return failureResponse(usage.failure)
   await logDownload(service, { userId: auth.caller.userId, dataset: spec.id, country: file.country_name, source: 'api', bytes, format: file.file_format })
 
   return NextResponse.json({

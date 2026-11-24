@@ -441,6 +441,7 @@ def main():
             if r['status'] != 'PASS':
                 fh.write(f"| {r['dataset']} | {r['country']} | {r['status']} | {r['note']} | {r.get('inside', '')} | {r.get('coverage', r.get('valid_inside', ''))} |\n")
     print('done')
+    sys.exit(1 if any(row['status'] == 'FAIL' for row in results) else 0)
 
 
 if __name__ == '__main__':

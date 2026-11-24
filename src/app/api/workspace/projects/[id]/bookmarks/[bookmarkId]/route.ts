@@ -2,7 +2,7 @@
  * DELETE /api/workspace/projects/:id/bookmarks/:bookmarkId
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { commit, jsonError, loadProject, requireWorkspace, service, needRole } from '@/lib/workspace/server'
+import { mutateProject, jsonError, loadProject, requireWorkspace, service, needRole } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,9 +21,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     .select('name').eq('id', bookmarkId).eq('project_id', id).maybeSingle()
   if (!bookmark) return jsonError('not_found', 404)
 
-  const { error } = await service.from('workspace_bookmarks').delete().eq('id', bookmarkId).eq('project_id', id)
-  if (error) return jsonError('delete_failed', 500)
-
-  const rev = await commit(id, gate, 'bookmark.remove', `Removed the view "${bookmark.name}"`)
-  return NextResponse.json({ ok: true, rev })
+  const result = await mutateProject(id, gate, 'bookmark.remove', `Removed the view "${bookmark.name}"`, { id: bookmarkId })
+  return result.denied ?? NextResponse.json({ ok: true, ...result.data })
 }

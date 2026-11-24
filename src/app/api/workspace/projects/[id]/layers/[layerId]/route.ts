@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
+  mutateProject, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
 import { defaultStyle, sanitizeStyle, type LayerStyle, type WsLayer } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -55,13 +55,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
   if (!notes.length) return NextResponse.json({ ok: true, unchanged: true })
 
-  const { data: updated, error } = await service.from('workspace_layers')
-    .update(patch).eq('id', layerId).eq('project_id', id).select('*').single()
-  if (error) return jsonError('update_failed', 500)
-
   const summary = notes.join('; ')
-  const rev = await commit(id, gate, 'layer.edit', summary.charAt(0).toUpperCase() + summary.slice(1))
-  return NextResponse.json({ layer: updated, rev })
+  const result = await mutateProject(id, gate, 'layer.edit', summary.charAt(0).toUpperCase() + summary.slice(1), { ...patch, id: layerId })
+  return result.denied ?? NextResponse.json(result.data)
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
@@ -74,9 +70,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const layer = await loadLayer(id, layerId)
   if (!layer) return jsonError('not_found', 404)
 
-  const { error } = await service.from('workspace_layers').delete().eq('id', layerId).eq('project_id', id)
-  if (error) return jsonError('delete_failed', 500)
-
-  const rev = await commit(id, gate, 'layer.remove', `Removed layer "${layer.label}"`)
-  return NextResponse.json({ ok: true, rev })
+  const result = await mutateProject(id, gate, 'layer.remove', `Removed layer "${layer.label}"`, { id: layerId })
+  return result.denied ?? NextResponse.json({ ok: true, ...result.data })
 }

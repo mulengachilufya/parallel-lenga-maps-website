@@ -12,7 +12,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { generateApiKey } from '@/lib/api-keys'
-import { listMemberships } from '@/lib/teams'
+import { currentUsagePeriod } from '@/lib/api-auth'
+import { isPaidOrgActive, listMemberships } from '@/lib/teams'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,7 +51,7 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
   )
   // Someone can be on several teams: the paid, active one counts.
   const all = await listMemberships(service, user.id)
-  const membership = all.find((m) => m.org.plan !== 'free' && m.org.status === 'active') ?? all.find((m) => m.org.plan !== 'free') ?? null
+  const membership = all.find(isPaidOrgActive) ?? all.find((m) => m.org.plan !== 'free') ?? null
 
   if (!membership) {
     return NextResponse.json(
@@ -61,7 +62,7 @@ async function requireTeamMember(): Promise<{ userId: string } | NextResponse> {
       { status: 403 },
     )
   }
-  if (membership.org.status !== 'active') {
+  if (!isPaidOrgActive(membership)) {
     return NextResponse.json(
       { error: 'plan_inactive', message: 'Your team plan is not active. Contact lengamaps@gmail.com.' },
       { status: 403 },
@@ -87,7 +88,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('api_keys')
-    .select('id, label, key_last4, scopes, last_used_at, requests_this_month, egress_bytes_this_month, created_at, revoked_at')
+    .select('id, label, key_last4, scopes, last_used_at, created_at, revoked_at')
     .eq('user_id', gate.userId)
     .order('created_at', { ascending: false })
 
@@ -95,7 +96,19 @@ export async function GET() {
     return NextResponse.json({ error: 'list_failed', message: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ keys: (data ?? []) as ApiKeyRow[] })
+  const keys = data ?? []
+  if (!keys.length) return NextResponse.json({ keys })
+  const { data: usage, error: usageError } = await supabase.from('api_key_monthly_usage')
+    .select('key_id, requests, egress_bytes').eq('period', currentUsagePeriod()).in('key_id', keys.map((key) => key.id))
+  if (usageError) return NextResponse.json({ error: 'usage_unavailable' }, { status: 503 })
+  const byKey = new Map((usage ?? []).map((row) => [row.key_id, row]))
+  return NextResponse.json({
+    keys: keys.map((key): ApiKeyRow => ({
+      ...key,
+      requests_this_month: byKey.get(key.id)?.requests ?? 0,
+      egress_bytes_this_month: Number(byKey.get(key.id)?.egress_bytes ?? 0),
+    })),
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -104,7 +117,7 @@ export async function POST(req: NextRequest) {
 
   let body: { label?: string } = {}
   try { body = await req.json() } catch { /* optional body */ }
-  const label = (body.label ?? '').trim().slice(0, 100) || 'Untitled key'
+  const label = (typeof body?.label === 'string' ? body.label : '').trim().slice(0, 100) || 'Untitled key'
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

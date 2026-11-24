@@ -3,15 +3,13 @@
 // Server-only helpers for the team workspace API routes. Every route goes:
 //   requireWorkspace()  → signed in + member of an ACTIVE organization
 //   loadProject()       → project belongs to that org (never trust the URL)
-//   …mutate with the service client…
-//   commit()            → append a revision (Phase 4 history)
+//   mutateProject()    → apply changes and append a revision in one transaction
 
 import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { logEvent } from '@/lib/ops/log'
 import { getMembership, isOrgActive, type Membership } from '@/lib/teams'
-import { atLeast, resolveRole, type ProjectRole, type WsProject, type WsRevision } from './types'
+import { atLeast, resolveRole, type ProjectRole, type WsProject } from './types'
 import { workspaceDatasets } from '@/lib/entitlements'
 import type { DatasetSlug } from '@/lib/pricing'
 
@@ -91,25 +89,31 @@ export function needRole(project: LoadedProject, need: ProjectRole): NextRespons
   return atLeast(project.role, need) ? null : jsonError(`needs_${need}`, 403)
 }
 
-/** Append the current project state as the next revision. */
-export async function commit(
-  projectId: string, gate: WorkspaceGate, action: string, summary: string,
-): Promise<WsRevision | null> {
-  const { data, error } = await service.rpc('workspace_commit', {
-    p_project:     projectId,
-    p_author:      gate.user.id,
-    p_author_name: gate.name,
-    p_action:      action,
-    p_summary:     summary.slice(0, 300),
+export async function mutateProject(projectId: string, gate: WorkspaceGate, action: string, summary: string, payload: unknown) {
+  const { data, error } = await service.rpc('mutate_workspace_project', {
+    p_project: projectId, p_org: gate.membership.org_id, p_actor: gate.user.id, p_name: gate.name,
+    p_action: action, p_summary: summary, p_payload: payload,
   })
-  if (error) {
-    console.error('[workspace] commit failed', { projectId, action, error })
-    void logEvent('warn', 'workspace', 'commit_failed', `A change to a project (${action}) was saved but its history entry failed: ${error.message}`, { projectId, action })
-    return null
+  if (!error) return { data: data as Record<string, unknown> }
+  if (error.code === '42501') return { denied: jsonError('workspace_access_denied', 403) }
+  if (error.code === 'P0002') return { denied: jsonError('not_found', 404) }
+  if (['too_many_layers', 'order_mismatch', 'upload_missing'].includes(error.message)) {
+    return { denied: jsonError(error.message, 400) }
   }
-  const rev = data as WsRevision & { snapshot?: unknown }
-  delete rev.snapshot
-  return rev
+  console.error('[workspace] change failed', { projectId, action, error })
+  return { denied: jsonError('change_failed', 500) }
+}
+
+export async function createProject(gate: WorkspaceGate, projectId: string, project: object,
+  layers: object[], bookmarks: object[], summary: string, templateSummary: string | null = null) {
+  const { error } = await service.rpc('create_workspace_project', {
+    p_project: projectId, p_org: gate.membership.org_id, p_actor: gate.user.id, p_name: gate.name,
+    p_project_data: project, p_layers: layers, p_bookmarks: bookmarks, p_summary: summary,
+    p_template_summary: templateSummary,
+  })
+  if (!error) return null
+  console.error('[workspace] create failed', { projectId, error })
+  return jsonError(error.message === 'project_full' ? 'project_full' : 'create_failed', error.message === 'project_full' ? 413 : 500)
 }
 
 /**
@@ -150,9 +154,8 @@ export async function teammate(gate: WorkspaceGate, userId: string) {
   return data
 }
 
-/** Bytes of team-uploaded files on a project's current layers (its storage allowance in use). */
 export async function projectUploadBytes(projectId: string): Promise<number> {
-  const { data } = await service.from('workspace_layers')
-    .select('file_bytes').eq('project_id', projectId).eq('dataset_slug', 'upload')
-  return (data ?? []).reduce((n, r) => n + (Number(r.file_bytes) || 0), 0)
+  const { data, error } = await service.rpc('workspace_upload_usage', { p_project: projectId })
+  if (error) throw error
+  return Number(data)
 }

@@ -84,6 +84,7 @@ export interface EmailMessage {
 export async function sendEmail(
   msg: EmailMessage,
   channel: EmailChannel = 'account',
+  idempotencyKey?: string,
 ): Promise<boolean> {
   const { key, from } = channelConfig(channel)
   if (!key) {
@@ -97,7 +98,9 @@ export async function sendEmail(
       headers: {
         Authorization:  `Bearer ${key}`,
         'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
       },
+      signal: AbortSignal.timeout(15_000),
       body: JSON.stringify({
         from,
         to:       [msg.to],

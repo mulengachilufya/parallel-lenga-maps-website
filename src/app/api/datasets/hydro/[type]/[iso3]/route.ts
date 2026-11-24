@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { callerAccess, signDatasetFile } from '@/lib/dataset-access'
+import { canDownload } from '@/lib/entitlements'
 
 export async function GET(
   request: NextRequest,
@@ -40,21 +40,9 @@ export async function GET(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan, plan_status, plan_expires_at')
-    .eq('id', resolvedUser.id)
-    .single()
-
-  if (!profile) {
-    return NextResponse.json({ error: 'Profile not found.', upgrade_url: '/pricing' }, { status: 403 })
-  }
-
-  // Any active, unexpired plan unlocks every dataset.
-  const slug = type === 'watersheds' ? 'watersheds' : 'rivers'
-  const allowed = await callerCanDownloadDataset(slug as 'rivers' | 'watersheds')
-  if (!allowed) {
-    return NextResponse.json({ error: 'A paid plan is required.', upgrade_url: '/pricing' }, { status: 403 })
+  const access = await callerAccess(resolvedUser.id)
+  if (!access || !canDownload(access, type)) {
+    return NextResponse.json({ error: 'Dataset access required.', upgrade_url: '/pricing' }, { status: 403 })
   }
 
   const { data: fileRow, error } = await supabase
@@ -70,7 +58,7 @@ export async function GET(
 
   let download_url: string
   try {
-    download_url = await getDownloadUrl(fileRow.file_key, 3600)
+    download_url = await signDatasetFile(fileRow.file_key)
   } catch (err) {
     console.error('R2 presign error:', err)
     return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 })
@@ -79,7 +67,7 @@ export async function GET(
   await supabase.from('hydro_downloads').insert({
     user_id: resolvedUser.id,
     file_id: fileRow.id,
-    tier:    profile.plan,
+    tier:    access.state,
   })
 
   return NextResponse.json({

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,25 +69,7 @@ export async function GET(request: NextRequest) {
 
     // Add presigned download URLs ONLY if the caller has an active plan.
     // Anonymous browsing is fine for the catalogue, but no free download URLs.
-    let boundaries: AdminBoundary[] = data || []
-
-    const allowed = includeUrl ? await callerCanDownloadDataset('admin-boundaries') : false
-    if (allowed && boundaries.length > 0) {
-      boundaries = await Promise.all(
-        boundaries.map(async (boundary) => {
-          try {
-            const download_url = await getDownloadUrl(boundary.r2_key, 3600) // 1 hour expiry
-            return {
-              ...boundary,
-              download_url,
-            }
-          } catch (error) {
-            console.warn(`Failed to get URL for ${boundary.r2_key}:`, error)
-            return boundary
-          }
-        })
-      )
-    }
+    const boundaries = await withDatasetDownloads<AdminBoundary>(data ?? [], includeUrl, 'admin-boundaries')
 
     return NextResponse.json({
       count: boundaries.length,

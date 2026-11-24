@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, readJson, requireWorkspace, service, str, needRole} from '@/lib/workspace/server'
+  mutateProject, jsonError, loadProject, readJson, requireWorkspace, str, needRole} from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,14 +28,6 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const zoom = num(body.zoom, 0, 22)
   if (!name || lng === null || lat === null || zoom === null) return jsonError('bad_request', 400)
 
-  const { data: bookmark, error } = await service.from('workspace_bookmarks')
-    .insert({
-      project_id: id, name, lng, lat, zoom,
-      created_by: gate.user.id, created_by_name: gate.name,
-    })
-    .select('*').single()
-  if (error || !bookmark) return jsonError('save_failed', 500)
-
-  const rev = await commit(id, gate, 'bookmark.add', `Saved the view "${name}"`)
-  return NextResponse.json({ bookmark, rev }, { status: 201 })
+  const result = await mutateProject(id, gate, 'bookmark.add', `Saved the view "${name}"`, { name, lng, lat, zoom })
+  return result.denied ?? NextResponse.json(result.data, { status: 201 })
 }

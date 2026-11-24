@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,23 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch road layers', details: error.message }, { status: 500 })
     }
 
-    let layers: RoadLayer[] = data || []
-
-    // Roads are a Max-tier dataset
-    // Pro-tier dataset per DATASET_MIN_TIER (was incorrectly gated 'max',
-    // which blocked Pro subscribers from downloading their own tier).
-    const allowed = includeUrl ? await callerCanDownloadDataset('roads') : false
-    if (allowed && layers.length > 0) {
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        }),
-      )
-    }
+    const layers = await withDatasetDownloads<RoadLayer>(data ?? [], includeUrl, 'roads')
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (err) {

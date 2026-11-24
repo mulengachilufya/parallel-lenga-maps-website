@@ -14,20 +14,12 @@
 //
 // Every account is checked once (email_scan_at, migration 058).
 
-import { db } from './server'
-import { countryName } from './server'
+import { countryName, db } from './server'
+import { PUBLIC_WEB_TIMEOUT_MS, readPublicWeb } from './public-web'
 
 const UA = 'LengaMapsBot/1.0 (+https://www.lengamaps.com; prospect contact lookup)'
-const FETCH_MS = 8000
-
-async function get(url: string, accept = 'text/html'): Promise<string | null> {
-  try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: accept }, redirect: 'follow', signal: AbortSignal.timeout(FETCH_MS) })
-    if (!res.ok) return null
-    const type = res.headers.get('content-type') ?? ''
-    if (accept === 'text/html' && !type.includes('html')) return null
-    return (await res.text()).slice(0, 1_500_000)
-  } catch { return null }
+function get(url: string, accept = 'text/html'): Promise<string | null> {
+  return readPublicWeb(url, accept, UA)
 }
 
 // ── 1. Website from Wikidata ────────────────────────────────────────────────
@@ -196,7 +188,7 @@ export async function scanBatch(pipeline: 'sales' | 'partner', opts: { limit?: n
   const todo = (accounts ?? []).filter((a) => !hasEmail(a))
   let found = 0, checked = done.length
   // Four at a time, stopping before the time budget runs out.
-  for (let i = 0; i < todo.length && Date.now() < deadline - FETCH_MS * 3; i += 4) {
+  for (let i = 0; i < todo.length && Date.now() < deadline - PUBLIC_WEB_TIMEOUT_MS * 3; i += 4) {
     const res = await Promise.all(todo.slice(i, i + 4).map((a) => findEmailFor(a).catch(() => null)))
     checked += res.length
     found += res.filter(Boolean).length

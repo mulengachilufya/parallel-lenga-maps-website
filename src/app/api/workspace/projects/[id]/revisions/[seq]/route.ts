@@ -5,7 +5,7 @@
  *      revision. History is never rewritten: the restore is a new revision.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { jsonError, loadProject, requireWorkspace, service, needRole, type LoadedProject } from '@/lib/workspace/server'
+import { mutateProject, jsonError, loadProject, requireWorkspace, service, needRole, type LoadedProject } from '@/lib/workspace/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,14 +42,6 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
   if (!seq || !(project = await loadProject(gate, id))) return jsonError('not_found', 404)
   { const denied = needRole(project, 'editor'); if (denied) return denied }
 
-  const { data, error } = await service.rpc('workspace_restore', {
-    p_project: id, p_seq: seq, p_author: gate.user.id, p_author_name: gate.name,
-  })
-  if (error) {
-    console.error('[workspace] restore failed', { id, seq, error })
-    return jsonError(error.code === 'P0002' ? 'not_found' : 'restore_failed', error.code === 'P0002' ? 404 : 500)
-  }
-  const { snapshot: _omit, ...rev } = data as Record<string, unknown>
-  void _omit
-  return NextResponse.json({ ok: true, rev })
+  const result = await mutateProject(id, gate, 'restore', `Restored the project to r${seq}`, { seq })
+  return result.denied ?? NextResponse.json({ ok: true, ...result.data })
 }

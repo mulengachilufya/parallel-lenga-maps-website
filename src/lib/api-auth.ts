@@ -24,6 +24,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { isPaidOrgActive, listMemberships } from './teams'
 import { extractKeyFromHeader, hashKey } from './api-keys'
 
 export const MAX_REQUESTS_PER_MONTH    = 5_000
@@ -51,6 +52,7 @@ export type AuthFailure =
   | { type: 'plan-inactive' }      // owner has no active team plan
   | { type: 'rate-limited'; limit: number; retryAfterSec: number }
   | { type: 'quota-exceeded'; field: 'requests' | 'egress' }
+  | { type: 'unavailable' }
 
 export type AuthResult =
   | { ok: true;  caller: ApiCaller }
@@ -84,42 +86,23 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
   // entropy, and unique-on-key_hash means at most one row anyway.
   const { data: key, error } = await supabase
     .from('api_keys')
-    .select('id, user_id, scopes, revoked_at, requests_this_month, egress_bytes_this_month')
+    .select('id, user_id, scopes, revoked_at')
     .eq('key_hash', hashKey(raw))
     .maybeSingle()
 
   if (error || !key) return { ok: false, failure: { type: 'invalid-key' } }
   if (key.revoked_at) return { ok: false, failure: { type: 'revoked' } }
 
-  // Quota gates — generous limits, hard 429 on overage.
-  if (key.requests_this_month >= MAX_REQUESTS_PER_MONTH) {
-    return { ok: false, failure: { type: 'quota-exceeded', field: 'requests' } }
-  }
-  if (key.egress_bytes_this_month >= MAX_EGRESS_BYTES_PER_MONTH) {
-    return { ok: false, failure: { type: 'quota-exceeded', field: 'egress' } }
-  }
+  const org = (await listMemberships(supabase, key.user_id)).find(isPaidOrgActive)?.org
+  if (!org) return { ok: false, failure: { type: 'plan-inactive' } }
 
-  // Gate: the key's owner must belong to an ACTIVE organization. Re-checked
-  // on every request so suspending an org (missed renewal, cancellation)
-  // kills its keys immediately — no need to revoke each key by hand.
-  // A person can be on several teams (migration 044): the key works while
-  // any of them is an active, paid team.
-  const { data: memberships } = await supabase
-    .from('organization_members')
-    .select('org_id, organizations!inner(id, name, status, api_rate_per_min, plan)')
-    .eq('user_id', key.user_id)
-
-  type KeyOrg = { id: string; name: string; status: string; api_rate_per_min: number; plan?: string }
-  const orgs = (memberships ?? []).map((m) => {
-    const raw = (m as { organizations: unknown }).organizations
-    return (Array.isArray(raw) ? raw[0] : raw) as KeyOrg | null
-  }).filter((o): o is KeyOrg => !!o)
-  const org = orgs.find((o) => o.status === 'active' && o.plan !== 'free') ?? orgs[0] ?? null
-
-  // The API is a paid-team feature: free teams (migration 041) don't get it.
-  if (!org || org.status !== 'active' || org.plan === 'free') {
-    return { ok: false, failure: { type: 'plan-inactive' } }
-  }
+  const { data: usage, error: usageError } = await supabase.from('api_key_monthly_usage')
+    .select('requests, egress_bytes').eq('key_id', key.id).eq('period', currentUsagePeriod()).maybeSingle()
+  if (usageError) return { ok: false, failure: { type: 'unavailable' } }
+  const requests = usage?.requests ?? 0
+  const egress = Number(usage?.egress_bytes ?? 0)
+  if (requests >= MAX_REQUESTS_PER_MONTH) return { ok: false, failure: { type: 'quota-exceeded', field: 'requests' } }
+  if (egress >= MAX_EGRESS_BYTES_PER_MONTH) return { ok: false, failure: { type: 'quota-exceeded', field: 'egress' } }
 
   // Per-minute rate limit, fixed window, atomic in Postgres. Fail OPEN on
   // RPC errors: a transient DB hiccup on the counter must not take the whole
@@ -149,47 +132,43 @@ export async function authenticateApiRequest(req: NextRequest): Promise<AuthResu
       orgId:                 org.id,
       orgName:               org.name,
       scopes:                key.scopes ?? [],
-      requestsThisMonth:     key.requests_this_month,
-      egressBytesThisMonth:  key.egress_bytes_this_month,
+      requestsThisMonth:     requests,
+      egressBytesThisMonth:  egress,
       rateLimitPerMin:       limit,
       rateUsedThisWindow:    usedThisWindow,
     },
   }
 }
 
-/**
- * Record a successful API call against a key. Bumps requests by 1 and adds
- * `bytesEgressed` to the egress counter (passed in by the route — for
- * download endpoints this is the file size we just signed a URL for, since
- * the actual download happens out-of-band on R2).
- *
- * This is fire-and-forget — we don't block the API response on it. A failure
- * here costs us a row of accuracy on quota tracking but never an API call.
- */
-export async function recordUsage(
-  keyId: string,
-  bytesEgressed: number = 0
-): Promise<void> {
-  const supabase = adminClient()
-  // Atomic-enough: read-modify-write would race, but at 5000/month per key
-  // the chance of two concurrent requests on the same key is tiny. If it
-  // ever matters we can move to a Postgres function with FOR UPDATE.
-  const { data: row } = await supabase
-    .from('api_keys')
-    .select('requests_this_month, egress_bytes_this_month')
-    .eq('id', keyId)
-    .single()
+export function currentUsagePeriod(now = new Date()): string {
+  return `${now.toISOString().slice(0, 7)}-01`
+}
 
-  if (!row) return
+type UsageResult =
+  | { ok: true; requests: number; egressBytes: number }
+  | { ok: false; failure: AuthFailure }
 
-  await supabase
-    .from('api_keys')
-    .update({
-      requests_this_month:     row.requests_this_month + 1,
-      egress_bytes_this_month: row.egress_bytes_this_month + bytesEgressed,
-      last_used_at:            new Date().toISOString(),
-    })
-    .eq('id', keyId)
+/** Books a successful response before its signed URLs or metadata are returned. */
+export async function recordUsage(caller: ApiCaller, bytes = 0): Promise<UsageResult> {
+  const { data, error } = await adminClient().rpc('consume_api_quota', {
+    p_key: caller.keyId,
+    p_org: caller.orgId,
+    p_bytes: Math.max(0, Math.ceil(bytes)),
+    p_request_limit: MAX_REQUESTS_PER_MONTH,
+    p_egress_limit: MAX_EGRESS_BYTES_PER_MONTH,
+  })
+  if (error || !data) {
+    console.error('[api-auth] failed to record quota', error)
+    return { ok: false, failure: { type: 'unavailable' } }
+  }
+  if (data.result === 'requests' || data.result === 'egress') {
+    return { ok: false, failure: { type: 'quota-exceeded', field: data.result } }
+  }
+  if (data.result === 'revoked' || data.result === 'plan-inactive') {
+    return { ok: false, failure: { type: data.result } }
+  }
+  if (data.result !== 'ok') return { ok: false, failure: { type: 'unavailable' } }
+  return { ok: true, requests: Number(data.requests), egressBytes: Number(data.egress_bytes) }
 }
 
 /** Convert an AuthFailure into the JSON 4xx response we return to the caller. */
@@ -206,6 +185,8 @@ export function failureResponse(failure: AuthFailure): NextResponse {
 
 function failureBody(failure: AuthFailure) {
   switch (failure.type) {
+    case 'unavailable':
+      return { status: 503, error: 'usage_unavailable', message: 'API usage is temporarily unavailable. Try again shortly.' }
     case 'missing-key':
       return {
         status: 401,

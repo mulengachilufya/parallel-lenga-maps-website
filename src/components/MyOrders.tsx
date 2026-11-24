@@ -11,10 +11,11 @@ import { useEffect, useState } from 'react'
 import { Loader2, Receipt, X } from 'lucide-react'
 
 interface Payment {
-  id: number; reference: string; plan: string; product: string | null; account_type: string | null
+  id: string | number; reference: string; plan: string; product: string | null; account_type: string | null
   amount_usd: number | null; amount_zmw: number | null; currency: string | null
   status: 'pending' | 'verified' | 'rejected'; submitted_at: string; admin_note: string | null
 }
+interface Instant { reference: string; product: string; amount_usd: number; channel: 'card' | 'mobile-money'; completed_at: string | null; created_at: string }
 interface Quote { id: string; org_name: string; seats: number | null; datasets_interest: string | null; status: string; created_at: string }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -38,13 +39,14 @@ function paymentTitle(p: Payment) {
 
 export default function MyOrders() {
   const [payments, setPayments] = useState<Payment[]>([])
+  const [instant, setInstant] = useState<Instant[]>([])
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/account/orders').then((r) => r.ok ? r.json() : { payments: [], quotes: [] })
-      .then((j) => { setPayments(j.payments ?? []); setQuotes(j.quotes ?? []) }).catch(() => {})
+    fetch('/api/account/orders').then((r) => r.ok ? r.json() : { payments: [], instant: [], quotes: [] })
+      .then((j) => { setPayments(j.payments ?? []); setInstant(j.instant ?? []); setQuotes(j.quotes ?? []) }).catch(() => {})
   }, [])
 
   async function cancel(kind: 'payment' | 'quote', id: string | number, what: string, paid = false) {
@@ -65,13 +67,19 @@ export default function MyOrders() {
     } finally { setBusy(null) }
   }
 
-  if (!payments.length && !quotes.length) return null
+  if (!payments.length && !instant.length && !quotes.length) return null
 
   const rows = [
     ...payments.map((p) => ({
       key: `payment:${p.id}`, date: p.submitted_at, title: paymentTitle(p), sub: `Ref ${p.reference}${p.status === 'rejected' && p.admin_note ? ` · ${p.admin_note}` : ''}`,
       status: p.status, onCancel: () => cancel('payment', p.id, `${paymentTitle(p)} (${p.reference})`, p.status === 'verified'),
       cancelLabel: p.status === 'pending' ? 'Cancel' : 'Remove',
+    })),
+    ...instant.map((i) => ({
+      key: `instant:${i.reference}`, date: i.completed_at ?? i.created_at,
+      title: `Individual pass, ${({ pass_1m: '1 month', pass_6m: '6 months', pass_12m: '12 months' } as Record<string, string>)[i.product] ?? i.product} · $${i.amount_usd}`,
+      sub: `Ref ${i.reference} · ${i.channel === 'card' ? 'Card' : 'Mobile money'}`,
+      status: 'verified', onCancel: undefined as (() => void) | undefined, cancelLabel: '',
     })),
     ...quotes.map((q) => ({
       key: `quote:${q.id}`, date: q.created_at, title: `Quote for ${q.org_name}`,

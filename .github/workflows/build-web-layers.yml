@@ -8,6 +8,10 @@ name: Build fast map layers
 on:
   workflow_dispatch:
     inputs:
+      replacement:
+        description: 'Validate and publish a staged replacement UUID'
+        required: false
+        default: ''
       only:
         description: 'Only keys containing this text (e.g. lulc/ or Zambia). Empty = all.'
         required: false
@@ -32,7 +36,7 @@ jobs:
       - name: Install GDAL
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq gdal-bin python3-boto3
+          sudo apt-get install -y -qq gdal-bin python3-boto3 poppler-utils
           gdalinfo --version
       - name: Build
         env:
@@ -42,9 +46,14 @@ jobs:
           CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
           CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+          REPLACEMENT: ${{ github.event.inputs.replacement }}
           ONLY: ${{ github.event.inputs.only }}
           FORCE: ${{ github.event.inputs.force }}
         run: |
+          if [ -n "$REPLACEMENT" ]; then
+            python3 scripts/build-web-layers.py --replacement "$REPLACEMENT"
+            exit
+          fi
           set --
           if [ -n "$ONLY" ]; then set -- "$@" --only "$ONLY"; fi
           if [ "$FORCE" = "true" ]; then set -- "$@" --force; fi

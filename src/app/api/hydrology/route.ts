@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,36 +40,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch hydrology layers', details: error.message }, { status: 500 })
     }
 
-    let layers: HydrologyLayer[] = data || []
-
-    // Tier gate per new model:
-    //   rivers     → pro tier
-    //   lakes      → max tier
-    //   watersheds → pro tier (Watersheds & Catchments)
-    if (includeUrl && layers.length > 0) {
-      const [riversAllowed, maxAllowed] = await Promise.all([
-        callerCanDownloadDataset('rivers'),
-        callerCanDownloadDataset('lakes'),
-      ])
-      const watershedsAllowed = await callerCanDownloadDataset('watersheds')
-
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          const ok =
-            layer.layer_type === 'rivers'     ? riversAllowed :
-            layer.layer_type === 'rivers_main' ? riversAllowed :
-            layer.layer_type === 'lakes'      ? maxAllowed :
-            layer.layer_type === 'watersheds' ? watershedsAllowed :
-            false
-          if (!ok) return layer
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        })
-      )
-    }
+    const layers = await withDatasetDownloads<HydrologyLayer>(data ?? [], includeUrl, (layer) => {
+      if (layer.layer_type === 'rivers_main') return 'rivers'
+      if (layer.layer_type === 'rivers' || layer.layer_type === 'lakes' || layer.layer_type === 'watersheds') return layer.layer_type
+      return undefined
+    })
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (error) {
