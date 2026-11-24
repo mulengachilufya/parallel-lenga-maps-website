@@ -8,7 +8,7 @@
  * manager, so neither can be changed here.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, teammate } from '@/lib/workspace/server'
+import { mutateProject, jsonError, loadProject, needRole, readJson, requireWorkspace, service, teammate } from '@/lib/workspace/server'
 import { ROLE_LABEL, type ProjectRole } from '@/lib/workspace/types'
 
 export const dynamic = 'force-dynamic'
@@ -37,15 +37,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   if (org?.role === 'owner' || project.created_by === userId) return jsonError('always_manager', 409)
 
   const name = other.member_name?.trim() || other.member_email || 'a teammate'
-  if (role === null) {
-    const { error } = await service.from('workspace_project_members').delete().eq('project_id', id).eq('user_id', userId)
-    if (error) return jsonError('update_failed', 500)
-    await commit(id, gate, 'members', `Reset ${name} to the project default role`)
-  } else {
-    const { error } = await service.from('workspace_project_members')
-      .upsert({ project_id: id, user_id: userId, role, added_by: gate.user.id })
-    if (error) return jsonError('update_failed', 500)
-    await commit(id, gate, 'members', role === 'none' ? `Removed ${name} from this project` : `Made ${name} a ${ROLE_LABEL[role].toLowerCase()} on this project`)
-  }
-  return NextResponse.json({ ok: true })
+  const summary = role === null ? `Reset ${name} to the project default role`
+    : role === 'none' ? `Removed ${name} from this project` : `Made ${name} a ${ROLE_LABEL[role].toLowerCase()} on this project`
+  const result = await mutateProject(id, gate, 'members', summary, { user_id: userId, role })
+  return result.denied ?? NextResponse.json({ ok: true })
 }

@@ -72,6 +72,7 @@ export async function PUT(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const body = await req.json().catch(() => ({} as Record<string, unknown>))
   const roles = ['none', 'viewer', 'editor', 'manager']
+  if (!body || typeof body !== 'object') return bad('project_id, user_id and role are required.')
   const role = body.role === null ? null : roles.includes(String(body.role)) ? String(body.role) as ProjectRole | 'none' : undefined
   if (!isUuid(body.project_id) || !isUuid(body.user_id) || role === undefined) return bad('project_id, user_id and role are required.')
 
@@ -83,19 +84,15 @@ export async function PUT(req: NextRequest) {
   if (!m) return bad('Only people on the team can be on its projects. Add them to the team first.', 404)
   if (m.role === 'owner' || project.created_by === body.user_id) return bad('The team owner and the project creator are always managers.', 409)
 
-  const { error } = role === null
-    ? await service.from('workspace_project_members').delete().eq('project_id', project.id).eq('user_id', body.user_id)
-    : await service.from('workspace_project_members').upsert({ project_id: project.id, user_id: body.user_id, role, added_by: user.id })
-  if (error) return bad(error.message, 500)
-
   const name = m.member_name?.trim() || m.member_email || 'a teammate'
   const summary = role === null ? `Reset ${name} to the project default role`
     : role === 'none' ? `Removed ${name} from this project`
     : `Made ${name} a ${ROLE_LABEL[role].toLowerCase()} on this project`
-  const { error: revErr } = await service.rpc('workspace_commit', {
-    p_project: project.id, p_author: user.id, p_author_name: 'Lenga Maps admin', p_action: 'members', p_summary: summary,
+  const { error } = await service.rpc('mutate_workspace_project', {
+    p_project: project.id, p_org: project.org_id, p_actor: user.id, p_name: 'Lenga Maps admin',
+    p_action: 'members', p_summary: summary, p_payload: { user_id: body.user_id, role }, p_staff_override: true,
   })
-  if (revErr) console.error('[admin/orgs/projects] history entry failed', revErr)
+  if (error) return bad('Could not update the project role.', error.code === '42501' ? 403 : 500)
   await audit(user.email ?? 'admin', 'console', 'project_role_set', project.name, { project_id: project.id, user_id: body.user_id, role })
   return NextResponse.json({ ok: true })
 }

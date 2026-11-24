@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,21 +66,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let layers: ProtectedAreasLayer[] = data || []
-
-    // Starter-tier dataset — any active paid plan or trial.
-    const allowed = includeUrl ? await callerCanDownloadDataset('protected-areas') : false
-    if (allowed && layers.length > 0) {
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        }),
-      )
-    }
+    const layers = await withDatasetDownloads<ProtectedAreasLayer>(data ?? [], includeUrl, 'protected-areas')
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (err) {

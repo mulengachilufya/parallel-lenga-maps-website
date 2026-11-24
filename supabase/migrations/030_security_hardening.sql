@@ -10,7 +10,13 @@ drop view if exists public.user_states;
 -- Trigger / admin helpers must not be callable over the REST API.
 -- Triggers still fire: EXECUTE is only checked when the trigger is created.
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
-revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end;
+$$;
 
 -- Pin search_path on functions that lacked it.
 alter function public.handle_new_user()   set search_path = public;

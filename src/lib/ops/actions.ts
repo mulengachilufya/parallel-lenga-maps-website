@@ -97,7 +97,7 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
         d.setMonth(d.getMonth() + months)
         expires = d.toISOString()
       }
-      const { error } = await db.from('profiles').update({ plan, plan_status: 'active', plan_expires_at: expires, updates_until: null, expiry_reminder_sent_at: null }).eq('id', u.id)
+      const { error } = await db.from('profiles').update({ plan, standalone_team_access: plan === 'team', plan_status: 'active', plan_expires_at: expires, updates_until: null, expiry_reminder_sent_at: null }).eq('id', u.id)
       if (error) return done({ ok: false, message: `Could not update: ${error.message}` })
       return done({ ok: true, message: `${email} now has ${plan} access ${permanent ? 'permanently' : `until ${new Date(expires!).toDateString()}`}.` })
     }
@@ -209,8 +209,6 @@ export async function runAction(actor: OpsActor, action: string, input: Record<s
       const next = accessExpiry(org?.access_expires_at ?? null)
       const { error } = await db.from('organizations').update({ access_expires_at: next, status: 'active', expiry_notice_sent: null }).eq('id', m.org_id)
       if (error) return done({ ok: false, message: error.message })
-      const { data: members } = await db.from('organization_members').select('user_id').eq('org_id', m.org_id)
-      await db.from('profiles').update({ plan: 'team', plan_status: 'active', plan_expires_at: next }).in('id', (members ?? []).map((x) => x.user_id))
       return done({ ok: true, message: `${org?.name}: every member has access until ${new Date(next).toDateString()} (+${ACCESS_MONTHS} months).` })
     }
 

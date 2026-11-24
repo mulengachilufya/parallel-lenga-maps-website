@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
+import { readCatalogFiles } from '@/lib/api-datasets'
 import { CATALOG } from '@/lib/catalog'
 import type { DatasetSlug } from '@/lib/pricing'
 
@@ -9,18 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const REPORT_ONLY = new Set(['soil', 'temperature'])
 
-export interface CatalogFile {
-  id:            number
-  slug:          string
-  iso3:          string
-  country:       string
-  label:         string
-  file_name:     string
-  r2_key:        string
-  file_format:   string
-  file_size_mb:  number
-  download_url?: string
-}
+export type { CatalogFile } from '@/lib/api-datasets'
 
 /**
  * GET /api/catalog/:slug
@@ -30,18 +18,14 @@ export interface CatalogFile {
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   // soil and temperature list their GIS files elsewhere; here they only carry PDF data reports.
-  if (!(slug in CATALOG) && !REPORT_ONLY.has(slug)) return NextResponse.json({ error: 'unknown dataset' }, { status: 404 })
+  if (!Object.hasOwn(CATALOG, slug) && !REPORT_ONLY.has(slug)) return NextResponse.json({ error: 'unknown dataset' }, { status: 404 })
 
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const { data, error } = await supabase.from('catalog_files').select('*').eq('slug', slug)
-    .order('country', { ascending: true }).order('label', { ascending: true })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  let files: CatalogFile[] = data ?? []
-  if (files.length && await callerCanDownloadDataset(slug as DatasetSlug)) {
-    files = await Promise.all(files.map(async (f) => {
-      try { return { ...f, download_url: await getDownloadUrl(f.r2_key, 3600, f.file_name || f.r2_key.split('/').pop()) } } catch { return f }
-    }))
+  try {
+    const rows = await readCatalogFiles(slug)
+    const files = await withDatasetDownloads(rows, true, slug as DatasetSlug, { fileName: (file) => file.file_name })
+    return NextResponse.json({ count: files.length, files })
+  } catch (error) {
+    console.error('[catalog] lookup failed', { slug, error })
+    return NextResponse.json({ error: 'catalogue lookup failed' }, { status: 500 })
   }
-  return NextResponse.json({ count: files.length, files })
 }

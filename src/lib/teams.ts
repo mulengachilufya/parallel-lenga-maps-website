@@ -145,10 +145,14 @@ export async function openTeam(service: SupabaseClient, userId: string, orgId: s
 
 /** Is the user on any active, paid team? (A paid team carries every dataset.) */
 export async function hasActivePaidTeam(service: SupabaseClient, userId: string): Promise<boolean> {
-  return (await listMemberships(service, userId)).some((m) => m.org.plan !== 'free' && isOrgActive(m))
+  return (await listMemberships(service, userId)).some((m) => isPaidOrgActive(m))
 }
 
 /** Active = the org is in good standing and its paid period hasn't ended. */
+export function isPaidOrgActive(m: Membership): boolean {
+  return m.org.plan === 'paid' && isOrgActive(m)
+}
+
 export function isOrgActive(m: Membership | null): m is Membership {
   return !!m && m.org.status === 'active' && !isExpired(m.org.access_expires_at)
 }

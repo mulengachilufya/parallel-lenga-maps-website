@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { getSizedUploadUrl } from '@/lib/r2'
-import { jsonError, loadProject, needRole, projectUploadBytes, readJson, requireWorkspace, str } from '@/lib/workspace/server'
+import { jsonError, loadProject, needRole, projectUploadBytes, readJson, requireWorkspace, service, str } from '@/lib/workspace/server'
 import { MAX_UPLOAD_BYTES, PROJECT_QUOTA_BYTES, UPLOAD_PREFIX } from '@/lib/workspace/upload-limits'
 
 export const dynamic = 'force-dynamic'
@@ -39,26 +39,35 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   if (!files.length || files.length > 40) return jsonError('bad_request', 400)
 
   const wanted = files.map((f) => ({
-    name: str(f.name, 200).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^\.+/, '').slice(-120) || 'file',
-    size: Number(f.size),
+    name: str(f?.name, 200).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^\.+/, '').slice(-120) || 'file',
+    size: Number(f?.size),
   }))
   if (wanted.some((f) => !Number.isInteger(f.size) || f.size <= 0)) return jsonError('bad_request', 400)
   if (wanted.some((f) => f.size > MAX_UPLOAD_BYTES)) return jsonError('file_too_large', 413)
 
-  const used = await projectUploadBytes(id)
-  const adding = wanted.reduce((n, f) => n + f.size, 0)
-  if (used + adding > PROJECT_QUOTA_BYTES) {
-    return NextResponse.json({ error: 'project_full', used, limit: PROJECT_QUOTA_BYTES }, { status: 413 })
+  const reservations = wanted.map(({ name, size }) => ({
+    key: `${UPLOAD_PREFIX}/${gate.membership.org_id}/${id}/${crypto.randomUUID().slice(0, 8)}-${name}`,
+    size,
+  }))
+  const { data: used, error } = await service.rpc('reserve_workspace_uploads', {
+    p_project: id, p_org: gate.membership.org_id, p_actor: gate.user.id, p_files: reservations,
+  })
+  if (error) {
+    if (error.message === 'project_full') {
+      return NextResponse.json({ error: 'project_full', used: await projectUploadBytes(id), limit: PROJECT_QUOTA_BYTES }, { status: 413 })
+    }
+    if (error.code === '42501') return jsonError('workspace_access_denied', 403)
+    console.error('[workspace/uploads] reserve failed', error)
+    return jsonError('reserve_failed', 500)
   }
 
   try {
-    const uploads = await Promise.all(wanted.map(async (f) => {
-      const key = `${UPLOAD_PREFIX}/${gate.membership.org_id}/${id}/${crypto.randomUUID().slice(0, 8)}-${f.name}`
-      return { key, url: await getSizedUploadUrl(key, f.size, 3600) }
-    }))
+    const uploads = await Promise.all(reservations.map(async ({ key, size }) => ({
+      key, url: await getSizedUploadUrl(key, size, 900),
+    })))
     return NextResponse.json({ uploads, used, limit: PROJECT_QUOTA_BYTES })
   } catch (err) {
-    console.error('[workspace/uploads] sign failed', err)
+    console.error('[workspace/uploads] sign failed:', err)
     return jsonError('sign_failed', 500)
   }
 }

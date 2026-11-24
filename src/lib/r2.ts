@@ -106,19 +106,26 @@ export async function getSizedUploadUrl(key: string, size: number, expiresIn = 3
   return getSignedUrl(r2, command, { expiresIn, signableHeaders: new Set(['content-length', 'content-type']) })
 }
 
-/** Size of an object in bytes, or null if it does not exist. */
-export async function objectSize(key: string): Promise<number | null> {
+/** Only an authoritative 404 counts as a missing R2 object. */
+export async function objectMetadata(key: string) {
   try {
-    const res = await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
-    return res.ContentLength ?? 0
-  } catch {
-    return null
+    return await r2.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
+  } catch (error) {
+    if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) return null
+    throw error
   }
 }
 
-/** Server-side copy within the bucket. */
-export async function copyObject(from: string, to: string) {
-  return r2.send(new CopyObjectCommand({ Bucket: BUCKET, CopySource: `${BUCKET}/${encodeURIComponent(from).replace(/%2F/g, '/')}`, Key: to }))
+export async function objectSize(key: string): Promise<number | null> {
+  return (await objectMetadata(key))?.ContentLength ?? null
+}
+
+/** Server-side copy within the bucket, optionally pinning the source ETag. */
+export async function copyObject(from: string, to: string, etag?: string) {
+  return r2.send(new CopyObjectCommand({
+    Bucket: BUCKET, CopySource: `${BUCKET}/${encodeURIComponent(from).replace(/%2F/g, '/')}`,
+    Key: to, CopySourceIfMatch: etag,
+  }))
 }
 
 /** Delete everything under a prefix (e.g. a team's upload folder). */
@@ -127,7 +134,10 @@ export async function deletePrefix(prefix: string) {
   do {
     const page = await r2.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix, ContinuationToken: token, MaxKeys: 1000 }))
     const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []))
-    if (keys.length) await r2.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: keys, Quiet: true } }))
+    if (keys.length) {
+      const result = await r2.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: keys, Quiet: true } }))
+      if (result.Errors?.length) throw new Error(`R2 could not remove ${result.Errors.length} objects`)
+    }
     token = page.IsTruncated ? page.NextContinuationToken : undefined
   } while (token)
 }

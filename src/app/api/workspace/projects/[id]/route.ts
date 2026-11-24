@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  commit, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str,
+  mutateProject, jsonError, loadProject, needRole, readJson, requireWorkspace, service, str,
 } from '@/lib/workspace/server'
 import { openTeam } from '@/lib/teams'
 import { resolveRole, sanitizeMapState, type ProjectRole, type WsProjectBundle, type WsMember } from '@/lib/workspace/types'
@@ -107,12 +107,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
   if (!notes.length) return NextResponse.json({ ok: true, unchanged: true })
 
-  const { error } = await service.from('workspace_projects').update(patch).eq('id', id)
-  if (error) return jsonError('update_failed', 500)
-
   const summary = notes.join(', ')
-  const rev = await commit(id, gate, 'project', summary.charAt(0).toUpperCase() + summary.slice(1))
-  return NextResponse.json({ ok: true, rev })
+  const result = await mutateProject(id, gate, 'project', summary.charAt(0).toUpperCase() + summary.slice(1), patch)
+  return result.denied ?? NextResponse.json({ ok: true, ...result.data })
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
@@ -123,8 +120,6 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (!project) return jsonError('not_found', 404)
   const denied = needRole(project, 'manager')
   if (denied) return denied
-  const { error } = await service.from('workspace_projects')
-    .update({ archived_at: new Date().toISOString() }).eq('id', id)
-  if (error) return jsonError('archive_failed', 500)
-  return NextResponse.json({ ok: true })
+  const result = await mutateProject(id, gate, 'archive', 'Archived the project', {})
+  return result.denied ?? NextResponse.json({ ok: true })
 }

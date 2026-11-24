@@ -67,7 +67,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const signed = await signAll(files, 3600)
 
-  recordUsage(auth.caller.keyId, bytes).catch(() => {})
+  const usage = await recordUsage(auth.caller, bytes)
+  if (!usage.ok) return failureResponse(usage.failure)
   await logDownload(service, { userId: auth.caller.userId, dataset: spec.id, country: `All countries (${signed.length} files)`, source: 'api_bundle', bytes })
 
   // Categorical/paletted layers ship with QGIS symbology so QGIS doesn't

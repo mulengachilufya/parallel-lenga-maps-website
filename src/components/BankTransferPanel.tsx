@@ -32,7 +32,7 @@ interface Props {
 
 type Phase = 'intro' | 'details' | 'submitted'
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+export function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">

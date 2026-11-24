@@ -26,9 +26,9 @@ export default function DeleteAccount() {
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setError(j.message ?? 'Could not delete the account. Try again.'); return }
       await supabase.auth.signOut().catch(() => {})
-      window.location.href = '/?account=deleted'
+      window.location.href = '/?account=deletion-requested'
     } catch {
-      setError('Network error. Nothing was deleted. Try again.')
+      setError('The connection was interrupted. Try again to confirm that your request was received.')
     } finally { setBusy(false) }
   }
 

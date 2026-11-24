@@ -28,7 +28,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const files = await listFilesForDataset(spec, req.nextUrl.searchParams.get('country'))
 
-  recordUsage(auth.caller.keyId, 0).catch(() => {})
+  const usage = await recordUsage(auth.caller)
+  if (!usage.ok) return failureResponse(usage.failure)
 
   return NextResponse.json({
     dataset: {

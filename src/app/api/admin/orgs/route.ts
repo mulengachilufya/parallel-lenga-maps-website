@@ -170,22 +170,5 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'update_failed', message: error.message }, { status: 500 })
   }
 
-  // Status change cascades to member entitlements: suspended/cancelled orgs
-  // lose download access immediately; reactivation restores it.
-  if (changes.status) {
-    const memberIds = (await service
-      .from('organization_members').select('user_id').eq('org_id', id))
-      .data?.map((m) => m.user_id) ?? []
-    if (memberIds.length > 0) {
-      await service.from('profiles')
-        .update({
-          plan_status: changes.status === 'active' ? 'active' : 'free',
-          ...('access_expires_at' in changes ? { plan_expires_at: changes.access_expires_at, expiry_reminder_sent_at: null } : {}),
-        })
-        .in('id', memberIds)
-        .eq('plan', 'team')
-    }
-  }
-
   return NextResponse.json({ ok: true })
 }

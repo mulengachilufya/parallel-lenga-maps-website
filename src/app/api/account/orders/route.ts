@@ -1,9 +1,10 @@
 /**
  * /api/account/orders — a signed-in user's own orders.
  *
- *   GET                  → their bank-transfer payments (plans, seats,
- *                          updates) and their quote requests (custom data,
- *                          team quotes)
+ *   GET                  → their manual payments (bank, Airtel, MTN), their
+ *                          confirmed instant payments (Lenco: card and mobile
+ *                          money, receipts only) and their quote requests
+ *                          (custom data, team quotes)
  *   DELETE { kind, id }  → cancel one:
  *       kind 'payment': pending or rejected ones are deleted. A verified
  *                       one is only hidden from their list (hidden_at,
@@ -32,16 +33,21 @@ async function me() {
 
 export async function GET() {
   const user = await me()
-  if (!user) return NextResponse.json({ payments: [], quotes: [] })
-  const [p, q] = await Promise.all([
+  if (!user) return NextResponse.json({ payments: [], instant: [], quotes: [] })
+  const [p, q, i] = await Promise.all([
     service.from('manual_payments')
       .select('id, reference, plan, product, account_type, amount_usd, amount_zmw, currency, status, submitted_at, admin_note')
       .eq('user_id', user.id).is('hidden_at', null).order('submitted_at', { ascending: false }).limit(50),
     service.from('quote_requests')
       .select('id, org_name, seats, datasets_interest, status, created_at')
       .ilike('email', user.email).order('created_at', { ascending: false }).limit(50),
+    // Instant payments are receipts: only confirmed ones are listed, and they
+    // are not cancellable (the money has already moved).
+    service.from('lenco_payments')
+      .select('reference, product, amount_usd, channel, completed_at, created_at')
+      .eq('user_id', user.id).eq('status', 'successful').order('created_at', { ascending: false }).limit(50),
   ])
-  return NextResponse.json({ payments: p.data ?? [], quotes: q.data ?? [] })
+  return NextResponse.json({ payments: p.data ?? [], instant: i.data ?? [], quotes: q.data ?? [] })
 }
 
 export async function DELETE(req: NextRequest) {
@@ -51,9 +57,9 @@ export async function DELETE(req: NextRequest) {
   try { body = await req.json() } catch { /* validated below */ }
   const gone = () => NextResponse.json({ error: 'not_found', message: 'That order is no longer there.' }, { status: 404 })
 
-  if (body.kind === 'payment') {
-    const id = Number(body.id)
-    if (!Number.isInteger(id)) return gone()
+  if (body?.kind === 'payment') {
+    const id = typeof body.id === 'string' || typeof body.id === 'number' ? String(body.id) : ''
+    if (!/^\d+$/.test(id) && !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) return gone()
     const { data: row } = await service.from('manual_payments').select('id, status').eq('id', id).eq('user_id', user.id).maybeSingle()
     if (!row) return gone()
     if (row.status === 'verified') {
@@ -66,7 +72,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  if (body.kind === 'quote' && typeof body.id === 'string') {
+  if (body?.kind === 'quote' && typeof body.id === 'string') {
     const { data: row } = await service.from('quote_requests').select('id').eq('id', body.id).ilike('email', user.email).maybeSingle()
     if (!row) return gone()
     const { data: acct } = await service.from('sales_accounts').select('id, stage, source').eq('quote_request_id', row.id).maybeSingle()

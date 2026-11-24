@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,35 +49,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch rainfall/climate layers', details: error.message }, { status: 500 })
     }
 
-    let layers: RainfallClimateLayer[] = data || []
-
-    // Tier gate per new model:
-    //   rainfall    → starter tier
-    //   temperature → max tier
-    //   drought_index → starter tier
-    if (includeUrl && layers.length > 0) {
-      const [rainfallAllowed, tempAllowed, droughtAllowed] = await Promise.all([
-        callerCanDownloadDataset('rainfall'),
-        callerCanDownloadDataset('temperature'),
-        callerCanDownloadDataset('drought-index'),
-      ])
-
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          const ok =
-            layer.layer_type === 'rainfall'     ? rainfallAllowed :
-            layer.layer_type === 'temperature'  ? tempAllowed :
-            layer.layer_type === 'drought_index'? droughtAllowed :
-            false
-          if (!ok) return layer
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        })
-      )
-    }
+    const layers = await withDatasetDownloads<RainfallClimateLayer>(data ?? [], includeUrl, (layer) => {
+      if (layer.layer_type === 'drought_index') return 'drought-index'
+      if (layer.layer_type === 'rainfall' || layer.layer_type === 'temperature') return layer.layer_type
+      return undefined
+    })
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (error) {

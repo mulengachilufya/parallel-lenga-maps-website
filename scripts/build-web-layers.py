@@ -22,12 +22,13 @@ Needs GDAL command line tools (gdalinfo, gdal_translate, gdalwarp).
 
 Usage: build-web-layers.py [--force] [--only SUBSTRING] [--limit N] [--dry-run]
 """
-import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request, zipfile
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request, uuid, zipfile
+from botocore.exceptions import ClientError
 
 import boto3
 from botocore.config import Config
 
-RASTER_TABLES = ['lulc_layers', 'rainfall_climate_layers', 'soil_layers', 'dem_layers', 'population_settlements_layers']
+RASTER_TABLES = ['lulc_layers', 'rainfall_climate_layers', 'soil_layers', 'dem_layers', 'population_settlements_layers', 'catalog_files']
 ORIGINS = ['https://www.lengamaps.com', 'https://lengamaps.com']
 
 
@@ -47,7 +48,8 @@ def catalogue_keys():
     tok = env('SUPABASE_SERVICE_ROLE_KEY')
     keys = []
     for t in RASTER_TABLES:
-        req = urllib.request.Request(f'{base}/rest/v1/{t}?select=r2_key',
+        only_rasters = '&file_format=ilike.*tiff*' if t == 'catalog_files' else ''
+        req = urllib.request.Request(f'{base}/rest/v1/{t}?select=r2_key{only_rasters}',
                                      headers={'apikey': tok, 'Authorization': f'Bearer {tok}'})
         try:
             rows = json.loads(urllib.request.urlopen(req, timeout=60).read())
@@ -69,12 +71,70 @@ def s3():
                         region_name='auto', config=Config(retries={'max_attempts': 8, 'mode': 'standard'}))
 
 
-def exists(c, bucket, key):
+def metadata(client, bucket, key):
     try:
-        c.head_object(Bucket=bucket, Key=key)
-        return True
-    except Exception:
-        return False
+        return client.head_object(Bucket=bucket, Key=key)
+    except ClientError as error:
+        if error.response['ResponseMetadata']['HTTPStatusCode'] == 404:
+            return None
+        raise
+
+
+def supabase_request(path, payload=None):
+    base = env('SUPABASE_URL').rstrip('/')
+    token = env('SUPABASE_SERVICE_ROLE_KEY')
+    headers = {'apikey': token, 'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    request = urllib.request.Request(f'{base}/rest/v1/{path}', headers=headers,
+                                     data=None if payload is None else json.dumps(payload).encode())
+    with urllib.request.urlopen(request, timeout=45) as response:
+        return json.load(response)
+
+
+def validate_replacement(client, bucket, replacement_id):
+    rows = supabase_request(f'catalog_file_replacements?id=eq.{uuid.UUID(replacement_id)}&select=*,catalog_files(file_format)')
+    if len(rows) != 1:
+        raise RuntimeError('replacement not found')
+    row = rows[0]
+    if row['status'] == 'published':
+        print('Replacement already published')
+        return
+    if row['status'] != 'ready':
+        raise RuntimeError(f"replacement status is {row['status']}")
+    key = row['version_key']
+    source = metadata(client, bucket, key)
+    if source is None or source['ContentLength'] != row['size_bytes']:
+        raise RuntimeError('versioned object is missing or has the wrong size')
+
+    with tempfile.TemporaryDirectory(prefix='lenga-replacement-') as work:
+        original = os.path.join(work, os.path.basename(key))
+        client.download_file(bucket, key, original)
+        file_format = row['catalog_files']['file_format'].lower()
+        if 'tiff' in file_format:
+            raster = find_tif(original, work)
+            if not raster:
+                raise RuntimeError('no GeoTIFF found in the raster package')
+            out = os.path.join(work, 'validated.cog.tif')
+            to_cog(raster, out)
+            info = json.loads(run(['gdalinfo', '-json', out]))
+            if info.get('metadata', {}).get('IMAGE_STRUCTURE', {}).get('LAYOUT') != 'COG':
+                raise RuntimeError('web derivative is not a cloud-optimized GeoTIFF')
+            client.upload_file(out, bucket, web_key(key), ExtraArgs={
+                'ContentType': 'image/tiff', 'CacheControl': 'private, max-age=86400',
+                'Metadata': {'source-etag': source['ETag'].strip('"')},
+            })
+        elif file_format == 'pdf':
+            run(['pdfinfo', original])
+        elif zipfile.is_zipfile(original):
+            with zipfile.ZipFile(original) as archive:
+                if archive.testzip() is not None:
+                    raise RuntimeError('replacement archive has a bad checksum')
+            run(['ogrinfo', '-ro', '/vsizip/' + original])
+        else:
+            run(['ogrinfo', '-ro', original])
+    result = supabase_request('rpc/publish_catalog_file_replacement', {'p_id': row['id']})
+    if result != 'published':
+        raise RuntimeError(f'catalogue publish did not complete ({result})')
+    print(f"Published replacement {row['id']}; previous key retained")
 
 
 def ensure_cors(c, bucket):
@@ -144,10 +204,16 @@ def main():
     ap.add_argument('--only', default='')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--replacement', help='Validate and publish this staged replacement UUID')
     a = ap.parse_args()
 
     bucket = env('CLOUDFLARE_R2_BUCKET_NAME')
     c = s3()
+    if a.replacement:
+        if a.dry_run:
+            ap.error('--replacement cannot be combined with --dry-run')
+        validate_replacement(c, bucket, a.replacement)
+        return
     if not a.dry_run:
         ensure_cors(c, bucket)
     keys = [k for k in catalogue_keys() if a.only.lower() in k.lower()]
@@ -159,9 +225,6 @@ def main():
         if a.limit and done >= a.limit:
             break
         wk = web_key(k)
-        if not a.force and exists(c, bucket, wk):
-            skipped += 1
-            continue
         if a.dry_run:
             print('would build', wk)
             done += 1
@@ -169,6 +232,14 @@ def main():
         work = tempfile.mkdtemp(prefix='weblayer-')
         t0 = time.time()
         try:
+            source = metadata(c, bucket, k)
+            if source is None:
+                raise RuntimeError('missing original')
+            current = None if a.force else metadata(c, bucket, wk)
+            etag = source['ETag'].strip('"')
+            if current and current.get('Metadata', {}).get('source-etag') == etag:
+                skipped += 1
+                continue
             src = os.path.join(work, os.path.basename(k))
             c.download_file(bucket, k, src)
             tif = find_tif(src, work)
@@ -178,7 +249,8 @@ def main():
                 continue
             out = os.path.join(work, 'out.cog.tif')
             to_cog(tif, out)
-            c.upload_file(out, bucket, wk, ExtraArgs={'ContentType': 'image/tiff', 'CacheControl': 'private, max-age=86400'})
+            c.upload_file(out, bucket, wk, ExtraArgs={'ContentType': 'image/tiff', 'CacheControl': 'private, max-age=86400',
+                'Metadata': {'source-etag': etag}})
             mb_in, mb_out = os.path.getsize(src) / 1e6, os.path.getsize(out) / 1e6
             print(f'  + {wk}  {mb_in:.0f} MB → {mb_out:.0f} MB  ({time.time() - t0:.0f}s)')
             done += 1

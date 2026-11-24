@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,24 +55,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let layers: PopulationSettlementsLayer[] = data || []
-
-    // Population & Settlements is a Max-tier dataset (in the 4/8/12+ model).
-    // Only Max plans (or any active Business plan) get download URLs.
-    // Pro-tier dataset per DATASET_MIN_TIER (was incorrectly gated 'max',
-    // which blocked Pro subscribers from downloading their own tier).
-    const allowed = includeUrl ? await callerCanDownloadDataset('population') : false
-    if (allowed && layers.length > 0) {
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        })
-      )
-    }
+    const layers = await withDatasetDownloads<PopulationSettlementsLayer>(data ?? [], includeUrl, 'population')
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (err) {

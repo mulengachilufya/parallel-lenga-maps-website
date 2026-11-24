@@ -333,7 +333,7 @@ function CreateOrgForm({ onDone }: { onDone: (message: string) => void }) {
         <button disabled={busy} className="rounded-xl bg-gray-900 text-white px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
           {busy ? 'Provisioning…' : 'Create org + owner seat'}
         </button>
-        <p className="mt-2 text-[11px] text-gray-400">Sets the owner&apos;s profile to plan=team, active for the term paid for from today. They manage member invites themselves from /team. Use Record renewal when the next payment arrives.</p>
+        <p className="mt-2 text-[11px] text-gray-400">The owner gets team access for the term paid for from today. They manage member invites themselves from /team. Use Record renewal when the next payment arrives.</p>
       </div>
     </form>
   )

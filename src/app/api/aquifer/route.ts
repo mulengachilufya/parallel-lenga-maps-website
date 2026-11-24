@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from '@/lib/r2'
-import { callerCanDownloadDataset } from '@/lib/dataset-access'
+import { withDatasetDownloads } from '@/lib/dataset-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,21 +38,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch aquifer layers', details: error.message }, { status: 500 })
     }
 
-    let layers: AquiferLayer[] = data || []
-
-    // Aquifer is a Starter-tier dataset in the new model
-    const allowed = includeUrl ? await callerCanDownloadDataset('aquifer') : false
-    if (allowed && layers.length > 0) {
-      layers = await Promise.all(
-        layers.map(async (layer) => {
-          try {
-            return { ...layer, download_url: await getDownloadUrl(layer.r2_key, 3600) }
-          } catch {
-            return layer
-          }
-        })
-      )
-    }
+    const layers = await withDatasetDownloads<AquiferLayer>(data ?? [], includeUrl, 'aquifer')
 
     return NextResponse.json({ count: layers.length, layers })
   } catch (error) {

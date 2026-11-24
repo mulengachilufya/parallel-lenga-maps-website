@@ -20,7 +20,20 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { getDownloadUrl } from './r2'
+import { signDatasetFile } from './dataset-access'
+
+export interface CatalogFile {
+  id:            number
+  slug:          string
+  iso3:          string
+  country:       string
+  label:         string
+  file_name:     string
+  r2_key:        string
+  file_format:   string
+  file_size_mb:  number
+  download_url?: string
+}
 
 export interface ApiFile {
   /** ISO-3 country code where derivable, else uppercase first 3 letters. */
@@ -510,22 +523,38 @@ export async function listFilesForDataset(
 
   q = q.order('country', { ascending: true })
 
-  const { data, error } = await q
-  if (error) throw new Error(`Failed to list ${spec.id}: ${error.message}`)
-  const files = (data ?? []).map(spec.toFile)
-  // Older datasets upgraded in 2026-10 keep their original files and add the new ones.
+  const rows = await readPages((from, to) => q.order('id').range(from, to), spec.id)
+  const files = rows.map(spec.toFile)
   return spec.catalog ? [...await listCatalogFiles(spec, country), ...files] : files
 }
 
-/** GIS files of a dataset in catalog_files (never the PDF reports). */
+async function readPages<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  dataset: string,
+): Promise<T[]> {
+  const size = 500
+  const rows: T[] = []
+  for (let offset = 0; ; offset += size) {
+    const { data, error } = await page(offset, offset + size - 1)
+    if (error) throw new Error(`Failed to list ${dataset}: ${error.message}`)
+    rows.push(...(data ?? []))
+    if (!data || data.length < size) return rows
+  }
+}
+
+export async function readCatalogFiles(slug: string, country?: string | null, includeReports = true): Promise<CatalogFile[]> {
+  let query = adminClient().from('catalog_files').select('*').eq('slug', slug)
+  if (!includeReports) query = query.neq('file_format', 'PDF')
+  const code = country?.trim()
+  if (code) query = /^[A-Za-z]{3}$/.test(code) ? query.eq('iso3', code.toUpperCase()) : query.ilike('country', `%${code}%`)
+  query = query.order('country').order('label').order('id')
+  return readPages((from, to) => query.range(from, to), slug)
+}
+
 async function listCatalogFiles(spec: DatasetSpec, country?: string | null): Promise<ApiFile[]> {
-  let q = adminClient().from('catalog_files').select('*').eq('slug', spec.catalog ?? spec.id).neq('file_format', 'PDF')
-  const c = country?.trim()
-  if (c) q = /^[A-Za-z]{3}$/.test(c) ? q.eq('iso3', c.toUpperCase()) : q.ilike('country', `%${c}%`)
-  const { data, error } = await q.order('country', { ascending: true }).order('label', { ascending: true })
-  if (error) throw new Error(`Failed to list ${spec.id}: ${error.message}`)
+  const rows = await readCatalogFiles(spec.catalog ?? spec.id, country, false)
   const toFile = spec.table === 'catalog_files' ? spec.toFile : catalogFile(spec.source)
-  return (data ?? []).map(toFile)
+  return rows.map((row) => toFile({ ...row }))
 }
 
 /** Sign every file in a list. Used by the bundle endpoint. */
@@ -533,7 +562,7 @@ export async function signAll(files: ApiFile[], expiresIn = 3600): Promise<Array
   return Promise.all(
     files.map(async (f) => ({
       ...f,
-      download_url: await getDownloadUrl(f.r2_key, expiresIn),
+      download_url: await signDatasetFile(f.r2_key, { expiresIn }),
     })),
   )
 }
@@ -572,7 +601,7 @@ export async function getDatasetBundle(id: string): Promise<DatasetBundle | null
   const { data, error } = await supabase
     .from('dataset_bundles')
     .select('*')
-    .eq('dataset_id', id.toLowerCase())
+    .eq('dataset_id', id.toLowerCase()).is('needs_rebuild_at', null)
     .maybeSingle()
   if (error || !data) return null
   return data as DatasetBundle

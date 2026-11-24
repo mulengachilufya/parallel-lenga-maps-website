@@ -1,35 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { accessFor, can } from '@/lib/staff'
-import { PASSES, UPDATE_MONTHS, accessExpiry, isPassProduct } from '@/lib/pricing'
-import { sendEmail, paymentVerifiedEmail, paymentRejectedEmail } from '@/lib/email'
-
-/**
- * POST /api/admin/payments/verify
- * body: { reference: string, action: 'verify' | 'reject', note?: string }
- *
- * Admin-only. On 'verify':
- *   - manual_payments.status → 'verified', verified_at = now(), verified_by = admin.id
- *   - profiles.plan → plan recorded on the payment row
- *   - Individual PASS (pass_1m / pass_6m / pass_12m): plan_status → 'active',
- *     plan_expires_at → the pass length from now, or from the current end
- *     date if a pass is still running (paying early loses nothing).
- *     Accounts that hold access for good (old licence, plan_expires_at null)
- *     are NEVER given an end date by a pass: the pass lengthens the window of
- *     new datasets (updates_until) instead, so what they already had stays.
- *   - Legacy 'licence' / 'updates' rows (submitted before the pass model):
- *     handled exactly as they were, so nobody who already paid loses out.
- *   - Older rows without a product (time-limited plans): 3 months as before.
- *   - fires Web3Forms email to the customer letting them know access is live
- *
- * On 'reject':
- *   - manual_payments.status → 'rejected', admin_note = note
- *   - profiles.plan_status → 'free'  (they'll need to resubmit)
- *
- * Rate limit: 30 verify/reject actions per admin per minute. Protects against
- * accidental scripts/double-clicks flipping the whole queue at once.
- */
+import { computeGrant, GRANT_PROFILE_FIELDS } from '@/lib/payments/grant'
+import { deliverPaymentNotifications } from '@/lib/jobs/payment-notifications'
 
 const service = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,22 +31,6 @@ function checkRateLimit(adminId: string): boolean {
   return true
 }
 
-async function notifyCustomer(
-  action: 'verify' | 'reject',
-  email: string,
-  name: string | null,
-  plan: string,
-  note: string,
-  expiresAt: string | null = null,
-) {
-  // Customer-facing payment email, on the Resend payments channel
-  // (from support@, replies forward to Gmail).
-  const msg = action === 'verify'
-    ? paymentVerifiedEmail(email, name, plan, expiresAt)
-    : paymentRejectedEmail(email, name, note)
-  await sendEmail(msg, 'payments')
-}
-
 export async function POST(req: NextRequest) {
   const auth = await createServerSupabase()
   const { data: { user } } = await auth.auth.getUser()
@@ -88,127 +46,50 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>))
-  const reference = typeof body.reference === 'string' ? body.reference.trim() : ''
-  const action = body.action === 'reject' ? 'reject' : 'verify'
-  const note = typeof body.note === 'string' ? body.note.trim() : ''
-  if (!reference) {
-    return NextResponse.json({ error: 'reference required' }, { status: 400 })
+  const reference = typeof body?.reference === 'string' ? body.reference.trim() : ''
+  const action = body?.action
+  const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 2000) : ''
+  if (!reference || (action !== 'verify' && action !== 'reject')) {
+    return NextResponse.json({ error: 'reference and valid action required' }, { status: 400 })
   }
 
   // Look up the payment.
   const { data: payment, error: payErr } = await service
     .from('manual_payments')
-    .select('id, user_id, user_email, user_name, plan, product, account_type, status')
+    .select('id, user_id, plan, product, account_type')
     .eq('reference', reference)
     .single()
   if (payErr || !payment) {
     return NextResponse.json({ error: 'payment not found' }, { status: 404 })
   }
-  if (payment.status === 'verified' && action === 'verify') {
-    return NextResponse.json({ ok: true, already: true })
-  }
-
-  const now = new Date().toISOString()
-
-  if (action === 'verify') {
-    const { error: updErr } = await service
-      .from('manual_payments')
-      .update({
-        status:      'verified',
-        verified_at: now,
-        verified_by: user.id,
-        admin_note:  note || null,
-      })
-      .eq('id', payment.id)
-    if (updErr) {
-      console.error('[admin/payments/verify] update payment failed:', updErr)
-      return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
-    }
-
-    // Promote pending -> active in one write. Clear pending_plan so the
-    // profile stops advertising a pending request.
-    const { data: current } = await service
-      .from('profiles').select('plan, plan_status, plan_expires_at, updates_until').eq('id', payment.user_id).maybeSingle()
-    const permanent = current?.plan_status === 'active' && !current.plan_expires_at
-    const product = payment.product as 'licence' | 'updates' | string | null
-    let changes: Record<string, unknown>
-    let expiresAt: string | null
-    if (isPassProduct(product)) {
-      const months = PASSES[product].months
-      if (permanent && current?.plan === 'individual') {
-        // Holds access for good (old licence). Never put an end date on it.
-        // A pass buys more months of new datasets; with no limit already,
-        // there is nothing to extend.
-        expiresAt = null
-        changes = current?.updates_until
-          ? { updates_until: accessExpiry(current.updates_until, months), pending_plan: null }
-          : { pending_plan: null }
-      } else {
-        expiresAt = accessExpiry(current?.plan_expires_at, months)
-        changes = {
-          plan: 'individual', account_type: payment.account_type, plan_status: 'active',
-          plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
-          updates_until: null,
-        }
-      }
-    } else if (product === 'updates') {
-      expiresAt = null
-      changes = { updates_until: accessExpiry(current?.updates_until, UPDATE_MONTHS), pending_plan: null }
-    } else if (product === 'licence') {
-      // Someone with permanent access from an earlier plan already has
-      // everything with no limit; buying again leaves that alone.
-      const unlimited = permanent && !current?.updates_until && current?.plan === 'individual'
-      expiresAt = null
-      changes = {
-        plan: 'individual', account_type: payment.account_type, plan_status: 'active',
-        plan_expires_at: null, expiry_reminder_sent_at: null, pending_plan: null,
-        updates_until: unlimited ? null : accessExpiry(current?.updates_until, UPDATE_MONTHS),
-      }
-    } else {
-      expiresAt = permanent ? null : accessExpiry(current?.plan_expires_at)
-      changes = {
-        plan: payment.plan, account_type: payment.account_type, plan_status: 'active',
-        plan_expires_at: expiresAt, expiry_reminder_sent_at: null, pending_plan: null,
-      }
-    }
-    const { error: profErr } = await service
-      .from('profiles')
-      .update(changes)
-      .eq('id', payment.user_id)
-    if (profErr) {
-      console.error('[admin/payments/verify] profile update failed:', profErr)
-      return NextResponse.json({ error: 'payment verified but profile update failed' }, { status: 500 })
-    }
-
-    // fire-and-forget customer email
-    notifyCustomer('verify', payment.user_email, payment.user_name, payment.plan, note, expiresAt)
-    return NextResponse.json({ ok: true, action: 'verified' })
-  }
-
-  // reject
-  const { error: updErr } = await service
-    .from('manual_payments')
-    .update({
-      status:      'rejected',
-      verified_at: now,
-      verified_by: user.id,
-      admin_note:  note || null,
+  const target = action === 'verify' ? 'verified' : 'rejected'
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data: current, error: profileError } = await service
+      .from('profiles').select(GRANT_PROFILE_FIELDS).eq('id', payment.user_id).maybeSingle()
+    if (profileError) return NextResponse.json({ error: 'could not load profile' }, { status: 500 })
+    const { changes, expiresAt } = computeGrant(payment, current)
+    const { data, error } = await service.rpc('decide_manual_payment', {
+      p_reference: reference,
+      p_actor: user.id,
+      p_status: target,
+      p_note: note || null,
+      p_expected: current,
+      p_changes: action === 'verify' ? changes : {},
+      p_expires_at: expiresAt,
     })
-    .eq('id', payment.id)
-  if (updErr) {
-    console.error('[admin/payments/verify] reject payment failed:', updErr)
-    return NextResponse.json({ error: 'could not update payment' }, { status: 500 })
+    if (error) {
+      console.error('[admin/payments/verify] transaction failed', error)
+      return NextResponse.json({ error: 'could not update payment and access' }, { status: 500 })
+    }
+    if (data === 'retry') continue
+    if (data === 'not_found') return NextResponse.json({ error: 'payment not found' }, { status: 404 })
+    if (data === 'conflict') return NextResponse.json({ error: 'payment already decided' }, { status: 409 })
+    if (data === 'profile_missing') return NextResponse.json({ error: 'customer profile missing' }, { status: 409 })
+    if (data !== 'updated' && data !== 'already') {
+      return NextResponse.json({ error: 'unexpected payment result' }, { status: 500 })
+    }
+    after(async () => { await deliverPaymentNotifications(service, String(payment.id)) })
+    return NextResponse.json({ ok: true, action: target, already: data === 'already' })
   }
-
-  // On reject: clear the pending request only. Don't touch the user's
-  // current plan or plan_status — they keep whatever access they had
-  // before submitting. If they had no plan, they remain on the free trial
-  // (or expired-trial 'free') exactly as before.
-  await service
-    .from('profiles')
-    .update({ pending_plan: null })
-    .eq('id', payment.user_id)
-
-  notifyCustomer('reject', payment.user_email, payment.user_name, payment.plan, note)
-  return NextResponse.json({ ok: true, action: 'rejected' })
+  return NextResponse.json({ error: 'account changed during approval, please retry' }, { status: 409 })
 }

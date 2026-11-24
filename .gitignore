@@ -63,3 +63,6 @@ next-env.d.ts
 /data-room/
 
 __pycache__/
+
+# Supabase CLI scratch metadata
+/supabase/.temp/

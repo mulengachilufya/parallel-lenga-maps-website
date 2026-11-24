@@ -244,7 +244,7 @@ function linkify(s: string) {
  * to stop further emails (also sent as List-Unsubscribe).
  */
 export async function sendOutreach(opts: {
-  to: string; subject: string; body: string; signature: string; optoutToken: string; bcc?: string | null
+  to: string; subject: string; body: string; signature: string; optoutToken: string; bcc?: string | null; idempotencyKey?: string
 }): Promise<boolean> {
   const optout = `${APP_URL}/api/sales/optout?t=${opts.optoutToken}`
   const full = `${opts.body.trim()}\n\n${opts.signature.trim()}`
@@ -256,7 +256,7 @@ ${full.split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${linkify(esc(p)).
   return sendEmail({
     to: opts.to, subject: opts.subject, html, text, bcc: opts.bcc ?? undefined,
     headers: { 'List-Unsubscribe': `<${optout}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
-  }, 'sales')
+  }, 'sales', opts.idempotencyKey)
 }
 
 /** Merge fields or [square bracket] gaps still in a message. */
@@ -268,7 +268,7 @@ export const hasPlaceholders = (s: string) => /\{(first_name|company|country|sec
  * only ever called from an admin's own click.
  */
 export async function sendToContact(opts: {
-  account: AccountRow; contactId: unknown; subject: unknown; body: unknown; by: string; meta?: Record<string, unknown>
+  account: AccountRow; contactId: unknown; subject: unknown; body: unknown; by: string; meta?: Record<string, unknown>; idempotencyKey?: string
 }): Promise<{ ok: true; activity: unknown } | { ok: false; res: NextResponse }> {
   const fail = (error: string, status: number, message: string) => ({ ok: false as const, res: jsonError(error, status, message) })
   const { account } = opts
@@ -289,7 +289,7 @@ export async function sendToContact(opts: {
   const ok = await sendOutreach({
     to: contact.email, subject, body: text,
     signature: `${settings.my_name}\n${settings.signature}`, optoutToken: contact.optout_token,
-    bcc: settings.copy_to,
+    bcc: settings.copy_to, idempotencyKey: opts.idempotencyKey,
   })
   if (!ok) {
     void logEvent('error', 'email', 'sales_send_failed', `An outreach email to ${account.name} could not be sent.`, { account: account.id })

@@ -160,8 +160,8 @@ export default function AdminPaymentsPage() {
         setFlash({
           kind: 'ok',
           msg: action === 'verify'
-            ? `Verified. Customer activated and emailed.`
-            : `Rejected. Customer notified to resubmit.`,
+            ? `Verified. Customer access is active and their email is queued.`
+            : `Rejected. The customer notification is queued.`,
         })
         setRejectingRef(null)
         setRejectNote('')

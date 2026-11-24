@@ -20,7 +20,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   FREE_DATASET_LIMIT, cleanPicks, coveredByUpdates, getUserState, type DatasetSlug, type UserState,
 } from './pricing'
-import { getMembership, isOrgActive, listMemberships, type Membership } from './teams'
+import { isOrgActive, isPaidOrgActive, listMemberships, type Membership } from './teams'
 
 export interface Access {
   state:      UserState
@@ -41,11 +41,12 @@ export interface Access {
 }
 
 export async function accessFor(db: SupabaseClient, userId: string, membership?: Membership | null): Promise<Access> {
-  const [{ data: profile }, m] = await Promise.all([
-    db.from('profiles').select('plan, plan_status, plan_expires_at, free_datasets, updates_until').eq('id', userId).maybeSingle(),
-    membership !== undefined ? Promise.resolve(membership) : getMembership(db, userId),
+  const [{ data: profile }, memberships] = await Promise.all([
+    db.from('profiles').select('plan, plan_status, plan_expires_at, free_datasets, updates_until, standalone_team_access, org_id').eq('id', userId).maybeSingle(),
+    listMemberships(db, userId),
   ])
-  const state = getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at)
+  const m = membership === undefined ? memberships.find((item) => item.org_id === profile?.org_id) ?? memberships[0] : membership
+  const personalState = getUserState(profile?.plan, profile?.plan_status, profile?.plan_expires_at)
   const personal = cleanPicks(profile?.free_datasets)
   const plan = (m?.org.plan ?? 'paid') as 'paid' | 'free'
   const team = m ? {
@@ -53,12 +54,10 @@ export async function accessFor(db: SupabaseClient, userId: string, membership?:
     active: isOrgActive(m), picks: plan === 'free' ? await teamDatasets(db, m) : [], left: 0, seats: m.org.seat_count,
   } : null
 
-  // plan 'team' on the profile comes from joining a paid team. It counts as
-  // paid unless every team the person is on is a free one (so opening a
-  // free team never takes away a paid team's access).
-  const teamPlanOnlyFree = state === 'team' && !!m && m.org.plan === 'free'
-    && !(await listMemberships(db, userId)).some((x) => x.org.plan !== 'free')
-  const paid = state !== 'free' && !teamPlanOnlyFree
+  const state = memberships.some(isPaidOrgActive) ? 'team'
+    : personalState === 'individual' ? 'individual'
+    : personalState === 'team' && profile?.standalone_team_access ? 'team' : 'free'
+  const paid = state !== 'free'
   const updatesUntil: string | null = paid && state === 'individual' ? (profile?.updates_until ?? null) : null
   return {
     state: paid ? state : 'free',

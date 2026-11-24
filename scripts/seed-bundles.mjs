@@ -96,6 +96,7 @@ async function seed() {
       feature_count: entry.feature_count ?? null,
       layers:        entry.layers ?? null,
       built_at:      new Date().toISOString(),
+      needs_rebuild_at: null,
     }, { onConflict: 'dataset_id' })
 
     if (error) {
