@@ -1,6 +1,7 @@
 import { after } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { fetchCollection, lencoConfig, type LencoConfig } from '@/lib/lenco'
+import { fetchLipilaCollection, isLipilaReference, lipilaConfig } from '@/lib/lipila'
 import { computeGrant, GRANT_PROFILE_FIELDS } from '@/lib/payments/grant'
 import { deliverPaymentNotifications } from '@/lib/jobs/payment-notifications'
 import { logEvent } from '@/lib/ops/log'
@@ -11,15 +12,21 @@ interface FinalizeResult {
   expiresAt?: string | null
 }
 
-export async function finalizeLencoPayment(db: SupabaseClient, config: LencoConfig, reference: string): Promise<FinalizeResult> {
+export async function finalizeLencoPayment(db: SupabaseClient, config: LencoConfig | null, reference: string): Promise<FinalizeResult> {
   const unavailable: FinalizeResult = { state: 'error', message: 'Could not confirm the payment yet. Check your dashboard shortly.' }
-  const { data: payment, error } = await db.from('lenco_payments').select('id, user_id, granted_at, plan, product')
+  const { data: payment, error } = await db.from('lenco_payments').select('id, user_id, granted_at, plan, product, status')
     .eq('reference', reference).maybeSingle()
   if (error) return unavailable
   if (!payment) return { state: 'unknown', message: 'Payment not found.' }
   if (payment.granted_at) return { state: 'already', message: 'Your payment has already been applied.' }
 
-  const collection = await fetchCollection(reference, config)
+  const isMobile = isLipilaReference(reference)
+  if (isMobile && payment.status === 'failed') return { state: 'failed', message: 'The payment did not go through.' }
+  const mobile = isMobile ? lipilaConfig() : null
+  const collection = isMobile
+    ? mobile && await fetchLipilaCollection(reference, mobile.apiKey)
+    : config && await fetchCollection(reference, config)
+  if (!collection) return unavailable
   const pending: FinalizeResult = { state: 'pending', message: 'Waiting for the payment to be confirmed.' }
   if (!collection.ok) return collection.notFound ? pending : unavailable
   const info = collection.data
@@ -39,17 +46,17 @@ export async function finalizeLencoPayment(db: SupabaseClient, config: LencoConf
     const { data: result, error: grantError } = await db.rpc('complete_lenco_payment', {
       p_reference: reference, p_collection: info.id, p_lenco_reference: info.lencoReference,
       p_type: info.type, p_currency: info.currency,
-      p_amount: typeof info.amount === 'string' || typeof info.amount === 'number' ? String(info.amount) : null,
+      p_amount: typeof info.amount === 'string' || typeof info.amount === 'number' ? String(info.amount) || null : null,
       p_expected: profile, p_changes: changes, p_expires_at: expiresAt,
     })
     if (grantError) {
-      await logEvent('critical', 'payments', 'lenco_grant_failed', 'A confirmed Lenco payment could not be applied.', { reference, error: grantError.message })
+      await logEvent('critical', 'payments', 'lenco_grant_failed', 'A confirmed instant payment could not be applied.', { reference, error: grantError.message })
       return unavailable
     }
     if (result === 'retry') continue
     if (result === 'already') return { state: 'already', message: 'Your payment has already been applied.' }
     if (result === 'mismatch') {
-      await logEvent('critical', 'payments', 'lenco_mismatch', 'A Lenco payment did not match its order.', { reference })
+      await logEvent('critical', 'payments', 'lenco_mismatch', 'An instant payment did not match its order.', { reference })
       return { state: 'failed', message: 'Payment details did not match the order. Contact support with your reference.' }
     }
     if (result !== 'granted') return unavailable
@@ -61,12 +68,16 @@ export async function finalizeLencoPayment(db: SupabaseClient, config: LencoConf
 
 export async function reconcileLencoPayments(db: SupabaseClient): Promise<number> {
   const config = lencoConfig()
-  if (!config) return 0
+  const mobile = lipilaConfig()
+  if (!config && !mobile) return 0
   const now = new Date().toISOString()
-  const { data, error } = await db.from('lenco_payments').select('id, reference, next_check_at')
+  const query = db.from('lenco_payments').select('id, reference, next_check_at')
     .in('status', ['pending', 'paid_unapplied']).is('granted_at', null)
     .gte('created_at', new Date(Date.now() - 7 * 86400_000).toISOString())
     .lte('next_check_at', now).order('next_check_at').limit(15)
+  if (!config) query.like('reference', 'lipila-%')
+  if (!mobile) query.not('reference', 'like', 'lipila-%')
+  const { data, error } = await query
   if (error) throw error
   const results = await Promise.all((data ?? []).map(async (payment) => {
     const { data: claim } = await db.from('lenco_payments')

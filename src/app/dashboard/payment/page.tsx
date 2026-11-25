@@ -30,7 +30,7 @@ import BankTransferPanel from '@/components/BankTransferPanel'
 import LencoPayPanel from '@/components/LencoPayPanel'
 import MobileMoneyManualPanel from '@/components/MobileMoneyManualPanel'
 import { MOBILE_MONEY_NUMBERS } from '@/lib/mobile-money-numbers'
-import { LENCO_MOBILE_MONEY_COUNTRIES, METHOD_LABEL, mobileMoneyAvailableIn, type PayMethod } from '@/lib/payment-methods'
+import { METHOD_LABEL, mobileMoneyAvailableIn, type PayMethod } from '@/lib/payment-methods'
 import { track } from '@/lib/analytics'
 
 function PaymentInner() {
@@ -44,7 +44,8 @@ function PaymentInner() {
   const [email,   setEmail]   = useState('')
   const [name,    setName]    = useState('')
   const [country, setCountry] = useState<string | null>(null)
-  const [instantOn, setInstantOn] = useState(false)
+  const [cardEnabled, setCardEnabled] = useState(false)
+  const [mobileEnabled, setMobileEnabled] = useState(false)
   const [method, setMethod] = useState<PayMethod | null>(null)
 
   useEffect(() => {
@@ -71,12 +72,13 @@ function PaymentInner() {
         .single()
 
       setCountry((profile as { country?: string | null } | null)?.country ?? null)
-      // Is instant payment (Lenco) switched on? If not, the page only offers manual methods.
+      // Check each instant payment method independently.
       try {
         const r = await fetch('/api/payments/lenco/init')
         const j = await r.json()
-        setInstantOn(!!j.enabled)
-      } catch { setInstantOn(false) }
+        setCardEnabled(!!j.enabled)
+        setMobileEnabled(!!j.mobileMoneyEnabled)
+      } catch { setCardEnabled(false); setMobileEnabled(false) }
       setEmail(session.user.email || '')
       setName(profile?.full_name || session.user.user_metadata?.full_name || '')
       setLoading(false)
@@ -97,8 +99,8 @@ function PaymentInner() {
 
   // Which methods can this person use?
   const available: PayMethod[] = [
-    ...(instantOn ? (['card'] as PayMethod[]) : []),
-    ...(instantOn && mobileMoneyAvailableIn(country) ? (['mobile-money'] as PayMethod[]) : []),
+    ...(cardEnabled ? (['card'] as PayMethod[]) : []),
+    ...(mobileEnabled && mobileMoneyAvailableIn(country) ? (['mobile-money'] as PayMethod[]) : []),
     'bank',
     ...(MOBILE_MONEY_NUMBERS.airtel ? (['airtel'] as PayMethod[]) : []),
     ...(MOBILE_MONEY_NUMBERS.mtn ? (['mtn'] as PayMethod[]) : []),
@@ -116,7 +118,7 @@ function PaymentInner() {
         className={`rounded-xl border px-3 py-3 text-left transition-colors ${on ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
         <span className="flex items-center gap-2 text-sm font-semibold text-navy"><Icon size={15} /> {METHOD_LABEL[m].title}</span>
         <span className="block text-[11px] text-gray-500 mt-0.5">
-          {m === 'mobile-money' ? `Airtel or MTN (${LENCO_MOBILE_MONEY_COUNTRIES.join(', ')})` : METHOD_LABEL[m].sub}
+          {METHOD_LABEL[m].sub}
         </span>
       </button>
     )
