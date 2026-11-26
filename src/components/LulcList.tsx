@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Search, Layers, Info } from 'lucide-react'
+import { LULC_CLASSES } from '@/lib/worldcover-legend'
 import type { LulcLayer } from '@/app/api/lulc/route'
 import { useDownloadGate } from '@/contexts/DownloadGateContext'
 
@@ -11,20 +12,6 @@ interface LulcListProps {
   /** UI hint only — Download click still routes through DownloadGate. */
   hasAccess?: boolean
 }
-
-// ESA WorldCover class descriptions shown in the info banner
-const LULC_CLASSES = [
-  { value: 10,  label: 'Tree cover',           color: '#006400' },
-  { value: 20,  label: 'Shrubland',            color: '#FFBB22' },
-  { value: 30,  label: 'Grassland',            color: '#FFFF4C' },
-  { value: 40,  label: 'Cropland',             color: '#F096FF' },
-  { value: 50,  label: 'Built-up',             color: '#FA0000' },
-  { value: 60,  label: 'Bare / sparse veg.',   color: '#B4B4B4' },
-  { value: 80,  label: 'Permanent water',      color: '#0064C8' },
-  { value: 90,  label: 'Herbaceous wetland',   color: '#0096A0' },
-  { value: 95,  label: 'Mangroves',            color: '#00CF75' },
-  { value: 100, label: 'Moss / lichen',        color: '#FAE6A0' },
-]
 
 export default function LulcList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -163,7 +150,7 @@ export default function LulcList({
           ))}
         </div>
         <p className="text-[10px] text-gray-400 mt-2.5">
-          Pixel value 255 = NoData. Open in QGIS and apply a paletted/unique values renderer for instant visualization.
+          Use the raster’s declared NoData value. The Lenga Maps QGIS plugin applies this legend automatically.
         </p>
       </div>
 
@@ -171,11 +158,9 @@ export default function LulcList({
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 flex items-start gap-2.5">
         <Info size={14} className="text-amber-700 flex-shrink-0 mt-0.5" />
         <div className="text-[11px] text-amber-900 leading-relaxed">
-          <span className="font-semibold">Each download saves two files</span> — a{' '}
-          <code className="font-mono bg-amber-100 px-1 rounded">.tif</code> raster and a{' '}
-          <code className="font-mono bg-amber-100 px-1 rounded">.tif.aux.xml</code> sidecar
-          containing the colour table and class names (Tree cover, Cropland, …). Keep both
-          in the same folder before opening in QGIS / ArcGIS so the attribute table loads.
+          <span className="font-semibold">Downloads include a GeoTIFF.</span>{' '}
+          When an <code className="font-mono bg-amber-100 px-1 rounded">.tif.aux.xml</code> file
+          also downloads, keep it beside the raster so desktop GIS can read its metadata.
         </div>
       </div>
 
