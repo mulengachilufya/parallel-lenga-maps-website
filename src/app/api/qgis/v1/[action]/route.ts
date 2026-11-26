@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 import { DATASETS, findDataset, getDatasetBundle, listFilesForDataset, readCatalogFiles, type ApiFile } from '@/lib/api-datasets'
 import { CATALOG } from '@/lib/catalog'
 import { BUNDLE_DATASETS, DATASET_SECTIONS, type DatasetSectionId } from '@/lib/dataset-sections'
+import { LULC_CLASSES } from '@/lib/worldcover-legend'
 import { objectMetadata } from '@/lib/r2'
 import { COUNTRIES, isValidCountry } from '@/lib/countries'
 import { callerAccess, signDatasetFile } from '@/lib/dataset-access'
@@ -296,7 +297,8 @@ export async function POST(req: NextRequest, { params }: Context) {
       sidecarKey && sidecar?.ContentLength ? signDatasetFile(sidecarKey, { expiresIn: 900 }) : null,
     ])
     return json({ download_url: downloadUrl, bytes: object.ContentLength,
-      sidecar_url: sidecarUrl, sidecar_bytes: sidecar?.ContentLength })
+      sidecar_url: sidecarUrl, sidecar_bytes: sidecar?.ContentLength,
+      legend: dataset.id === 'lulc' ? LULC_CLASSES : undefined })
   } catch {
     return fail(503, 'The catalog is temporarily unavailable. Please try again.')
   }
