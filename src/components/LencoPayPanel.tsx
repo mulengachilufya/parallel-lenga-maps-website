@@ -1,16 +1,5 @@
 'use client'
 
-/**
- * LencoPayPanel - instant payment by card or mobile money through Lenco.
- *
- * Flow (nothing here is trusted by the server, it re-checks with Lenco):
- *   1. POST /api/payments/lenco/init    -> server picks the price, makes a
- *                                          pending row, returns widget details
- *   2. Lenco's popup widget takes the payment (card form, or the phone prompt)
- *   3. POST /api/payments/lenco/verify  -> server asks Lenco "did it arrive?"
- *                                          and, only if yes, grants the pass
- *   4. If Lenco is still confirming, we ask again every few seconds.
- */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, Lock } from 'lucide-react'
@@ -47,16 +36,24 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
   const router = useRouter()
   const [phase, setPhase] = useState<Phase>('idle')
   const [message, setMessage] = useState('')
+  const [phone, setPhone] = useState('')
+  const [pendingReference, setPendingReference] = useState<string | null>(null)
+  const mobileAttempt = useRef<string | null>(null)
+  const inFlight = useRef(false)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const unmounted = useRef(false)
-  useEffect(() => () => { unmounted.current = true; if (pollTimer.current) clearTimeout(pollTimer.current) }, [])
+  useEffect(() => {
+    unmounted.current = false
+    return () => { unmounted.current = true; if (pollTimer.current) clearTimeout(pollTimer.current) }
+  }, [])
 
   const isCard = channel === 'card'
 
-  /** Ask our server (which asks Lenco). Retries while the payment is pending. */
+  /** Ask the server to verify directly with the provider. */
   const verify = useCallback(async function verify(reference: string, attempt = 0): Promise<void> {
     if (unmounted.current) return
-    setPhase('verifying'); setMessage('Confirming your payment…')
+    setPhase('verifying')
+    setMessage(isCard ? 'Confirming your payment…' : 'Approve the payment prompt on your phone. We’re checking for confirmation.')
     let result: VerifyResult | null = null
     try {
       const res = await fetch('/api/payments/lenco/verify', {
@@ -65,11 +62,12 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
       result = await res.json()
     } catch { /* network blip: treated like pending below */ }
 
+    if (unmounted.current) return
     if (result?.state === 'granted' || result?.state === 'already') {
       setPhase('success'); setMessage(result.message); return
     }
     if (result?.state === 'failed') {
-      setPhase('error'); setMessage(result.message); return
+      mobileAttempt.current = null; setPendingReference(null); setPhase('error'); setMessage(result.message); return
     }
     if (attempt < 10) {
       pollTimer.current = setTimeout(() => void verify(reference, attempt + 1), 4000)
@@ -77,16 +75,29 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
     }
     setPhase('error')
     setMessage('We have not had confirmation yet. If you paid, your pass will switch on automatically when it is confirmed. Check your dashboard in a few minutes, or contact us with your reference: ' + reference)
-  }, [])
+  }, [isCard])
 
   async function start() {
+    if (inFlight.current) return
+    inFlight.current = true
+    if (pendingReference) {
+      try { await verify(pendingReference) } finally { inFlight.current = false }
+      return
+    }
+    if (!isCard) mobileAttempt.current ??= `lipila-${crypto.randomUUID()}`
     setPhase('starting'); setMessage('')
     try {
       const res = await fetch('/api/payments/lenco/init', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product, channel }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product, channel, phone, reference: mobileAttempt.current }),
       })
       const j = await res.json()
       if (!res.ok) { setPhase('error'); setMessage(j.error ?? 'Could not start the payment.'); return }
+
+      if (!isCard) {
+        setPendingReference(j.reference)
+        await verify(j.reference)
+        return
+      }
 
       await loadWidget(j.widgetUrl)
       if (!window.LencoPay) throw new Error('Could not load the payment window.')
@@ -111,6 +122,8 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
       })
     } catch (err) {
       setPhase('error'); setMessage(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      inFlight.current = false
     }
   }
 
@@ -136,9 +149,18 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
         <p className="text-sm text-gray-600 leading-relaxed">
           {isCard
             ? 'Pay with a Mastercard or Visa card in a secure popup. Your pass switches on the moment the payment is confirmed.'
-            : 'Pay with Airtel or MTN mobile money. You will get a prompt on your phone to approve with your PIN, and your pass switches on right after.'}
+            : 'Pay with Zambian Airtel, MTN or Zamtel mobile money. You will get a prompt on your phone to approve with your PIN, and your pass switches on right after.'}
         </p>
       </div>
+
+      {!isCard && (
+        <label className="mb-4 block text-sm font-semibold text-navy">
+          Zambian mobile money number
+          <input type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)}
+            disabled={busy || !!pendingReference} placeholder="+260"
+            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 font-normal" />
+        </label>
+      )}
 
       {message && (
         <div className={`flex items-start gap-2 text-sm rounded-xl p-3 mb-4 ${phase === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-800'}`}>
@@ -147,13 +169,13 @@ export default function LencoPayPanel({ product, channel, amountLabel }: {
         </div>
       )}
 
-      <button type="button" onClick={start} disabled={busy}
+      <button type="button" onClick={start} disabled={busy || (!isCard && !phone.trim())}
         className="w-full inline-flex items-center justify-center gap-2 bg-[#F5B800] text-[#0D2B45] font-bold text-sm py-3.5 rounded-xl disabled:opacity-60">
         {busy ? <Loader2 size={16} className="animate-spin" /> : <Lock size={15} />}
-        {phase === 'starting' ? 'Starting…' : phase === 'paying' ? 'Complete the payment in the popup…' : phase === 'verifying' ? 'Confirming…' : `Pay ${amountLabel}`}
+        {phase === 'starting' ? 'Starting…' : phase === 'paying' ? 'Complete the payment in the popup…' : phase === 'verifying' ? 'Confirming…' : pendingReference ? 'Check payment status' : `Pay ${amountLabel}`}
       </button>
       <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
-        Charged in kwacha at today&apos;s rate where needed. {LICENCE_TERMS}
+        Kwacha charges use Lenga’s checkout exchange rate. {LICENCE_TERMS}
       </p>
     </div>
   )
