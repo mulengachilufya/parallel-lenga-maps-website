@@ -20,6 +20,7 @@ import {
   FREE_DATASET_LIMIT, PLANS, PASS_MONTH_PRICE, coveredByUpdates, PLAN_ORDER, PLAN_CARD_UI, getUserState, planCtaHref,
   type TierSlug, type UserState
 } from '@/lib/pricing'
+import { BUNDLE_DATASETS, DATASET_SECTIONS, type DatasetSectionId } from '@/lib/dataset-sections'
 import { DATASETS, LIVE_DATASET_ROUTES, sortDatasetsByTier } from '@/lib/supabase'
 import { track } from '@/lib/analytics'
 
@@ -49,126 +50,30 @@ const PLAN_STYLE: Record<string, {
 // Every live dataset section maps to a component.
 // The component always renders — access control happens inside
 // each component's download button via DownloadGateContext.
-const SECTIONS: Record<string, {
-  title: string
-  subtitle?: string
-  component: () => React.ReactNode
-}> = {
-  'admin-boundaries': {
-    title: '🗺️ Administrative Boundaries',
-    subtitle: 'geoBoundaries · Shapefile, GeoJSON, KML · All 54 African countries',
-    component: () => <AdminBoundariesList />,
-  },
-  'rivers': {
-    title: '🌊 River Networks',
-    subtitle: 'HydroSHEDS HydroRIVERS v1.0 · full network or main rivers · GeoPackage per country',
-    component: () => <RiversList />,
-  },
-  'rainfall': {
-    title: '🌧️ Rainfall Data',
-    subtitle: 'CHIRPS v3.0 1981–2025 + yearly GeoTIFF · CHIRPS v2.0 archive below',
-    component: () => <><CatalogList slug="rainfall" hideWhenEmpty /><div className="mt-8"><RainfallClimateList layerType="rainfall" /></div></>,
-  },
-  'temperature': {
-    title: '🌡️ Temperature Data',
-    subtitle: 'CHELSA v2.1 · 1981–2010 annual + monthly · GeoTIFF · ~1 km',
-    component: () => <RainfallClimateList layerType="temperature" />,
-  },
-  'drought-index': {
-    title: '🔥 Drought Index (SPI-12)',
-    subtitle: 'CHIRPS-derived SPI · GeoTIFF (ZIP) · 0.05° (~5 km)',
-    component: () => <RainfallClimateList layerType="drought_index" />,
-  },
-  'aquifer': {
-    title: '💧 Transboundary Aquifers',
-    subtitle: 'IGRAC GGIS · GeoPackage · All 54 African countries',
-    component: () => <AquiferList />,
-  },
-  'protected-areas': {
-    title: '🐘 Protected Areas & Wildlife',
-    subtitle: 'OpenStreetMap · ODbL · Shapefile (ZIP) per country',
-    component: () => <ProtectedAreasList />,
-  },
-  'watersheds': {
-    title: '🗺️ Watersheds & Catchments',
-    subtitle: 'WWF / HydroSHEDS HydroBASINS Level 8 · detailed sub-catchments · GeoPackage per country',
-    component: () => <WatershedsList />,
-  },
-  'population': {
-    title: '🏘️ Population & Settlements',
-    subtitle: 'HDX COD-PS (UN OCHA) · Shapefile (ZIP) · ADM1/ADM2',
-    component: () => <><PopulationList /><div className="mt-8"><CatalogList slug="population" hideWhenEmpty /></div></>,
-  },
-  'roads': {
-    title: '🛣️ Roads & Infrastructure',
-    subtitle: 'Paved / unpaved road surface (FRST 2025) with district summary · Natural Earth main roads below',
-    component: () => <><CatalogList slug="roads" hideWhenEmpty /><div className="mt-8"><RoadsList /></div></>,
-  },
-  'lulc': {
-    title: '🌿 Land Use / Land Cover',
-    subtitle: 'ESA WorldCover 2021 · GeoTIFF (10m) per country',
-    component: () => <LulcList />,
-  },
-  'lakes': {
-    title: '🏞️ Lakes',
-    subtitle: 'HydroLAKES · GeoPackage per country',
-    component: () => <HydrologyList layerType="lakes" />,
-  },
-  'soil': {
-    title: '🌾 Soil Classification',
-    subtitle: 'ISRIC SoilGrids v2.0 · GeoTIFF (250m) per country',
-    component: () => <SoilList />,
-  },
-  'crop-production': {
-    title: '🌽 Crop Production',
-    subtitle: 'MapSPAM SPAM 2020 v2r2 · 46 crops · GeoPackage per country',
-    component: () => <CatalogList slug="crop-production" />,
-  },
-  'tree-cover-loss': {
-    title: '🌳 Tree Cover Loss',
-    subtitle: 'UMD / Google Global Forest Change v1.13 · 2001–2025 · GeoPackage per country',
-    component: () => <CatalogList slug="tree-cover-loss" />,
-  },
-  'soil-nutrients': {
-    title: '🧪 Soil Nutrients & pH',
-    subtitle: 'iSDAsoil · topsoil 0–20 cm · GeoPackage per country',
-    component: () => <CatalogList slug="soil-nutrients" />,
-  },
-  'mining-geology': {
-    title: '⛏️ Mines & Geology',
-    subtitle: 'USGS · mineral industries & infrastructure, surface geology · GeoPackage per country',
-    component: () => <CatalogList slug="mining-geology" />,
-  },
-  'solar-wind': {
-    title: '☀️ Solar & Wind',
-    subtitle: 'Global Solar Atlas 2026 · Global Wind Atlas 4.0 · GeoTIFF per country',
-    component: () => <CatalogList slug="solar-wind" />,
-  },
-  'crop-suitability': {
-    title: '🌱 Crop Suitability',
-    subtitle: 'FAO / IIASA GAEZ v5 · 29 crops · low and high input (maize: high only) · GeoTIFF + GeoPackage',
-    component: () => <CatalogList slug="crop-suitability" />,
-  },
-  'built-up': {
-    title: '🏙️ Built-up Area',
-    subtitle: 'EU JRC GHSL · 1975–2020 observed, 2025 projected · GeoTIFF + GeoPackage',
-    component: () => <CatalogList slug="built-up" />,
-  },
-  'country-profiles': {
-    title: '📄 Country Data Profiles (PDF)',
-    subtitle: 'Ready-made reports, no GIS software needed · one PDF per country',
-    component: () => <CatalogList slug="country-profiles" />,
-  },
-  'power-plants': {
-    title: '🏭 Power Plants',
-    subtitle: 'OpenStreetMap via Overture Maps · energy source, capacity, operator · GeoPackage per country',
-    component: () => <CatalogList slug="power-plants" />,
-  },
-  'rivers-hydro': {
-    title: '🌊 HydroRIVERS',
-    subtitle: 'WWF / HydroSHEDS · GeoPackage, GeoJSON per country',
-    component: () => <HydrologyList layerType="rivers" />,
-  },
+const SECTIONS: Record<DatasetSectionId, () => React.ReactNode> = {
+  'admin-boundaries': () => <AdminBoundariesList />,
+  'rivers': () => <RiversList />,
+  'rainfall': () => <><CatalogList slug="rainfall" hideWhenEmpty /><div className="mt-8"><RainfallClimateList layerType="rainfall" /></div></>,
+  'temperature': () => <RainfallClimateList layerType="temperature" />,
+  'drought-index': () => <RainfallClimateList layerType="drought_index" />,
+  'aquifer': () => <AquiferList />,
+  'protected-areas': () => <ProtectedAreasList />,
+  'watersheds': () => <WatershedsList />,
+  'population': () => <><PopulationList /><div className="mt-8"><CatalogList slug="population" hideWhenEmpty /></div></>,
+  'roads': () => <><CatalogList slug="roads" hideWhenEmpty /><div className="mt-8"><RoadsList /></div></>,
+  'lulc': () => <LulcList />,
+  'lakes': () => <HydrologyList layerType="lakes" />,
+  'soil': () => <SoilList />,
+  'crop-production': () => <CatalogList slug="crop-production" />,
+  'tree-cover-loss': () => <CatalogList slug="tree-cover-loss" />,
+  'soil-nutrients': () => <CatalogList slug="soil-nutrients" />,
+  'mining-geology': () => <CatalogList slug="mining-geology" />,
+  'solar-wind': () => <CatalogList slug="solar-wind" />,
+  'crop-suitability': () => <CatalogList slug="crop-suitability" />,
+  'built-up': () => <CatalogList slug="built-up" />,
+  'country-profiles': () => <CatalogList slug="country-profiles" />,
+  'power-plants': () => <CatalogList slug="power-plants" />,
+  'rivers-hydro': () => <HydrologyList layerType="rivers" />,
 }
 
 // Map LIVE_DATASET_ROUTES section params to SECTIONS keys
@@ -448,11 +353,7 @@ function MainPanel({ step, title, text, cta, href, delay = 0, children }: {
 // LULC (10 m), soil (250 m) and lakes are deliberately excluded — the first two
 // are too large to host as a single continental file (per-country only), and
 // lakes has no source data yet.
-const BUNDLE_DATASETS = new Set<string>([
-  'admin-boundaries', 'aquifer', 'population', 'protected-areas',
-  'rivers', 'roads', 'watersheds', 'lakes',
-  'rainfall', 'drought-index',
-])
+
 
 function ContinentalBundle({ datasetSlug, userState, allowed }: { datasetSlug: string; userState: UserState; allowed: boolean }) {
   const [busy,     setBusy]     = useState(false)
@@ -513,10 +414,10 @@ function ContinentalBundle({ datasetSlug, userState, allowed }: { datasetSlug: s
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-navy">
-              Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">All 54 countries</span>
+              Continental bundle <span className="text-[10px] uppercase tracking-wider text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded ml-1">Africa-wide</span>
             </p>
             <p className="text-xs text-gray-600 leading-snug mt-0.5">
-              All 54 countries merged into one file — attribute tables included, ready to drop straight into QGIS. No more downloading countries one at a time.
+              Available coverage combined into one file, ready to open in QGIS.
             </p>
             {result && (
               <p className="text-xs text-green-700 mt-2 font-medium">
@@ -577,7 +478,7 @@ function BundleMaxGate({ datasetSlug, onClose }: { datasetSlug: string; onClose:
         </div>
 
         <p className="text-blue-300 text-sm leading-relaxed mb-5">
-          Downloading all 54 countries as one ready-for-QGIS file needs a paid plan, or this
+          Downloading the continental bundle needs a paid plan, or this
           dataset as one of your 3 free datasets (choose them on your dashboard, or with any
           download button on this page). Paid plans: every dataset, every country.
         </p>
@@ -608,7 +509,8 @@ function DashboardContent() {
   const router      = useRouter()
   const params      = useSearchParams()
   const sectionKey  = params.get('section')
-  const sectionData = sectionKey ? SECTIONS[ROUTE_TO_SECTION[sectionKey] ?? sectionKey] : null
+  const sectionId = sectionKey ? ROUTE_TO_SECTION[sectionKey] ?? sectionKey : ''
+  const sectionData = Object.hasOwn(DATASET_SECTIONS, sectionId) ? DATASET_SECTIONS[sectionId as DatasetSectionId] : null
 
   const [loading,   setLoading]   = useState(true)
   const [userState, setUserState] = useState<UserState>('free')
@@ -799,9 +701,9 @@ function DashboardContent() {
           </Link>
 
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-navy">{sectionData.title}</h1>
-            {sectionData.subtitle && (
-              <p className="text-xs text-gray-400 mt-1">{sectionData.subtitle}</p>
+            <h1 className="text-2xl font-bold text-navy">{sectionData.icon} {sectionData.name}</h1>
+            {sectionData.description && (
+              <p className="text-xs text-gray-400 mt-1">{sectionData.description}</p>
             )}
             {isFree && sectionKey && canGet(sectionKey) && (
               <div className="mt-3 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2 text-sm text-green-800">
@@ -830,7 +732,7 @@ function DashboardContent() {
           )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            {sectionData.component()}
+            {SECTIONS[sectionId as DatasetSectionId]()}
           </div>
           <div className="mt-6"><RequestDataCta tone="light" /></div>
         </div>
