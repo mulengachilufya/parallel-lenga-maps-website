@@ -492,10 +492,11 @@ function adminClient(): SupabaseClient {
 export async function listFilesForDataset(
   spec:        DatasetSpec,
   country?:    string | null,
+  includeReports = false,
 ): Promise<ApiFile[]> {
   const supabase = adminClient()
   // Datasets that live only in catalog_files.
-  if (spec.table === 'catalog_files') return listCatalogFiles(spec, country)
+  if (spec.table === 'catalog_files') return listCatalogFiles(spec, country, includeReports)
   let q = supabase.from(spec.table).select('*')
   if (spec.layer_type) q = q.eq('layer_type', spec.layer_type)
 
@@ -525,7 +526,7 @@ export async function listFilesForDataset(
 
   const rows = await readPages((from, to) => q.order('id').range(from, to), spec.id)
   const files = rows.map(spec.toFile)
-  return spec.catalog ? [...await listCatalogFiles(spec, country), ...files] : files
+  return spec.catalog ? [...await listCatalogFiles(spec, country, includeReports), ...files] : files
 }
 
 async function readPages<T>(
@@ -551,8 +552,8 @@ export async function readCatalogFiles(slug: string, country?: string | null, in
   return readPages((from, to) => query.range(from, to), slug)
 }
 
-async function listCatalogFiles(spec: DatasetSpec, country?: string | null): Promise<ApiFile[]> {
-  const rows = await readCatalogFiles(spec.catalog ?? spec.id, country, false)
+async function listCatalogFiles(spec: DatasetSpec, country?: string | null, includeReports = false): Promise<ApiFile[]> {
+  const rows = await readCatalogFiles(spec.catalog ?? spec.id, country, includeReports)
   const toFile = spec.table === 'catalog_files' ? spec.toFile : catalogFile(spec.source)
   return rows.map((row) => toFile({ ...row }))
 }

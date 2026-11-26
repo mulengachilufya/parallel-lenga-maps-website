@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto'
 import { createClient, type Session } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
-import { DATASETS, findDataset, listFilesForDataset, readCatalogFiles, type ApiFile } from '@/lib/api-datasets'
+import { DATASETS, findDataset, getDatasetBundle, listFilesForDataset, readCatalogFiles, type ApiFile } from '@/lib/api-datasets'
+import { CATALOG } from '@/lib/catalog'
+import { BUNDLE_DATASETS, DATASET_SECTIONS, type DatasetSectionId } from '@/lib/dataset-sections'
+import { objectMetadata } from '@/lib/r2'
 import { COUNTRIES, isValidCountry } from '@/lib/countries'
 import { callerAccess, signDatasetFile } from '@/lib/dataset-access'
 import { canDownload, type Access } from '@/lib/entitlements'
@@ -116,14 +119,17 @@ async function verifiedUser(req: NextRequest) {
   return data.user ? { user: data.user, token: match[1] } : null
 }
 
-const report = {
-  id: 'country-profiles', name: 'Country profiles', category: 'reports',
-  description: 'Download a country profile as a PDF report.', source: 'Lenga Maps',
-}
+const report = { id: 'country-profiles', category: 'reports', source: 'Lenga Maps' }
 
-const datasets = [...DATASETS, report].map(({ id, name, category, description, source }) => ({
-  id, name, category, description, source, pickable: FREE_PICKABLE.includes(id as DatasetSlug),
-}))
+const datasets = [...DATASETS, report].map(({ id, category, source }) => {
+  const section = DATASET_SECTIONS[id as DatasetSectionId]
+  const facts = CATALOG[id as DatasetSlug]
+  return {
+    id, name: section.name, category, description: section.description,
+    facts: facts?.facts ?? [], note: facts?.note, source: facts?.credit ?? source,
+    pickable: FREE_PICKABLE.includes(id as DatasetSlug),
+  }
+})
 
 function account(access: Access, email: string) {
   return {
@@ -132,15 +138,29 @@ function account(access: Access, email: string) {
   }
 }
 
+const countryAliases: Record<string, string> = {
+  'Central Africa Republic': 'Central African Republic',
+  'Central African Rep': 'Central African Republic',
+  'Cote dIvoire': 'Côte d’Ivoire', "Cote d'Ivoire": 'Côte d’Ivoire', 'Côte d_Ivoire': 'Côte d’Ivoire',
+  'Dem Rep Congo': 'Democratic Republic of the Congo',
+  'Democratic Republic of Congo': 'Democratic Republic of the Congo',
+  'DR Congo': 'Democratic Republic of the Congo',
+  'Eq Guinea': 'Equatorial Guinea', 'eSwatini': 'Eswatini',
+  'Guinea Bissau': 'Guinea-Bissau', 'S Sudan': 'South Sudan', 'W Sahara': 'Western Sahara',
+}
+
 function publicFile(file: ApiFile) {
-  const name = file.r2_key.split('/').at(-1) ?? ''
+  const objectName = file.r2_key.split('/').at(-1) ?? ''
+  const name = typeof file.meta?.file_name === 'string' && file.meta.file_name ? file.meta.file_name : objectName
   const admin = file.meta?.admin_level
+  const start = file.meta?.year_start
+  const end = file.meta?.year_end
+  const label = file.meta?.label ?? (admin != null ? `Admin level ${admin}`
+    : start != null && end != null ? `${file.meta?.variable_name ?? file.source} · ${start}–${end}` : name)
   return {
     id: createHash('sha256').update(file.r2_key).digest('hex'),
-    name, country: file.country_name, size_mb: file.file_size_mb,
-    format: file.file_format,
-    label: file.meta?.label ?? (admin != null ? `Admin level ${admin}` : name),
-    source: file.source,
+    name, country: file.country_name, region: countryAliases[file.country_name] ?? file.country_name,
+    size_mb: file.file_size_mb, format: file.file_format, label, source: file.source,
   }
 }
 
@@ -148,29 +168,49 @@ async function reportsFor(slug: string, source: string): Promise<ApiFile[]> {
   return (await readCatalogFiles(slug)).map(row => ({
     country_iso3: row.iso3, country_name: row.country, r2_key: row.r2_key,
     file_format: row.file_format, file_size_mb: row.file_size_mb,
-    source, meta: { label: row.label },
+    source, meta: { label: row.label, file_name: row.file_name },
   }))
 }
 
-async function filesFor(id: unknown) {
-  if (id === report.id) return reportsFor(report.id, report.source)
-  const spec = typeof id === 'string' ? findDataset(id) : undefined
-  if (!spec) return null
+async function countryFiles(spec: NonNullable<ReturnType<typeof findDataset>>): Promise<ApiFile[]> {
+  const main = listFilesForDataset(spec, null, true)
   if (spec.id === 'rivers') {
-    const [full, main] = await Promise.all([
-      listFilesForDataset(spec),
-      listFilesForDataset({ ...spec, layer_type: 'rivers_main' }),
+    const [full, lighter] = await Promise.all([
+      main, listFilesForDataset({ ...spec, layer_type: 'rivers_main' }),
     ])
     return [
       ...full.map(file => ({ ...file, meta: { ...file.meta, label: 'Full river network' } })),
-      ...main.map(file => ({ ...file, meta: { ...file.meta, label: 'Main rivers' } })),
+      ...lighter.map(file => ({ ...file, meta: { ...file.meta, label: 'Main rivers' } })),
     ]
   }
   if (spec.id === 'soil' || spec.id === 'temperature') {
-    const [gis, reports] = await Promise.all([listFilesForDataset(spec), reportsFor(spec.id, spec.source)])
+    const [gis, reports] = await Promise.all([main, reportsFor(spec.id, spec.source)])
     return [...gis, ...reports]
   }
-  return listFilesForDataset(spec)
+  return main
+}
+
+async function filesFor(id: unknown): Promise<ApiFile[] | null> {
+  if (id === report.id) return reportsFor(report.id, report.source)
+  const spec = typeof id === 'string' ? findDataset(id) : undefined
+  if (!spec) return null
+  const [files, bundle] = await Promise.all([
+    countryFiles(spec),
+    BUNDLE_DATASETS.has(spec.id) ? getDatasetBundle(spec.id) : null,
+  ])
+  const credit = CATALOG[spec.id as DatasetSlug]?.credit
+  const result = files.map(file => ({
+    ...file,
+    source: credit && file.meta?.file_name ? credit : file.source,
+    file_format: spec.id === 'admin-boundaries' && file.r2_key.toLowerCase().endsWith('.zip')
+      ? 'Boundary archive (ZIP)' : file.file_format,
+  }))
+  if (!bundle) return result
+  return [{
+    country_iso3: '', country_name: 'Africa-wide', r2_key: bundle.r2_key,
+    file_size_mb: Number(bundle.file_size_mb), file_format: bundle.file_format, source: spec.source,
+    meta: { label: `Continental bundle · ${bundle.file_count} source files` },
+  }, ...result]
 }
 
 export async function GET(req: NextRequest, { params }: Context) {
@@ -246,8 +286,17 @@ export async function POST(req: NextRequest, { params }: Context) {
     const files = await filesFor(dataset.id)
     const file = files?.find(f => f.r2_key && publicFile(f).id === data.file)
     if (!file) return fail(404, 'That file is no longer listed. Refresh the dataset.')
-    const downloadUrl = await signDatasetFile(file.r2_key, { expiresIn: 900 })
-    return json({ download_url: downloadUrl })
+    const sidecarKey = dataset.id === 'lulc' ? file.r2_key + '.aux.xml' : null
+    const [object, sidecar] = await Promise.all([
+      objectMetadata(file.r2_key), sidecarKey ? objectMetadata(sidecarKey) : null,
+    ])
+    if (!object?.ContentLength) return fail(404, 'This file is unavailable in storage. Refresh the dataset and try another file.')
+    const [downloadUrl, sidecarUrl] = await Promise.all([
+      signDatasetFile(file.r2_key, { expiresIn: 900 }),
+      sidecarKey && sidecar?.ContentLength ? signDatasetFile(sidecarKey, { expiresIn: 900 }) : null,
+    ])
+    return json({ download_url: downloadUrl, bytes: object.ContentLength,
+      sidecar_url: sidecarUrl, sidecar_bytes: sidecar?.ContentLength })
   } catch {
     return fail(503, 'The catalog is temporarily unavailable. Please try again.')
   }

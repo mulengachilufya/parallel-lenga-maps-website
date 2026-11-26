@@ -7,7 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from './supabase-server'
 import { accessFor, canDownload, type Access } from './entitlements'
-import { getDownloadUrl } from './r2'
+import { getDownloadUrl, objectMetadata } from './r2'
 import type { DatasetSlug } from './pricing'
 
 export type { DatasetSlug }
@@ -60,7 +60,9 @@ export async function withDatasetDownloads<T extends { r2_key: string }>(
     try {
       const download_url = await signDatasetFile(row.r2_key, { fileName: options.fileName?.(row) })
       if (!options.sidecar) return { ...row, download_url }
-      const sidecar_url = await signDatasetFile(options.sidecar(row)).catch(() => undefined)
+      const key = options.sidecar(row)
+      const metadata = await objectMetadata(key).catch(() => null)
+      const sidecar_url = metadata?.ContentLength ? await signDatasetFile(key).catch(() => undefined) : undefined
       return { ...row, download_url, sidecar_url }
     } catch (error) {
       console.warn('[datasets] signing failed', { key: row.r2_key, error })
